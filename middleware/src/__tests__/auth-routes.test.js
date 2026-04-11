@@ -152,9 +152,13 @@ describe('auth routes', () => {
             username: 'jnovak',
             role: 'editor',
             auth_provider: 'ad',
+            preferred_lang: 'cs',
         }));
         expect(response.body.access_token).toBeTruthy();
         expect(response.body.refresh_token).toBeTruthy();
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_locale=cs(?:;|$)/i),
+        ]));
     });
 
     test.each([
@@ -276,11 +280,13 @@ describe('auth routes', () => {
         expect(response.body.user).toEqual(expect.objectContaining({
             username: 'localadmin',
             role: 'admin',
+            preferred_lang: 'cs',
         }));
         expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
             expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),
             expect.stringMatching(/^sc_refresh_token=.*HttpOnly.*SameSite=Lax/i),
-            ]));
+            expect.stringMatching(/^sc_locale=cs(?:;|$)/i),
+        ]));
     });
 
     test('POST /login exposes must_change_password when first-login enforcement is enabled', async () => {
@@ -327,6 +333,7 @@ describe('auth routes', () => {
         expect(response.body.user).toEqual(expect.objectContaining({
             username: 'localadmin',
             must_change_password: true,
+            preferred_lang: 'cs',
         }));
     });
 
@@ -369,7 +376,26 @@ describe('auth routes', () => {
         expect(response.body).toEqual(expect.objectContaining({
             username: 'admin',
             must_change_password: true,
+            preferred_lang: 'cs',
         }));
+    });
+
+    test('PUT /preferences normalizes preferred_lang and refreshes locale cookie', async () => {
+        const response = await request(buildApp())
+            .put('/api/v1/auth/preferences')
+            .send({
+                preferred_lang: 'en-US',
+                preferred_theme: 'light',
+            });
+
+        expect(response.status).toBe(200);
+        expect(queryMock).toHaveBeenCalledWith(
+            'UPDATE platform.users SET preferred_lang = $2, preferred_theme = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [1, 'en', 'light']
+        );
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_locale=en(?:;|$)/i),
+        ]));
     });
 
     test('POST /change-password clears first-login enforcement flag after success', async () => {
@@ -526,6 +552,92 @@ describe('auth routes', () => {
             process.env.DEBUG_BYPASS_AUTH = original;
             jest.resetModules();
         }
+    });
+
+    test('requireAuth normalizes preferred_lang on req.user', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+            auth: {
+                sso: {
+                    enabled: true,
+                    header: 'x-remote-user',
+                    displayNameHeader: 'x-remote-name',
+                    emailHeader: 'x-remote-email',
+                    givenNameHeader: 'x-remote-given-name',
+                    surnameHeader: 'x-remote-surname',
+                    departmentHeader: 'x-remote-department',
+                    trustedProxyHeader: TRUSTED_PROXY_HEADER,
+                    trustedProxySharedSecret: TRUSTED_PROXY_SECRET,
+                },
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: jest.fn().mockResolvedValue({
+                    rows: [{
+                        id: 1,
+                        username: 'admin',
+                        display_name: 'Admin',
+                        role: 'admin',
+                        is_active: true,
+                        auth_provider: 'local',
+                        preferred_lang: 'cze',
+                        preferred_theme: 'dark',
+                    }],
+                }),
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(async () => ({
+                'auth.admin_must_change_password': { config_value: 'false' },
+            })),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 1 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        expect(next).toHaveBeenCalled();
+                        expect(res.status).not.toHaveBeenCalled();
+                        expect(req.user.preferred_lang).toBe('cs');
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
     });
 
     test.each([

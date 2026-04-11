@@ -8,6 +8,7 @@ const jwt        = require('jsonwebtoken');
 const config     = require('../config');
 const { getPlatformPool } = require('../db/pool');
 const { getConfigValues } = require('../utils/platform-config');
+const { normalizeLocale } = require('../../../shared/i18n/locales');
 
 const ACCESS_COOKIE_NAME = 'sc_access_token';
 const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
@@ -48,6 +49,17 @@ async function isPasswordChangeRequired() {
 
 function canUserBeForcedToChangePassword(user) {
     return user?.role === 'admin' && (user?.auth_provider ?? 'local') === 'local';
+}
+
+function normalizeAuthenticatedUser(user) {
+    if (!user) {
+        return user;
+    }
+
+    return {
+        ...user,
+        preferred_lang: normalizeLocale(user.preferred_lang),
+    };
 }
 
 /**
@@ -96,7 +108,7 @@ async function requireAuth(req, res, next) {
             return res.status(403).json({ error: 'Je vyžadována změna hesla prvního administrátora.' });
         }
 
-        req.user = user;
+        req.user = normalizeAuthenticatedUser(user);
         next();
     } catch (err) {
         next(err);
@@ -125,7 +137,7 @@ async function optionalAuth(req, res, next) {
             FROM platform.users
             WHERE id = $1
         `, [payload.sub]);
-        req.user = result.rows[0] || null;
+        req.user = normalizeAuthenticatedUser(result.rows[0] || null);
         next();
     } catch {
         req.user = null;

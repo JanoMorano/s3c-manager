@@ -10,6 +10,7 @@ const config = require('../config');
 const logger = require('../utils/logger');
 const { getConfigValues, upsertConfigValue } = require('../utils/platform-config');
 const audit = require('../db/audit.repo');
+const { normalizeLocale } = require('../../../shared/i18n/locales');
 
 /** Records a failed authentication attempt into audit_log (fire-and-forget). */
 function logAuthFailure(req, { username, userId = 0, reason }) {
@@ -28,6 +29,7 @@ function logAuthFailure(req, { username, userId = 0, reason }) {
 const router = express.Router();
 const ACCESS_COOKIE_NAME = 'sc_access_token';
 const REFRESH_COOKIE_NAME = 'sc_refresh_token';
+const LOCALE_COOKIE_NAME = 'sc_locale';
 const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
 
 const loginLimiter = rateLimit({
@@ -110,6 +112,19 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(config.jwt.refreshDays * 24 * 60 * 60 * 1000));
 }
 
+function getLocaleCookieOptions() {
+    return {
+        secure: isProductionCookieMode(),
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+    };
+}
+
+function setLocaleCookie(res, locale) {
+    res.cookie(LOCALE_COOKIE_NAME, normalizeLocale(locale), getLocaleCookieOptions());
+}
+
 function clearAuthCookies(res) {
     const clearOptions = getAuthCookieClearOptions();
     res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
@@ -157,7 +172,7 @@ function buildUserResponse(user, { mustChangePassword = false } = {}) {
         role: user.role,
         auth_provider: user.auth_provider ?? 'local',
         must_change_password: mustChangePassword,
-        preferred_lang: user.preferred_lang || 'cz',
+        preferred_lang: normalizeLocale(user.preferred_lang),
         preferred_theme: user.preferred_theme || 'dark',
     };
 }
@@ -237,6 +252,7 @@ async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = 
     const currentUser = await loadUserById(user.id);
     const resolvedUser = currentUser || user;
     const mustChangePassword = await isPasswordChangeRequiredForUser(resolvedUser);
+    setLocaleCookie(res, resolvedUser.preferred_lang);
     return {
         access_token: tokens.access,
         refresh_token: tokens.refresh,
@@ -559,7 +575,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
             auth_provider: user.auth_provider ?? 'local',
             must_change_password: await isPasswordChangeRequiredForUser(user),
             external_principal: user.external_principal ?? null,
-            preferred_lang: user.preferred_lang ?? 'cz',
+            preferred_lang: normalizeLocale(user.preferred_lang),
             preferred_theme: user.preferred_theme ?? 'dark',
             given_name: user.given_name ?? null,
             surname: user.surname ?? null,
@@ -675,10 +691,13 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
 router.put('/preferences', requireAuth, async (req, res, next) => {
     try {
         const { preferred_lang, preferred_theme } = req.body;
+        const normalizedPreferredLang = normalizeLocale(preferred_lang ?? req.user.preferred_lang);
+        const normalizedPreferredTheme = preferred_theme || req.user.preferred_theme;
         await getPlatformPool().query(
             'UPDATE platform.users SET preferred_lang = $2, preferred_theme = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-            [req.user.id, preferred_lang || req.user.preferred_lang, preferred_theme || req.user.preferred_theme]
+            [req.user.id, normalizedPreferredLang, normalizedPreferredTheme]
         );
+        setLocaleCookie(res, normalizedPreferredLang);
         res.json({ message: 'Preference uloženy' });
     } catch (err) {
         next(err);
