@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
     role            VARCHAR(20)  NOT NULL DEFAULT 'viewer'
                     CHECK (role IN ('viewer', 'editor', 'admin')),
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-    preferred_lang  VARCHAR(5)  NULL DEFAULT 'cz',
+    preferred_lang  VARCHAR(5)  NULL DEFAULT 'cs',
     preferred_theme VARCHAR(10) NULL DEFAULT 'dark',
     auth_provider   VARCHAR(20) NOT NULL DEFAULT 'local'
                     CHECK (auth_provider IN ('local', 'ad')),

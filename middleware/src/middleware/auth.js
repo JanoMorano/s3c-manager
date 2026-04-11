@@ -133,7 +133,8 @@ async function optionalAuth(req, res, next) {
                 display_name,
                 role,
                 is_active,
-                auth_provider
+                auth_provider,
+                preferred_lang
             FROM platform.users
             WHERE id = $1
         `, [payload.sub]);

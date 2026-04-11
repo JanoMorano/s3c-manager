@@ -640,6 +640,77 @@ describe('auth routes', () => {
         jest.resetModules();
     });
 
+    test('optionalAuth selects and normalizes preferred_lang on req.user', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: queryMock,
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(),
+        }));
+        jest.unmock('../middleware/auth');
+
+        queryMock.mockResolvedValueOnce({
+            rows: [{
+                id: 2,
+                username: 'viewer',
+                display_name: 'Viewer',
+                role: 'viewer',
+                is_active: true,
+                auth_provider: 'local',
+                preferred_lang: 'cze',
+            }],
+        });
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { optionalAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 2 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        get: () => null,
+                    };
+                    const res = {};
+                    const next = jest.fn(() => {
+                        expect(req.user).toEqual(expect.objectContaining({
+                            preferred_lang: 'cs',
+                        }));
+                        expect(queryMock).toHaveBeenCalledWith(
+                            expect.stringContaining('preferred_lang'),
+                            [2]
+                        );
+                        resolve();
+                    });
+
+                    optionalAuth(req, res, next).catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
+    });
+
     test.each([
         ['/api/v1/services', false],
         ['/api/v1/auth/change-password', true],
