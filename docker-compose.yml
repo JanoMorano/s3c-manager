@@ -4,30 +4,19 @@
 #
 # Secrets model:
 #   Sensitive values (JWT_SECRET, DB_PASSWORD) should ideally be passed as
-#   Docker Compose secrets mounted as files (/run/secrets/<name>).
+#   mounted files referenced by *_FILE env vars (for example /run/secrets/<name>).
 #   For local development, a plain `.env` file is acceptable — see .env.example.
 #
 #   Secrets usage (production):
 #     echo "supersecret" > ./secrets/jwt_secret.txt
 #     echo "pgpassword"  > ./secrets/db_password.txt
-#     docker compose --profile prod up
+#     JWT_SECRET_FILE=/run/secrets/jwt_secret
+#     DB_PASSWORD_FILE=/run/secrets/db_password
+#     POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+#     docker compose up
 #
-#   The application reads the secret from file through JWT_SECRET_FILE (preferred)
-#   or falls back to JWT_SECRET from env. Middleware: see src/config.js readSecretFile()
+#   The application reads *_FILE first and falls back to direct env values.
 # ══════════════════════════════════════════════════════════════════════════════
-
-# ── Top-level secrets ────────────────────────────────────────────────────────
-# To enable file-based secrets, create the secrets/ directory and files:
-#   mkdir -p secrets
-#   echo "your-jwt-secret-min-32-chars" > secrets/jwt_secret.txt
-#   echo "your-db-password"            > secrets/db_password.txt
-# Then uncomment the 'secrets:' sections below.
-#
-# secrets:
-#   jwt_secret:
-#     file: ./secrets/jwt_secret.txt
-#   db_password:
-#     file: ./secrets/db_password.txt
 
 services:
   app:
@@ -42,19 +31,21 @@ services:
       - "8080:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-service_catalogue}}
+      DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: ${DB_HOST:-postgres}
       DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-service_catalogue}
       DB_USER: ${DB_USER:-postgres}
-      # DB_PASSWORD: read from env or /run/secrets/db_password
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_PASSWORD_FILE: ${DB_PASSWORD_FILE:-}
       DB_SSL: ${DB_SSL:-false}
+      DB_SSL_INSECURE_SKIP_VERIFY: ${DB_SSL_INSECURE_SKIP_VERIFY:-false}
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD_FILE: ${POSTGRES_PASSWORD_FILE:-}
       PORT: "4000"
       NEXT_PORT: "3000"
       MIDDLEWARE_URL: http://127.0.0.1:4000
@@ -64,9 +55,8 @@ services:
       INIT_WITH_C3_BASELINE_TAXONOMY_SEED: ${INIT_WITH_C3_BASELINE_TAXONOMY_SEED:-false}
       INIT_WITH_C3_TAXONOMY_XLSX_SEED: ${INIT_WITH_C3_TAXONOMY_XLSX_SEED:-false}
       INIT_WITH_C3_CAPABILITY_MAP_SEED: ${INIT_WITH_C3_CAPABILITY_MAP_SEED:-false}
-      # JWT_SECRET: for production prefer a secrets mount (see above) or a strong env value
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env or via Docker secrets}
-      # JWT_SECRET_FILE: /run/secrets/jwt_secret   # uncomment for file-based secret
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_SECRET_FILE: ${JWT_SECRET_FILE:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3000,http://localhost:4000}
       AUTH_SSO_ENABLED: ${AUTH_SSO_ENABLED:-false}
       AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET: ${AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET:-}
@@ -109,7 +99,8 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD_FILE: ${POSTGRES_PASSWORD_FILE:-}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - sc-pgdata:/var/lib/postgresql/data

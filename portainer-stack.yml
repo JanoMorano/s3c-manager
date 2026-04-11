@@ -10,8 +10,8 @@
 #   Set environment variables from .env.qnap (copy and fill in required values)
 #
 # Required env variables (must be set in Portainer stack env):
-#   POSTGRES_PASSWORD   — strong DB password
-#   JWT_SECRET          — min 32 chars random string  (openssl rand -hex 32)
+#   Either POSTGRES_PASSWORD or POSTGRES_PASSWORD_FILE
+#   Either JWT_SECRET or JWT_SECRET_FILE
 #
 # Optional:
 #   SC_APP_TAG          — Docker image tag to deploy  (default: v1.0.0)
@@ -27,18 +27,21 @@ services:
       - "${APP_PORT:-8080}:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sc_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-service_catalogue}
+      DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: ${POSTGRES_DB:-service_catalogue}
       DB_USER: ${POSTGRES_USER:-sc_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PASSWORD: ${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}
+      DB_PASSWORD_FILE: ${DB_PASSWORD_FILE:-${POSTGRES_PASSWORD_FILE:-}}
       DB_SSL: "false"
+      DB_SSL_INSECURE_SKIP_VERIFY: ${DB_SSL_INSECURE_SKIP_VERIFY:-false}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
       POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
       POSTGRES_USER: ${POSTGRES_USER:-sc_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD_FILE: ${POSTGRES_PASSWORD_FILE:-}
       PORT: "4000"
       NEXT_PORT: "3000"
       MIDDLEWARE_URL: http://127.0.0.1:4000
@@ -48,7 +51,8 @@ services:
       INIT_WITH_C3_BASELINE_TAXONOMY_SEED: "false"
       INIT_WITH_C3_TAXONOMY_XLSX_SEED: "false"
       INIT_WITH_C3_CAPABILITY_MAP_SEED: "false"
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_SECRET_FILE: ${JWT_SECRET_FILE:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
       AUTH_SSO_ENABLED: ${AUTH_SSO_ENABLED:-false}
       AUTH_SSO_HEADER: ${AUTH_SSO_HEADER:-x-remote-user}
@@ -87,7 +91,8 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
       POSTGRES_USER: ${POSTGRES_USER:-sc_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD_FILE: ${POSTGRES_PASSWORD_FILE:-}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - sc-pgdata:/var/lib/postgresql/data
