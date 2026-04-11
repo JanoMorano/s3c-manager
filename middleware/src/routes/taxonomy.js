@@ -1234,7 +1234,7 @@ router.get('/c3-technology-interactions/:code', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3/dashboard', async (req, res, next) => {
+router.get('/c3/dashboard', requireAuth, async (req, res, next) => {
     try {
         const cacheKey = 'c3_dashboard_aggregate:v2';
         const cached = cache.get(cacheKey);
@@ -1474,21 +1474,21 @@ router.get('/c3/dashboard', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3/capability-map', async (req, res, next) => {
+router.get('/c3/capability-map', requireAuth, async (req, res, next) => {
     try {
         const payload = await buildCapabilityMapPayload();
         res.json(payload);
     } catch (err) { next(err); }
 });
 
-router.get('/c3/capability-map-spiral7', async (req, res, next) => {
+router.get('/c3/capability-map-spiral7', requireAuth, async (req, res, next) => {
     try {
         const payload = await buildCapabilityMapPayload();
         res.json(payload);
     } catch (err) { next(err); }
 });
 
-router.get('/c3/capability-map-spiral6', async (req, res, next) => {
+router.get('/c3/capability-map-spiral6', requireAuth, async (req, res, next) => {
     try {
         const pageTitle = await getCapabilityMapTitle('Spiral_6');
         const payload = await buildCapabilityMapPayloadBySpiral('Spiral_6', pageTitle);
@@ -1496,7 +1496,7 @@ router.get('/c3/capability-map-spiral6', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3-capability-builder/domains', async (req, res, next) => {
+router.get('/c3-capability-builder/domains', requireAuth, async (req, res, next) => {
     try {
         const domains = await listCapabilityBuilderDomains();
         res.json(domains);
