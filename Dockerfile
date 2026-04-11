@@ -11,6 +11,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY --from=frontend-deps /app/frontend/node_modules ./node_modules
 COPY frontend/ ./
+COPY shared/ /app/shared/
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -35,6 +36,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=middleware-deps /app/middleware/node_modules ./middleware/node_modules
 COPY middleware/src ./middleware/src
 COPY middleware/package.json ./middleware/package.json
+COPY shared/ /app/shared/
 
 COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend
 COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static

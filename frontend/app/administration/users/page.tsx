@@ -5,16 +5,10 @@ import { useLocale, useT } from '@/app/i18n/useI18n';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
-import { ROLE_ACCESS_LABELS, ROLE_LABELS, type AppRole } from '@/features/auth/roles';
+import type { AppRole } from '@/features/auth/roles';
 import styles from './users.module.css';
 
 const USERS_ENDPOINT = '/api/v1/admin/users';
-
-const ROLE_OPTIONS: Array<{ value: AppRole; label: string; access: string }> = [
-  { value: 'viewer', label: ROLE_LABELS.viewer, access: ROLE_ACCESS_LABELS.viewer },
-  { value: 'editor', label: ROLE_LABELS.editor, access: ROLE_ACCESS_LABELS.editor },
-  { value: 'admin', label: ROLE_LABELS.admin, access: ROLE_ACCESS_LABELS.admin },
-]
 
 type AuthProvider = 'local' | 'ad'
 type SortKey = 'username' | 'display_name' | 'role' | 'auth_provider' | 'is_active' | 'last_login_at'
@@ -94,13 +88,33 @@ function compareValues(left: string | number | boolean, right: string | number |
 export default function AdministrationUsersPage() {
   const t = useT();
   const locale = useLocale();
+  const roleOptions: Array<{ value: AppRole; label: string; access: string }> = [
+    {
+      value: 'viewer',
+      label: t('administration.users.role.viewer.label'),
+      access: t('administration.users.role.viewer.access'),
+    },
+    {
+      value: 'editor',
+      label: t('administration.users.role.editor.label'),
+      access: t('administration.users.role.editor.access'),
+    },
+    {
+      value: 'admin',
+      label: t('administration.users.role.admin.label'),
+      access: t('administration.users.role.admin.access'),
+    },
+  ];
   const PROVIDER_OPTIONS = [
     { value: 'local', label: t('administration.users.provider.local.label'), help: t('administration.users.provider.local.help') },
     { value: 'ad', label: t('administration.users.provider.ad.label'), help: t('administration.users.provider.ad.help') },
-  ] as const
+  ] as const;
+  const roleLabelByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.label])) as Record<AppRole, string>;
+  const roleAccessByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.access])) as Record<AppRole, string>;
+  const providerLabelByValue = Object.fromEntries(PROVIDER_OPTIONS.map((option) => [option.value, option.label])) as Record<AuthProvider, string>;
   const { data, isLoading, error } = useSWR<AdminUser[]>(USERS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
-  })
+  });
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [sortKey, setSortKey] = useState<SortKey>('username')
@@ -124,6 +138,18 @@ export default function AdministrationUsersPage() {
     scrollEditorIntoView()
   }, [draft.username, editingId])
 
+  function getRoleLabel(role: AppRole) {
+    return roleLabelByValue[role] ?? role;
+  }
+
+  function getRoleAccess(role: AppRole) {
+    return roleAccessByValue[role] ?? '';
+  }
+
+  function getProviderLabel(provider: AuthProvider) {
+    return providerLabelByValue[provider] ?? provider;
+  }
+
   const filteredUsers = useMemo(() => {
     const rows = data ?? []
     const query = deferredSearch.trim().toLowerCase()
@@ -134,15 +160,15 @@ export default function AdministrationUsersPage() {
         user.username,
         user.display_name,
         user.email,
-        user.role_label,
-        user.auth_provider_label,
+        getRoleLabel(user.role),
+        getProviderLabel(user.auth_provider),
         user.external_principal,
         user.given_name,
         user.surname,
         user.department,
       ].some((value) => String(value ?? '').toLowerCase().includes(query))
     )
-  }, [data, deferredSearch])
+  }, [data, deferredSearch, roleLabelByValue, providerLabelByValue])
 
   const sortedUsers = useMemo(() => {
     const direction = sortDirection === 'asc' ? 1 : -1
@@ -152,20 +178,28 @@ export default function AdministrationUsersPage() {
           ? Number(left.is_active)
           : sortKey === 'last_login_at'
             ? new Date(left.last_login_at ?? '1970-01-01T00:00:00Z').getTime()
-            : String(left[sortKey] ?? '').toLocaleLowerCase('cs')
+            : sortKey === 'role'
+              ? getRoleLabel(left.role).toLocaleLowerCase(locale)
+              : sortKey === 'auth_provider'
+                ? getProviderLabel(left.auth_provider).toLocaleLowerCase(locale)
+                : String(left[sortKey] ?? '').toLocaleLowerCase(locale)
 
       const rightValue =
         sortKey === 'is_active'
           ? Number(right.is_active)
           : sortKey === 'last_login_at'
             ? new Date(right.last_login_at ?? '1970-01-01T00:00:00Z').getTime()
-            : String(right[sortKey] ?? '').toLocaleLowerCase('cs')
+            : sortKey === 'role'
+              ? getRoleLabel(right.role).toLocaleLowerCase(locale)
+              : sortKey === 'auth_provider'
+                ? getProviderLabel(right.auth_provider).toLocaleLowerCase(locale)
+                : String(right[sortKey] ?? '').toLocaleLowerCase(locale)
 
       const result = compareValues(leftValue, rightValue)
       if (result !== 0) return result * direction
-      return left.username.localeCompare(right.username, 'cs') * direction
+      return left.username.localeCompare(right.username, locale) * direction
     })
-  }, [filteredUsers, sortDirection, sortKey])
+  }, [filteredUsers, locale, providerLabelByValue, roleLabelByValue, sortDirection, sortKey])
 
   function beginCreate() {
     setEditingId(null)
@@ -276,7 +310,7 @@ export default function AdministrationUsersPage() {
       </div>
 
       <div className={styles.roleGrid}>
-        {ROLE_OPTIONS.map((option) => (
+        {roleOptions.map((option) => (
           <article key={option.value} className={styles.roleCard}>
             <div className={styles.roleTitle}>{option.label}</div>
             <div className={styles.roleDesc}>{option.access}</div>
@@ -329,7 +363,7 @@ export default function AdministrationUsersPage() {
           <label className={styles.field}>
             <span className={styles.label}>{t('common.role')}</span>
             <select className={styles.select} value={draft.role} onChange={(event) => updateDraft('role', event.target.value as AppRole)}>
-              {ROLE_OPTIONS.map((option) => (
+              {roleOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -473,13 +507,13 @@ export default function AdministrationUsersPage() {
                     </td>
                     <td>
                       <div className={styles.stack}>
-                        <span className={styles.rolePill}>{user.role_label}</span>
-                        <span>{user.access_label}</span>
+                        <span className={styles.rolePill}>{getRoleLabel(user.role)}</span>
+                        <span>{getRoleAccess(user.role)}</span>
                       </div>
                     </td>
                     <td>
                       <div className={styles.stack}>
-                        <span className={styles.providerPill}>{user.auth_provider_label}</span>
+                        <span className={styles.providerPill}>{getProviderLabel(user.auth_provider)}</span>
                         <span className={styles.monoMuted}>{user.external_principal || '—'}</span>
                       </div>
                     </td>

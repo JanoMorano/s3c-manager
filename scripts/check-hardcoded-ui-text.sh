@@ -9,6 +9,7 @@ TARGETS=(
   frontend/app/login
   frontend/app/install
   frontend/app/administration
+  frontend/app/user-info
 )
 
 if rg -n "[Á-ž]" "${TARGETS[@]}" \
@@ -19,9 +20,9 @@ if rg -n "[Á-ž]" "${TARGETS[@]}" \
   --glob '!**/test-results/**'
 then
   echo
-  echo "Hardcoded UI text detected in app shell/auth/install/admin surfaces."
+  echo "Hardcoded UI text detected in guarded shell/auth/install/admin/profile surfaces."
   echo "Move user-facing copy into shared i18n message keys before merging."
   exit 1
 fi
 
-echo "No hardcoded UI text detected in guarded shell/auth/install/admin surfaces."
+echo "No hardcoded UI text detected in guarded shell/auth/install/admin/profile surfaces."

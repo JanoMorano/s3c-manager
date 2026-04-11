@@ -159,6 +159,93 @@ test('english administration users editor keeps provider placeholders in english
   await expect(page.locator('html')).not.toContainText('Minimálně 8 znaků');
 });
 
+test('czech administration users localizes role, provider, and action labels from API rows', async ({ page }) => {
+  await prepareLocale(page, 'cs', { authenticated: true, ready: true });
+  await page.route('**/api/v1/admin/users', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 1,
+          username: 'admin',
+          display_name: 'Admin User',
+          email: 'admin@example.com',
+          role: 'viewer',
+          role_label: 'User - RO',
+          access_label: 'Read-only access',
+          is_active: true,
+          auth_provider: 'local',
+          auth_provider_label: 'Local login',
+          external_principal: null,
+          last_login_at: null,
+          last_sso_login_at: null,
+          created_at: null,
+          updated_at: null,
+          given_name: 'Jan',
+          surname: 'Novák',
+          department: 'Architektura',
+        },
+      ]),
+    });
+  });
+
+  await page.goto('/administration/users');
+
+  await expect(page.locator('html')).toContainText('Uživatel - RO');
+  await expect(page.locator('html')).toContainText('Pouze pro čtení v katalogu');
+  await expect(page.locator('html')).toContainText('Lokální přihlášení');
+  await expect(page.locator('html')).toContainText('Zakládání uživatelů, přiřazení rolí Uživatel / Správa obsahu / Administrátor a správa AD / SSO účtů.');
+  await expect(page.getByRole('button', { name: 'Upravit' })).toBeVisible();
+  await expect(page.locator('html')).not.toContainText('User - RO');
+  await expect(page.locator('html')).not.toContainText('Read-only access');
+  await expect(page.locator('html')).not.toContainText('Local login');
+  await expect(page.locator('html')).not.toContainText('User / Content Admin / Admin');
+  await expect(page.locator('html')).not.toContainText('common.edit');
+});
+
+test('english user info renders profile and password labels in english', async ({ page }) => {
+  await prepareLocale(page, 'en', { authenticated: true, ready: true });
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...authenticatedSnapshot('en'),
+        email: 'admin@example.com',
+        given_name: 'Jane',
+        surname: 'Novak',
+        department: 'Architecture',
+        phone: '+420 123 456 789',
+        avatar_color: '#3b82f6',
+      }),
+    });
+  });
+  await page.route('**/api/v1/services?owner=**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [], total: 0, page: 1, limit: 100 }),
+    });
+  });
+
+  await page.goto('/user-info');
+
+  await expect(page.getByRole('heading', { level: 1, name: 'User Info' })).toBeVisible();
+  await expect(page.locator('html')).toContainText('Given name');
+  await expect(page.locator('html')).toContainText('Surname');
+  await expect(page.locator('html')).toContainText('Department');
+  await expect(page.locator('html')).toContainText('Save profile');
+  await expect(page.locator('html')).toContainText('Change password');
+  await expect(page.locator('html')).toContainText('Current password');
+  await expect(page.locator('html')).toContainText('Confirm password');
+  await expect(page.locator('html')).not.toContainText('Jméno');
+  await expect(page.locator('html')).not.toContainText('Příjmení');
+  await expect(page.locator('html')).not.toContainText('Útvar');
+  await expect(page.locator('html')).not.toContainText('Uložit profil');
+  await expect(page.locator('html')).not.toContainText('Změna hesla');
+});
+
 test('english web settings save fallback stays in english', async ({ page }) => {
   await prepareLocale(page, 'en', { authenticated: true, ready: true });
   await page.route('**/api/v1/admin/web-settings', async (route) => {

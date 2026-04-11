@@ -155,7 +155,7 @@ export default function UserInfoPage() {
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 3000);
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : 'Save failed');
+      setProfileError(err instanceof Error ? err.message : t('user_info.save_failed'));
     } finally {
       setProfileSaving(false);
     }
@@ -197,7 +197,7 @@ export default function UserInfoPage() {
       void mutateMe().catch(() => undefined);
     } catch (err) {
       setProfileForm(p => ({ ...p, preferred_lang: previousLang }));
-      setLangError(err instanceof Error ? err.message : 'Save failed');
+      setLangError(err instanceof Error ? err.message : t('user_info.save_failed'));
     } finally {
       setLangSaving(false);
     }
@@ -207,11 +207,11 @@ export default function UserInfoPage() {
     e.preventDefault();
     setPwError(null); setPwSaved(false);
     if (pwForm.next !== pwForm.confirm) {
-      setPwError('Hesla se neshodují');
+      setPwError(t('user_info.password_mismatch'));
       return;
     }
     if (pwForm.next.length < 10) {
-      setPwError('Nové heslo musí mít alespoň 10 znaků');
+      setPwError(t('auth.password.errors.too_short'));
       return;
     }
     const hasUpper = /[A-Z]/.test(pwForm.next);
@@ -219,7 +219,7 @@ export default function UserInfoPage() {
     const hasDigit = /[0-9]/.test(pwForm.next);
     const hasSpecial = /[^A-Za-z0-9]/.test(pwForm.next);
     if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-      setPwError('Nové heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak.');
+      setPwError(t('auth.password.errors.policy'));
       return;
     }
     setPwSaving(true);
@@ -242,7 +242,7 @@ export default function UserInfoPage() {
         router.replace(redirectAfterPasswordChange);
       }
     } catch (err) {
-      setPwError(err instanceof Error ? err.message : 'Error');
+      setPwError(err instanceof Error ? err.message : t('user_info.save_failed'));
     } finally {
       setPwSaving(false);
     }
@@ -258,7 +258,7 @@ export default function UserInfoPage() {
         <h1 className={styles.pageTitle}>{t('user_info.title')}</h1>
         <div className={styles.card}>
           <div className={styles.noToken}>
-            Could not load profile. <Link href="/login">Log in again</Link>
+            {t('user_info.load_failed')} <Link href="/login">{t('user_info.log_in_again')}</Link>
           </div>
         </div>
       </div>
@@ -273,7 +273,7 @@ export default function UserInfoPage() {
       <section className={styles.card}>
         {mustChangePassword && (
           <div className={styles.infoNote}>
-            První přihlášení vyžaduje změnu hesla. Dokončete ji níže před pokračováním do aplikace.
+            {t('user_info.first_login_note')}
           </div>
         )}
         {/* Header */}
@@ -300,22 +300,22 @@ export default function UserInfoPage() {
             {/* Name row */}
             <div className={styles.formGroup}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Jméno (given name)</label>
+                <label className={styles.fieldLabel}>{t('common.given_name')}</label>
                 <input
                   className={styles.input}
                   value={profileForm.given_name}
                   onChange={e => setProfileForm(p => ({ ...p, given_name: e.target.value }))}
-                  placeholder="Jan"
+                  placeholder={t('administration.users.given_name_placeholder')}
                   disabled={!me}
                 />
               </div>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Příjmení (surname)</label>
+                <label className={styles.fieldLabel}>{t('common.surname')}</label>
                 <input
                   className={styles.input}
                   value={profileForm.surname}
                   onChange={e => setProfileForm(p => ({ ...p, surname: e.target.value }))}
-                  placeholder="Novák"
+                  placeholder={t('administration.users.surname_placeholder')}
                   disabled={!me}
                 />
               </div>
@@ -324,23 +324,23 @@ export default function UserInfoPage() {
             {/* Display name + email */}
             <div className={styles.formGroup}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Display Name</label>
+                <label className={styles.fieldLabel}>{t('common.display_name')}</label>
                 <input
                   className={styles.input}
                   value={profileForm.display_name}
                   onChange={e => setProfileForm(p => ({ ...p, display_name: e.target.value }))}
-                  placeholder="Jan Novák"
+                  placeholder={t('administration.users.display_name_placeholder')}
                   disabled={!me}
                 />
               </div>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>E-mail</label>
+                <label className={styles.fieldLabel}>{t('common.email')}</label>
                 <input
                   type="email"
                   className={styles.input}
                   value={profileForm.email}
                   onChange={e => setProfileForm(p => ({ ...p, email: e.target.value }))}
-                  placeholder="jan.novak@example.com"
+                  placeholder={t('administration.users.email_placeholder')}
                   disabled={!me}
                 />
               </div>
@@ -370,17 +370,17 @@ export default function UserInfoPage() {
             {/* Department + phone */}
             <div className={styles.formGroup}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Útvar / Department</label>
+                <label className={styles.fieldLabel}>{t('common.department')}</label>
                 <input
                   className={styles.input}
                   value={profileForm.department}
                   onChange={e => setProfileForm(p => ({ ...p, department: e.target.value }))}
-                  placeholder="Infrastruktura"
+                  placeholder={t('administration.users.department_placeholder')}
                   disabled={!me}
                 />
               </div>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Telefon / Phone</label>
+                <label className={styles.fieldLabel}>{t('user_info.phone_label')}</label>
                 <input
                   className={styles.input}
                   value={profileForm.phone}
@@ -393,7 +393,7 @@ export default function UserInfoPage() {
 
             {/* Avatar colour */}
             <div className={styles.field}>
-              <label className={styles.fieldLabel}>Barva avataru</label>
+              <label className={styles.fieldLabel}>{t('user_info.avatar_color_label')}</label>
               <div className={styles.colorPicker}>
                 {PALETTE.map(c => (
                   <button
@@ -411,21 +411,21 @@ export default function UserInfoPage() {
             {/* Save row */}
             <div className={styles.saveRow}>
               <button type="submit" className={styles.btnPrimary} disabled={profileSaving || !me}>
-                {profileSaving ? 'Ukládám…' : 'Uložit profil'}
+                {profileSaving ? t('user_info.saving_profile') : t('user_info.save_profile')}
               </button>
-              {profileSaved  && <span className={styles.saveSuccess}>✓ Profil uložen</span>}
+              {profileSaved  && <span className={styles.saveSuccess}>✓ {t('user_info.profile_saved')}</span>}
               {profileError  && <span className={styles.saveError}>{profileError}</span>}
             </div>
           </div>
         </form>
 
         {/* ── Password Change Form ──────────────────────────────────── */}
-        <div className={styles.subsectionTitle}>Změna hesla</div>
+        <div className={styles.subsectionTitle}>{t('user_info.password_section_title')}</div>
         <form onSubmit={handlePasswordChange} noValidate>
           <div className={styles.profileForm}>
             <div className={styles.formGroup}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Aktuální heslo</label>
+                <label className={styles.fieldLabel}>{t('user_info.current_password_label')}</label>
                 <input
                   type="password"
                   className={styles.input}
@@ -438,19 +438,19 @@ export default function UserInfoPage() {
             </div>
             <div className={styles.formGroup}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Nové heslo</label>
+                <label className={styles.fieldLabel}>{t('user_info.new_password_label')}</label>
                 <input
                   type="password"
                   className={styles.input}
                   value={pwForm.next}
                   onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
                   autoComplete="new-password"
-                  placeholder="min. 10 znaků + upper/lower/number/special"
+                  placeholder={t('user_info.password_hint')}
                   disabled={!me}
                 />
               </div>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Potvrzení hesla</label>
+                <label className={styles.fieldLabel}>{t('user_info.confirm_password_label')}</label>
                 <input
                   type="password"
                   className={`${styles.input} ${pwForm.next && pwForm.confirm && pwForm.next !== pwForm.confirm ? styles.inputError : ''}`}
@@ -463,9 +463,9 @@ export default function UserInfoPage() {
             </div>
             <div className={styles.saveRow}>
               <button type="submit" className={styles.btnPrimary} disabled={pwSaving || !me}>
-                {pwSaving ? 'Měním heslo…' : 'Změnit heslo'}
+                {pwSaving ? t('user_info.changing_password') : t('user_info.change_password')}
               </button>
-              {pwSaved  && <span className={styles.saveSuccess}>✓ Heslo změněno</span>}
+              {pwSaved  && <span className={styles.saveSuccess}>✓ {t('user_info.password_changed')}</span>}
               {pwError  && <span className={styles.saveError}>{pwError}</span>}
             </div>
           </div>
@@ -474,29 +474,29 @@ export default function UserInfoPage() {
         {/* ── Token info (collapsed) ────────────────────────────────── */}
         <div className={styles.tokenSection}>
           <button className={styles.tokenToggle} type="button" onClick={() => setShowSession(s => !s)}>
-            {showSession ? '▴ Skrýt session info' : '▾ Session info'}
+            {showSession ? t('user_info.session_info_hide') : t('user_info.session_info_show')}
           </button>
           {showSession && (
             <dl className={styles.tokenDl}>
               <div className={styles.tokenRow}>
-                <dt>Username</dt>
+                <dt>{t('user_info.session_username')}</dt>
                 <dd className={styles.mono}>{me?.username ?? getAuthSnapshot()?.username ?? '—'}</dd>
               </div>
               <div className={styles.tokenRow}>
-                <dt>Role</dt>
+                <dt>{t('user_info.session_role')}</dt>
                 <dd>{me?.role || getAuthSnapshot()?.role ? <span className={styles.rolePill}>{me?.role ?? getAuthSnapshot()?.role}</span> : '—'}</dd>
               </div>
               <div className={styles.tokenRow}>
-                <dt>Session</dt>
-                <dd>Secure cookies + /api/v1/auth/me restore</dd>
+                <dt>{t('user_info.session_type')}</dt>
+                <dd>{t('user_info.session_type_value')}</dd>
               </div>
               <div className={styles.tokenRow}>
-                <dt>Auth provider</dt>
+                <dt>{t('user_info.session_auth_provider')}</dt>
                 <dd>{me?.auth_provider ?? getAuthSnapshot()?.auth_provider ?? '—'}</dd>
               </div>
               <div className={styles.tokenRow}>
-                <dt>Must change password</dt>
-                <dd>{mustChangePassword ? 'Ano' : 'Ne'}</dd>
+                <dt>{t('user_info.session_must_change_password')}</dt>
+                <dd>{mustChangePassword ? t('user_info.must_change_password_yes') : t('user_info.must_change_password_no')}</dd>
               </div>
             </dl>
           )}
@@ -505,7 +505,7 @@ export default function UserInfoPage() {
         {/* ── Card footer — Sign out ────────────────────────────────── */}
         <div className={styles.cardFooter}>
           <button className={styles.logoutBtn} type="button" onClick={handleLogout}>
-            Sign out
+            {t('nav.log_out')}
           </button>
         </div>
       </section>
@@ -513,16 +513,15 @@ export default function UserInfoPage() {
       {!mustChangePassword && (
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTitle}>Services I Own</span>
+            <span className={styles.sectionTitle}>{t('user_info.owned_services_title')}</span>
             {ownedSvcResp && (
-              <span className={styles.sectionMeta}>{ownedSvcResp.total} service(s)</span>
+              <span className={styles.sectionMeta}>{t('user_info.owned_services_count', { count: String(ownedSvcResp.total) })}</span>
             )}
           </div>
 
           {svcError && (
             <div className={styles.infoNote}>
-              Owned services could not be loaded — the <code>/services?owner=</code> filter
-              may not be supported by this backend version.
+              {t('user_info.owned_services_load_failed')}
             </div>
           )}
 
@@ -530,19 +529,19 @@ export default function UserInfoPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Group</th>
+                  <th>{t('user_info.owned_services_table.id')}</th>
+                  <th>{t('user_info.owned_services_table.title')}</th>
+                  <th>{t('user_info.owned_services_table.type')}</th>
+                  <th>{t('user_info.owned_services_table.status')}</th>
+                  <th>{t('user_info.owned_services_table.group')}</th>
                 </tr>
               </thead>
               <tbody>
                 {svcLoading && (
-                  <tr className={styles.emptyRow}><td colSpan={5}>Loading…</td></tr>
+                  <tr className={styles.emptyRow}><td colSpan={5}>{t('user_info.owned_services_loading')}</td></tr>
                 )}
                 {!svcLoading && ownedServices.length === 0 && (
-                  <tr className={styles.emptyRow}><td colSpan={5}>No owned services found.</td></tr>
+                  <tr className={styles.emptyRow}><td colSpan={5}>{t('user_info.owned_services_empty')}</td></tr>
                 )}
                 {ownedServices.map(svc => (
                   <tr key={svc.service_id}>
