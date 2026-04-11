@@ -1,4 +1,4 @@
-# Service Catalogue v2
+# S3C Manager - Service Catalogue & Capability Connector Manager
 
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
