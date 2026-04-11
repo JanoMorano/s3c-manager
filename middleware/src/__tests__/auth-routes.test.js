@@ -163,4 +163,60 @@ describe('auth routes', () => {
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/doménové přihlášení/i);
     });
+
+    test('requireAuth ignores DEBUG_BYPASS_AUTH in secure mode', async () => {
+        const original = process.env.DEBUG_BYPASS_AUTH;
+        process.env.DEBUG_BYPASS_AUTH = 'true';
+
+        try {
+            jest.resetModules();
+
+            jest.doMock('../config', () => ({
+                jwt: {
+                    secret: 'test-secret',
+                    expiryMinutes: 60,
+                    refreshDays: 7,
+                    issuer: 'service-catalogue',
+                    audience: 'service-catalogue-ui',
+                },
+            }));
+            jest.doMock('../db/pool', () => ({
+                getPlatformPool: jest.fn(),
+            }));
+            jest.unmock('../middleware/auth');
+
+            await new Promise((resolve, reject) => {
+                jest.isolateModules(() => {
+                    try {
+                        const { requireAuth } = require('../middleware/auth');
+                        const req = {
+                            headers: {},
+                            path: '/api/v1/services',
+                            ip: '127.0.0.1',
+                            get: () => null,
+                        };
+                        const res = {
+                            status: jest.fn(() => res),
+                            json: jest.fn(() => res),
+                        };
+                        const next = jest.fn();
+
+                        (async () => {
+                            await requireAuth(req, res, next);
+                            expect(req.user).toBeUndefined();
+                            expect(next).not.toHaveBeenCalled();
+                            expect(res.status).toHaveBeenCalledWith(401);
+                            resolve();
+                        })().catch(reject);
+
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
+            });
+        } finally {
+            process.env.DEBUG_BYPASS_AUTH = original;
+            jest.resetModules();
+        }
+    });
 });

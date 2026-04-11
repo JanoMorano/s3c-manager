@@ -13,7 +13,16 @@ jest.mock('../db/pool', () => {
     };
 });
 
-jest.mock('../middleware/auth', () => ({ requireAuth: (req, res, next) => next() }));
+jest.mock('../middleware/auth', () => ({
+    requireAuth: (req, res, next) => {
+        req.user = {
+            id: 42,
+            username: 'viewer',
+            role: 'viewer',
+        };
+        next();
+    },
+}));
 jest.mock('../db/services.repo', () => ({ findAllForExport: jest.fn(async () => [{ service_id: 'SVC-1' }]) }));
 
 describe('export routes', () => {
@@ -178,5 +187,50 @@ describe('export routes', () => {
         expect(response.body.service_relations[0].from_service_id).toBe('SVC-1');
         expect(response.body.taxonomy_mappings[0].c3_uuid).toBe('c3-1');
         expect(response.headers['x-cache-tags']).toContain('export:graph');
+    });
+
+    test('GET /bundle rejects non-admin access', async () => {
+        const { __query } = require('../db/pool');
+        __query
+            .mockResolvedValueOnce({ rows: [{ contract_version: '2026-03-30.c3-v3', schema_version: 'canonical-23' }] })
+            .mockResolvedValueOnce({ rows: [{ route_key: 'export.bundle' }] })
+            .mockResolvedValueOnce({ rows: [{ uuid: 'c3-1' }] })
+            .mockResolvedValueOnce({ rows: [{ uuid: 'c3-1' }] })
+            .mockResolvedValueOnce({ rows: [{ edge_kind: 'parent_child' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 'svc:SVC-1' }] })
+            .mockResolvedValueOnce({ rows: [{ flavour_code: 'BASE' }] })
+            .mockResolvedValueOnce({ rows: [{ sla_pk: 1 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 11 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 21 }] })
+            .mockResolvedValueOnce({ rows: [{ policy_key: 'import_issue' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 31 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 41 }] })
+            .mockResolvedValueOnce({ rows: [] });
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/bundle');
+        expect(response.status).toBe(403);
+    });
+
+    test('GET /archive-audit-reporting rejects non-admin access', async () => {
+        const { __query } = require('../db/pool');
+        __query
+            .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 2 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 3 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 4 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 5 }] })
+            .mockResolvedValueOnce({ rows: [{ id: 6 }] });
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/archive-audit-reporting');
+        expect(response.status).toBe(403);
     });
 });
