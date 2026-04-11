@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import csMessages from '../../shared/i18n/messages/cs.json';
+import enMessages from '../../shared/i18n/messages/en.json';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
 
@@ -14,6 +16,10 @@ function readyInstallStatus() {
 }
 
 test('english login renders from the locale bootstrap snapshot', async ({ page }) => {
+  const csKeys = Object.keys(csMessages).sort();
+  const enKeys = Object.keys(enMessages).sort();
+  expect(enKeys).toEqual(csKeys);
+
   await page.context().addCookies([
     {
       name: 'sc_locale',

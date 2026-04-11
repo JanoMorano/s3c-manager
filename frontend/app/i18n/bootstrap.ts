@@ -5,6 +5,8 @@ export const BOOTSTRAP_LOCALE_GLOBAL = '__SC_BOOTSTRAP_LOCALE__';
 export function getLocaleBootstrapScript(): string {
   return `
 (function() {
+  var reloadKey = 'sc_locale_bootstrap_reload';
+
   function normalizeLocale(value) {
     if (typeof value !== 'string') return 'cs';
     var trimmed = value.trim().toLowerCase().replace(/_/g, '-');
@@ -25,8 +27,20 @@ export function getLocaleBootstrapScript(): string {
 
     var locale = normalizeLocale(preferred);
     window.${BOOTSTRAP_LOCALE_GLOBAL} = locale;
-    document.documentElement.lang = locale;
     document.cookie = 'sc_locale=' + encodeURIComponent(locale) + '; Path=/; Max-Age=31536000; SameSite=Lax';
+    var currentLocale = (document.documentElement.getAttribute('lang') || '').toLowerCase();
+    if (currentLocale !== locale) {
+      if (window.sessionStorage.getItem(reloadKey) !== locale) {
+        window.sessionStorage.setItem(reloadKey, locale);
+        document.documentElement.setAttribute('lang', locale);
+        window.location.reload();
+        return;
+      }
+      window.sessionStorage.removeItem(reloadKey);
+    }
+
+    document.documentElement.setAttribute('lang', locale);
+    window.sessionStorage.removeItem(reloadKey);
   } catch (error) {
     // Ignore malformed bootstrap state and continue with server-resolved locale.
   }
