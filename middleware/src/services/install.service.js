@@ -33,12 +33,19 @@ function generateLockToken() {
 
 async function logInstallEvent(pool, action, details, performedBy = 'system') {
     try {
+        const eventName = String(action || 'INSTALL_EVENT').slice(0, 255);
+        const actor = String(performedBy || 'system').slice(0, 200);
+        const payload = JSON.stringify({
+            event: eventName,
+            ...(details && typeof details === 'object' ? details : {}),
+        });
+
         await pool.query(`
             INSERT INTO platform.audit_log
                 (table_name, record_id, record_label, action, new_values, performed_by)
             VALUES
-                ('system_installation', 1, 'install', $1, $2, $3)
-        `, [action, JSON.stringify(details), performedBy]);
+                ($1, $2, $3, $4, $5, $6)
+        `, ['system_installation', 1, eventName, 'UPDATE', payload, actor]);
     } catch (err) {
         // audit logging must never block the install flow
         logger.warn(`install.service: audit log write failed — ${err.message}`);

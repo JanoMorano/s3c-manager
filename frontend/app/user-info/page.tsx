@@ -77,7 +77,8 @@ export default function UserInfoPage() {
 
   // ── Session info ───────────────────────────────────────────────────────────
   const [showSession, setShowSession] = useState(false);
-  const mustChangePassword = me?.must_change_password || searchParams?.get('must_change_password') === '1';
+  const forcedPasswordChange = searchParams?.get('must_change_password') === '1';
+  const mustChangePassword = me?.must_change_password || forcedPasswordChange;
   const redirectAfterPasswordChange = searchParams?.get('next') ?? '/';
 
   // ── Seed form when /me data arrives ──────────────────────────────────────
@@ -101,7 +102,7 @@ export default function UserInfoPage() {
   // ── Owned services ────────────────────────────────────────────────────────
   // GET /services returns { items, total, page, limit } — NOT a plain array.
   // Filter by the user's display_name (stored in ServiceRoleAssignment.display_name).
-  const ownerParam = me ? encodeURIComponent(me.display_name ?? me.username) : null;
+  const ownerParam = me && !mustChangePassword ? encodeURIComponent(me.display_name ?? me.username) : null;
   const { data: ownedSvcResp, isLoading: svcLoading, error: svcError } = useSWR<ServiceListResponse>(
     ownerParam ? `/api/v1/services?owner=${ownerParam}&limit=100` : null,
     apiFetch,
@@ -439,61 +440,62 @@ export default function UserInfoPage() {
         </div>
       </section>
 
-      {/* ── Owned services mini-dashboard ─────────────────────────────────── */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionTitle}>Services I Own</span>
-          {ownedSvcResp && (
-            <span className={styles.sectionMeta}>{ownedSvcResp.total} service(s)</span>
-          )}
-        </div>
-
-        {svcError && (
-          <div className={styles.infoNote}>
-            Owned services could not be loaded — the <code>/services?owner=</code> filter
-            may not be supported by this backend version.
+      {!mustChangePassword && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTitle}>Services I Own</span>
+            {ownedSvcResp && (
+              <span className={styles.sectionMeta}>{ownedSvcResp.total} service(s)</span>
+            )}
           </div>
-        )}
 
-        {!svcError && (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Group</th>
-              </tr>
-            </thead>
-            <tbody>
-              {svcLoading && (
-                <tr className={styles.emptyRow}><td colSpan={5}>Loading…</td></tr>
-              )}
-              {!svcLoading && ownedServices.length === 0 && (
-                <tr className={styles.emptyRow}><td colSpan={5}>No owned services found.</td></tr>
-              )}
-              {ownedServices.map(svc => (
-                <tr key={svc.service_id}>
-                  <td>
-                    <Link href={`/services/${svc.service_id}`} className={styles.idLink}>
-                      {svc.service_id}
-                    </Link>
-                  </td>
-                  <td>{svc.title}</td>
-                  <td className={styles.mono}>{svc.service_type ?? '—'}</td>
-                  <td>
-                    <span className={styles.statusPill} data-status={svc.service_status ?? 'unknown'}>
-                      {svc.service_status ?? '—'}
-                    </span>
-                  </td>
-                  <td>{svc.portfolio_group ?? '—'}</td>
+          {svcError && (
+            <div className={styles.infoNote}>
+              Owned services could not be loaded — the <code>/services?owner=</code> filter
+              may not be supported by this backend version.
+            </div>
+          )}
+
+          {!svcError && (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Group</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+              </thead>
+              <tbody>
+                {svcLoading && (
+                  <tr className={styles.emptyRow}><td colSpan={5}>Loading…</td></tr>
+                )}
+                {!svcLoading && ownedServices.length === 0 && (
+                  <tr className={styles.emptyRow}><td colSpan={5}>No owned services found.</td></tr>
+                )}
+                {ownedServices.map(svc => (
+                  <tr key={svc.service_id}>
+                    <td>
+                      <Link href={`/services/${svc.service_id}`} className={styles.idLink}>
+                        {svc.service_id}
+                      </Link>
+                    </td>
+                    <td>{svc.title}</td>
+                    <td className={styles.mono}>{svc.service_type ?? '—'}</td>
+                    <td>
+                      <span className={styles.statusPill} data-status={svc.service_status ?? 'unknown'}>
+                        {svc.service_status ?? '—'}
+                      </span>
+                    </td>
+                    <td>{svc.portfolio_group ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
     </div>
   );
 }
