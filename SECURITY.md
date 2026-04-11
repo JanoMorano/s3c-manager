@@ -26,25 +26,32 @@ Expect a response within 5 business days.
 
 ### Authentication
 
-- local login: bcrypt with 12 rounds, rate limit 5 attempts / 15 minutes
+- local login: bcrypt with 12 rounds, rate limit 20 attempts / 15 minutes
 - SSO: trusted headers from a reverse proxy (`x-remote-user`) plus a shared
-  proxy-boundary secret (`AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET`) carried in a
-  dedicated header before trusted identity headers are accepted
-- JWT access token: 60 minutes, RS256 or HS256
-- JWT refresh token: 30 days, hash stored in DB and revocable
+  proxy-boundary secret (`AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET`) carried in
+  `AUTH_SSO_TRUSTED_PROXY_HEADER` (default `x-sso-proxy-secret`) before trusted
+  identity headers are accepted
+- JWT access token: 60 minutes, HS256
+- JWT refresh token: 7 days, hash stored in DB and revocable
+- browser sessions use `HttpOnly` cookies (`sc_access_token`,
+  `sc_refresh_token`) with `SameSite=Lax`; `Secure` is enabled automatically in
+  production
+- login and refresh responses still return token fields for compatibility, but
+  browser session continuity relies on the cookies
 - failed login attempts are written to `platform.audit_log`
 
 ### Authorization
 
 - RBAC: `viewer` (read), `editor` (mutations), `admin` (administration)
-- every endpoint explicitly declares its required role
-- admin functions require the `admin` role
+- protected endpoints use `requireAuth` plus RBAC checks
+- install endpoints are state-dependent: `/api/v1/install/status` stays public,
+  while pre-READY mutating install routes can be locked behind
+  `INSTALL_SETUP_TOKEN`
 
 ### Secrets Management
 
-- no secrets in source code or Docker images
-- recommended: Docker Compose secrets mounted under `/run/secrets/` and passed
-  through `JWT_SECRET_FILE`, `DB_PASSWORD_FILE`, and `POSTGRES_PASSWORD_FILE`
+- recommended: Docker Compose secrets mounted as files and passed through
+  `JWT_SECRET_FILE`, `DB_PASSWORD_FILE`, and `POSTGRES_PASSWORD_FILE`
 - alternative: strong environment variables in an isolated `.env` file
 - `JWT_SECRET` should contain at least 32 random characters, for example
   `openssl rand -base64 48`
@@ -63,12 +70,17 @@ Expect a response within 5 business days.
 
 ### Network Layer
 
-- recommended: TLS termination on a reverse proxy such as nginx or Traefik
+- the application itself listens on HTTP; use TLS termination on a reverse
+  proxy such as nginx or Traefik for production
 - trusted-header SSO must be allowed only through a proxy that injects the
   configured shared-secret header; the backend rejects missing or mismatched
   secrets before reading identity headers
+- if `INSTALL_SETUP_TOKEN` is not configured, pre-READY bootstrap write routes
+  stay reachable without that extra shared secret; that mode is intended only
+  for isolated or local installs
 - CORS origins explicitly whitelisted through `CORS_ORIGINS`
-- Helmet.js middleware for security headers such as CSP, HSTS, and X-Frame-Options
+- Helmet.js middleware provides CSP and related browser hardening headers; HSTS
+  should be enforced at the HTTPS reverse-proxy boundary
 
 ### Backup and Recovery
 

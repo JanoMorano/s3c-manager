@@ -21,7 +21,7 @@ For local development without Docker:
 
 ```bash
 git clone https://github.com/example/service-catalogue.git
-cd service-catalogue
+cd s3c-manager
 cp .env.example .env
 ```
 
@@ -36,6 +36,9 @@ JWT_SECRET=<openssl rand -base64 48>
 # PostgreSQL password
 DB_PASSWORD=your-secure-db-password
 POSTGRES_PASSWORD=your-secure-db-password
+
+# Recommended for shared or remote bootstrap
+INSTALL_SETUP_TOKEN=<openssl rand -hex 32>
 ```
 
 ### 3. Start the Stack
@@ -67,6 +70,13 @@ The wizard handles:
 
 Clean installs do not ship a shared default admin account. The first usable admin
 is created in this wizard; there is no implicit bootstrap admin path.
+
+If `INSTALL_SETUP_TOKEN` is configured, pre-READY install write routes require
+the `x-install-setup-token` header. The install wizard still reads
+`/api/v1/install/status` publicly for mode detection. If you leave
+`INSTALL_SETUP_TOKEN` unset, bootstrap remains publicly writable until the
+system reaches `READY`, which is suitable only for local or otherwise isolated
+deployments.
 
 ### C3 Taxonomy Module
 
@@ -145,6 +155,9 @@ server {
 }
 ```
 
+The application does not terminate TLS itself. In production, use HTTPS on the
+reverse proxy so browser auth cookies can be marked `Secure`.
+
 ### SSO (AD/LDAP via Reverse Proxy)
 
 Set the following in `.env`:
@@ -154,9 +167,13 @@ AUTH_SSO_ENABLED=true
 AUTH_SSO_HEADER=x-remote-user
 AUTH_SSO_DISPLAY_NAME_HEADER=x-remote-name
 AUTH_SSO_EMAIL_HEADER=x-remote-email
+AUTH_SSO_TRUSTED_PROXY_HEADER=x-sso-proxy-secret
+AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET=<shared-secret-between-proxy-and-app>
 ```
 
-The reverse proxy must forward `X-Remote-User` from an authenticated upstream context.
+The reverse proxy must forward `X-Remote-User` from an authenticated upstream
+context and inject the trusted-proxy secret header. The backend rejects SSO
+requests when the trusted-proxy header is missing or the secret does not match.
 
 ### Backup and Restore
 
@@ -186,6 +203,7 @@ Recommended cadence:
 | `JWT_SECRET_FILE` | File path containing the JWT secret | `/run/secrets/jwt_secret` |
 | `DB_PASSWORD_FILE` | File path containing the DB password | `/run/secrets/db_password` |
 | `POSTGRES_PASSWORD_FILE` | File path containing the DB password for the postgres service | `/run/secrets/db_password` |
+| `INSTALL_SETUP_TOKEN` | Extra shared secret for pre-READY install writes | `openssl rand -hex 32` |
 
 ### Database Configuration
 
@@ -225,6 +243,11 @@ Recommended cadence:
 | `AUTH_SSO_HEADER` | `x-remote-user` | Header carrying the username/principal |
 | `AUTH_SSO_DISPLAY_NAME_HEADER` | `x-remote-name` | Header carrying the display name |
 | `AUTH_SSO_EMAIL_HEADER` | `x-remote-email` | Header carrying the email address |
+| `AUTH_SSO_GIVEN_NAME_HEADER` | `x-remote-given-name` | Header carrying the given name |
+| `AUTH_SSO_SURNAME_HEADER` | `x-remote-surname` | Header carrying the surname |
+| `AUTH_SSO_DEPARTMENT_HEADER` | `x-remote-department` | Header carrying the department |
+| `AUTH_SSO_TRUSTED_PROXY_HEADER` | `x-sso-proxy-secret` | Proxy-boundary header required before SSO identity headers are trusted |
+| `AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET` | unset | Shared secret expected in the trusted proxy header |
 
 ---
 
@@ -233,6 +256,9 @@ Recommended cadence:
 The database is initialized automatically on startup when `APP_RUN_DB_INIT=true`.
 The init path seeds schemas, reference data, and module metadata only. It does
 not create a reusable default administrator account.
+
+`backend/db/postgres/data/platform/seed_admin.sql` may still exist in the
+repository as a legacy artifact, but the canonical init script skips it.
 
 The canonical directory for file-based C3 snapshots is:
 
