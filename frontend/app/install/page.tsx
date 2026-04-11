@@ -834,7 +834,7 @@ export default function InstallPage() {
                 className={styles.input}
                 value={sysConfig.app_name}
                 onChange={e => setSysConfig(c => ({ ...c, app_name: e.target.value }))}
-                placeholder="Service Catalogue"
+                placeholder={t('install.page.config.application_name_placeholder')}
               />
             </div>
             <div className={styles.field}>
@@ -843,7 +843,7 @@ export default function InstallPage() {
                 className={styles.input}
                 value={sysConfig.base_url}
                 onChange={e => setSysConfig(c => ({ ...c, base_url: e.target.value }))}
-                placeholder="https://sc.example.com"
+                placeholder={t('install.page.config.base_url_placeholder')}
               />
             </div>
           </div>
@@ -854,7 +854,7 @@ export default function InstallPage() {
                 className={styles.input}
                 value={sysConfig.timezone}
                 onChange={e => setSysConfig(c => ({ ...c, timezone: e.target.value }))}
-                placeholder="Europe/Prague"
+                placeholder={t('install.page.config.timezone_placeholder')}
               />
             </div>
             <div className={styles.field}>
@@ -863,7 +863,7 @@ export default function InstallPage() {
                 className={styles.input}
                 value={sysConfig.storage_path}
                 onChange={e => setSysConfig(c => ({ ...c, storage_path: e.target.value }))}
-                placeholder="/app/uploads"
+                placeholder={t('install.page.config.storage_path_placeholder')}
               />
             </div>
           </div>
@@ -880,9 +880,9 @@ export default function InstallPage() {
         </div>
 
         <div className={styles.checkList}>
-          {renderConnCheck('DATABASE_URL / DB_HOST', true, t('install.page.config.env_set'))}
-          {renderConnCheck('JWT_SECRET', true, t('install.page.config.env_secret_set'))}
-          {renderConnCheck('APP_VERSION', true, installInfo?.app_version ?? '1.0.0')}
+          {renderConnCheck(t('install.page.config.database_env_label'), true, t('install.page.config.env_set'))}
+          {renderConnCheck(t('install.page.config.jwt_secret_label'), true, t('install.page.config.env_secret_set'))}
+          {renderConnCheck(t('install.page.config.app_version_label'), true, installInfo?.app_version ?? t('install.page.config.app_version_fallback'))}
         </div>
 
         <div className={styles.securityNote}>
@@ -962,7 +962,7 @@ export default function InstallPage() {
                 value={adminForm.username}
                 onChange={e => setAdminForm(f => ({ ...f, username: e.target.value }))}
                 autoComplete="off"
-                placeholder="admin"
+                placeholder={t('install.page.admin.username_placeholder')}
               />
               {adminErrors.username && <span className={styles.fieldError}>{adminErrors.username}</span>}
             </div>
@@ -974,7 +974,7 @@ export default function InstallPage() {
                 className={`${styles.input} ${adminErrors.displayName ? styles.error : ''}`}
                 value={adminForm.displayName}
                 onChange={e => setAdminForm(f => ({ ...f, displayName: e.target.value }))}
-                placeholder="Jan Novák"
+                placeholder={t('install.page.admin.display_name_placeholder')}
               />
               {adminErrors.displayName && <span className={styles.fieldError}>{adminErrors.displayName}</span>}
             </div>
@@ -988,7 +988,7 @@ export default function InstallPage() {
               type="email"
               value={adminForm.email}
               onChange={e => setAdminForm(f => ({ ...f, email: e.target.value }))}
-              placeholder="admin@example.com"
+              placeholder={t('install.page.admin.email_placeholder')}
             />
             {adminErrors.email && <span className={styles.fieldError}>{adminErrors.email}</span>}
           </div>
