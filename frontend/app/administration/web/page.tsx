@@ -100,7 +100,7 @@ export default function AdministrationWebPage() {
         const message =
           payload && 'error' in payload && payload.error
             ? payload.error
-            : text || `Uložení selhalo (${response.status})`;
+            : text || t('administration.web.save_failed_status', { status: String(response.status) });
         throw new Error(message);
       }
 

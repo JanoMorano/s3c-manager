@@ -240,15 +240,15 @@ export default function AdministrationUsersPage() {
       }
 
       if (!res.ok) {
-        throw new Error(payload?.error ?? text ?? `Uložení selhalo (${res.status})`)
+        throw new Error(payload?.error ?? text ?? t('administration.users.save_failed_status', { status: String(res.status) }))
       }
 
       await globalMutate(USERS_ENDPOINT)
       setEditingId(null)
       setDraft(EMPTY_DRAFT)
-      setSaveOk(editingId ? 'Uživatel byl upraven.' : 'Uživatel byl vytvořen.')
+      setSaveOk(editingId ? t('administration.users.save_updated') : t('administration.users.save_created'))
     } catch (errorValue: unknown) {
-      setSaveError(errorValue instanceof Error ? errorValue.message : 'Uložení selhalo')
+      setSaveError(errorValue instanceof Error ? errorValue.message : t('administration.users.save_failed'))
     } finally {
       setSaving(false)
     }
@@ -390,7 +390,9 @@ export default function AdministrationUsersPage() {
               className={styles.input}
               value={draft.external_principal}
               onChange={(event) => updateDraft('external_principal', event.target.value)}
-              placeholder={draft.auth_provider === 'ad' ? 'DOMENA\\jnovak nebo jnovak@firma.local' : 'Pro local účet nechej prázdné'}
+              placeholder={draft.auth_provider === 'ad'
+                ? t('administration.users.ad_principal_placeholder_ad')
+                : t('administration.users.ad_principal_placeholder_local')}
               disabled={draft.auth_provider !== 'ad'}
             />
           </label>
@@ -402,7 +404,9 @@ export default function AdministrationUsersPage() {
               type="password"
               value={draft.password}
               onChange={(event) => updateDraft('password', event.target.value)}
-              placeholder={draft.auth_provider === 'local' ? 'Minimálně 8 znaků' : 'AD účet používá doménové přihlášení'}
+              placeholder={draft.auth_provider === 'local'
+                ? t('administration.users.password_placeholder_local')
+                : t('administration.users.password_placeholder_ad')}
               disabled={draft.auth_provider !== 'local'}
             />
           </label>

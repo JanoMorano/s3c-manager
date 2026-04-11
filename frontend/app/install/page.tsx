@@ -21,7 +21,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { markInstallReady } from '@/app/components/AuthGuard';
-import { useLocale, useT } from '@/app/i18n/useI18n';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './install.module.css';
 
 // ---------------------------------------------------------------------------
@@ -143,7 +143,6 @@ function Spinner({ dark }: { dark?: boolean }) {
 
 export default function InstallPage() {
   const t = useT();
-  const locale = useLocale();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -310,7 +309,15 @@ export default function InstallPage() {
     const normalized = text.replace(/^\uFEFF/, '');
     const lines = normalized.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) {
-      return { row_count: 0, columns: [], required_present: [], required_missing: [], warnings: [], sample: [], fatal_error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' };
+      return {
+        row_count: 0,
+        columns: [],
+        required_present: [],
+        required_missing: [],
+        warnings: [],
+        sample: [],
+        fatal_error: t('install.page.preview.csv_requires_data_row'),
+      };
     }
     const delim = lines[0].split(';').length >= lines[0].split(',').length ? ';' : ',';
     const columns = parseCsvLine(lines[0], delim).map(c => c.trim()).filter(Boolean);
@@ -321,8 +328,12 @@ export default function InstallPage() {
     const required_present = REQUIRED.filter(r => colsLower.includes(r));
     const required_missing = REQUIRED.filter(r => !colsLower.includes(r));
     const warnings: string[] = [];
-    if (required_missing.length > 0) warnings.push(`Chybí doporučené sloupce: ${required_missing.join(', ')}`);
-    if (!colsLower.includes('service_type_code') && !colsLower.includes('service_type')) warnings.push('Sloupec service_type_code/service_type není přítomen — záznamy budou importovány bez typu');
+    if (required_missing.length > 0) {
+      warnings.push(t('install.page.preview.missing_recommended_columns', { columns: required_missing.join(', ') }));
+    }
+    if (!colsLower.includes('service_type_code') && !colsLower.includes('service_type')) {
+      warnings.push(t('install.page.preview.service_type_missing'));
+    }
     const sample = dataLines.slice(0, 3).map(line => {
       const values = parseCsvLine(line, delim);
       const row: Record<string, string> = {};
@@ -501,7 +512,12 @@ export default function InstallPage() {
         markError(4);
       }
     } catch {
-      setConnectivity({ db_reachable: false, db_write_access: false, platform_schema: false, errors: ['Middleware nedostupný'] });
+      setConnectivity({
+        db_reachable: false,
+        db_write_access: false,
+        platform_schema: false,
+        errors: [t('install.page.connectivity.middleware_unavailable')],
+      });
       markError(4);
     } finally {
       setCheckingConn(false);
@@ -510,15 +526,15 @@ export default function InstallPage() {
 
   function validateAdminForm(): boolean {
     const errors: Partial<Record<string, string>> = {};
-    if (!adminForm.username.trim()) errors.username = 'Povinné pole';
-    if (!adminForm.displayName.trim()) errors.displayName = 'Povinné pole';
-    if (!adminForm.email.trim() || !adminForm.email.includes('@')) errors.email = 'Zadejte platný e-mail';
-    if (adminForm.password.length < 10) errors.password = 'Minimálně 10 znaků';
-    if (adminForm.password && !/[A-Z]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
-    if (adminForm.password && !/[a-z]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
-    if (adminForm.password && !/[0-9]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
-    if (adminForm.password && !/[^A-Za-z0-9]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
-    if (adminForm.password !== adminForm.confirmPassword) errors.confirmPassword = 'Hesla se neshodují';
+    if (!adminForm.username.trim()) errors.username = t('install.page.admin.validation.required');
+    if (!adminForm.displayName.trim()) errors.displayName = t('install.page.admin.validation.required');
+    if (!adminForm.email.trim() || !adminForm.email.includes('@')) errors.email = t('install.page.admin.validation.invalid_email');
+    if (adminForm.password.length < 10) errors.password = t('install.page.admin.validation.password_min');
+    if (adminForm.password && !/[A-Z]/.test(adminForm.password)) errors.password = t('install.page.admin.validation.password_complexity');
+    if (adminForm.password && !/[a-z]/.test(adminForm.password)) errors.password = t('install.page.admin.validation.password_complexity');
+    if (adminForm.password && !/[0-9]/.test(adminForm.password)) errors.password = t('install.page.admin.validation.password_complexity');
+    if (adminForm.password && !/[^A-Za-z0-9]/.test(adminForm.password)) errors.password = t('install.page.admin.validation.password_complexity');
+    if (adminForm.password !== adminForm.confirmPassword) errors.confirmPassword = t('install.page.admin.validation.password_mismatch');
     setAdminErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -897,9 +913,9 @@ export default function InstallPage() {
         </Alert>
 
         <div className={styles.checkList}>
-          {renderConnCheck(t('install.page.secrets.jwt_present'), true, 'validated on middleware startup')}
-          {renderConnCheck(t('install.page.secrets.db_credentials_present'), true, 'validated on middleware startup')}
-          {renderConnCheck(t('install.page.secrets.outside_source_code'), true, 'Compose env / secret mount')}
+          {renderConnCheck(t('install.page.secrets.jwt_present'), true, t('install.page.secrets.validated_on_startup'))}
+          {renderConnCheck(t('install.page.secrets.db_credentials_present'), true, t('install.page.secrets.validated_on_startup'))}
+          {renderConnCheck(t('install.page.secrets.outside_source_code'), true, t('install.page.secrets.compose_env_or_secret_mount'))}
           {renderConnCheck(t('install.page.secrets.plaintext_in_logs'), true, t('install.page.secrets.no_secrets_in_logs'))}
         </div>
 
@@ -1364,7 +1380,9 @@ export default function InstallPage() {
         <h1 className={styles.panelTitle}>{t('install.page.preview_title')}</h1>
         <p className={styles.panelSubtitle}>
           {filePreviews.length > 0
-            ? t('install.page.preview.analysis', { count: filePreviews.length, noun: filePreviews.length === 1 ? 'souboru' : 'souborů' })
+            ? filePreviews.length === 1
+              ? t('install.page.preview.analysis_one', { count: filePreviews.length })
+              : t('install.page.preview.analysis_many', { count: filePreviews.length })
             : t('install.page.preview.no_files')}
         </p>
 

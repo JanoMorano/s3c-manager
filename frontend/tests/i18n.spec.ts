@@ -111,6 +111,90 @@ test('english login renders from the locale bootstrap snapshot', async ({ page }
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeVisible();
 });
 
+test('english install admin validation keeps wizard copy in english', async ({ page }) => {
+  await prepareLocale(page, 'en', { ready: false });
+  await page.route('**/api/v1/install/start', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+
+  await page.goto('/install', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('textbox').fill('test-setup-token');
+  await page.getByRole('button', { name: /start installation/i }).click();
+  await page.getByRole('button', { name: /^skip$/i }).click();
+  await page.getByRole('button', { name: /^continue/i }).click();
+  await page.getByRole('button', { name: /create admin account/i }).click();
+
+  await expect(page.locator('html')).toContainText('Required field');
+  await expect(page.locator('html')).toContainText('Enter a valid email address');
+  await expect(page.locator('html')).toContainText('At least 10 characters');
+  await expect(page.locator('html')).not.toContainText('Povinné pole');
+  await expect(page.locator('html')).not.toContainText('Zadejte platný e-mail');
+  await expect(page.locator('html')).not.toContainText('Minimálně 10 znaků');
+});
+
+test('english administration users editor keeps provider placeholders in english', async ({ page }) => {
+  await prepareLocale(page, 'en', { authenticated: true, ready: true });
+  await page.route('**/api/v1/admin/users', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    });
+  });
+
+  await page.goto('/administration/users');
+  await page.getByRole('button', { name: /new user/i }).click();
+
+  await expect(page.getByPlaceholder('Leave blank for local account')).toBeVisible();
+  await expect(page.getByPlaceholder('At least 8 characters')).toBeVisible();
+
+  await page.getByRole('combobox').nth(1).selectOption('ad');
+  await expect(page.getByPlaceholder('DOMAIN\\\\jnovak or jnovak@company.local')).toBeVisible();
+  await expect(page.getByPlaceholder('AD account uses domain sign-in')).toBeVisible();
+  await expect(page.locator('html')).not.toContainText('Pro local účet nechej prázdné');
+  await expect(page.locator('html')).not.toContainText('Minimálně 8 znaků');
+});
+
+test('english web settings save fallback stays in english', async ({ page }) => {
+  await prepareLocale(page, 'en', { authenticated: true, ready: true });
+  await page.route('**/api/v1/admin/web-settings', async (route) => {
+    if (route.request().method() === 'PUT') {
+      await route.fulfill({
+        status: 500,
+        contentType: 'text/plain',
+        body: '',
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            key: 'auth.sso.header',
+            type: 'string',
+            description: 'Trusted header',
+            default_value: 'X-Forwarded-User',
+            value: 'X-Forwarded-User',
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto('/administration/web');
+  await page.getByRole('button', { name: /save settings/i }).click();
+
+  await expect(page.locator('html')).toContainText('Save failed (500)');
+  await expect(page.locator('html')).not.toContainText('Uložení selhalo');
+});
+
 for (const locale of ['cs', 'en'] as const) {
   test(`home page renders localized dashboard copy in ${locale}`, async ({ page }) => {
     await prepareLocale(page, locale, { authenticated: true, ready: true });
