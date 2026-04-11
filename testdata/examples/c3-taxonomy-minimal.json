@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "page_id": "BP-1000",
+      "uuid": "11111111-1111-1111-1111-111111111111",
+      "title": "Business Processes",
+      "parent_id": null,
+      "level": 1,
+      "state": "approved",
+      "domain_code": "BusinessProcesses"
+    },
+    {
+      "page_id": "BP-1100",
+      "uuid": "22222222-2222-2222-2222-222222222222",
+      "title": "Operational Planning",
+      "parent_id": "BP-1000",
+      "level": 2,
+      "state": "approved",
+      "domain_code": "BusinessProcesses"
+    }
+  ]
+}

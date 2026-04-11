@@ -1,0 +1,113 @@
+/* ── NavUser: avatar + username + dropdown ───────────────────────────────── */
+
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ── Trigger button ─────────────────────────────────────────────────────── */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background .1s;
+  color: rgba(255,255,255,.85);
+  font: var(--text-label-md);
+  white-space: nowrap;
+}
+.trigger:hover {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+}
+
+/* ── Avatar circle ──────────────────────────────────────────────────────── */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+/* ── Username text ──────────────────────────────────────────────────────── */
+.name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Dropdown caret ─────────────────────────────────────────────────────── */
+.caret {
+  font-size: 10px;
+  opacity: .75;
+}
+
+/* ── Dropdown menu ──────────────────────────────────────────────────────── */
+.menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  z-index: 300;
+  padding: var(--space-1) 0;
+  animation: fadeIn .1s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Menu items ─────────────────────────────────────────────────────────── */
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.menuItem:hover { background: var(--color-bg-subtle, #f4f5f7); }
+
+.menuDivider {
+  border: none;
+  border-top: 1px solid rgba(0,0,0,.08);
+  margin: var(--space-1) 0;
+}
+
+.menuItemDanger {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  font: var(--text-label-md);
+  color: var(--color-status-error, #dc2626);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.menuItemDanger:hover { background: #fef2f2; }

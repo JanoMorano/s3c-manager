@@ -1,0 +1,767 @@
+.shell {
+  padding: var(--space-6) var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.headerLeft h1 {
+  font: var(--text-title-lg);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.headerLeft p {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.errorMsg {
+  margin-bottom: var(--space-3);
+  background: #fff3f3;
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font: var(--text-body-sm);
+}
+
+/* ── Search + actions bar ─────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 220px;
+  font: var(--text-body-sm);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(0,82,204,.15);
+}
+
+.syncBtn {
+  font: var(--text-label-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 5px 14px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: background .15s;
+}
+
+.syncBtn:hover { background: var(--color-bg-canvas); }
+
+.count {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.tableWrap {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-body-sm);
+}
+
+.table th {
+  text-align: left;
+  padding: 0;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-canvas);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+  vertical-align: top;
+}
+
+.tr:hover td {
+  background: var(--color-bg-canvas);
+}
+
+.trExpanded td {
+  border-bottom: none;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.orderNum {
+  color: var(--color-text-muted);
+  font: var(--text-mono-sm);
+  text-align: right;
+  width: 50px;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.uuidPill {
+  font: var(--text-mono-sm);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.statusPill {
+  font: var(--text-label-sm);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.status_active    { background: #e3fcef; color: #006644; }
+.status_archived  { background: #f4f5f7; color: #6b778c; }
+.status_draft     { background: #fffae6; color: #7a5f00; }
+.status_pending   { background: #deebff; color: #0052cc; }
+.status_default   { background: #f4f5f7; color: #6b778c; }
+
+.appTag {
+  font: var(--text-label-sm);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: var(--color-text-secondary);
+}
+
+/* ── item_type badge (BP/BR/CI/CO/CR/UA) ──────────────────────────────────── */
+.c3TypeBadge {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 0 5px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+/* ── external_id code pill ────────────────────────────────────────────────── */
+.c3CodePill {
+  font: var(--text-mono-sm);
+  font-size: 11px;
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── parent_title pill ────────────────────────────────────────────────────── */
+.c3ParentPill {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  background: #f0f4ff;
+  border: 1px solid #b3c8ff;
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: #0052cc;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c3MetaPill {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: var(--color-text-secondary);
+}
+
+.c3MetaDate {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.filterCheckLabel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.quickLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickLink {
+  font: var(--text-body-sm);
+  color: var(--color-action-primary);
+  text-decoration: none;
+}
+
+.quickLink:hover {
+  text-decoration: underline;
+}
+
+.monoCell {
+  font: var(--text-mono-sm);
+  font-size: 11px;
+}
+
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cellLink {
+  color: var(--color-action-primary);
+  text-decoration: none;
+}
+
+.cellLink:hover {
+  text-decoration: underline;
+}
+
+.cellText {
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cellSecondary {
+  color: var(--color-text-muted);
+}
+
+.cellMuted {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.inlineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionStack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sortButton {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sortButton:hover {
+  background: rgba(9, 30, 66, 0.04);
+}
+
+.sortButtonActive {
+  color: var(--color-text-primary);
+}
+
+.sortGlyph {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  transition: background .12s, color .12s;
+}
+
+.actionBtn:hover {
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+}
+
+.deleteBtn {
+  color: var(--color-danger);
+}
+
+.deleteBtn:hover {
+  background: #ffebe6;
+  color: var(--color-danger);
+}
+
+/* ── Expanded detail row ─────────────────────────────────────────────────── */
+.detailRow td {
+  padding: 0 var(--space-4) var(--space-3) var(--space-10);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.detailValue {
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Edit row (inline) ───────────────────────────────────────────────────── */
+.editRow td {
+  background: #fffae6;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.editForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.editInput {
+  font: var(--text-body-sm);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+}
+
+.saveBtn {
+  font: var(--text-label-sm);
+  background: var(--color-action-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+
+.saveBtn:hover { opacity: .85; }
+.saveBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+.cancelBtn {
+  font: var(--text-label-sm);
+  background: none;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.cancelBtn:hover { background: var(--color-bg-canvas); }
+
+/* ── Add form ────────────────────────────────────────────────────────────── */
+.addSection {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+
+.addSectionHeader {
+  padding: var(--space-3) var(--space-5);
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  border-bottom: 1px solid var(--color-border-default);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.addSectionBody {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldValue,
+.fieldMonoValue,
+.fieldTextareaValue {
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.fieldMonoValue {
+  font: var(--text-mono-sm);
+  color: var(--color-text-secondary);
+}
+
+.fieldTextareaValue {
+  min-height: 88px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.fieldLabel {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+.addInput {
+  font: var(--text-body-sm);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.addInput:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(0,82,204,.15);
+}
+
+.addTextarea {
+  composes: addInput;
+  resize: vertical;
+  min-height: 60px;
+  width: 100%;
+}
+
+.addBtn {
+  font: var(--text-label-sm);
+  background: var(--color-action-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: opacity .15s;
+  align-self: flex-end;
+}
+
+.addBtn:hover { opacity: .85; }
+.addBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+.errorMsg {
+  font: var(--text-body-sm);
+  color: var(--color-danger);
+  padding: var(--space-2) 0;
+}
+
+.emptyRow td {
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+/* ── Sync panel ──────────────────────────────────────────────────────────── */
+.syncPanel {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+
+.syncPanelHeader {
+  padding: var(--space-3) var(--space-5);
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  border-bottom: 1px solid var(--color-border-default);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.syncPanelBody {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.syncTextarea {
+  font: var(--text-mono-sm);
+  font-size: 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  resize: vertical;
+  min-height: 120px;
+  width: 100%;
+}
+
+.syncResult {
+  font: var(--text-body-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: #e3fcef;
+  color: #006644;
+}
+
+.syncResultErr {
+  background: #ffebe6;
+  color: var(--color-danger);
+}
+
+/* ── C3 Catalogue List (Pattern A) ────────────────────────────────────────── */
+.c3List {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.c3Row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+  background: var(--color-bg-surface);
+  cursor: pointer;
+  transition: background .12s;
+  flex-wrap: wrap;
+}
+
+.c3Row:first-child { border-top: 1px solid var(--color-border-default); }
+.c3Row:hover { background: var(--color-bg-canvas); }
+.c3Row:focus { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+.c3RowMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 200px;
+}
+
+.c3RowTitle {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.c3AbbreviationPill {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.c3RowMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex: 2;
+  min-width: 0;
+}
+
+.c3RowDesc {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.c3RowActions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.filterCheckLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 2px 0;
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  gap: 0;
+}
+
+/* ── C3 Item detail/edit page ────────────────────────────────────────────── */
+.editSection {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.editSectionTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+}
+
+.editFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+.editFieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.editInput {
+  font: var(--text-body-sm);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(0,82,204,.15);
+}
+
+.editTextarea {
+  composes: editInput;
+  resize: vertical;
+  min-height: 64px;
+}
+
+.saveBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 var(--space-6);
+  flex-wrap: wrap;
+}
+
+.saveError {
+  font: var(--text-body-sm);
+  color: var(--color-danger);
+  flex: 1;
+}
+
+.saveBadge {
+  font: var(--text-label-sm);
+  color: #006644;
+  background: #e3fcef;
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+}

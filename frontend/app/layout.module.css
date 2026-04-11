@@ -1,0 +1,185 @@
+/* §10 Accessibility — skip navigation link */
+.skipLink {
+  position: absolute;
+  top: -100%;
+  left: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-action-primary);
+  color: #fff;
+  font: var(--text-label-md);
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  text-decoration: none;
+}
+.skipLink:focus-visible {
+  top: var(--space-2);
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.appShell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Top nav bar ─────────────────────────────────────────────────────────── */
+.topNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  height: 48px;
+  background: var(--color-text-primary);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  flex-shrink: 0;
+}
+
+.brand {
+  font: var(--text-title-sm);
+  color: #fff;
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+/* spacer pushes right group to the right */
+.navSpacer { flex: 1; }
+
+/* ── Left group (topic dropdowns) ────────────────────────────────────────── */
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ── Right group (flat links) ────────────────────────────────────────────── */
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ── Flat nav link (right group) ─────────────────────────────────────────── */
+.navLink {
+  font: var(--text-label-md);
+  color: rgba(255,255,255,.75);
+  text-decoration: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background .1s, color .1s;
+  white-space: nowrap;
+}
+.navLink:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+.navLinkActive {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+}
+
+.navSearchForm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.navSearchInput {
+  width: 240px;
+  max-width: 30vw;
+  height: 32px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  padding: 0 12px;
+  font: var(--text-label-md);
+}
+
+.navSearchInput::placeholder {
+  color: rgba(255,255,255,.6);
+}
+
+.navSearchInput:focus {
+  outline: 2px solid rgba(255,255,255,.22);
+  outline-offset: 0;
+}
+
+.navSearchButton {
+  height: 32px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  font: var(--text-label-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navSearchButton:hover {
+  background: rgba(255,255,255,.16);
+}
+
+/* ── Dropdown (left group) ───────────────────────────────────────────────── */
+.navDropdown {
+  position: relative;
+}
+
+.navDropdownTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--text-label-md);
+  color: rgba(255,255,255,.75);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: default;
+  user-select: none;
+  transition: background .1s, color .1s;
+  white-space: nowrap;
+}
+.navDropdown:hover .navDropdownTrigger {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+}
+
+.navDropdownTriggerActive {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+}
+
+.navDropdownMenu {
+  display: none;
+  position: absolute;
+  top: 100%;          /* flush — no gap, so hover never drops */
+  left: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  z-index: 300;
+  padding: var(--space-2) 0; /* extra top/bottom padding instead of margin gap */
+}
+.navDropdown:hover .navDropdownMenu { display: block; }
+
+.navDropdownItem {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.navDropdownItem:hover { background: var(--color-bg-subtle, #f4f5f7); }
+.navDropdownItemActive {
+  background: var(--color-bg-subtle, #f4f5f7);
+  font-weight: 700;
+}
+
+/* ── Page content area ───────────────────────────────────────────────────── */
+.pageContent { flex: 1; display: flex; flex-direction: column; }

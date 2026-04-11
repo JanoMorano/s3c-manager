@@ -1,0 +1,45 @@
+{
+  "name": "service-catalogue-frontend",
+  "version": "1.0.0-beta.1",
+  "private": true,
+  "scripts": {
+    "dev":   "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint":  "next lint",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "next":      "15.2.4",
+    "react":     "^19.0.0",
+    "react-dom": "^19.0.0",
+
+    "swr":                   "^2.3.0",
+    "zustand":               "^5.0.0",
+
+    "react-hook-form":       "^7.54.0",
+    "zod":                   "^3.24.0",
+    "@hookform/resolvers":   "^3.9.0",
+
+    "@tanstack/react-table": "^8.20.0",
+    "@xyflow/react":         "^12.4.0",
+    "recharts":              "^2.15.0",
+
+    "@radix-ui/react-dialog":  "^1.1.0",
+    "@radix-ui/react-select":  "^2.1.0",
+    "@radix-ui/react-tabs":    "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.0",
+
+    "date-fns": "^4.1.0",
+    "clsx":     "^2.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test":  "1.58.2",
+    "@types/node":        "^20",
+    "@types/react":       "^19",
+    "@types/react-dom":   "^19",
+    "typescript":         "^5",
+    "eslint":             "^9",
+    "eslint-config-next": "15.2.4"
+  }
+}

@@ -1,0 +1,118 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Service Catalogue — Portainer Stack (QNAP / offline deployment)
+#
+# Pre-requisite:
+#   Load Docker images first:
+#     docker load -i sc-images-amd64.tar
+#
+# Usage in Portainer:
+#   Stacks → Add stack → Upload → portainer-stack.yml
+#   Set environment variables from .env.qnap (copy and fill in required values)
+#
+# Required env variables (must be set in Portainer stack env):
+#   POSTGRES_PASSWORD   — strong DB password
+#   JWT_SECRET          — min 32 chars random string  (openssl rand -hex 32)
+#
+# Optional:
+#   SC_APP_TAG          — Docker image tag to deploy  (default: v1.0.0)
+#   APP_PORT            — host port for the web UI    (default: 8080)
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+  app:
+    image: sc-app:${SC_APP_TAG:-v1.0.0}
+    container_name: sc-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sc_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-service_catalogue}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-service_catalogue}
+      DB_USER: ${POSTGRES_USER:-sc_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_SSL: "false"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
+      POSTGRES_USER: ${POSTGRES_USER:-sc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PORT: "4000"
+      NEXT_PORT: "3000"
+      MIDDLEWARE_URL: http://127.0.0.1:4000
+      APP_RUN_DB_INIT: ${APP_RUN_DB_INIT:-true}
+      INIT_WITH_TEST_SEEDS: ${INIT_WITH_TEST_SEEDS:-false}
+      INIT_WITH_C3_ENTITY_SEEDS: "false"
+      INIT_WITH_C3_BASELINE_TAXONOMY_SEED: "false"
+      INIT_WITH_C3_TAXONOMY_XLSX_SEED: "false"
+      INIT_WITH_C3_CAPABILITY_MAP_SEED: "false"
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      AUTH_SSO_ENABLED: ${AUTH_SSO_ENABLED:-false}
+      AUTH_SSO_HEADER: ${AUTH_SSO_HEADER:-x-remote-user}
+      AUTH_SSO_DISPLAY_NAME_HEADER: ${AUTH_SSO_DISPLAY_NAME_HEADER:-x-remote-name}
+      AUTH_SSO_EMAIL_HEADER: ${AUTH_SSO_EMAIL_HEADER:-x-remote-email}
+      AUTH_SSO_GIVEN_NAME_HEADER: ${AUTH_SSO_GIVEN_NAME_HEADER:-x-remote-given-name}
+      AUTH_SSO_SURNAME_HEADER: ${AUTH_SSO_SURNAME_HEADER:-x-remote-surname}
+      AUTH_SSO_DEPARTMENT_HEADER: ${AUTH_SSO_DEPARTMENT_HEADER:-x-remote-department}
+      ENABLE_RETENTION_SCHEDULER: ${ENABLE_RETENTION_SCHEDULER:-true}
+      RETENTION_RUNNER_NAME: inline-app
+      RETENTION_RUNNER_KIND: app-inline
+      RETENTION_PURGE_INTERVAL_SECONDS: ${RETENTION_PURGE_INTERVAL_SECONDS:-86400}
+      RETENTION_HEARTBEAT_TTL_SECONDS: "180"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - sc-uploads:/app/uploads
+    networks:
+      - sc-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      com.service-catalogue.version: "${SC_APP_TAG:-v1.0.0}"
+      com.service-catalogue.component: "app"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
+      POSTGRES_USER: ${POSTGRES_USER:-sc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - sc-pgdata:/var/lib/postgresql/data
+    networks:
+      - sc-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      com.service-catalogue.component: "postgres"
+
+volumes:
+  sc-pgdata:
+    driver: local
+    labels:
+      description: "PostgreSQL data — Service Catalogue"
+  sc-uploads:
+    driver: local
+    labels:
+      description: "Upload storage — Service Catalogue"
+
+networks:
+  sc-net:
+    driver: bridge
+    name: service-catalogue-net

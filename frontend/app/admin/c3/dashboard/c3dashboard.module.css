@@ -1,0 +1,483 @@
+.shell {
+  padding: var(--space-6) var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── KPI tiles ───────────────────────────────────────────────────────────── */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.kpiCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.kpiLabel {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: var(--space-1);
+}
+
+.kpiValue {
+  font: var(--text-title-lg);
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.kpiSub {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* ── Chart grid ──────────────────────────────────────────────────────────── */
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.chartCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.chartTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.capabilityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.filterPanel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.filterInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.filterCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+}
+
+/* ── Top items table ─────────────────────────────────────────────────────── */
+.section {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-bg-canvas);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.sectionTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-body-sm);
+}
+
+.table th {
+  text-align: left;
+  padding: var(--space-2) var(--space-4);
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-canvas);
+}
+
+.table td {
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+  vertical-align: middle;
+}
+
+.table tr:last-child td { border-bottom: none; }
+
+.bar {
+  display: inline-block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-action-primary);
+  opacity: .7;
+  vertical-align: middle;
+}
+
+.countBadge {
+  display: inline-block;
+  min-width: 28px;
+  text-align: center;
+  font: var(--text-label-sm);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+}
+
+.uuidPill {
+  font: var(--text-mono-sm);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  max-width: 110px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font: var(--text-body-md);
+  color: var(--color-text-muted);
+}
+
+.stateError { color: var(--color-danger); }
+
+.emptyNote {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Small button ────────────────────────────────────────────────────────── */
+.smallBtn {
+  appearance: none;
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.smallBtn:hover { background: var(--color-bg-surface-hover, #f4f5f7); }
+
+/* ── Code pill ───────────────────────────────────────────────────────────── */
+.codePill {
+  font: var(--text-mono-sm);
+  font-size: 11px;
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Parent-title block list ─────────────────────────────────────────────── */
+.parentBlockList {
+  display: flex;
+  flex-direction: column;
+}
+
+.parentBlock {
+  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+}
+.parentBlock:last-child { border-bottom: none; }
+
+.parentHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.parentHeader:hover { background: var(--color-bg-canvas, #f4f5f7); }
+
+.parentChevron {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.parentCode {
+  font: var(--text-mono-sm);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.parentName {
+  font: var(--text-body-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parentMeta {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.parentMapped {
+  color: var(--color-text-secondary);
+  margin-left: 4px;
+}
+
+.parentProgressTrack {
+  display: inline-block;
+  width: 80px;
+  height: 6px;
+  background: var(--color-border-subtle, #ebecf0);
+  border-radius: 3px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.parentProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+/* ── Child rows ──────────────────────────────────────────────────────────── */
+.childList {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-5) var(--space-2) 36px;
+  gap: 2px;
+}
+
+.childRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s;
+}
+.childRow:hover { background: var(--color-bg-canvas, #f4f5f7); }
+
+.childCode {
+  font: var(--text-mono-sm);
+  font-size: 11px;
+  flex-shrink: 0;
+  min-width: 72px;
+}
+
+.childType {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.childTitle {
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.childStatus {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.childMapped {
+  font: var(--text-label-sm);
+  font-size: 10px;
+  color: #0052cc;
+  background: #deebff;
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.capabilityBottomRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.bottomCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.auditList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.auditRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.auditRow:last-child {
+  border-bottom: none;
+}
+
+.auditLink {
+  font: var(--text-body-sm);
+  color: var(--color-action-primary);
+  text-decoration: none;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auditLink:hover {
+  text-decoration: underline;
+}
+
+.auditScore {
+  font: var(--text-label-md);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.auditBadge {
+  font: var(--text-label-sm);
+  background: #fff3f3;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+  color: var(--color-danger);
+  flex-shrink: 0;
+}
+
+.ownerList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ownerRow {
+  display: grid;
+  grid-template-columns: 20px 1fr 80px 28px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.ownerRow:last-child {
+  border-bottom: none;
+}
+
+.ownerRank {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.ownerName {
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ownerBar {
+  height: 6px;
+  background: var(--color-bg-canvas);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.ownerBarFill {
+  height: 100%;
+  background: var(--color-action-primary);
+  border-radius: var(--radius-pill);
+  transition: width .3s;
+}
+
+.ownerCount {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  text-align: right;
+  font-weight: 600;
+}

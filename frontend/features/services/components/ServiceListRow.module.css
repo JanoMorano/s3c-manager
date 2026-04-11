@@ -1,0 +1,121 @@
+/* §9.1 anti-patterns: no giant cards, no long descriptions, consistent columns */
+
+.row {
+  display: grid;
+  grid-template-columns:
+    140px          /* ID + Type */
+    1fr            /* Title */
+    140px          /* Portfolio */
+    80px           /* Domains */
+    90px           /* Availability */
+    100px          /* Status */
+    140px;         /* Owner */
+  align-items: center;
+  gap: 0 var(--space-4);
+  padding: 0 var(--space-4);
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--color-border-default);
+  transition: background 0.1s;
+}
+
+.row:hover { background: #f8f9fb; }
+.selected  { background: #deebff; }
+
+/* Density */
+.comfortable { min-height: 60px; }
+.compact     { min-height: 36px; }
+
+/* Header */
+.header {
+  background: var(--color-bg-canvas);
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 2px solid var(--color-border-strong);
+}
+
+.headerButton {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.headerButtonActive {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+/* Column styles */
+.serviceId {
+  font: var(--text-mono-sm);
+  color: var(--color-text-secondary);
+  display: block;
+}
+
+.typeChip {
+  display: inline-block;
+  margin-top: 2px;
+  font: var(--text-label-sm);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.title {
+  font: var(--text-label-md);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desc {
+  display: block;
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.portfolio {
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner {
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Column refs */
+.colId       { overflow: hidden; }
+.colTitle    { min-width: 0; }
+.colPortfolio { overflow: hidden; }
+.colDomains  { }
+.colAvail    { }
+.colStatus   { }
+.colOwner    { overflow: hidden; }

@@ -1,0 +1,120 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getToken, setTokens } from '@/features/auth/authStore';
+import styles from './login.module.css';
+
+export default function LoginPage() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const [form,  setForm]  = useState({ username: '', password: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [busy,  setBusy]  = useState(false);
+  const [ssoChecking, setSsoChecking] = useState(true);
+  const [ssoMessage, setSsoMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const next = searchParams?.get('next') ?? '/';
+    if (getToken()) {
+      router.replace(next);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function trySso() {
+      try {
+        const res = await fetch('/api/v1/auth/sso', { cache: 'no-store' });
+        if (cancelled) return;
+
+        if (res.status === 204) {
+          setSsoMessage(null);
+          return;
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          if (cancelled) return;
+          setTokens(data.access_token, data.refresh_token);
+          router.replace(next);
+          return;
+        }
+
+        const text = await res.text().catch(() => '');
+        if (cancelled) return;
+        if (res.status === 403) {
+          setSsoMessage('Doménový účet byl rozpoznán, ale v aplikaci pro něj není aktivní účet.');
+        } else {
+          setSsoMessage(null);
+        }
+      } catch {
+        if (!cancelled) setSsoMessage(null);
+      } finally {
+        if (!cancelled) setSsoChecking(false);
+      }
+    }
+
+    void trySso();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: form.username.trim(), password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Přihlášení selhalo');
+      setTokens(data.access_token, data.refresh_token);
+      const next = searchParams?.get('next') ?? '/';
+      router.replace(next);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Chyba');
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className={styles.shell}>
+      <div className={styles.card}>
+        <div className={styles.logo}>SC v2</div>
+        <h1 className={styles.title}>Service Catalogue</h1>
+        <p className={styles.subtitle}>Přihlaste se pro pokračování</p>
+        {ssoChecking && <div className={styles.infoMsg}>Zkouším automatické doménové přihlášení…</div>}
+        {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <label className={styles.label}>Uživatelské jméno</label>
+          <input
+            className={styles.input}
+            type="text"
+            autoComplete="username"
+            autoFocus
+            value={form.username}
+            onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+            disabled={busy || ssoChecking}
+            required
+          />
+          <label className={styles.label}>Heslo</label>
+          <input
+            className={styles.input}
+            type="password"
+            autoComplete="current-password"
+            value={form.password}
+            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+            disabled={busy || ssoChecking}
+            required
+          />
+          {error && <div className={styles.errorMsg}>{error}</div>}
+          <button className={styles.btn} type="submit" disabled={busy || ssoChecking}>
+            {ssoChecking ? 'Kontroluji doménový login…' : busy ? 'Přihlašuji…' : 'Přihlásit se'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

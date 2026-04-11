@@ -1,0 +1,218 @@
+.shell { padding: var(--space-5) var(--space-6); background: var(--color-bg-canvas); min-height: 100vh; }
+
+.pageHeader { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+.pageTitle  { font: var(--text-title-lg); color: var(--color-text-primary); }
+.cachedBadge { font: var(--text-label-sm); background: var(--color-bg-canvas); border: 1px solid var(--color-border-default); border-radius: var(--radius-pill); padding: 1px var(--space-2); color: var(--color-text-muted); }
+
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.kpiTile {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-low);
+}
+
+.kpiValue { font: 700 28px/1.1 var(--font-sans); margin-bottom: var(--space-1); }
+.kpiLabel { font: var(--text-label-sm); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.chartsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+/* Row 3 — most expensive flavours (3fr) + service owner (1fr), matching the By Status/Type/Domain + By Portfolio proportions */
+.insightsRow {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.chartCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-low);
+}
+
+.cardTitle { font: var(--text-title-sm); color: var(--color-text-primary); margin-bottom: var(--space-4); }
+.chartHint { margin-top: calc(var(--space-4) * -0.5); margin-bottom: var(--space-3); font: var(--text-body-sm); color: var(--color-text-muted); }
+
+/* Row 4 — 4 governance blocks (No Pricing Variants removed) */
+.bottomRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+/* Row 5 — governance insights */
+.row5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.bottomCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.auditList { display: flex; flex-direction: column; gap: var(--space-2); }
+.auditRow  { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border-default); }
+.auditRow:last-child { border-bottom: none; }
+.auditLink  { font: var(--text-body-sm); color: var(--color-action-primary); text-decoration: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auditLink:hover { text-decoration: underline; }
+.auditScore { font: var(--text-label-md); font-weight: 600; flex-shrink: 0; }
+.auditBadge { font: var(--text-label-sm); background: #fff3f3; border: 1px solid var(--color-danger); border-radius: var(--radius-pill); padding: 1px var(--space-2); color: var(--color-danger); flex-shrink: 0; }
+.emptyNote  { font: var(--text-body-sm); color: var(--color-text-muted); }
+.statusTable { display: flex; flex-direction: column; gap: var(--space-3); }
+.statusRow { display: grid; grid-template-columns: 100px 40px 1fr 40px; align-items: center; gap: var(--space-3); }
+.statusCount { font: var(--text-label-md); color: var(--color-text-primary); text-align: right; }
+.statusPct   { font: var(--text-label-sm); color: var(--color-text-muted); }
+.statusBar      { height: 8px; background: var(--color-bg-canvas); border-radius: var(--radius-pill); overflow: hidden; }
+.statusBarFill  { height: 100%; border-radius: var(--radius-pill); transition: width .3s; }
+
+.ownerList { display: flex; flex-direction: column; gap: var(--space-2); }
+.ownerRow  {
+  display: grid;
+  grid-template-columns: 20px 1fr 80px 28px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.ownerRow:last-child { border-bottom: none; }
+.ownerRank  { font: var(--text-label-sm); color: var(--color-text-muted); text-align: right; }
+.ownerName  { font: var(--text-body-sm); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ownerBar   { height: 6px; background: var(--color-bg-canvas); border-radius: var(--radius-pill); overflow: hidden; }
+.ownerBarFill { height: 100%; background: var(--color-action-primary); border-radius: var(--radius-pill); transition: width .3s; }
+.ownerCount { font: var(--text-label-md); color: var(--color-text-primary); text-align: right; font-weight: 600; }
+
+.richTable {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.richTableHead,
+.richTableRow {
+  display: grid;
+  grid-template-columns: 110px 90px 1.5fr 110px 110px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  align-items: center;
+  font: var(--text-body-sm);
+}
+
+.richTableHead {
+  background: var(--color-bg-canvas);
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.richTableRow {
+  border-top: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+.richMono {
+  font: var(--text-mono-sm);
+  color: var(--color-text-secondary);
+}
+
+.richValue {
+  font: var(--text-label-md);
+  font-weight: 700;
+  color: var(--color-action-primary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Top-5 Completeness row */
+.topList { display: flex; flex-direction: column; gap: var(--space-2); }
+.topRow  {
+  display: grid;
+  grid-template-columns: 24px 1fr 40px 80px;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+.topRow:last-child { border-bottom: none; }
+.topRank  { font: var(--text-label-sm); color: var(--color-text-muted); text-align: right; }
+.topScore { font: var(--text-label-md); font-weight: 600; text-align: right; }
+.topBar   { height: 6px; background: var(--color-bg-canvas); border-radius: var(--radius-pill); overflow: hidden; }
+.topBarFill { height: 100%; border-radius: var(--radius-pill); transition: width .3s; }
+
+/* Pricing coverage summary */
+.pricingStats { display: flex; flex-direction: column; gap: var(--space-4); }
+.pricingStat  { display: flex; flex-direction: column; gap: var(--space-2); }
+.pricingStatRow { display: flex; justify-content: space-between; align-items: baseline; }
+.pricingStatLabel { font: var(--text-body-sm); color: var(--color-text-secondary); }
+.pricingStatValue { font: var(--text-label-md); font-weight: 700; color: var(--color-text-primary); }
+.pricingBar { height: 8px; background: var(--color-bg-canvas); border-radius: var(--radius-pill); overflow: hidden; }
+.pricingBarFill { height: 100%; border-radius: var(--radius-pill); background: var(--color-action-primary); transition: width .3s; }
+.pricingBarFillWarning { height: 100%; border-radius: var(--radius-pill); background: var(--color-warning); transition: width .3s; }
+
+.coverageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.coverageSummary {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-label-md);
+  color: var(--color-text-secondary);
+}
+
+.coverageRow {
+  display: grid;
+  grid-template-columns: 120px 1fr 80px;
+  gap: var(--space-3);
+  align-items: center;
+  cursor: pointer;
+}
+
+.coverageLabel {
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+}
+
+.coverageBar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  overflow: hidden;
+}
+
+.coverageBarFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #36b37e, #57d9a3);
+}
+
+.coverageValue {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.state      { padding: var(--space-8); text-align: center; color: var(--color-text-muted); }
+.stateError { padding: var(--space-8); text-align: center; color: var(--color-danger); }

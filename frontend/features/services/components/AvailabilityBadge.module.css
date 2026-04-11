@@ -1,0 +1,22 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-label-sm);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.high   .dot { background: var(--color-availability-high); }
+.medium .dot { background: var(--color-availability-medium); }
+.low    .dot { background: var(--color-availability-low); }
+
+.high   { color: #006644; }
+.medium { color: #974f0c; }
+.low    { color: #bf2600; }

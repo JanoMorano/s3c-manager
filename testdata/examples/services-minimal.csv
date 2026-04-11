@@ -1,0 +1,3 @@
+service_id;title;service_type_code;service_status_code;short_description
+SVC-001;Active Directory;ES;active;Centrální adresářová služba pro autentizaci
+SVC-002;Exchange Online;ES;active;E-mailová služba a kalendáře

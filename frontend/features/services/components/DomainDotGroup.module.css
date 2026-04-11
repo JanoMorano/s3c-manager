@@ -1,0 +1,52 @@
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.empty   { color: var(--color-text-muted); font: var(--text-body-sm); }
+.overflow { font: var(--text-label-sm); color: var(--color-text-muted); margin-left: 2px; }
+
+/* Domain colors — mapped from tokens */
+.relay   { background: var(--color-domain-relay); }
+.cloud   { background: var(--color-domain-cloud); }
+.grid    { background: var(--color-domain-grid); }
+.prism   { background: var(--color-domain-prism); }
+.helix   { background: var(--color-domain-helix); }
+.nexus   { background: var(--color-domain-nexus); }
+.vertex  { background: var(--color-domain-vertex); }
+.orbit   { background: var(--color-domain-orbit); }
+.pulse   { background: var(--color-domain-pulse); }
+.zenith  { background: var(--color-domain-zenith); }
+.apex    { background: var(--color-domain-apex); }
+.vortex  { background: var(--color-domain-vortex); }
+.matrix  { background: var(--color-domain-matrix); }
+.default { background: var(--color-domain-default); }
+
+/* Extended domains */
+.zone1      { background: #0284c7; }
+.zone2      { background: #d97706; }
+.zone3      { background: #7c3aed; }
+.zone4      { background: #0e7490; }
+.zone4ns    { background: #1d4ed8; }
+.zone4gr    { background: #6b7280; }
+.zone4pk    { background: #db2777; }
+.zone5      { background: #b45309; }
+.zone6      { background: #06b6d4; }
+.zone7      { background: #4f46e5; }
+.zone7u     { background: #4ade80; }
+.zone7r     { background: #60a5fa; }
+.zone7s     { background: #f87171; }
+.zone8      { background: #818cf8; }
+.zone9      { background: #a3a3a3; }
+.all        { background: #10b981; }
+.hybrid     { background: #f59e0b; }

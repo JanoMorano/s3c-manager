@@ -1,0 +1,20 @@
+/* Import design tokens — single source of truth */
+@import '../design-system/tokens/tokens.css';
+
+/* ── CSS Reset + base ─────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font: var(--text-body-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+body { min-height: 100vh; }
+
+a { color: inherit; }

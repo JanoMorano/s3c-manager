@@ -1,0 +1,112 @@
+/* SlaPanel — visual separation for SLA summary + detail */
+
+.panel {
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+.panelTitle {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: var(--surface-subtle, #f8fafc);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+/* ── Summary ─────────────────────────────────────────────────────── */
+.summaryRow {
+  display: flex;
+  gap: var(--space-4, 16px);
+  padding: var(--space-3, 12px) var(--space-3, 12px) var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.summaryCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.summaryLabel {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-secondary, #64748b);
+  font-weight: 500;
+}
+
+.summaryValue {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.slaTextBlock {
+  padding: 0 var(--space-3, 12px) var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.slaText {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-secondary, #64748b);
+  margin: 0;
+}
+
+/* ── Detail ──────────────────────────────────────────────────────── */
+.detailBlock {
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  padding: var(--space-2, 8px) 0 0;
+}
+
+.detailLabel {
+  padding: var(--space-2, 8px) var(--space-3, 12px) var(--space-1, 4px);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+.table {
+  display: grid;
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.tableHeader,
+.tableRow {
+  display: grid;
+  grid-template-columns: 100px 90px 80px 70px 1fr 1fr 2fr;
+  gap: var(--space-2, 8px);
+  padding: var(--space-1, 4px) var(--space-3, 12px);
+  align-items: center;
+}
+
+.tableHeader {
+  background: var(--surface-subtle, #f8fafc);
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.tableRow {
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+}
+
+.tableRow:hover {
+  background: var(--surface-hover, #f1f5f9);
+}
+
+.noteCell {
+  color: var(--text-secondary, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.srcTag {
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+}

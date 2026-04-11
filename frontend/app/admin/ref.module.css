@@ -1,0 +1,253 @@
+/* Shared styles for RefTableEditor (catalogue-ref + c3-ref) */
+
+.shell {
+  padding: var(--space-6) var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.pageHeader { display: flex; align-items: baseline; gap: var(--space-4); margin-bottom: var(--space-2); }
+.pageTitle  { font: var(--text-title-lg); color: var(--color-text-primary); }
+.pageBack   { font: var(--text-label-md); color: var(--color-action-primary); text-decoration: none; }
+.pageBack:hover { text-decoration: underline; }
+.pageSub    { font: var(--text-body-sm); color: var(--color-text-muted); margin-bottom: var(--space-6); }
+
+/* ── Tabs ───────────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 2px solid var(--color-border-default);
+  margin-bottom: var(--space-5);
+}
+.tab {
+  padding: var(--space-2) var(--space-4);
+  font: var(--text-label-md);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s;
+}
+.tab:hover   { color: var(--color-text-primary); }
+.tabActive   { color: var(--color-action-primary); border-bottom-color: var(--color-action-primary); font-weight: 600; }
+
+/* ── Editor panel ───────────────────────────────────────────────────────────── */
+.editorPanel {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.editorToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-canvas);
+  border-bottom: 1px solid var(--color-border-default);
+}
+.editorTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+.editorMeta {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Add form ───────────────────────────────────────────────────────────────── */
+.addForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  padding: var(--space-4);
+  background: #f0f7ff;
+  border-bottom: 1px solid var(--color-border-default);
+}
+.addFormField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 120px;
+}
+.addFormField label {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+.addFormField input,
+.addFormField select {
+  font: var(--text-body-sm);
+  padding: 5px 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  min-width: 100px;
+}
+.addFormField input:focus,
+.addFormField select:focus {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -1px;
+}
+.addFormActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+  padding-bottom: 1px;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────────── */
+.tableWrap { overflow-x: auto; }
+table.refTable {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-body-sm);
+}
+.refTable th {
+  background: var(--color-bg-canvas);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-default);
+  white-space: nowrap;
+}
+.refTable td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+  vertical-align: middle;
+  color: var(--color-text-primary);
+}
+.refTable tr:last-child td { border-bottom: none; }
+.refTable tr.editing { background: #f0f7ff; }
+
+.tdCode {
+  font: var(--text-mono-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.tdBool {
+  text-align: center;
+}
+.boolBadge {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.boolTrue  { background: var(--color-success, #36b37e); }
+.boolFalse { background: var(--color-border-default); }
+
+.colorSwatch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.colorDot {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,.1);
+  flex-shrink: 0;
+}
+
+/* Inline edit inputs in table */
+.refTable td input[type="text"],
+.refTable td input[type="number"],
+.refTable td input[type="color"],
+.refTable td select {
+  font: var(--text-body-sm);
+  padding: 3px 6px;
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  width: 100%;
+  min-width: 80px;
+}
+
+/* ── Action buttons ─────────────────────────────────────────────────────────── */
+.tdActions {
+  display: flex;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+.btnAdd {
+  padding: 6px 14px;
+  background: var(--color-action-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: var(--text-label-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btnAdd:hover { opacity: .9; }
+.btnAdd:disabled { opacity: .4; cursor: default; }
+
+.btnEdit {
+  padding: 3px 10px;
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+.btnEdit:hover { border-color: var(--color-action-primary); color: var(--color-action-primary); }
+
+.btnSave {
+  padding: 3px 10px;
+  background: var(--color-action-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+.btnSave:hover { opacity: .9; }
+
+.btnCancel {
+  padding: 3px 10px;
+  background: none;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.btnDel {
+  padding: 3px 10px;
+  background: none;
+  color: var(--color-danger);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+.btnDel:hover { border-color: var(--color-danger); background: #fff3f3; }
+
+/* ── Error / empty ──────────────────────────────────────────────────────────── */
+.errorBanner {
+  padding: var(--space-3) var(--space-4);
+  background: #fff3f3;
+  border-bottom: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  font: var(--text-body-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.emptyRow td {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+}

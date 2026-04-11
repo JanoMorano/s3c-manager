@@ -1,0 +1,311 @@
+.shell {
+  min-height: 100vh;
+  background: var(--color-bg-canvas);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.pageTitle {
+  font: var(--text-title-lg);
+  color: var(--color-text-primary);
+}
+
+.pageMeta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.linkBtn {
+  font: var(--text-label-md);
+  color: var(--color-action-primary);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-sm);
+}
+
+.body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-canvas);
+}
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filterInput {
+  min-width: 260px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.filterToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.cardTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.cardSubtitle {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.editPanel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+  background: #f7fbff;
+}
+
+.editHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.editTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.editActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.validationCard {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+.validationTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.editField,
+.editFieldWide {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.editFieldCheckbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 42px;
+}
+
+.editFieldWide {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+.editInput,
+.editTextarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.editCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-action-primary);
+}
+
+.editTextarea {
+  resize: vertical;
+}
+
+.buttonPrimary,
+.buttonSecondary {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+
+.buttonPrimary {
+  border: 1px solid var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: #fff;
+}
+
+.buttonSecondary {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border-default);
+  text-align: left;
+  vertical-align: top;
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+}
+
+.table th {
+  border-top: none;
+  background: var(--color-bg-canvas);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.sortButtonActive {
+  color: var(--color-text-primary);
+}
+
+.sortIndicator {
+  font-size: 11px;
+}
+
+.mono {
+  font: var(--text-mono-sm);
+  color: var(--color-text-secondary);
+}
+
+.cellStack {
+  display: grid;
+  gap: 4px;
+}
+
+.cellGroup {
+  display: grid;
+  gap: 3px;
+}
+
+.cellGroupLabel {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.cellList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cellLink {
+  color: var(--color-action-primary);
+  text-decoration: none;
+}
+
+.cellText {
+  white-space: pre-wrap;
+}
+
+.empty,
+.state,
+.stateError,
+.stateSuccess {
+  padding: var(--space-4);
+  font: var(--text-body-sm);
+}
+
+.empty,
+.state {
+  color: var(--color-text-muted);
+}
+
+.stateError {
+  color: var(--color-danger);
+}
+
+.stateSuccess {
+  color: var(--color-success, #1f7a46);
+}
+
+@media (max-width: 900px) {
+  .editGrid {
+    grid-template-columns: 1fr;
+  }
+}

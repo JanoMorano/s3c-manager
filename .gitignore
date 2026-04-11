@@ -1,0 +1,43 @@
+.DS_Store
+**/.DS_Store
+**/__pycache__/
+*.pyc
+*.tsbuildinfo
+*.log
+coverage/
+
+frontend/.next/
+frontend/.npm/
+frontend/Library/
+frontend/node_modules/
+middleware/node_modules/
+.vscode/
+claude/
+
+logs/
+output/
+_archive/
+
+# TIDEPEDIA - never commit
+shared/c3 
+shared/spiral6
+shared/spiral7
+
+# Secrets & keys — never commit
+.env
+*.env.local
+*.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Binary artefacts — use external storage (OCI registry, S3, etc.)
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Import artefacts that may contain real data
+_c3_import.zip
+sc-images-amd64*.tar

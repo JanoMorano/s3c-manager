@@ -1,0 +1,511 @@
+/**
+ * API response types — mapped from middleware findAllDirect / findByServiceId.
+ * These are the raw wire shapes. Use canonical.ts for business logic types.
+ */
+
+// ── List item (GET /api/v1/services) ─────────────────────────────────────────
+export interface ServiceListItem {
+  id: number;
+  service_id: string;
+  title: string;
+  short_description: string | null;
+  service_type: string | null;
+  service_status: string | null;
+  unit_of_measure: string | null;
+  charging_basis: string | null;
+  available_on: string | null;     // comma-separated domain codes: "CLOUD,PRISM,NEXUS"
+  sla_availability: number | null;
+  sla_delivery: number | null;
+  sla_restoration: number | null;
+  portfolio_group: string | null;
+  in_service_eur: number | null;
+  flavour_count: number;
+  relation_count: number;
+  service_owner: string | null;
+  vlastnik: string | null;
+  manager: string | null;
+  updated_at: string;
+}
+
+export interface ServiceListResponse {
+  items: ServiceListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// ── Detail (GET /api/v1/services/:id) ────────────────────────────────────────
+export interface ServiceDetail {
+  id: number;
+  service_id: string;
+  title: string;
+  service_type: string | null;
+  service_status: string | null;
+  portfolio_group: string | null;
+  summary: string | null;           // short_description alias
+  detailed_description: string | null;
+  global_service_group_code: string | null;
+  global_service_group_name: string | null;  // COALESCE(gsg.name, global_service_group_code)
+  service_line_name: string | null;          // COALESCE(sl.name, service_line_code)
+  portfolio_group_name: string | null;       // COALESCE(pg.name, portfolio_group_code)
+  service_type_name: string | null;          // COALESCE(st.name, service_type_code)
+  service_status_name: string | null;        // COALESCE(ss.name, service_status_code)
+  value_proposition: string | null;
+  business_purpose: string | null;
+  service_features: string | null;
+  unit_of_measure: string | null;
+  charging_basis: string | null;
+  available_on: string[] | null;  // _hydrateService() returns string[] (STRING_AGG split)
+  sla_availability: number | null;
+  sla_restoration: number | null;
+  sla_delivery: number | null;
+  source_url: string | null;
+  completeness_score: number | null;
+  in_service_eur: number | null;
+  flavour_count: number;
+  relation_count: number;
+  service_owner: string | null;
+  vlastnik: string | null;
+  manager: string | null;
+  created_at: string;
+  updated_at: string;
+  flavours: ServiceFlavour[];
+  relations: ServiceRelation[];
+  // ordering / pricing hints
+  rate_note: string | null;
+  ordering_note: string | null;
+  exclusions: string | null;
+  service_area: string | null;
+  // governance
+  security_classification: string | null;
+  retired_note: string | null;
+  notes: unknown | null;
+  // taxonomy classification
+  service_line_code: string | null;
+  organizational_element_code: string | null;
+  catalogue_version: string | null;
+  // source timestamps (from import source, not internal DB timestamps)
+  created_at_source: string | null;
+  modified_at_source: string | null;
+  // audit
+  created_by: string | null;
+  updated_by: string | null;
+  // flags
+  is_deleted: boolean;
+  is_stub: boolean;
+  is_available_status_ambiguous: boolean;
+  cp_service_type_raw: string | null;
+  // graph positioning
+  graph_x: number | null;
+  graph_y: number | null;
+  // JSON relation/prereq fields
+  prerequisites_json: unknown | null;
+  dependencies_json: unknown | null;
+  training_refs: unknown | null;
+  // import provenance
+  source_local_id: string | null;
+  source_sp_id: string | null;
+  source_etag: string | null;
+  // c3 taxonomy
+  c3_uuid: string | null;
+  c3_parent_id: string | null;
+  c3_level: string | null;
+  c3_domain: string | null;
+  c3_source: string | null;
+  c3_reference: string | null;
+  c3_synced_at: string | null;
+  c3_sync_status: string | null;
+  c3_is_primary: boolean | null;
+  // extended narrative (L5)
+  scope_text: string | null;
+  sla_restoration_text: string | null;
+  sla_delivery_text: string | null;
+  operational_notes_raw: string | null;
+  support_locations_raw: string | null;
+  request_process_raw: string | null;
+  support_availability_raw: string | null;
+  service_cost_raw: string | null;
+  additional_information_raw: string | null;
+  service_features_raw: string | null;
+  ext_tools_raw: string | null;
+  legacy_ssl_mapping_raw: string | null;
+  budget_activity_code: string | null;
+  other_info_raw: string | null;
+  pricing_note_raw: string | null;
+  // JSON fields
+  customer_type: unknown | null;
+  options: unknown | null;
+}
+
+// ── Flavour (embedded in GET /api/v1/services/:id, or GET /api/v1/flavours?serviceId=) ─────
+// Canonical snake_case — matches flavours.repo.js SELECT output exactly.
+export interface ServiceFlavour {
+  id: number;
+  flavour_code: string;
+  service_id: string;          // business key string (from JOIN ServiceCatalog)
+  title: string;
+  service_unit: string | null;
+  price_value: number | null;
+  currency_code: string | null;
+  billing_period_code: string | null;
+  initiation_cost: number | null;
+  lifecycle_cost: number | null;
+  lifetime_years: number | null;
+  nations_rate: string | null; // NVARCHAR(MAX) — may be number or JSON string
+  dependency_text: string | null;
+  short_note: string | null;
+  flavour_status_code: string | null;
+  pricing_note_raw: string | null;
+  delivery_note: string | null;
+  technical_note: string | null;
+  display_order: number | null;
+  is_orderable: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Relation (GET /api/v1/services/:id/relations) ────────────────────────────
+export interface ServiceRelation {
+  id: number;
+  from_service_id: string;
+  to_service_id: string;
+  from_title: string | null;   // joined from ServiceCatalog
+  to_title: string | null;     // joined from ServiceCatalog
+  relation_type: string;
+  relation_label: string | null;
+  relation_note: string | null;
+  source_field: string | null;
+  raw_text: string | null;
+  is_inferred: boolean;
+  parse_confidence: number | null;
+  is_verified: boolean;
+  is_mandatory: boolean;
+  impact_mode: string | null;  // 'hard_stop' | 'degraded' | 'none'
+  impact_level: string | null;
+  pace_code: string | null;
+  is_deleted: boolean;
+  created_at: string;
+  created_by: string | null;
+}
+
+// ── Score (GET /api/v1/services/:id/score) ────────────────────────────────────
+export interface ScoreBreakdownItem {
+  name: string;
+  weight: number;
+  passed: boolean;
+}
+
+export interface ServiceScoreResponse {
+  score: number;
+  passed: string[];
+  failed: string[];
+  breakdown: ScoreBreakdownItem[];
+}
+
+// ── History (GET /api/v1/services/:id/history) ────────────────────────────────
+// Maps sc_platform dbo.AuditLog columns returned by audit.findByRecord()
+export interface ServiceHistoryEntry {
+  id: number;
+  action: string;
+  changed_fields: string | null;    // JSON array or CSV of changed field names
+  performed_by: string | null;
+  performed_at: string | null;      // ISO timestamp
+  client_ip: string | null;
+  // Legacy aliases (backward compat)
+  changed_by?: string | null;
+  changed_at?: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  new_values?: unknown;
+}
+
+// ── Role Assignment (GET /api/v1/services/:id/roles) ─────────────────────────
+export interface ServiceRoleAssignment {
+  id: number;
+  role_code: string;
+  display_name: string;
+  email: string | null;
+  organization_name: string | null;
+  valid_from: string;
+  valid_to: string | null;
+}
+
+// ── SLA (GET /api/v1/services/:id/sla) ──────────────────────────────────────
+export interface SlaRecord {
+  id: number;
+  support_window_code: string | null;
+  availability_pct: number | null;
+  restoration_hours: number | null;
+  delivery_days: number | null;
+  priority_model_raw: string | null;
+  sla_note_raw: string | null;
+  source_field: string | null;
+  flavour_code: string | null;
+  flavour_title: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SlaResponse {
+  service_id: string;
+  sla_summary: {
+    sla_availability: number | null;
+    sla_restoration: number | null;
+    sla_delivery: number | null;
+  };
+  sla_records: SlaRecord[];
+}
+
+// ── C3 Mapping (GET /api/v1/taxonomy/mapping/:serviceId) ─────────────────────
+export interface ServiceC3Mapping {
+  id: number;
+  service_id: string | number;
+  c3_uuid: string;
+  mapping_type_code: string;
+  is_primary: boolean;
+  mapping_note: string | null;
+  pace_code: string | null;
+  c3_synced_at: string | null;
+  c3_sync_status: string | null;
+}
+
+export interface ServiceReadiness {
+  service_pk: number;
+  service_id: string;
+  title: string;
+  service_status: string | null;
+  primary_mapping_count: number;
+  primary_c3_uuid: string | null;
+  primary_c3_title: string | null;
+  primary_c3_code: string | null;
+  primary_c3_completeness_status: 'complete' | 'partial' | 'incomplete';
+  primary_c3_app_count: number;
+  primary_c3_data_object_count: number;
+  primary_c3_tin_count: number;
+  primary_c3_c3_service_count: number;
+  primary_c3_service_mapping_count: number;
+  active_flavour_count: number;
+  relation_count: number;
+  dependency_relation_count: number;
+  has_single_primary_mapping: boolean;
+  has_complete_primary_capability: boolean;
+  has_active_flavour: boolean;
+  is_publishable: boolean;
+  blockers: string[];
+  warnings: string[];
+}
+
+// ── Graph (GET /api/v1/services/:id/graph) ───────────────────────────────────
+export interface GraphNode {
+  service_id: string;
+  title: string;
+  service_type: string | null;
+  service_status: string | null;
+  portfolio_group: string | null;
+  sla_availability: number | null;
+  graph_x: number | null;
+  graph_y: number | null;
+}
+
+export interface GraphEdge {
+  from_service_id: string;
+  to_service_id: string;
+  relation_type: string;
+  relation_label: string | null;
+  is_mandatory: boolean;
+  impact_level: string | null;
+  pace_code: string | null;
+  is_verified: boolean;
+  parse_confidence: number | null;
+  relation_note: string | null;
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface ServiceGraphV2Node {
+  [key: string]: unknown;
+  id: string;
+  node_kind:
+    | 'service'
+    | 'flavour'
+    | 'c3_capability'
+    | 'c3_application'
+    | 'c3_tin'
+    | 'c3_data_object'
+    | 'c3_service';
+  label: string;
+  code: string | null;
+  status: string | null;
+  service_id?: string | null;
+  service_type?: string | null;
+  portfolio_group?: string | null;
+  graph_x?: number | null;
+  graph_y?: number | null;
+  is_root?: boolean;
+  c3_uuid?: string | null;
+  item_type?: string | null;
+  completeness_status?: string | null;
+  entity_uuid?: string | null;
+  price_label?: string | null;
+}
+
+export interface ServiceGraphV2Edge {
+  id: string;
+  source: string;
+  target: string;
+  edge_kind:
+    | 'service_relation'
+    | 'service_flavour'
+    | 'service_c3_mapping'
+    | 'capability_application'
+    | 'capability_tin'
+    | 'capability_data_object'
+    | 'capability_c3_service'
+    | 'tin_application'
+    | 'tin_data_object'
+    | 'tin_c3_service';
+  relation_type: string;
+  relation_label?: string | null;
+  is_primary?: boolean;
+  is_mandatory?: boolean;
+  impact_level?: string | null;
+  pace_code?: string | null;
+  is_verified?: boolean;
+  parse_confidence?: number | null;
+  relation_note?: string | null;
+}
+
+export interface ServiceGraphV2Response {
+  mode: 'v2';
+  root_service_id: string;
+  readiness: ServiceReadiness | null;
+  nodes: ServiceGraphV2Node[];
+  edges: ServiceGraphV2Edge[];
+}
+
+export interface C3RelationGraphNode {
+  [key: string]: unknown;
+  id: string;
+  node_kind: 'c3_capability' | 'c3_application' | 'c3_tin' | 'c3_data_object' | 'c3_service';
+  label: string;
+  code: string | null;
+  status: string | null;
+  item_type?: string | null;
+  completeness_status?: string | null;
+  c3_uuid?: string | null;
+  entity_uuid?: string | null;
+}
+
+export interface C3RelationGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  edge_kind:
+    | 'capability_application'
+    | 'capability_tin'
+    | 'capability_data_object'
+    | 'capability_c3_service'
+    | 'tin_application'
+    | 'tin_data_object'
+    | 'tin_c3_service';
+  relation_type: string;
+}
+
+export interface C3RelationGraphResponse {
+  nodes: C3RelationGraphNode[];
+  edges: C3RelationGraphEdge[];
+}
+
+export interface GraphOverviewNode {
+  id: string;
+  node_kind:
+    | 'service'
+    | 'c3_capability'
+    | 'c3_application'
+    | 'c3_tin'
+    | 'c3_data_object'
+    | 'c3_service';
+  title: string;
+  code?: string | null;
+  status?: string | null;
+  service_id: string | null;
+  c3_uuid: string | null;
+  service_type: string | null;
+  service_status: string | null;
+  portfolio_group: string | null;
+  available_on: string | null;
+  sla_availability: number | null;
+  graph_x: number | null;
+  graph_y: number | null;
+  item_type: string | null;
+  parent_uuid: string | null;
+  entity_uuid?: string | null;
+  completeness_status?: string | null;
+}
+
+export interface GraphOverviewEdge {
+  id: string;
+  source: string;
+  target: string;
+  edge_kind:
+    | 'service_relation'
+    | 'service_c3_mapping'
+    | 'c3_parent'
+    | 'capability_application'
+    | 'capability_tin'
+    | 'capability_data_object'
+    | 'capability_c3_service'
+    | 'tin_application'
+    | 'tin_data_object'
+    | 'tin_c3_service';
+  relation_type: string;
+  relation_label: string | null;
+  mapping_type_code: string | null;
+  is_mandatory: boolean;
+  impact_level: string | null;
+  pace_code: string | null;
+  is_verified: boolean;
+  parse_confidence: number | null;
+  relation_note: string | null;
+}
+
+export interface GraphOverviewResponse {
+  nodes: GraphOverviewNode[];
+  edges: GraphOverviewEdge[];
+}
+
+// ── Dashboard (GET /api/v1/stats/dashboard) ──────────────────────────────────
+export interface DashboardSummary {
+  total_services: number;
+  active_services: number;
+  draft_services: number;
+  deprecated_services: number;
+  retired_services: number;
+  total_relations: number;
+  total_flavours: number;
+}
+
+export interface DashboardResponse {
+  summary: DashboardSummary;
+  by_type: Array<{ service_type: string; count: number }>;
+  by_portfolio: Array<{ portfolio_group: string; count: number }>;
+  by_domain: Array<{ domain_code: string; service_count: number }>;
+  by_owner: Array<{ display_name: string; email: string | null; service_count: number }>;
+  expensive_flavours: Array<{
+    service_id: string;
+    flavour_code: string;
+    flavour_title: string;
+    service_unit: string | null;
+    price_value: number | null;
+    currency_code: string | null;
+  }>;
+  c3_coverage: Array<{
+    item_type: string;
+    total_count: number;
+    mapped_count: number;
+  }>;
+  _cached: boolean;
+}

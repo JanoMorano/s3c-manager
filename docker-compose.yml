@@ -1,0 +1,139 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Service Catalogue — PostgreSQL single-container runtime
+# Canonical runtime after migration: app + postgres
+#
+# Secrets model:
+#   Sensitive values (JWT_SECRET, DB_PASSWORD) should ideally be passed as
+#   Docker Compose secrets mounted as files (/run/secrets/<name>).
+#   For local development, a plain `.env` file is acceptable — see .env.example.
+#
+#   Secrets usage (production):
+#     echo "supersecret" > ./secrets/jwt_secret.txt
+#     echo "pgpassword"  > ./secrets/db_password.txt
+#     docker compose --profile prod up
+#
+#   The application reads the secret from file through JWT_SECRET_FILE (preferred)
+#   or falls back to JWT_SECRET from env. Middleware: see src/config.js readSecretFile()
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Top-level secrets ────────────────────────────────────────────────────────
+# To enable file-based secrets, create the secrets/ directory and files:
+#   mkdir -p secrets
+#   echo "your-jwt-secret-min-32-chars" > secrets/jwt_secret.txt
+#   echo "your-db-password"            > secrets/db_password.txt
+# Then uncomment the 'secrets:' sections below.
+#
+# secrets:
+#   jwt_secret:
+#     file: ./secrets/jwt_secret.txt
+#   db_password:
+#     file: ./secrets/db_password.txt
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    container_name: sc-app
+    restart: unless-stopped
+    ports:
+      - "8080:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-service_catalogue}}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-service_catalogue}
+      DB_USER: ${DB_USER:-postgres}
+      # DB_PASSWORD: read from env or /run/secrets/db_password
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_SSL: ${DB_SSL:-false}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PORT: "4000"
+      NEXT_PORT: "3000"
+      MIDDLEWARE_URL: http://127.0.0.1:4000
+      APP_RUN_DB_INIT: ${APP_RUN_DB_INIT:-true}
+      INIT_WITH_TEST_SEEDS: ${INIT_WITH_TEST_SEEDS:-false}
+      INIT_WITH_C3_ENTITY_SEEDS: ${INIT_WITH_C3_ENTITY_SEEDS:-false}
+      INIT_WITH_C3_BASELINE_TAXONOMY_SEED: ${INIT_WITH_C3_BASELINE_TAXONOMY_SEED:-false}
+      INIT_WITH_C3_TAXONOMY_XLSX_SEED: ${INIT_WITH_C3_TAXONOMY_XLSX_SEED:-false}
+      INIT_WITH_C3_CAPABILITY_MAP_SEED: ${INIT_WITH_C3_CAPABILITY_MAP_SEED:-false}
+      # JWT_SECRET: for production prefer a secrets mount (see above) or a strong env value
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env or via Docker secrets}
+      # JWT_SECRET_FILE: /run/secrets/jwt_secret   # uncomment for file-based secret
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3000,http://localhost:4000}
+      AUTH_SSO_ENABLED: ${AUTH_SSO_ENABLED:-false}
+      AUTH_SSO_HEADER: ${AUTH_SSO_HEADER:-x-remote-user}
+      AUTH_SSO_DISPLAY_NAME_HEADER: ${AUTH_SSO_DISPLAY_NAME_HEADER:-x-remote-name}
+      AUTH_SSO_EMAIL_HEADER: ${AUTH_SSO_EMAIL_HEADER:-x-remote-email}
+      AUTH_SSO_GIVEN_NAME_HEADER: ${AUTH_SSO_GIVEN_NAME_HEADER:-x-remote-given-name}
+      AUTH_SSO_SURNAME_HEADER: ${AUTH_SSO_SURNAME_HEADER:-x-remote-surname}
+      AUTH_SSO_DEPARTMENT_HEADER: ${AUTH_SSO_DEPARTMENT_HEADER:-x-remote-department}
+      ENABLE_RETENTION_SCHEDULER: ${ENABLE_RETENTION_SCHEDULER:-true}
+      RETENTION_RUNNER_NAME: ${RETENTION_RUNNER_NAME:-inline-app}
+      RETENTION_RUNNER_KIND: ${RETENTION_RUNNER_KIND:-app-inline}
+      RETENTION_PURGE_INTERVAL_SECONDS: ${RETENTION_PURGE_INTERVAL_SECONDS:-86400}
+      RETENTION_HEARTBEAT_TTL_SECONDS: ${RETENTION_HEARTBEAT_TTL_SECONDS:-180}
+    # secrets:                    # uncomment for file-based secrets
+    #   - jwt_secret
+    #   - db_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - sc-uploads:/app/uploads
+      - ./shared:/app/shared:ro
+    networks:
+      - sc-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      com.service-catalogue.component: "app"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-service_catalogue}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - sc-pgdata:/var/lib/postgresql/data
+      - ./shared:/shared:ro
+    networks:
+      - sc-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      com.service-catalogue.component: "postgres"
+
+volumes:
+  sc-pgdata:
+    driver: local
+    labels:
+      description: "PostgreSQL data"
+  sc-uploads:
+    driver: local
+    labels:
+      description: "Upload storage"
+
+networks:
+  sc-net:
+    driver: bridge
+    name: service-catalogue-net

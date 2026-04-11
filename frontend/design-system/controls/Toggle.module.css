@@ -1,0 +1,53 @@
+/* Layer 3 — Toggle control */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.wrapper.disabled { opacity: 0.5; cursor: not-allowed; }
+
+.input { display: none; }
+
+.track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+
+.input:checked ~ .track {
+  background: var(--color-action-primary);
+}
+
+.input:checked ~ .track::after {
+  transform: translateX(16px);
+}
+
+.input:focus-visible ~ .track {
+  box-shadow: 0 0 0 3px rgba(76, 154, 255, 0.35);
+}
+
+.labelText {
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}

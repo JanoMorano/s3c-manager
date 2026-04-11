@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "service_id": "SVC-001",
+      "title": "Active Directory",
+      "serviceType": "ES",
+      "status": "active",
+      "short_description": "Centrální adresářová služba pro autentizaci",
+      "flavours": [
+        {
+          "service_unit": "User",
+          "service_rate_eur": 2.5,
+          "billing_period_code": "monthly"
+        }
+      ]
+    },
+    {
+      "service_id": "SVC-002",
+      "title": "Exchange Online",
+      "serviceType": "ES",
+      "status": "active",
+      "short_description": "E-mailová služba a kalendáře"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "relations": [
+    {
+      "from_service_id": "SVC-002",
+      "to_service_id": "SVC-001",
+      "relation_type_code": "depends_on"
+    }
+  ]
+}

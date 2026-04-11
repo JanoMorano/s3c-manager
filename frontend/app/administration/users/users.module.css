@@ -1,0 +1,318 @@
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  display: grid;
+  gap: var(--space-6);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.breadcrumb a {
+  color: var(--color-action-primary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.sep {
+  color: var(--color-border-subtle);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  margin: 0 0 var(--space-2);
+  font: var(--text-title-lg);
+  color: var(--color-text-primary);
+}
+
+.pageDesc {
+  margin: 0;
+  font: var(--text-body-md);
+  color: var(--color-text-muted);
+  max-width: 760px;
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.roleCard,
+.panel,
+.tableCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+
+.roleCard {
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.roleTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.roleDesc {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.panel {
+  overflow: hidden;
+}
+
+.panelHeader,
+.tableHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-default);
+  flex-wrap: wrap;
+}
+
+.panelTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.panelMeta {
+  margin-top: var(--space-1);
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  max-width: 720px;
+}
+
+.panelActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton,
+.rowButton {
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: #fff;
+}
+
+.secondaryButton,
+.rowButton {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.field,
+.fieldWide {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+.input,
+.select,
+.searchInput {
+  width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.input:focus,
+.select:focus,
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(0, 82, 204, .15);
+}
+
+.checkboxField {
+  align-content: end;
+}
+
+.checkboxRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+}
+
+.checkboxRow input {
+  margin: 0;
+}
+
+.errorBox,
+.successBox,
+.state {
+  margin: 0 var(--space-5);
+  margin-top: var(--space-4);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font: var(--text-body-sm);
+}
+
+.errorBox {
+  background: rgba(222, 53, 11, .08);
+  border: 1px solid rgba(222, 53, 11, .24);
+  color: var(--color-danger, #de350b);
+}
+
+.successBox {
+  background: rgba(31, 122, 70, .08);
+  border: 1px solid rgba(31, 122, 70, .24);
+  color: var(--color-success, #1f7a46);
+}
+
+.state {
+  color: var(--color-text-muted);
+  background: var(--color-bg-canvas);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border-default);
+  text-align: left;
+  vertical-align: top;
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+}
+
+.table th {
+  background: var(--color-bg-canvas);
+  border-top: none;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.stack {
+  display: grid;
+  gap: 4px;
+}
+
+.monoCell,
+.monoMuted {
+  font-family: var(--font-mono, monospace);
+  font-size: .86em;
+}
+
+.monoMuted {
+  color: var(--color-text-muted);
+}
+
+.rolePill,
+.providerPill,
+.statusActive,
+.statusInactive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: var(--text-label-sm);
+}
+
+.rolePill {
+  background: rgba(0, 82, 204, .08);
+  color: var(--color-action-primary);
+}
+
+.providerPill {
+  background: rgba(66, 82, 110, .10);
+  color: var(--color-text-secondary);
+}
+
+.statusActive {
+  background: rgba(31, 122, 70, .10);
+  color: var(--color-success, #1f7a46);
+}
+
+.statusInactive {
+  background: rgba(222, 53, 11, .10);
+  color: var(--color-danger, #de350b);
+}
+
+@media (max-width: 920px) {
+  .roleGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

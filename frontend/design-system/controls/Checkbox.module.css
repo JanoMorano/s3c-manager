@@ -1,0 +1,46 @@
+/* Layer 3 — Checkbox control */
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+
+.label.disabled { opacity: 0.5; cursor: not-allowed; }
+
+.input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-action-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.input:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.label.disabled .input { cursor: not-allowed; }
+
+/* Pill variant — for domain checkboxes */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  user-select: none;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.pill input { display: none; }
+.pill:has(input:checked) {
+  background: #deebff;
+  border-color: var(--color-focus-ring);
+  color: var(--color-action-primary);
+}
