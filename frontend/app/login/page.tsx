@@ -5,6 +5,30 @@ import { restoreAuthSession, setAuthSnapshotFromUser } from '@/features/auth/aut
 import { useT } from '@/app/i18n/useI18n';
 import styles from './login.module.css';
 
+/**
+ * SECURITY: validate `next` redirect parameter to prevent open redirect attacks.
+ * Only allows relative paths starting with '/'. Rejects external URLs, protocol-relative
+ * URLs, and paths that try to escape the origin.
+ */
+function sanitizeNext(raw: string | null | undefined): string {
+  const fallback = '/';
+  if (!raw) return fallback;
+  try {
+    // Reject anything that looks like an absolute URL or protocol-relative URL
+    if (/^(https?:|\/\/|javascript:|data:)/i.test(raw)) return fallback;
+    // Must start with '/' (relative path)
+    if (!raw.startsWith('/')) return fallback;
+    // Reject paths with backslashes (Windows-style bypass attempts)
+    if (raw.includes('\\')) return fallback;
+    // Reject encoded slashes that could form //external.com
+    const decoded = decodeURIComponent(raw);
+    if (/^\/\//i.test(decoded)) return fallback;
+    return raw;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function LoginPage() {
   const t = useT();
   const router       = useRouter();
@@ -16,7 +40,7 @@ export default function LoginPage() {
   const [ssoMessage, setSsoMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const next = searchParams?.get('next') ?? '/';
+    const next = sanitizeNext(searchParams?.get('next'));
     let cancelled = false;
 
     async function bootstrap() {
@@ -85,7 +109,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? t('auth.login.error_failed'));
       setAuthSnapshotFromUser(data.user);
-      const next = searchParams?.get('next') ?? '/';
+      const next = sanitizeNext(searchParams?.get('next'));
       if (data.user?.must_change_password) {
         router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
         return;

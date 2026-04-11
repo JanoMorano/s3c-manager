@@ -37,5 +37,13 @@ test('interpolates translated values with params', () => {
 });
 
 test('falls back to cs when selected locale is missing a key', () => {
-    expect(translate('en', 'common.only_cs')).toBe('Jen česky');
+    const enCatalog = getCatalog('en');
+    const original = enCatalog['common.only_cs'];
+
+    delete enCatalog['common.only_cs'];
+    try {
+        expect(translate('en', 'common.only_cs')).toBe('Jen česky');
+    } finally {
+        enCatalog['common.only_cs'] = original;
+    }
 });

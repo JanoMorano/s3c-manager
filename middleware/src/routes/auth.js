@@ -71,8 +71,12 @@ async function isPasswordChangeRequiredForUser(user) {
     return ['true', '1', 'yes', 'on'].includes(raw);
 }
 
-function isProductionCookieMode() {
-    return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+function isHttpsRequest(req) {
+    const forwardedProto = String(req.get('x-forwarded-proto') || '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+    return Boolean(req.secure) || forwardedProto === 'https';
 }
 
 function readCookie(req, name) {
@@ -89,45 +93,45 @@ function readCookie(req, name) {
     return null;
 }
 
-function getAuthCookieOptions(maxAgeMs) {
+function getAuthCookieOptions(req, maxAgeMs) {
     return {
         httpOnly: true,
-        secure: isProductionCookieMode(),
+        secure: isHttpsRequest(req),
         sameSite: 'lax',
         path: '/',
         maxAge: maxAgeMs,
     };
 }
 
-function getAuthCookieClearOptions() {
+function getAuthCookieClearOptions(req) {
     return {
         httpOnly: true,
-        secure: isProductionCookieMode(),
+        secure: isHttpsRequest(req),
         sameSite: 'lax',
         path: '/',
     };
 }
 
-function setAuthCookies(res, { accessToken, refreshToken }) {
-    res.cookie(ACCESS_COOKIE_NAME, accessToken, getAuthCookieOptions(config.jwt.expiryMinutes * 60 * 1000));
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(config.jwt.refreshDays * 24 * 60 * 60 * 1000));
+function setAuthCookies(req, res, { accessToken, refreshToken }) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, getAuthCookieOptions(req, config.jwt.expiryMinutes * 60 * 1000));
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(req, config.jwt.refreshDays * 24 * 60 * 60 * 1000));
 }
 
-function getLocaleCookieOptions() {
+function getLocaleCookieOptions(req) {
     return {
-        secure: isProductionCookieMode(),
+        secure: isHttpsRequest(req),
         sameSite: 'lax',
         path: '/',
         maxAge: 365 * 24 * 60 * 60 * 1000,
     };
 }
 
-function setLocaleCookie(res, locale) {
-    res.cookie(LOCALE_COOKIE_NAME, normalizeLocale(locale), getLocaleCookieOptions());
+function setLocaleCookie(req, res, locale) {
+    res.cookie(LOCALE_COOKIE_NAME, normalizeLocale(locale), getLocaleCookieOptions(req));
 }
 
-function clearAuthCookies(res) {
-    const clearOptions = getAuthCookieClearOptions();
+function clearAuthCookies(req, res) {
+    const clearOptions = getAuthCookieClearOptions(req);
     res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
     res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
 }
@@ -249,11 +253,11 @@ async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = 
     const tokens = generateTokens(user.id, user.username, user.role, effectiveDisplayName);
     await storeRefreshToken(user.id, tokens.refresh);
     await updateLoginState(user.id, req, { isSso, ssoProfile });
-    setAuthCookies(res, { accessToken: tokens.access, refreshToken: tokens.refresh });
+    setAuthCookies(req, res, { accessToken: tokens.access, refreshToken: tokens.refresh });
     const currentUser = await loadUserById(user.id);
     const resolvedUser = currentUser || user;
     const mustChangePassword = await isPasswordChangeRequiredForUser(resolvedUser);
-    setLocaleCookie(res, resolvedUser.preferred_lang);
+    setLocaleCookie(req, res, resolvedUser.preferred_lang);
     return {
         access_token: tokens.access,
         refresh_token: tokens.refresh,
@@ -506,7 +510,7 @@ router.post('/refresh', async (req, res, next) => {
         );
 
         await storeRefreshToken(user.id, newTokens.refresh);
-        setAuthCookies(res, { accessToken: newTokens.access, refreshToken: newTokens.refresh });
+        setAuthCookies(req, res, { accessToken: newTokens.access, refreshToken: newTokens.refresh });
 
         res.json({
             access_token: newTokens.access,
@@ -534,7 +538,7 @@ router.post('/logout', async (req, res, next) => {
                 [hash]
             );
         }
-        clearAuthCookies(res);
+        clearAuthCookies(req, res);
         res.json({ message: tReq(req, 'auth.logout.success') });
     } catch (err) {
         next(err);
@@ -698,7 +702,7 @@ router.put('/preferences', requireAuth, async (req, res, next) => {
             'UPDATE platform.users SET preferred_lang = $2, preferred_theme = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
             [req.user.id, normalizedPreferredLang, normalizedPreferredTheme]
         );
-        setLocaleCookie(res, normalizedPreferredLang);
+        setLocaleCookie(req, res, normalizedPreferredLang);
         res.json({ message: tReq(req, 'auth.preferences.saved'), preferred_lang: normalizedPreferredLang });
     } catch (err) {
         next(err);

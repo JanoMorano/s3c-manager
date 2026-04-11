@@ -130,6 +130,7 @@ router.get('/sla', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// SECURITY: audit/archive data is admin-only — contains internal operational details.
 router.get('/archive-audit-reporting', canAdmin, async (req, res, next) => {
     try {
         applyCacheTags(res, ['export', 'import'], ['export:archive-audit']);
@@ -153,6 +154,7 @@ router.get('/archive-audit-reporting', canAdmin, async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// SECURITY: full bundle export is admin-only — contains audit trails and internal data.
 router.get('/bundle', canAdmin, async (req, res, next) => {
     try {
         applyCacheTags(res, ['export', 'pricing', 'sla', 'c3', 'routes', 'import'], ['export:bundle']);

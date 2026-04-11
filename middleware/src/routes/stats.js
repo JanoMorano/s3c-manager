@@ -167,7 +167,8 @@ router.get('/completeness', async (req, res, next) => {
 // ─── GET /stats/export ────────────────────────────────────────────────────────
 // Returns data as JSON for client-side export (SheetJS in FE)
 // or accepts ?format=csv for server-side CSV.
-router.get('/export', async (req, res, next) => {
+// SECURITY: bulk export restricted to admin users.
+router.get('/export', canAdmin, async (req, res, next) => {
     try {
         const services = await findAllForExport();
         const format   = req.query.format || 'json';

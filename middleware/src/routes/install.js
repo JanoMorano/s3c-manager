@@ -203,6 +203,7 @@ router.post('/start', requireInstallWriteAccess, checkNotReady, async (req, res,
 // ---------------------------------------------------------------------------
 // POST /api/v1/install/check-db
 // Connectivity check: returns results for wizard step 5.
+// Internal error details are logged server-side and never exposed in the response.
 // ---------------------------------------------------------------------------
 router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
     try {
@@ -210,11 +211,18 @@ router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
         const results = await installSvc.checkConnectivity(pool);
 
         const allOk = results.db_reachable && results.db_write_access && results.platform_schema;
+        const safeChecks = {
+            db_reachable: results.db_reachable,
+            db_write_access: results.db_write_access,
+            platform_schema: results.platform_schema,
+        };
+        if (!allOk) logger.warn({ checks: results }, 'install/check-db: connectivity issues');
         return res.status(allOk ? 200 : 503).json({
             ok: allOk,
-            checks: results,
+            checks: safeChecks,
         });
     } catch (err) {
+        logger.error({ err }, 'install/check-db: unexpected error');
         return res.status(503).json({
             ok: false,
             error: tReq(req, 'install.errors.check_db_failed'),
@@ -222,7 +230,6 @@ router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
                 db_reachable: false,
                 db_write_access: false,
                 platform_schema: false,
-                errors: [err.message],
             },
         });
     }
@@ -237,6 +244,20 @@ router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
 router.post('/bootstrap-admin', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
+
+        try {
+            const adminCheck = await pool.query(
+                `SELECT COUNT(*) AS cnt FROM platform.users WHERE role = 'admin' AND is_active = TRUE`
+            );
+            if (parseInt(adminCheck.rows[0]?.cnt || '0') > 0) {
+                return res.status(409).json({
+                    error: 'Administrátorský účet již existuje. Pro správu účtů použijte admin sekci.',
+                });
+            }
+        } catch {
+            // DB not ready yet — allow bootstrap for fresh install
+        }
+
         const { username, displayName, email, password, mustChangePassword } = req.body || {};
 
         if (!username || !displayName || !email || !password) {

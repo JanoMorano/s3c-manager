@@ -1,48 +1,11 @@
 'use strict';
 
-const fs = require('fs');
 require('dotenv').config();
 
 function required(name) {
     const value = process.env[name];
     if (!value) throw new Error(`Missing required environment variable: ${name}`);
     return value;
-}
-
-function readTrimmedFile(filePath) {
-    const normalized = String(filePath || '').trim();
-    if (!normalized) return null;
-
-    try {
-        const value = fs.readFileSync(normalized, 'utf8').trim();
-        if (!value) {
-            throw new Error('secret file is empty');
-        }
-        return value;
-    } catch (err) {
-        throw new Error(`Unable to read secret file ${normalized}: ${err.message}`);
-    }
-}
-
-function readSecret({ envNames = [], fileNames = [], requiredValue = false }) {
-    for (const fileName of fileNames) {
-        const filePath = String(process.env[fileName] || '').trim();
-        if (!filePath) continue;
-        const fileValue = readTrimmedFile(filePath);
-        if (fileValue) return fileValue;
-    }
-
-    for (const envName of envNames) {
-        const value = String(process.env[envName] || '').trim();
-        if (value) return value;
-    }
-
-    if (requiredValue) {
-        const names = [...envNames, ...fileNames].join(', ');
-        throw new Error(`Missing required secret. Set one of: ${names}`);
-    }
-
-    return null;
 }
 
 function parseBool(value, defaultValue = false) {
@@ -59,11 +22,7 @@ const pgHost = process.env.DB_HOST || process.env.POSTGRES_HOST || 'postgres';
 const pgPort = parseNumber(process.env.DB_PORT || process.env.POSTGRES_PORT, 5432);
 const pgDatabase = process.env.DB_NAME || process.env.POSTGRES_DB || 'service_catalogue';
 const pgUser = process.env.DB_USER || process.env.POSTGRES_USER || 'postgres';
-const pgPassword = readSecret({
-    envNames: ['DB_PASSWORD', 'POSTGRES_PASSWORD'],
-    fileNames: ['DB_PASSWORD_FILE', 'POSTGRES_PASSWORD_FILE'],
-}) || 'postgres';
-const trustedProxyHeaderEnv = process.env.AUTH_SSO_TRUSTED_PROXY_HEADER;
+const pgPassword = process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres';
 
 const config = {
     app: {
@@ -74,19 +33,16 @@ const config = {
 
     db: {
         client: 'pg',
-        connectionString: String(process.env.DATABASE_URL || '').trim() || null,
+        connectionString: process.env.DATABASE_URL || null,
         host: pgHost,
         port: pgPort,
         database: pgDatabase,
         user: pgUser,
         password: pgPassword,
         server: pgHost,
-        ssl: (() => {
-            const enabled = parseBool(process.env.DB_SSL, false);
-            if (!enabled) return false;
-            const rejectUnauthorized = !parseBool(process.env.DB_SSL_INSECURE_SKIP_VERIFY, false);
-            return { rejectUnauthorized };
-        })(),
+        ssl: parseBool(process.env.DB_SSL, false)
+            ? { rejectUnauthorized: !parseBool(process.env.DB_SSL_INSECURE_SKIP_VERIFY, false) }
+            : false,
         pool: {
             max: parseNumber(process.env.DB_POOL_MAX, 10),
             min: parseNumber(process.env.DB_POOL_MIN, 2),
@@ -105,12 +61,13 @@ const config = {
         schema: 'data',
     },
 
+    install: {
+        // SECURITY: when set, all pre-READY write endpoints require this token in X-Install-Token header.
+        setupToken: (process.env.INSTALL_SETUP_TOKEN || '').trim(),
+    },
+
     jwt: {
-        secret: readSecret({
-            envNames: ['JWT_SECRET'],
-            fileNames: ['JWT_SECRET_FILE'],
-            requiredValue: true,
-        }),
+        secret: required('JWT_SECRET'),
         expiryMinutes: parseNumber(process.env.JWT_EXPIRY_MINUTES, 60),
         refreshDays: parseNumber(process.env.REFRESH_TOKEN_EXPIRY_DAYS, 7),
         issuer: 'service-catalogue',
@@ -126,13 +83,20 @@ const config = {
             givenNameHeader: process.env.AUTH_SSO_GIVEN_NAME_HEADER || 'x-remote-given-name',
             surnameHeader: process.env.AUTH_SSO_SURNAME_HEADER || 'x-remote-surname',
             departmentHeader: process.env.AUTH_SSO_DEPARTMENT_HEADER || 'x-remote-department',
-            trustedProxyHeader: trustedProxyHeaderEnv === undefined ? 'x-sso-proxy-secret' : String(trustedProxyHeaderEnv).trim(),
-            trustedProxySharedSecret: String(process.env.AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET || '').trim(),
+            // SECURITY: trusted proxy IPs allowed to send SSO headers.
+            // Comma-separated list. Empty = no IP restriction (warn-only).
+            trustedProxies: (process.env.AUTH_SSO_TRUSTED_PROXIES || '')
+                .split(',').map(s => s.trim()).filter(Boolean),
+            // SECURITY: shared secret the proxy must send in AUTH_SSO_SHARED_SECRET_HEADER.
+            // When set, requests without matching value are hard-rejected (fail-closed).
+            // When not set and no trustedProxies configured, SSO logs a warning and proceeds
+            // only if AUTH_SSO_ALLOW_OPEN=true — otherwise rejects (fail-closed by default).
+            sharedSecret: process.env.AUTH_SSO_SHARED_SECRET || '',
+            sharedSecretHeader: process.env.AUTH_SSO_SHARED_SECRET_HEADER || 'x-sso-secret',
+            // Safety valve: explicitly set to 'true' to allow SSO with no boundary guards.
+            // Intended only for fully isolated environments. NOT recommended.
+            allowOpen: process.env.AUTH_SSO_ALLOW_OPEN === 'true',
         },
-    },
-
-    install: {
-        setupToken: String(process.env.INSTALL_SETUP_TOKEN || '').trim(),
     },
 
     cors: {

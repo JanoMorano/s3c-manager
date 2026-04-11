@@ -50,6 +50,27 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
+// SECURITY: Strip SSO identity headers from direct client requests.
+// Only the trusted reverse proxy should send these. This prevents clients
+// from injecting fake identity headers when accessing the app directly.
+app.use((req, res, next) => {
+    const ssoConf = config.auth?.sso;
+    if (!ssoConf?.enabled) return next();
+
+    // Only strip on non-SSO routes; the /auth/sso endpoint validates trust separately.
+    if (req.path === '/api/v1/auth/sso') return next();
+
+    // Remove all SSO headers from non-SSO requests to prevent injection.
+    const ssoHeaders = [
+        ssoConf.header, ssoConf.displayNameHeader, ssoConf.emailHeader,
+        ssoConf.givenNameHeader, ssoConf.surnameHeader, ssoConf.departmentHeader,
+    ].filter(Boolean);
+    for (const h of ssoHeaders) {
+        delete req.headers[h.toLowerCase()];
+    }
+    next();
+});
+
 app.use(cors({
     origin: (origin, cb) => {
         if (!origin) return cb(null, true);
