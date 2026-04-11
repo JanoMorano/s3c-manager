@@ -17,7 +17,16 @@ function readCookie(req, name) {
             continue;
         }
 
-        return decodeURIComponent(rest.join('=').trim() || '');
+        const value = rest.join('=').trim();
+        if (!value) {
+            return '';
+        }
+
+        try {
+            return decodeURIComponent(value);
+        } catch {
+            return null;
+        }
     }
 
     return null;

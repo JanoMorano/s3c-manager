@@ -8,6 +8,7 @@
   "auth.errors.user_not_found": "User not found",
   "auth.errors.account_deactivated": "Account deactivated",
   "auth.errors.password_change_required": "The first administrator must change their password.",
+  "auth.errors.admin_required": "Administrator privileges required.",
   "auth.rate_limit.login": "Too many sign-in attempts. Try again in 15 minutes.",
   "install.rate_limit": "Too many installation requests. Try again in a moment.",
   "install.errors.setup_token_required": "The setup token is missing or invalid.",

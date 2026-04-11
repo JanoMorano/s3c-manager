@@ -9,6 +9,7 @@
   "auth.errors.user_not_found": "Uživatel nenalezen",
   "auth.errors.account_deactivated": "Účet deaktivován",
   "auth.errors.password_change_required": "Je vyžadována změna hesla prvního administrátora.",
+  "auth.errors.admin_required": "Vyžadována role správce.",
   "auth.rate_limit.login": "Příliš mnoho pokusů o přihlášení. Zkuste to za 15 minut.",
   "install.rate_limit": "Příliš mnoho instalačních požadavků. Zkuste to za chvíli.",
   "install.errors.setup_token_required": "Chybí nebo je neplatný setup token.",

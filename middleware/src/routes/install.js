@@ -25,7 +25,6 @@ const { getPlatformPool } = require('../db/pool');
 const installSvc  = require('../services/install.service');
 const logger      = require('../utils/logger');
 const { requireAuth } = require('../middleware/auth');
-const { canAdmin }    = require('../middleware/rbac');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
 const { tReq } = require('../utils/i18n');
 
@@ -69,6 +68,14 @@ async function checkNotReady(req, res, next) {
     }
 }
 
+function requireInstallAdminAccess(req, res, next) {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ error: tReq(req, 'auth.errors.admin_required') });
+    }
+
+    return next();
+}
+
 async function requireAdminWhenReady(req, res, next) {
     try {
         const pool = getPlatformPool();
@@ -77,7 +84,7 @@ async function requireAdminWhenReady(req, res, next) {
 
         return requireAuth(req, res, (authErr) => {
             if (authErr) return next(authErr);
-            return canAdmin(req, res, next);
+            return requireInstallAdminAccess(req, res, next);
         });
     } catch (err) {
         return next(err);
@@ -97,7 +104,7 @@ async function requireInstallWriteAccess(req, res, next) {
         if (row?.install_status === 'READY') {
             return requireAuth(req, res, (authErr) => {
                 if (authErr) return next(authErr);
-                return canAdmin(req, res, next);
+                return requireInstallAdminAccess(req, res, next);
             });
         }
 
@@ -483,7 +490,7 @@ router.post('/reset', requireInstallWriteAccess, checkNotReady, async (req, res,
 // POST /api/v1/install/seed-demo — post-install demo data seeding.
 // Requires READY state (opposite of checkNotReady). Available to admin users.
 // ---------------------------------------------------------------------------
-router.post('/seed-demo', requireAuth, canAdmin, async (req, res, next) => {
+router.post('/seed-demo', requireAuth, requireInstallAdminAccess, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
 

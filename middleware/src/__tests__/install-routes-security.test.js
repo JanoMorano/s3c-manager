@@ -185,6 +185,36 @@ describe('install route security', () => {
         expect(response.body.db_error).toBe('The database is not yet available or has not been initialized.');
     });
 
+    test('POST /start returns a localized admin-required error when READY and user locale wins', async () => {
+        const installSvc = require('../services/install.service');
+        installSvc.getInstallRow.mockResolvedValue({
+            id: 1,
+            install_status: 'READY',
+            lock_token: null,
+            install_lock: false,
+            locked_by: null,
+        });
+        mockRequireAuth.mockImplementationOnce((req, res, next) => {
+            req.user = {
+                id: 42,
+                username: 'viewer',
+                role: 'viewer',
+                preferred_lang: 'en',
+            };
+            next();
+        });
+
+        const app = buildApp();
+        const response = await request(app)
+            .post('/api/v1/install/start')
+            .set('cookie', 'sc_locale=cs')
+            .set('accept-language', 'cs-CZ,cs;q=0.9')
+            .send({ performed_by: 'installer' });
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe('Administrator privileges required.');
+    });
+
     test('POST /execute requires a valid install setup token on a fresh install', async () => {
         const app = buildApp();
 
@@ -269,7 +299,6 @@ describe('install route security', () => {
 
         expect(response.status).toBe(403);
         expect(mockRequireAuth).toHaveBeenCalled();
-        expect(mockCanAdmin).toHaveBeenCalled();
         if (sideEffect === 'queryMock') {
             expect(queryMock).not.toHaveBeenCalled();
         } else {
