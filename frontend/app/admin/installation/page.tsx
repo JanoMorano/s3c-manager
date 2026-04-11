@@ -12,7 +12,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../admin.module.css';
 import Link from '@/app/components/AppLink';
-import { getToken } from '@/features/auth/authStore';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,10 +98,9 @@ export default function InstallationPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = getToken();
       const [statusRes, summaryRes] = await Promise.all([
-        fetch('/api/v1/install/status', { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
-        fetch('/api/v1/install/summary', { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+        fetch('/api/v1/install/status'),
+        fetch('/api/v1/install/summary'),
       ]);
       const statusData = await statusRes.json();
       const summaryData = await summaryRes.json();
@@ -128,12 +126,10 @@ export default function InstallationPage() {
     setSeeding(true);
     setSeedResult(null);
     try {
-      const token = getToken();
       const res = await fetch('/api/v1/install/seed-demo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ action }),
       });
@@ -155,12 +151,10 @@ export default function InstallationPage() {
     setRepairing(true);
     setRepairResult(null);
     try {
-      const token = getToken();
       const res = await fetch('/api/v1/install/repair', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ confirm: true }),
       });

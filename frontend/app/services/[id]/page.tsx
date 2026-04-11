@@ -25,6 +25,7 @@ import { Surface } from '@/design-system/primitives';
 import { Button }  from '@/design-system/controls/Button';
 import type { ScoreBreakdownItem, ServiceRoleAssignment } from '@/features/services/model/service.types';
 import { authHeaders } from '@/features/services/api/services.api';
+import { safeHref } from '@/shared/utils/safeHref';
 import styles from './detail.module.css';
 
 interface Props { params: Promise<{ id: string }> }
@@ -44,6 +45,9 @@ export default function ServiceDetailPage({ params }: Props) {
   if (isLoading) return <div className={styles.state}>Loading…</div>;
   if (error)     return <div className={styles.stateError}>Service not found or API unreachable.</div>;
   if (!svc)      return null;
+
+  const summarySourceUrl = safeHref(svc.source_url);
+  const footerSourceUrl = safeHref(svc.source_url);
 
   // JSON extended data presence check
   const hasExtData = svc.customer_type != null || svc.options != null || svc.notes != null || svc.training_refs != null || svc.prerequisites_json != null || svc.dependencies_json != null;
@@ -77,9 +81,9 @@ export default function ServiceDetailPage({ params }: Props) {
         </SummaryItem>
         <SummaryItem label="Owner">{svc.service_owner ?? '—'}</SummaryItem>
         <SummaryItem label="Support">{svc.vlastnik ?? '—'}</SummaryItem>
-        {svc.source_url && (
+        {summarySourceUrl && (
           <SummaryItem label="URL">
-            <a href={svc.source_url} target="_blank" rel="noreferrer" className={styles.summaryLink}>
+            <a href={summarySourceUrl} target="_blank" rel="noreferrer" className={styles.summaryLink}>
               Service URL ↗
             </a>
           </SummaryItem>
@@ -461,7 +465,7 @@ export default function ServiceDetailPage({ params }: Props) {
               <Link href={`/services/${id}/graph`}>Dependency graph</Link>
               <Link href={`/services/${id}/history`}>Audit history</Link>
               <Link href={`/services/${id}/edit`}>Edit service</Link>
-              {svc.source_url && <a href={svc.source_url} target="_blank" rel="noreferrer">Service URL ↗</a>}
+              {footerSourceUrl && <a href={footerSourceUrl} target="_blank" rel="noreferrer">Service URL ↗</a>}
             </div>
           </Surface>
 

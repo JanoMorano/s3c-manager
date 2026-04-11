@@ -20,6 +20,7 @@
 
 const express     = require('express');
 const rateLimit   = require('express-rate-limit');
+const config      = require('../config');
 const { getPlatformPool } = require('../db/pool');
 const installSvc  = require('../services/install.service');
 const logger      = require('../utils/logger');
@@ -28,6 +29,7 @@ const { canAdmin }    = require('../middleware/rbac');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
 
 const router = express.Router();
+const INSTALL_SETUP_TOKEN_HEADER = 'x-install-setup-token';
 
 // Rate limit for install endpoints; protects against brute-force attempts.
 // max: 500 because the wizard calls several endpoints per session, React StrictMode
@@ -76,6 +78,34 @@ async function requireAdminWhenReady(req, res, next) {
             if (authErr) return next(authErr);
             return canAdmin(req, res, next);
         });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+function readInstallSetupToken(req) {
+    const headerToken = req.get(INSTALL_SETUP_TOKEN_HEADER);
+    return headerToken && String(headerToken).trim() ? String(headerToken).trim() : '';
+}
+
+async function requireInstallWriteAccess(req, res, next) {
+    try {
+        const pool = getPlatformPool();
+        const row = await installSvc.getInstallRow(pool).catch(() => null);
+
+        if (row?.install_status === 'READY') {
+            return requireAuth(req, res, (authErr) => {
+                if (authErr) return next(authErr);
+                return canAdmin(req, res, next);
+            });
+        }
+
+        const expectedToken = String(config.install?.setupToken ?? '').trim();
+        if (!expectedToken || readInstallSetupToken(req) !== expectedToken) {
+            return res.status(401).json({ error: 'Chybí nebo je neplatný setup token.' });
+        }
+
+        return next();
     } catch (err) {
         return next(err);
     }
@@ -141,7 +171,7 @@ router.get('/status', async (req, res, next) => {
 // Starts installation and acquires the install lock.
 // Body: { performed_by?: string }
 // ---------------------------------------------------------------------------
-router.post('/start', checkNotReady, async (req, res, next) => {
+router.post('/start', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const performedBy = String(req.body?.performed_by ?? 'installer').trim().slice(0, 200);
@@ -164,7 +194,7 @@ router.post('/start', checkNotReady, async (req, res, next) => {
 // POST /api/v1/install/check-db
 // Connectivity check: returns results for wizard step 5.
 // ---------------------------------------------------------------------------
-router.post('/check-db', async (req, res, next) => {
+router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const results = await installSvc.checkConnectivity(pool);
@@ -193,7 +223,7 @@ router.post('/check-db', async (req, res, next) => {
 // Body: { username, displayName, email, password, mustChangePassword? }
 // Important: passwords must never be logged.
 // ---------------------------------------------------------------------------
-router.post('/bootstrap-admin', checkNotReady, async (req, res, next) => {
+router.post('/bootstrap-admin', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const { username, displayName, email, password, mustChangePassword } = req.body || {};
@@ -232,7 +262,7 @@ router.post('/bootstrap-admin', checkNotReady, async (req, res, next) => {
 // Saves base system configuration (app_name, base_url, timezone, ...).
 // Optional step; defaults are suitable for most deployments.
 // ---------------------------------------------------------------------------
-router.post('/config', checkNotReady, async (req, res, next) => {
+router.post('/config', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const { app_name, base_url, timezone, storage_path, https_mode } = req.body || {};
@@ -269,7 +299,7 @@ router.post('/config', checkNotReady, async (req, res, next) => {
 // Configures modules.
 // Body: { activate_c3: boolean }
 // ---------------------------------------------------------------------------
-router.post('/modules', checkNotReady, async (req, res, next) => {
+router.post('/modules', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const activateC3 = req.body?.activate_c3 === true;
@@ -296,7 +326,7 @@ router.post('/modules', checkNotReady, async (req, res, next) => {
 // Executes installation: module activation, state transitions, READY.
 // Body: { activate_c3: boolean, performed_by?: string }
 // ---------------------------------------------------------------------------
-router.post('/execute', checkNotReady, async (req, res, next) => {
+router.post('/execute', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const activateC3    = req.body?.activate_c3   === true;
@@ -306,6 +336,13 @@ router.post('/execute', checkNotReady, async (req, res, next) => {
         if (!currentLockToken) {
             return res.status(409).json({
                 error: 'Instalace nebyla zahájena. Nejprve zavolejte /install/start.',
+            });
+        }
+
+        const adminExists = await installSvc.hasActiveAdminAccount(pool);
+        if (!adminExists) {
+            return res.status(422).json({
+                error: 'První admin účet musí být vytvořen v install wizardu před dokončením instalace.',
             });
         }
 
@@ -387,7 +424,7 @@ router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
 // Available only when status is not READY, which keeps fresh/failed states safe.
 // Body: { confirm: true }
 // ---------------------------------------------------------------------------
-router.post('/reset', checkNotReady, async (req, res, next) => {
+router.post('/reset', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         if (req.body?.confirm !== true) {
             return res.status(400).json({ error: 'Musíte potvrdit: { "confirm": true }' });

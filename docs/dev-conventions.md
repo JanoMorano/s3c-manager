@@ -30,6 +30,7 @@ Project coding guide for Service Catalogue v2.
   - a happy path
   - an auth or permission failure case
   - explicit error handling
+- do not add hidden auth bypasses for development; tests should use real JWTs, explicit fixtures, or mocked middleware as appropriate
 - always respect the `C3_TAXONOMY` module gate for C3 APIs
 - do not bring legacy MSSQL compatibility layers back into the active tree
 

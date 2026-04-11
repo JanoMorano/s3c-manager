@@ -209,6 +209,10 @@ function normalizeCodeParam(value) {
     return String(value ?? '').trim();
 }
 
+function isXlsxParserError(err) {
+    return String(err?.message ?? '').startsWith('XLSX parser:');
+}
+
 function getImportTargetMeta(targetKey) {
     if (targetKey === CAPABILITY_BUILDER_IMPORT_TARGET.key) return CAPABILITY_BUILDER_IMPORT_TARGET;
     return C3_ENTITY_IMPORT_TARGETS[targetKey] ?? null;
@@ -1234,7 +1238,7 @@ router.get('/c3-technology-interactions/:code', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3/dashboard', async (req, res, next) => {
+router.get('/c3/dashboard', requireAuth, async (req, res, next) => {
     try {
         const cacheKey = 'c3_dashboard_aggregate:v2';
         const cached = cache.get(cacheKey);
@@ -1474,21 +1478,21 @@ router.get('/c3/dashboard', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3/capability-map', async (req, res, next) => {
+router.get('/c3/capability-map', requireAuth, async (req, res, next) => {
     try {
         const payload = await buildCapabilityMapPayload();
         res.json(payload);
     } catch (err) { next(err); }
 });
 
-router.get('/c3/capability-map-spiral7', async (req, res, next) => {
+router.get('/c3/capability-map-spiral7', requireAuth, async (req, res, next) => {
     try {
         const payload = await buildCapabilityMapPayload();
         res.json(payload);
     } catch (err) { next(err); }
 });
 
-router.get('/c3/capability-map-spiral6', async (req, res, next) => {
+router.get('/c3/capability-map-spiral6', requireAuth, async (req, res, next) => {
     try {
         const pageTitle = await getCapabilityMapTitle('Spiral_6');
         const payload = await buildCapabilityMapPayloadBySpiral('Spiral_6', pageTitle);
@@ -1496,7 +1500,7 @@ router.get('/c3/capability-map-spiral6', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3-capability-builder/domains', async (req, res, next) => {
+router.get('/c3-capability-builder/domains', requireAuth, async (req, res, next) => {
     try {
         const domains = await listCapabilityBuilderDomains();
         res.json(domains);
@@ -1973,7 +1977,12 @@ router.post(
                 target_label: effectiveTarget.label,
                 ...result,
             });
-        } catch (err) { next(err); }
+        } catch (err) {
+            if (isXlsxParserError(err)) {
+                return res.status(400).json({ error: err.message });
+            }
+            next(err);
+        }
     }
 );
 

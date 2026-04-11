@@ -101,7 +101,7 @@ run_psql "pg bootstrap — schemas + extensions" /pgdb/schema/00_bootstrap.sql
 run_psql "pg platform — AppConfig, Users, RefreshTokens, AuditLog" /pgdb/schema/01_platform.sql
 run_psql "pg ref — reference lookups" /pgdb/schema/02_ref.sql
 run_psql "pg groups — AppGroup, AppGroupPermission, AppUserGroup" /pgdb/schema/03_groups.sql
-run_psql "pg platform seed — default admin account" /pgdb/data/platform/seed_admin.sql
+echo "▶ pg platform seed — skipped (first admin is created in the install wizard)"
 run_psql "pg core — ServiceCatalog" /pgdb/schema/04_core.sql
 run_psql "pg graph — ServiceRelation + ServiceRelationRaw" /pgdb/schema/05_graph.sql
 run_psql "pg pricing — ServiceFlavour + ServiceSla" /pgdb/schema/06_pricing.sql

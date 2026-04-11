@@ -1,68 +1,147 @@
-/** Token storage — localStorage. Isomorphic (SSR-safe). */
-const ACCESS_KEY  = 'sc_access_token';
-const REFRESH_KEY = 'sc_refresh_token';
+/** Client auth snapshot storage. No JWTs are persisted in browser storage. */
 const SNAPSHOT_KEY = 'sc_auth_snapshot';
-export const AUTH_STATE_EVENT = 'sc-auth-state-changed';
-const isBrowser   = typeof window !== 'undefined';
+const isBrowser = typeof window !== 'undefined';
 
-export const getToken        = (): string | null => isBrowser ? localStorage.getItem(ACCESS_KEY)  : null;
-export const getRefreshToken = (): string | null => isBrowser ? localStorage.getItem(REFRESH_KEY) : null;
+export const AUTH_STATE_EVENT = 'sc-auth-state-changed';
 
 export interface AuthSnapshot {
+  id: number | null;
   username: string | null;
   display_name: string | null;
   role: string | null;
+  auth_provider: string | null;
+  must_change_password: boolean;
 }
 
-function decodeToken(token: string): AuthSnapshot {
-  try {
-    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(part)) as { username?: string; display_name?: string | null; role?: string };
-    return {
-      username: payload.username ?? null,
-      display_name: payload.display_name ?? null,
-      role: payload.role ?? null,
-    };
-  } catch {
-    return { username: null, display_name: null, role: null };
-  }
-}
+type AuthUserShape = Partial<AuthSnapshot> & Record<string, unknown>;
 
-export const getAuthSnapshot = (): AuthSnapshot | null => {
+let memorySnapshot: AuthSnapshot | null = null;
+let restorePromise: Promise<AuthSnapshot | null> | null = null;
+
+function readStoredSnapshot(): AuthSnapshot | null {
   if (!isBrowser) return null;
 
-  const cached = sessionStorage.getItem(SNAPSHOT_KEY) || localStorage.getItem(SNAPSHOT_KEY);
-  if (cached) {
-    try {
-      return JSON.parse(cached) as AuthSnapshot;
-    } catch {
-      sessionStorage.removeItem(SNAPSHOT_KEY);
-      localStorage.removeItem(SNAPSHOT_KEY);
+  const cached = sessionStorage.getItem(SNAPSHOT_KEY);
+  if (!cached) return null;
+
+  try {
+    return JSON.parse(cached) as AuthSnapshot;
+  } catch {
+    sessionStorage.removeItem(SNAPSHOT_KEY);
+    return null;
+  }
+}
+
+function persistSnapshot(snapshot: AuthSnapshot | null): void {
+  memorySnapshot = snapshot;
+  if (!isBrowser) return;
+
+  if (snapshot) {
+    sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } else {
+    sessionStorage.removeItem(SNAPSHOT_KEY);
+  }
+  window.dispatchEvent(new Event(AUTH_STATE_EVENT));
+}
+
+function snapshotFromUser(user: AuthUserShape): AuthSnapshot {
+  return {
+    id: typeof user.id === 'number' ? user.id : (user.id != null ? Number(user.id) : null),
+    username: typeof user.username === 'string' ? user.username : null,
+    display_name: typeof user.display_name === 'string' ? user.display_name : null,
+    role: typeof user.role === 'string' ? user.role : null,
+    auth_provider: typeof user.auth_provider === 'string' ? user.auth_provider : null,
+    must_change_password: user.must_change_password === true,
+  };
+}
+
+async function fetchCurrentUser(): Promise<AuthSnapshot | null> {
+  if (!isBrowser) return null;
+
+  const res = await fetch('/api/v1/auth/me', {
+    cache: 'no-store',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) return null;
+
+  const user = await res.json() as AuthUserShape;
+  const snapshot = snapshotFromUser(user);
+  persistSnapshot(snapshot);
+  return snapshot;
+}
+
+export function getAuthSnapshot(): AuthSnapshot | null {
+  return memorySnapshot ?? readStoredSnapshot();
+}
+
+export function setAuthSnapshot(snapshot: AuthSnapshot | null): void {
+  persistSnapshot(snapshot);
+}
+
+export function setAuthSnapshotFromUser(user: AuthUserShape | null | undefined): void {
+  if (!user) {
+    persistSnapshot(null);
+    return;
+  }
+  persistSnapshot(snapshotFromUser(user));
+}
+
+export function clearAuthSession(): void {
+  persistSnapshot(null);
+}
+
+export async function restoreAuthSession(force = false): Promise<AuthSnapshot | null> {
+  if (!isBrowser) return null;
+  if (restorePromise && !force) return restorePromise;
+
+  const task = (async () => {
+    const restored = await fetchCurrentUser();
+    if (restored) return restored;
+
+    const refreshed = await refreshAuthSession();
+    if (refreshed) {
+      const refreshedSnapshot = await fetchCurrentUser();
+      if (refreshedSnapshot) return refreshedSnapshot;
     }
+
+    clearAuthSession();
+    return null;
+  })();
+
+  restorePromise = task;
+  try {
+    return await task;
+  } finally {
+    restorePromise = null;
+  }
+}
+
+export async function refreshAuthSession(): Promise<boolean> {
+  if (!isBrowser) return false;
+
+  const res = await fetch('/api/v1/auth/refresh', {
+    method: 'POST',
+    cache: 'no-store',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!res.ok) {
+    clearAuthSession();
+    return false;
   }
 
-  const token = getToken();
-  if (!token) return null;
+  return true;
+}
 
-  const snapshot = decodeToken(token);
-  sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
-  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
-  return snapshot;
-};
-
-export const setTokens = (access: string, refresh: string): void => {
-  localStorage.setItem(ACCESS_KEY,  access);
-  localStorage.setItem(REFRESH_KEY, refresh);
-  const snapshot = decodeToken(access);
-  sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
-  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
-  if (isBrowser) window.dispatchEvent(new Event(AUTH_STATE_EVENT));
-};
-
-export const clearTokens = (): void => {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
-  sessionStorage.removeItem(SNAPSHOT_KEY);
-  localStorage.removeItem(SNAPSHOT_KEY);
-  if (isBrowser) window.dispatchEvent(new Event(AUTH_STATE_EVENT));
-};
+// Backward-compatible no-op shims. JWTs are no longer persisted in browser storage.
+export const getToken = (): string | null => null;
+export const getRefreshToken = (): string | null => null;
+export const setTokens = (): void => {};
+export const clearTokens = (): void => clearAuthSession();

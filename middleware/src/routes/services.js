@@ -94,8 +94,12 @@ function _normalizeBody(body) {
     return out;
 }
 
-function _csvCell(value) {
-    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+function _csvEscapeCell(value) {
+    const normalized = String(value ?? '')
+        .replace(/\r\n|\r|\n/g, ' ')
+        .replace(/^\s*([=+\-@])/, "'$1")
+        .replace(/"/g, '""');
+    return `"${normalized}"`;
 }
 
 // ─── GET /services ────────────────────────────────────────────────────────────
@@ -167,7 +171,7 @@ router.get('/export/csv', async (req, res, next) => {
             ]),
         ];
 
-        const csv = rows.map((row) => row.map(_csvCell).join(',')).join('\n');
+        const csv = rows.map((row) => row.map(_csvEscapeCell).join(',')).join('\n');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="service-catalogue-export.csv"');
         res.send(csv);

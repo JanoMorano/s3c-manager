@@ -20,7 +20,7 @@ The application redirects the user to `/install`, where the wizard performs the 
 
 ```bash
 # 1. Back up the database before every upgrade
-docker exec sc-postgres pg_dump -U postgres service_catalogue > backup_$(date +%Y%m%d).sql
+./scripts/backup-postgres.sh
 
 # 2. Update images
 docker compose pull
@@ -58,10 +58,10 @@ Before every upgrade:
 
 ```bash
 # Backup
-docker exec sc-postgres pg_dump -U postgres service_catalogue > backup_pre_upgrade.sql
+./scripts/backup-postgres.sh backups/backup_pre_upgrade.dump
 
 # Manual rollback, if necessary
-docker exec sc-postgres psql -U postgres service_catalogue < backup_pre_upgrade.sql
+./scripts/restore-postgres.sh backups/backup_pre_upgrade.dump
 ```
 
 ---

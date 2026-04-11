@@ -35,9 +35,10 @@ Service Catalogue v2 provides:
 
 ```bash
 git clone <repo-url>
-cd redesign3
+cd s3c-manager
 cp .env.example .env
 # set JWT_SECRET and POSTGRES_PASSWORD / DB_PASSWORD
+# for shared or remote bootstrap, also set INSTALL_SETUP_TOKEN
 docker compose up -d
 ```
 
@@ -45,7 +46,12 @@ Then open:
 
 - `http://localhost:8080`
 - the first run redirects to `/install`
-- default admin credentials after a clean install: `admin / Admin123!`
+- create the first admin account in the install wizard; there is no shared default admin
+- first-login password change is available as a wizard option for the first local admin
+
+If `INSTALL_SETUP_TOKEN` is configured, pre-READY install write actions require
+the `x-install-setup-token` header. `/api/v1/install/status` stays public so the
+wizard can detect the current install mode.
 
 If you want a full demo environment immediately:
 
@@ -117,6 +123,7 @@ Minimum required variables:
 | `JWT_SECRET` | JWT signing secret, at least 32 random characters |
 | `POSTGRES_PASSWORD` | PostgreSQL password |
 | `DB_PASSWORD` | the same password for the application layer |
+| `INSTALL_SETUP_TOKEN` | recommended for shared/remote bootstrap to lock pre-READY install write routes |
 
 See the full list in [docs/installation.md](docs/installation.md).
 
@@ -158,11 +165,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/dev-conventions.md](docs/dev-co
 
 See [SECURITY.md](SECURITY.md).
 
-- JWT or trusted-header SSO
+- cookie-backed JWT session or trusted-header SSO behind a trusted proxy boundary
 - RBAC: `viewer`, `editor`, `admin`
 - audit log for mutations and authentication failures
-- secrets kept outside source code
+- production secrets should be supplied through env vars or mounted secret files
+- production TLS termination is expected on a reverse proxy in front of the app
 - GitHub Security Advisories for disclosure
+- local development and tests must use the normal login flow, explicit JWTs, or mocked auth; there is no `DEBUG_BYPASS_AUTH` path
 
 ## Support development
 

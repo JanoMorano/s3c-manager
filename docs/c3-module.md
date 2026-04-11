@@ -6,13 +6,24 @@ The optional `C3_TAXONOMY` module extends the application with:
 
 - C3 taxonomy lists
 - the C3 dashboard
-- public detail pages and editors for `Services`, `Applications`, `Data Objects`, and `Technology Interactions`
+- C3 entity detail pages plus authenticated editors for `Services`, `Applications`, `Data Objects`, and `Technology Interactions`
 - capability maps for:
   - `Spiral 6`
   - `Spiral 7`
 - the capability builder and mappings to catalogue services
 
 If the module is not activated during installation, both C3 UI and C3 APIs remain unavailable.
+
+At API level, only a small read-only allowlist stays public:
+
+- `GET /api/v1/taxonomy/c3/types`
+- `GET /api/v1/taxonomy/c3/statuses`
+- `GET /api/v1/taxonomy/c3/parent-options`
+- `GET /api/v1/taxonomy/security-classifications`
+- `GET /api/v1/taxonomy/c3`
+- detail lookups by code for services, applications, data objects, and technology interactions
+
+The C3 dashboard, capability maps, and capability-builder domains are served behind the authenticated app shell and require a logged-in user.
 
 ## Spiral 6 vs Spiral 7
 
@@ -86,6 +97,7 @@ Application behavior:
 
 - Spiral 6 stays a read-only baseline
 - Spiral 7 is the active builder layer with editable service mappings
+- dashboard and capability-map pages are only rendered after application sign-in
 
 ## How to Load Your Own Data
 

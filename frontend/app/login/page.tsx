@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getToken, setTokens } from '@/features/auth/authStore';
+import { restoreAuthSession, setAuthSnapshotFromUser } from '@/features/auth/authStore';
 import styles from './login.module.css';
 
 export default function LoginPage() {
@@ -15,16 +15,22 @@ export default function LoginPage() {
 
   useEffect(() => {
     const next = searchParams?.get('next') ?? '/';
-    if (getToken()) {
-      router.replace(next);
-      return;
-    }
-
     let cancelled = false;
 
-    async function trySso() {
+    async function bootstrap() {
       try {
-        const res = await fetch('/api/v1/auth/sso', { cache: 'no-store' });
+        const session = await restoreAuthSession();
+        if (cancelled) return;
+        if (session) {
+          if (session.must_change_password) {
+            router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
+            return;
+          }
+          router.replace(next);
+          return;
+        }
+
+        const res = await fetch('/api/v1/auth/sso', { cache: 'no-store', credentials: 'include' });
         if (cancelled) return;
 
         if (res.status === 204) {
@@ -35,7 +41,11 @@ export default function LoginPage() {
         if (res.ok) {
           const data = await res.json();
           if (cancelled) return;
-          setTokens(data.access_token, data.refresh_token);
+          setAuthSnapshotFromUser(data.user);
+          if (data.user?.must_change_password) {
+            router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
+            return;
+          }
           router.replace(next);
           return;
         }
@@ -54,7 +64,7 @@ export default function LoginPage() {
       }
     }
 
-    void trySso();
+    void bootstrap();
     return () => {
       cancelled = true;
     };
@@ -66,13 +76,18 @@ export default function LoginPage() {
     try {
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: form.username.trim(), password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Přihlášení selhalo');
-      setTokens(data.access_token, data.refresh_token);
+      setAuthSnapshotFromUser(data.user);
       const next = searchParams?.get('next') ?? '/';
+      if (data.user?.must_change_password) {
+        router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
+        return;
+      }
       router.replace(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Chyba');
