@@ -66,6 +66,52 @@ test('persists preferred language across refresh', async ({ page }) => {
   await expect(page.locator('select[name="preferred_lang"]')).toHaveValue('en');
 });
 
+test('keeps preferred language when profile revalidation fails', async ({ page }) => {
+  const credentials = getConfiguredAdminCredentials();
+  if (!credentials) {
+    test.skip(true, 'Set PLAYWRIGHT_ADMIN_USERNAME and PLAYWRIGHT_ADMIN_PASSWORD to run login tests.');
+    return;
+  }
+
+  await page.goto('/login');
+  await page.locator('input').nth(0).fill(credentials.username);
+  await page.locator('input').nth(1).fill(credentials.password);
+  await page.getByRole('button', { name: /přihlásit se|sign in/i }).click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 10_000 });
+  await page.goto('/user-info');
+  await expect(page.getByRole('heading', { name: /user info|informace o uživateli/i })).toBeVisible({ timeout: 10_000 });
+
+  await page.route('**/api/v1/auth/me', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'profile revalidation failed' }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  const preferenceResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/api/v1/auth/preferences') && response.request().method() === 'PUT'
+  );
+  const failedMeResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/api/v1/auth/me') && response.request().method() === 'GET' && response.status() === 500
+  );
+  await page.selectOption('select[name="preferred_lang"]', 'en');
+
+  const preferenceResponse = await preferenceResponsePromise;
+  expect(preferenceResponse.ok()).toBeTruthy();
+  const preferenceResponseBody = await preferenceResponse.json() as { preferred_lang?: string };
+  expect(preferenceResponseBody.preferred_lang).toBe('en');
+
+  const failedMeResponse = await failedMeResponsePromise;
+  expect(failedMeResponse.status()).toBe(500);
+
+  await expect(page.locator('select[name="preferred_lang"]')).toHaveValue('en');
+});
+
 test('unauthenticated access to protected route redirects to login', async ({ page }) => {
   await page.goto('/services/list');
   await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });

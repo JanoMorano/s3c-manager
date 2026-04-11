@@ -162,6 +162,7 @@ export default function UserInfoPage() {
   }
 
   async function handlePreferredLangChange(nextLang: Locale) {
+    const previousLang = profileForm.preferred_lang;
     setProfileForm(p => ({ ...p, preferred_lang: nextLang }));
     setLangSaving(true);
     setLangError(null);
@@ -193,9 +194,9 @@ export default function UserInfoPage() {
         ...me,
         preferred_lang: persistedLang,
       });
-      await mutateMe();
+      void mutateMe().catch(() => undefined);
     } catch (err) {
-      setProfileForm(p => ({ ...p, preferred_lang: me?.preferred_lang === 'en' ? 'en' : 'cs' }));
+      setProfileForm(p => ({ ...p, preferred_lang: previousLang }));
       setLangError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setLangSaving(false);
@@ -251,7 +252,7 @@ export default function UserInfoPage() {
   const avatarColor   = profileForm.avatar_color || (me ? pickColorFromName(me.username) : '#64748b');
   const avatarInitial = (profileForm.given_name || me?.display_name || me?.username || '?')[0].toUpperCase();
 
-  if (meError) {
+  if (meError && !me) {
     return (
       <div className={styles.shell}>
         <h1 className={styles.pageTitle}>{t('user_info.title')}</h1>
