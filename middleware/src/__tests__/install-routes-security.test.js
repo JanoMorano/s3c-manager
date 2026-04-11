@@ -14,6 +14,9 @@ jest.mock('../utils/logger', () => ({
 jest.mock('../config', () => ({
     app: { env: 'test', port: 4000 },
     rateLimit: { auth: { windowMs: 60000, max: 10 } },
+    install: {
+        setupToken: 'bootstrap-secret',
+    },
     jwt: {
         secret: 'test-secret',
         expiryMinutes: 60,
@@ -36,6 +39,21 @@ jest.mock('../config', () => ({
 jest.mock('../middleware/module-gates', () => ({
     invalidateModuleStatus: jest.fn(),
     requireModuleApiEnabled: jest.fn(() => (req, res, next) => next()),
+}));
+const mockRequireAuth = jest.fn((req, res, next) => {
+    req.user = {
+        id: 42,
+        username: 'viewer',
+        role: 'viewer',
+    };
+    next();
+});
+const mockCanAdmin = jest.fn((req, res, next) => res.status(403).json({ error: 'Forbidden' }));
+jest.mock('../middleware/auth', () => ({
+    requireAuth: (...args) => mockRequireAuth(...args),
+}));
+jest.mock('../middleware/rbac', () => ({
+    canAdmin: (...args) => mockCanAdmin(...args),
 }));
 jest.mock('../db/pool', () => ({
     getPlatformPool: jest.fn(),
@@ -68,9 +86,31 @@ function buildApp() {
 }
 
 describe('install route security', () => {
+    const validHeaders = { 'x-install-setup-token': 'bootstrap-secret' };
+    const preReadyInstallRow = {
+        id: 1,
+        install_status: 'NOT_INSTALLED',
+        lock_token: null,
+        install_lock: false,
+        locked_by: null,
+    };
+
+    function expectNoPrivilegedInstallSideEffects() {
+        const installSvc = require('../services/install.service');
+        expect(installSvc.acquireLock).not.toHaveBeenCalled();
+        expect(installSvc.bootstrapAdmin).not.toHaveBeenCalled();
+        expect(installSvc.executeInstall).not.toHaveBeenCalled();
+        expect(installSvc.checkConnectivity).not.toHaveBeenCalled();
+        expect(installSvc.transitionTo).not.toHaveBeenCalled();
+        expect(installSvc.releaseLock).not.toHaveBeenCalled();
+        expect(queryMock).not.toHaveBeenCalled();
+    }
+
     beforeEach(() => {
         jest.resetModules();
         jest.clearAllMocks();
+        mockRequireAuth.mockClear();
+        mockCanAdmin.mockClear();
 
         const pool = require('../db/pool');
         pool.getPlatformPool.mockReturnValue({ query: queryMock });
@@ -78,7 +118,7 @@ describe('install route security', () => {
 
         const installSvc = require('../services/install.service');
         installSvc.detectInstallMode.mockResolvedValue({ mode: 'fresh', status: 'NOT_INSTALLED', row: null });
-        installSvc.getInstallRow.mockResolvedValue({ id: 1, install_status: 'INSTALL_FAILED', lock_token: 'lock-1' });
+        installSvc.getInstallRow.mockResolvedValue(preReadyInstallRow);
         installSvc.acquireLock.mockResolvedValue({ ok: true, token: 'lock-1' });
         installSvc.bootstrapAdmin.mockResolvedValue({ ok: true, userId: 2 });
         installSvc.executeInstall.mockResolvedValue({ ok: true, summary: { status: 'READY' } });
@@ -108,16 +148,29 @@ describe('install route security', () => {
             app_name: 'S3C',
             base_url: 'http://localhost:8080',
         }],
+        ['POST /modules', 'post', '/api/v1/install/modules', { activate_c3: true }],
         ['POST /reset', 'post', '/api/v1/install/reset', { confirm: true }],
         ['POST /check-db', 'post', '/api/v1/install/check-db', {}],
-    ])('%s requires authentication', async (_label, method, path, body) => {
+    ])('%s requires a valid install setup token before READY', async (_label, method, path, body) => {
         const app = buildApp();
         const response = await request(app)[method](path).send(body);
 
         expect(response.status).toBe(401);
+        expectNoPrivilegedInstallSideEffects();
     });
 
-    test('POST /execute requires authentication on a fresh install', async () => {
+    test('GET /status remains public without a setup token', async () => {
+        const app = buildApp();
+
+        const response = await request(app).get('/api/v1/install/status');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(expect.objectContaining({
+            status: 'NOT_INSTALLED',
+        }));
+    });
+
+    test('POST /execute requires a valid install setup token on a fresh install', async () => {
         const app = buildApp();
 
         const response = await request(app)
@@ -129,5 +182,88 @@ describe('install route security', () => {
             });
 
         expect(response.status).toBe(401);
+        expectNoPrivilegedInstallSideEffects();
+    });
+
+    test('POST /start accepts a valid install setup token before READY', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/start')
+            .set(validHeaders)
+            .send({ performed_by: 'installer' });
+
+        expect(response.status).toBe(200);
+        expect(response.body.ok).toBe(true);
+    });
+
+    test.each([
+        ['POST /start', '/api/v1/install/start', { performed_by: 'installer' }, 'acquireLock'],
+        ['POST /check-db', '/api/v1/install/check-db', {}, 'checkConnectivity'],
+        ['POST /bootstrap-admin', '/api/v1/install/bootstrap-admin', {
+            username: 'admin',
+            displayName: 'Admin',
+            email: 'admin@example.com',
+            password: 'Admin123!',
+        }, 'bootstrapAdmin'],
+        ['POST /config', '/api/v1/install/config', {
+            app_name: 'S3C',
+            base_url: 'http://localhost:8080',
+        }, 'queryMock'],
+        ['POST /modules', '/api/v1/install/modules', { activate_c3: true }, 'queryMock'],
+        ['POST /execute', '/api/v1/install/execute', { activate_c3: false, seed_demo: false, performed_by: 'installer' }, 'executeInstall'],
+        ['POST /reset', '/api/v1/install/reset', { confirm: true }, 'queryMock'],
+    ])('%s rejects setup-token-only access when READY', async (_label, path, body, sideEffect) => {
+        const installSvc = require('../services/install.service');
+        installSvc.getInstallRow.mockResolvedValue({
+            id: 1,
+            install_status: 'READY',
+            lock_token: null,
+            install_lock: false,
+            locked_by: null,
+        });
+
+        const app = buildApp();
+        const response = await request(app)
+            .post(path)
+            .set(validHeaders)
+            .send(body);
+
+        expect(response.status).toBe(403);
+        expect(mockRequireAuth).toHaveBeenCalled();
+        expect(mockCanAdmin).toHaveBeenCalled();
+        if (sideEffect === 'queryMock') {
+            expect(queryMock).not.toHaveBeenCalled();
+        } else {
+            expect(installSvc[sideEffect]).not.toHaveBeenCalled();
+        }
+    });
+
+    test('POST /check-db accepts a valid install setup token before READY', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/check-db')
+            .set(validHeaders)
+            .send({});
+
+        expect(response.status).toBe(200);
+        expect(response.body.ok).toBe(true);
+    });
+
+    test('POST /modules accepts a valid install setup token before READY', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/modules')
+            .set(validHeaders)
+            .send({ activate_c3: true });
+
+        expect(response.status).toBe(200);
+        expect(response.body.ok).toBe(true);
+        expect(response.body.modules).toEqual(expect.arrayContaining([
+            expect.objectContaining({ code: 'SERVICE_CATALOGUE_CORE' }),
+            expect.objectContaining({ code: 'C3_TAXONOMY' }),
+        ]));
     });
 });

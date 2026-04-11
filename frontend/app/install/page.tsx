@@ -203,6 +203,7 @@ export default function InstallPage() {
 
   // Global error
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [installSetupToken, setInstallSetupToken] = useState('');
 
   // Reset stuck install
   const [resetting, setResetting] = useState(false);
@@ -256,6 +257,13 @@ export default function InstallPage() {
   function goNext() {
     markDone(step);
     setStep(s => Math.min(s + 1, STEPS.length - 1));
+  }
+
+  function installRequestHeaders(): HeadersInit {
+    return {
+      'Content-Type': 'application/json',
+      ...(installSetupToken.trim() ? { 'x-install-setup-token': installSetupToken.trim() } : {}),
+    };
   }
 
   function goBack() {
@@ -349,7 +357,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({ confirm: true }),
       });
       const data = await res.json();
@@ -370,7 +378,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({ performed_by: 'wizard' }),
       });
       if (!res.ok) {
@@ -410,7 +418,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify(sysConfig),
       });
       const data = await res.json();
@@ -473,7 +481,10 @@ export default function InstallPage() {
     setCheckingConn(true);
     setConnectivity(null);
     try {
-      const res = await fetch('/api/v1/install/check-db', { method: 'POST' });
+      const res = await fetch('/api/v1/install/check-db', {
+        method: 'POST',
+        headers: installRequestHeaders(),
+      });
       const data = await res.json();
       setConnectivity(data.checks);
       if (data.ok) {
@@ -505,7 +516,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/bootstrap-admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({
           username: adminForm.username,
           displayName: adminForm.displayName,
@@ -557,7 +568,7 @@ export default function InstallPage() {
 
       const res = await fetch('/api/v1/install/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({
           activate_c3: activateC3,
           seed_demo: seedDemoData,
@@ -731,6 +742,23 @@ export default function InstallPage() {
             Detekovaná verze aplikace je novější než verze v databázi. Bude provedena migrace.
           </Alert>
         )}
+
+        <div className={styles.fieldGroup}>
+          <div className={styles.field}>
+            <label className={styles.label}>Install setup token</label>
+            <input
+              className={styles.input}
+              type="password"
+              value={installSetupToken}
+              onChange={e => setInstallSetupToken(e.target.value)}
+              autoComplete="off"
+              placeholder="Paste setup token here if backend requires it"
+            />
+            <span className={styles.fieldHint}>
+              Token se posílá jen na mutující install endpointy. Bez něj secure bootstrap zůstane uzamčený.
+            </span>
+          </div>
+        </div>
 
         {/* Reset section — shown for stuck/failed states OR when lock error occurred */}
         {installInfo && (STUCK_STATUSES.includes(installInfo.status) || installInfo.install_locked || globalError?.includes('zamčená')) && (
