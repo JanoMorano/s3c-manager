@@ -9,6 +9,7 @@ const config     = require('../config');
 const { getPlatformPool } = require('../db/pool');
 const { getConfigValues } = require('../utils/platform-config');
 const { normalizeLocale } = require('../../../shared/i18n/locales');
+const { tReq } = require('../utils/i18n');
 
 const ACCESS_COOKIE_NAME = 'sc_access_token';
 const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
@@ -68,7 +69,7 @@ function normalizeAuthenticatedUser(user) {
 async function requireAuth(req, res, next) {
     try {
         const token = extractToken(req);
-        if (!token) return res.status(401).json({ error: 'Přístup odmítnut: chybí token' });
+        if (!token) return res.status(401).json({ error: tReq(req, 'auth.errors.missing_token') });
 
         let payload;
         try {
@@ -77,8 +78,8 @@ async function requireAuth(req, res, next) {
                 audience: config.jwt.audience,
             });
         } catch (err) {
-            if (err.name === 'TokenExpiredError') return res.status(401).json({ error: 'Token vypršel, přihlaste se znovu' });
-            return res.status(401).json({ error: 'Neplatný token' });
+            if (err.name === 'TokenExpiredError') return res.status(401).json({ error: tReq(req, 'auth.errors.expired_token') });
+            return res.status(401).json({ error: tReq(req, 'auth.errors.invalid_token') });
         }
 
         // Load current user data from the DB because roles may have changed.
@@ -97,15 +98,15 @@ async function requireAuth(req, res, next) {
         `, [payload.sub]);
         const user = result.rows[0];
 
-        if (!user)           return res.status(401).json({ error: 'Uživatel nenalezen' });
-        if (!user.is_active) return res.status(403).json({ error: 'Účet deaktivován' });
+        if (!user)           return res.status(401).json({ error: tReq(req, 'auth.errors.user_not_found') });
+        if (!user.is_active) return res.status(403).json({ error: tReq(req, 'auth.errors.account_deactivated') });
 
         if (
             !isAuthPasswordChangeBypassPath(req) &&
             canUserBeForcedToChangePassword(user) &&
             await isPasswordChangeRequired()
         ) {
-            return res.status(403).json({ error: 'Je vyžadována změna hesla prvního administrátora.' });
+            return res.status(403).json({ error: tReq(req, 'auth.errors.password_change_required') });
         }
 
         req.user = normalizeAuthenticatedUser(user);

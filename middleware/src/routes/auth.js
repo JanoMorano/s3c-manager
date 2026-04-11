@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const { getConfigValues, upsertConfigValue } = require('../utils/platform-config');
 const audit = require('../db/audit.repo');
 const { normalizeLocale } = require('../../../shared/i18n/locales');
+const { tReq } = require('../utils/i18n');
 
 /** Records a failed authentication attempt into audit_log (fire-and-forget). */
 function logAuthFailure(req, { username, userId = 0, reason }) {
@@ -35,7 +36,7 @@ const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
 const loginLimiter = rateLimit({
     windowMs: config.rateLimit.auth.windowMs,
     max: config.rateLimit.auth.max,
-    message: { error: 'Příliš mnoho pokusů o přihlášení. Zkuste to za 15 minut.' },
+    message: (req) => ({ error: tReq(req, 'auth.rate_limit.login') }),
     standardHeaders: true,
     legacyHeaders: false,
 });

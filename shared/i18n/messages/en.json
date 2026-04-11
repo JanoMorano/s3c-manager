@@ -1,5 +1,17 @@
 {
   "common.loading": "Loading…",
   "auth.login.submit": "Sign in",
-  "common.welcome_user": "Welcome, {{name}}!"
+  "common.welcome_user": "Welcome, {{name}}!",
+  "auth.errors.missing_token": "Access denied: token is missing",
+  "auth.errors.expired_token": "Token expired, please sign in again",
+  "auth.errors.invalid_token": "Invalid token",
+  "auth.errors.user_not_found": "User not found",
+  "auth.errors.account_deactivated": "Account deactivated",
+  "auth.errors.password_change_required": "The first administrator must change their password.",
+  "auth.rate_limit.login": "Too many sign-in attempts. Try again in 15 minutes.",
+  "install.rate_limit": "Too many installation requests. Try again in a moment.",
+  "install.errors.setup_token_required": "The setup token is missing or invalid.",
+  "install.errors.db_unavailable": "The database is not yet available or has not been initialized.",
+  "install.errors.check_db_failed": "Database connectivity check failed.",
+  "install.errors.already_ready": "Installation is already complete. Use the admin section for repair or upgrade."
 }

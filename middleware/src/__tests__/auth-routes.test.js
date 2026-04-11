@@ -554,6 +554,61 @@ describe('auth routes', () => {
         }
     });
 
+    test('requireAuth returns a localized missing-token error from accept-language', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            'accept-language': 'en-US,en;q=0.9',
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        expect(next).not.toHaveBeenCalled();
+                        expect(res.status).toHaveBeenCalledWith(401);
+                        expect(res.json).toHaveBeenCalledWith({ error: 'Access denied: token is missing' });
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
+    });
+
     test('requireAuth normalizes preferred_lang on req.user', async () => {
         jest.resetModules();
 

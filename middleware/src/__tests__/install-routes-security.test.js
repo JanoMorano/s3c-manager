@@ -172,6 +172,19 @@ describe('install route security', () => {
         }));
     });
 
+    test('GET /status returns a localized DB unavailable message', async () => {
+        const installSvc = require('../services/install.service');
+        installSvc.detectInstallMode.mockRejectedValueOnce(new Error('db down'));
+
+        const app = buildApp();
+        const response = await request(app)
+            .get('/api/v1/install/status')
+            .set('accept-language', 'en-US,en;q=0.9');
+
+        expect(response.status).toBe(200);
+        expect(response.body.db_error).toBe('The database is not yet available or has not been initialized.');
+    });
+
     test('POST /execute requires a valid install setup token on a fresh install', async () => {
         const app = buildApp();
 
@@ -274,6 +287,18 @@ describe('install route security', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.ok).toBe(true);
+    });
+
+    test('POST /check-db returns a localized setup-token error when missing token', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/check-db')
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({});
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toBe('The setup token is missing or invalid.');
     });
 
     test('POST /modules accepts a valid install setup token before READY', async () => {

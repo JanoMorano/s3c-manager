@@ -2,5 +2,17 @@
   "common.loading": "Načítám…",
   "auth.login.submit": "Přihlásit se",
   "common.welcome_user": "Vítej, {{name}}!",
-  "common.only_cs": "Jen česky"
+  "common.only_cs": "Jen česky",
+  "auth.errors.missing_token": "Přístup odmítnut: chybí token",
+  "auth.errors.expired_token": "Token vypršel, přihlaste se znovu",
+  "auth.errors.invalid_token": "Neplatný token",
+  "auth.errors.user_not_found": "Uživatel nenalezen",
+  "auth.errors.account_deactivated": "Účet deaktivován",
+  "auth.errors.password_change_required": "Je vyžadována změna hesla prvního administrátora.",
+  "auth.rate_limit.login": "Příliš mnoho pokusů o přihlášení. Zkuste to za 15 minut.",
+  "install.rate_limit": "Příliš mnoho instalačních požadavků. Zkuste to za chvíli.",
+  "install.errors.setup_token_required": "Chybí nebo je neplatný setup token.",
+  "install.errors.db_unavailable": "DB není ještě dostupná nebo nebyla inicializována.",
+  "install.errors.check_db_failed": "Kontrola připojení k databázi selhala.",
+  "install.errors.already_ready": "Instalace již byla dokončena. Pro repair nebo upgrade použijte admin sekci."
 }

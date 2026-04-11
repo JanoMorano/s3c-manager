@@ -27,6 +27,7 @@ const logger      = require('../utils/logger');
 const { requireAuth } = require('../middleware/auth');
 const { canAdmin }    = require('../middleware/rbac');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
+const { tReq } = require('../utils/i18n');
 
 const router = express.Router();
 const INSTALL_SETUP_TOKEN_HEADER = 'x-install-setup-token';
@@ -38,7 +39,7 @@ const INSTALL_SETUP_TOKEN_HEADER = 'x-install-setup-token';
 const installLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 500,
-    message: { error: 'Příliš mnoho instalačních požadavků. Zkuste to za chvíli.' },
+    message: (req) => ({ error: tReq(req, 'install.rate_limit') }),
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -57,7 +58,7 @@ async function checkNotReady(req, res, next) {
         const row  = await installSvc.getInstallRow(pool);
         if (row && row.install_status === 'READY') {
             return res.status(409).json({
-                error: 'Instalace již byla dokončena. Pro repair nebo upgrade použijte admin sekci.',
+                error: tReq(req, 'install.errors.already_ready'),
                 status: 'READY',
             });
         }
@@ -102,7 +103,7 @@ async function requireInstallWriteAccess(req, res, next) {
 
         const expectedToken = String(config.install?.setupToken ?? '').trim();
         if (!expectedToken || readInstallSetupToken(req) !== expectedToken) {
-            return res.status(401).json({ error: 'Chybí nebo je neplatný setup token.' });
+            return res.status(401).json({ error: tReq(req, 'install.errors.setup_token_required') });
         }
 
         return next();
@@ -161,7 +162,7 @@ router.get('/status', async (req, res, next) => {
             schema_version: installSvc.INSTALL_SCHEMA_VERSION,
             admin_exists: false,
             modules: [],
-            db_error: 'DB není ještě dostupná nebo nebyla inicializována.',
+            db_error: tReq(req, 'install.errors.db_unavailable'),
         });
     }
 });
@@ -207,6 +208,7 @@ router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
     } catch (err) {
         return res.status(503).json({
             ok: false,
+            error: tReq(req, 'install.errors.check_db_failed'),
             checks: {
                 db_reachable: false,
                 db_write_access: false,
