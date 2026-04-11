@@ -448,7 +448,7 @@ async function getCapabilityCompletenessMap(uuids) {
     return new Map(rows.map((row) => [row.uuid, row.completeness_status]));
 }
 
-async function assertServiceMappingsAllowedForState(catalogId, nextMappings) {
+async function assertServiceMappingsAllowedForState(catalogId, nextMappings, translate = (key, params) => key) {
     const service = await getServiceStateByCatalogId(catalogId);
     if (!service || !isActiveServiceStatus(service.service_status)) return;
 
@@ -458,27 +458,27 @@ async function assertServiceMappingsAllowedForState(catalogId, nextMappings) {
     const completenessMap = await getCapabilityCompletenessMap(primaryMappings.map((mapping) => mapping.c3_uuid));
     const incompletePrimary = primaryMappings.find((mapping) => completenessMap.get(mapping.c3_uuid) !== 'complete');
     if (incompletePrimary) {
-        throw createHttpError(409, tReq(req, 'taxonomy.errors.primary_capability_incomplete'));
+        throw createHttpError(409, translate('taxonomy.errors.primary_capability_incomplete'));
     }
 }
 
-async function updateC3ImportEntity(targetKey, entityId, body) {
+async function updateC3ImportEntity(targetKey, entityId, body, translate = (key, params) => key) {
     const targetConfig = C3_ENTITY_IMPORT_TARGETS[targetKey];
-    if (!targetConfig) throw createHttpError(404, tReq(req, 'taxonomy.errors.c3_entity_not_found'));
+    if (!targetConfig) throw createHttpError(404, translate('taxonomy.errors.c3_entity_not_found'));
 
     const current = await selectOne(getPool(), `
         SELECT *
         FROM ${targetConfig.table}
         WHERE id = $1
     `, [entityId]);
-    if (!current) throw createHttpError(404, tReq(req, 'taxonomy.errors.record_not_found'));
+    if (!current) throw createHttpError(404, translate('taxonomy.errors.record_not_found'));
 
     const merged = {};
     for (const field of targetConfig.fields) {
         const rawValue = hasOwn(body, field.key) ? body[field.key] : current[field.key];
         const normalized = field.normalize ? field.normalize(rawValue) : rawValue;
         if (field.required && (normalized == null || normalized === '')) {
-            throw createHttpError(400, tReq(req, 'taxonomy.errors.required_field', { field: field.key }));
+            throw createHttpError(400, translate('taxonomy.errors.required_field', { field: field.key }));
         }
         merged[field.key] = normalized;
     }
@@ -520,10 +520,10 @@ async function listCapabilityBuilderDomains() {
     return result;
 }
 
-function normalizeCapabilityMapTitle(value) {
+function normalizeCapabilityMapTitle(value, translate = (key, params) => key) {
     const title = String(value ?? '').trim();
-    if (!title) throw createHttpError(400, tReq(req, 'taxonomy.errors.page_title_required'));
-    if (title.length > 200) throw createHttpError(400, tReq(req, 'taxonomy.errors.page_title_too_long'));
+    if (!title) throw createHttpError(400, translate('taxonomy.errors.page_title_required'));
+    if (title.length > 200) throw createHttpError(400, translate('taxonomy.errors.page_title_too_long'));
     return title;
 }
 
@@ -710,7 +710,7 @@ async function buildCapabilityMapPayloadBySpiral(spiralCode, pageTitle) {
     return payload;
 }
 
-async function validateCapabilityBuilderPayload(payload, currentId = null, tableName = 'data.c3_capability_builder', maxLevel = 20) {
+async function validateCapabilityBuilderPayload(payload, currentId = null, tableName = 'data.c3_capability_builder', maxLevel = 20, translate = (key, params) => key) {
     const pageId = String(payload?.page_id ?? payload?.pageId ?? '').trim();
     const uuid = String(payload?.uuid ?? '').trim();
     const title = String(payload?.title ?? '').trim();
@@ -719,18 +719,18 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
     const domainCode = String(payload?.domain_code ?? payload?.domain ?? '').trim();
     const level = Number.parseInt(String(payload?.level ?? ''), 10);
 
-    if (!pageId) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_page_id'));
-    if (!uuid) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_uuid'));
-    if (!title) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_title'));
-    if (!domainCode) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_domain_code'));
-    if (!Number.isInteger(level) || level < 1 || level > maxLevel) throw createHttpError(400, tReq(req, 'taxonomy.errors.invalid_level_dynamic', { maxLevel }));
-    if (parentId && parentId === pageId) throw createHttpError(400, tReq(req, 'taxonomy.errors.same_parent_page_id'));
-    if (!parentId && level !== 1) throw createHttpError(400, tReq(req, 'taxonomy.errors.root_level_mismatch'));
-    if (parentId && level === 1) throw createHttpError(400, tReq(req, 'taxonomy.errors.child_level_mismatch'));
+    if (!pageId) throw createHttpError(400, translate('taxonomy.errors.missing_page_id'));
+    if (!uuid) throw createHttpError(400, translate('taxonomy.errors.missing_uuid'));
+    if (!title) throw createHttpError(400, translate('taxonomy.errors.missing_title'));
+    if (!domainCode) throw createHttpError(400, translate('taxonomy.errors.missing_domain_code'));
+    if (!Number.isInteger(level) || level < 1 || level > maxLevel) throw createHttpError(400, translate('taxonomy.errors.invalid_level_dynamic', { maxLevel }));
+    if (parentId && parentId === pageId) throw createHttpError(400, translate('taxonomy.errors.same_parent_page_id'));
+    if (!parentId && level !== 1) throw createHttpError(400, translate('taxonomy.errors.root_level_mismatch'));
+    if (parentId && level === 1) throw createHttpError(400, translate('taxonomy.errors.child_level_mismatch'));
 
     const domains = await listCapabilityBuilderDomains();
     const domainExists = domains.some((domain) => domain.code === domainCode);
-    if (!domainExists) throw createHttpError(400, tReq(req, 'taxonomy.errors.invalid_domain_code'));
+    if (!domainExists) throw createHttpError(400, translate('taxonomy.errors.invalid_domain_code'));
 
     const treeResult = await selectRows(getPool(), `
         SELECT id, page_id, parent_id, level, domain_code
@@ -741,14 +741,14 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
 
     if (currentId != null) {
         const currentNode = nodes.find((node) => Number(node.id) === Number(currentId));
-        if (!currentNode) throw createHttpError(404, tReq(req, 'taxonomy.errors.capability_builder_item_not_found'));
+        if (!currentNode) throw createHttpError(404, translate('taxonomy.errors.capability_builder_item_not_found'));
     }
 
     if (parentId) {
         const parentNode = nodeByPageId.get(parentId);
-        if (!parentNode) throw createHttpError(400, tReq(req, 'taxonomy.errors.parent_id_not_found'));
-        if (parentNode.domain_code !== domainCode) throw createHttpError(400, tReq(req, 'taxonomy.errors.parent_domain_mismatch'));
-        if (level <= Number(parentNode.level)) throw createHttpError(400, tReq(req, 'taxonomy.errors.child_level_greater'));
+        if (!parentNode) throw createHttpError(400, translate('taxonomy.errors.parent_id_not_found'));
+        if (parentNode.domain_code !== domainCode) throw createHttpError(400, translate('taxonomy.errors.parent_domain_mismatch'));
+        if (level <= Number(parentNode.level)) throw createHttpError(400, translate('taxonomy.errors.child_level_greater'));
     }
 
     if (currentId != null) {
@@ -758,7 +758,7 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
             parentByPageId.set(pageId, parentId);
             let cursor = parentId;
             while (cursor) {
-                if (cursor === pageId) throw createHttpError(400, tReq(req, 'taxonomy.errors.parent_cycle'));
+                if (cursor === pageId) throw createHttpError(400, translate('taxonomy.errors.parent_cycle'));
                 cursor = parentByPageId.get(cursor) ?? null;
             }
         }
@@ -942,7 +942,7 @@ async function validateCapabilityBuilderImportRows(rawRows, translate = (key) =>
 }
 
 async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', createdBy = null, translate = (key, params) => key } = {}) {
-    const preview = await validateCapabilityBuilderImportRows(rawRows, (key, params) => tReq(req, key, params));
+    const preview = await validateCapabilityBuilderImportRows(rawRows, translate);
     const validRows = rawRows
         .map((rawRow, index) => ({
             row_number: index + 2,
@@ -1572,7 +1572,7 @@ router.get('/c3-capability-builder/settings', canAdmin, async (req, res, next) =
 router.put('/c3-capability-builder/settings', canAdmin, async (req, res, next) => {
     try {
         const spiral = req.body?.spiral === 'Spiral_6' ? 'Spiral_6' : 'Spiral_7';
-        const pageTitle = normalizeCapabilityMapTitle(req.body?.page_title);
+        const pageTitle = normalizeCapabilityMapTitle(req.body?.page_title, (key, params) => tReq(req, key, params));
         await upsertCapabilityMapTitle(pageTitle, req.user?.username ?? null, spiral);
         res.json({
             config_key: resolveCapabilityMapTitleKey(spiral),
@@ -1586,7 +1586,7 @@ router.post('/c3-capability-builder', canAdmin, async (req, res, next) => {
     try {
         await ensureCapabilityBuilderSeeded();
 
-        const normalized = await validateCapabilityBuilderPayload(req.body, null, 'data.c3_capability_builder', 20);
+        const normalized = await validateCapabilityBuilderPayload(req.body, null, 'data.c3_capability_builder', 20, (key, params) => tReq(req, key, params));
         const insertResult = await getPool().query(`
                 INSERT INTO data.c3_capability_builder (
                     page_id,
@@ -1641,7 +1641,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
         const id = parseIntFilter(req.params.id, { fallback: null, min: 1, max: 2147483647 });
         if (!id) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.invalid_id') });
 
-        const normalized = await validateCapabilityBuilderPayload(req.body, id, 'data.c3_capability_builder', 20);
+        const normalized = await validateCapabilityBuilderPayload(req.body, id, 'data.c3_capability_builder', 20, (key, params) => tReq(req, key, params));
         const updateResult = await getPool().query(`
                 UPDATE data.c3_capability_builder
                 SET
@@ -2131,7 +2131,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                 const entityId = parseIntFilter(req.params.id, { fallback: null, min: 1, max: 2147483647 });
                 if (!entityId) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.invalid_id') });
 
-                await updateC3ImportEntity(targetKey, entityId, req.body ?? {});
+                await updateC3ImportEntity(targetKey, entityId, req.body ?? {}, (key, params) => tReq(req, key, params));
                 res.json({ ok: true, message: tReq(req, 'taxonomy.messages.entity_updated', { label: targetConfig.label }) });
             } catch (err) { next(err); }
         }
