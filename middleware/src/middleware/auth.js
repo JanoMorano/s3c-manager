@@ -1,7 +1,7 @@
 'use strict';
 /**
  * JWT Authentication middleware
- * Verifies the bearer token from the Authorization header and attaches req.user.
+ * Verifies token from Authorization header OR secure auth cookie and attaches req.user.
  */
 
 const jwt        = require('jsonwebtoken');
@@ -89,7 +89,34 @@ async function optionalAuth(req, res, next) {
 function extractToken(req) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) return authHeader.slice(7);
+    const cookieToken = getCookie(req, 'sc_access_token');
+    if (cookieToken) return cookieToken;
     return null;
+}
+
+function parseCookies(req) {
+    const raw = String(req.headers.cookie || '');
+    if (!raw) return {};
+    const out = {};
+    for (const part of raw.split(';')) {
+        const idx = part.indexOf('=');
+        if (idx === -1) continue;
+        const key = part.slice(0, idx).trim();
+        const value = part.slice(idx + 1).trim();
+        if (!key) continue;
+        try {
+            out[key] = decodeURIComponent(value);
+        } catch {
+            out[key] = value;
+        }
+    }
+    return out;
+}
+
+function getCookie(req, name) {
+    const cookies = parseCookies(req);
+    const value = cookies[name];
+    return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 module.exports = { requireAuth, optionalAuth };

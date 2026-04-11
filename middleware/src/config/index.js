@@ -77,13 +77,18 @@ const config = {
             surnameHeader: process.env.AUTH_SSO_SURNAME_HEADER || 'x-remote-surname',
             departmentHeader: process.env.AUTH_SSO_DEPARTMENT_HEADER || 'x-remote-department',
             // SECURITY: trusted proxy IPs allowed to send SSO headers.
-            // Comma-separated list. Empty = all proxies trusted (legacy behavior, NOT recommended).
+            // Comma-separated list. Empty = no IP restriction (warn-only).
             trustedProxies: (process.env.AUTH_SSO_TRUSTED_PROXIES || '')
                 .split(',').map(s => s.trim()).filter(Boolean),
-            // Shared secret header that the proxy must send to prove it's trusted.
-            // If set, requests without matching header value are rejected for SSO.
+            // SECURITY: shared secret the proxy must send in AUTH_SSO_SHARED_SECRET_HEADER.
+            // When set, requests without matching value are hard-rejected (fail-closed).
+            // When not set and no trustedProxies configured, SSO logs a warning and proceeds
+            // only if AUTH_SSO_ALLOW_OPEN=true — otherwise rejects (fail-closed by default).
             sharedSecret: process.env.AUTH_SSO_SHARED_SECRET || '',
             sharedSecretHeader: process.env.AUTH_SSO_SHARED_SECRET_HEADER || 'x-sso-secret',
+            // Safety valve: explicitly set to 'true' to allow SSO with no boundary guards.
+            // Intended only for fully isolated environments. NOT recommended.
+            allowOpen: process.env.AUTH_SSO_ALLOW_OPEN === 'true',
         },
     },
 

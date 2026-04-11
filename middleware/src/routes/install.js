@@ -5,7 +5,7 @@
  * Endpoints:
  *   GET  /api/v1/install/status          — current installation state + detection mode
  *   POST /api/v1/install/start           — start installation + lock
- *   POST /api/v1/install/check-db        — connectivity check
+ *   POST /api/v1/install/check-db        — connectivity check (token-gated)
  *   POST /api/v1/install/bootstrap-admin — create first admin
  *   POST /api/v1/install/modules         — configure modules
  *   POST /api/v1/install/execute         — execute installation (migrate+seed+state)
@@ -13,6 +13,7 @@
  *
  * Security rules:
  *   - After READY, write endpoints are blocked (409)
+ *   - Pre-READY write endpoints require INSTALL_SETUP_TOKEN when set
  *   - Parallel installations are blocked by the install lock
  *   - Secrets must never be written to logs
  *   - Admin passwords must never be returned in response bodies
@@ -28,6 +29,28 @@ const { canAdmin }    = require('../middleware/rbac');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
 
 const router = express.Router();
+
+// ---------------------------------------------------------------------------
+// SECURITY: INSTALL_SETUP_TOKEN guard
+// When INSTALL_SETUP_TOKEN env var is set, all pre-READY write endpoints
+// require the token in X-Install-Token header. This prevents unauthorized
+// takeover of a fresh or partially-installed instance.
+// If not set, a warning is logged but installs proceed (backward compat).
+// ---------------------------------------------------------------------------
+const INSTALL_SETUP_TOKEN = (process.env.INSTALL_SETUP_TOKEN || '').trim();
+if (!INSTALL_SETUP_TOKEN) {
+    logger.warn('INSTALL_SETUP_TOKEN is not set — install endpoints are accessible without token. Set this variable to protect fresh installations.');
+}
+
+function requireInstallToken(req, res, next) {
+    if (!INSTALL_SETUP_TOKEN) return next(); // token not configured — open (with warning above)
+    const provided = (req.headers['x-install-token'] || '').trim();
+    if (!provided || provided !== INSTALL_SETUP_TOKEN) {
+        logger.warn(`install: rejected request without valid X-Install-Token from ${req.ip}`);
+        return res.status(401).json({ error: 'Přístup odmítnut: chybí nebo neplatný instalační token.' });
+    }
+    next();
+}
 
 // Rate limit for install endpoints; protects against brute-force attempts.
 // max: 60 is sufficient for the wizard flow (6-8 endpoints × 2 for StrictMode × safety margin).
@@ -139,7 +162,7 @@ router.get('/status', async (req, res, next) => {
 // Starts installation and acquires the install lock.
 // Body: { performed_by?: string }
 // ---------------------------------------------------------------------------
-router.post('/start', checkNotReady, async (req, res, next) => {
+router.post('/start', requireInstallToken, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const performedBy = String(req.body?.performed_by ?? 'installer').trim().slice(0, 200);
@@ -161,26 +184,27 @@ router.post('/start', checkNotReady, async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // POST /api/v1/install/check-db
 // Connectivity check: returns results for wizard step 5.
+// SECURITY: token-gated; internal error messages are never exposed to caller.
 // ---------------------------------------------------------------------------
-router.post('/check-db', async (req, res, next) => {
+router.post('/check-db', requireInstallToken, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const results = await installSvc.checkConnectivity(pool);
 
         const allOk = results.db_reachable && results.db_write_access && results.platform_schema;
-        return res.status(allOk ? 200 : 503).json({
-            ok: allOk,
-            checks: results,
-        });
+        // Strip raw error strings before sending — log them server-side only.
+        const safeChecks = {
+            db_reachable:    results.db_reachable,
+            db_write_access: results.db_write_access,
+            platform_schema: results.platform_schema,
+        };
+        if (!allOk) logger.warn({ checks: results }, 'install/check-db: connectivity issues');
+        return res.status(allOk ? 200 : 503).json({ ok: allOk, checks: safeChecks });
     } catch (err) {
+        logger.error({ err }, 'install/check-db: unexpected error');
         return res.status(503).json({
             ok: false,
-            checks: {
-                db_reachable: false,
-                db_write_access: false,
-                platform_schema: false,
-                errors: [err.message],
-            },
+            checks: { db_reachable: false, db_write_access: false, platform_schema: false },
         });
     }
 });
@@ -191,7 +215,7 @@ router.post('/check-db', async (req, res, next) => {
 // Body: { username, displayName, email, password, mustChangePassword? }
 // Important: passwords must never be logged.
 // ---------------------------------------------------------------------------
-router.post('/bootstrap-admin', checkNotReady, async (req, res, next) => {
+router.post('/bootstrap-admin', requireInstallToken, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
 
@@ -245,7 +269,7 @@ router.post('/bootstrap-admin', checkNotReady, async (req, res, next) => {
 // Saves base system configuration (app_name, base_url, timezone, ...).
 // Optional step; defaults are suitable for most deployments.
 // ---------------------------------------------------------------------------
-router.post('/config', checkNotReady, async (req, res, next) => {
+router.post('/config', requireInstallToken, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const { app_name, base_url, timezone, storage_path, https_mode } = req.body || {};
@@ -282,7 +306,7 @@ router.post('/config', checkNotReady, async (req, res, next) => {
 // Configures modules.
 // Body: { activate_c3: boolean }
 // ---------------------------------------------------------------------------
-router.post('/modules', checkNotReady, async (req, res, next) => {
+router.post('/modules', requireInstallToken, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const activateC3 = req.body?.activate_c3 === true;
@@ -309,7 +333,7 @@ router.post('/modules', checkNotReady, async (req, res, next) => {
 // Executes installation: module activation, state transitions, READY.
 // Body: { activate_c3: boolean, performed_by?: string }
 // ---------------------------------------------------------------------------
-router.post('/execute', checkNotReady, async (req, res, next) => {
+router.post('/execute', requireInstallToken, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const activateC3    = req.body?.activate_c3   === true;

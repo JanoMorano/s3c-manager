@@ -28,9 +28,6 @@ RUN npm ci \
 FROM node:20-alpine AS runtime
 RUN apk add --no-cache postgresql-client dumb-init
 
-# SECURITY: create non-root application user
-RUN addgroup -g 1001 -S scapp && adduser -S scapp -u 1001 -G scapp
-
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -47,16 +44,13 @@ COPY backend/db/postgres /pgdb
 COPY init/init-db-postgres.sh /app/init/init-db-postgres.sh
 COPY start.sh /app/start.sh
 
-RUN addgroup -S scapp \
-    && adduser -S -D -H -h /app -G scapp scapp \
+# SECURITY: create non-root application user, set permissions, drop to non-root
+RUN addgroup -g 1001 -S scapp \
+    && adduser -S -D -H -h /app -u 1001 -G scapp scapp \
     && mkdir -p /app/uploads /app/init \
     && chmod +x /app/start.sh /app/init/init-db-postgres.sh \
     && chown -R scapp:scapp /app /pgdb
 
-USER scapp
-
-# SECURITY: create uploads dir owned by app user, then drop to non-root
-RUN mkdir -p /app/uploads && chown -R scapp:scapp /app
 USER scapp
 
 EXPOSE 3000 4000

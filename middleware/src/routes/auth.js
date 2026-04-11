@@ -35,6 +35,66 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+const ACCESS_COOKIE_NAME = 'sc_access_token';
+const REFRESH_COOKIE_NAME = 'sc_refresh_token';
+
+function parseCookies(req) {
+    const raw = String(req.headers.cookie || '');
+    if (!raw) return {};
+    const out = {};
+    for (const part of raw.split(';')) {
+        const idx = part.indexOf('=');
+        if (idx === -1) continue;
+        const key = part.slice(0, idx).trim();
+        const value = part.slice(idx + 1).trim();
+        if (!key) continue;
+        try {
+            out[key] = decodeURIComponent(value);
+        } catch {
+            out[key] = value;
+        }
+    }
+    return out;
+}
+
+function getCookie(req, name) {
+    const cookies = parseCookies(req);
+    const value = cookies[name];
+    return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function isHttpsRequest(req) {
+    const forwardedProto = String(req.get('x-forwarded-proto') || '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+    return Boolean(req.secure) || forwardedProto === 'https';
+}
+
+function buildCookieOptions(req, maxAgeMs) {
+    return {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isHttpsRequest(req),
+        path: '/',
+        maxAge: maxAgeMs,
+    };
+}
+
+function setAuthCookies(req, res, { accessToken, refreshToken }) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, buildCookieOptions(req, config.jwt.expiryMinutes * 60 * 1000));
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, buildCookieOptions(req, config.jwt.refreshDays * 24 * 60 * 60 * 1000));
+}
+
+function clearAuthCookies(req, res) {
+    const clearOpts = {
+        ...buildCookieOptions(req, 0),
+        maxAge: 0,
+    };
+    res.clearCookie(ACCESS_COOKIE_NAME, clearOpts);
+    res.clearCookie(REFRESH_COOKIE_NAME, clearOpts);
+}
+
 function generateTokens(userId, username, role, displayName) {
     const payload = { sub: userId, username, role, display_name: displayName ?? null };
     const access = jwt.sign(payload, config.jwt.secret, {
@@ -165,11 +225,12 @@ async function updateLoginState(userId, req, { isSso = false, ssoProfile = null 
     ]);
 }
 
-async function issueLoginResponse(user, req, { isSso = false, ssoProfile = null } = {}) {
+async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = null } = {}) {
     const effectiveDisplayName = ssoProfile?.display_name || user.display_name || null;
     const tokens = generateTokens(user.id, user.username, user.role, effectiveDisplayName);
     await storeRefreshToken(user.id, tokens.refresh);
     await updateLoginState(user.id, req, { isSso, ssoProfile });
+    setAuthCookies(req, res, { accessToken: tokens.access, refreshToken: tokens.refresh });
 
     const currentUser = await loadUserById(user.id);
     return {
@@ -293,7 +354,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
             return res.status(401).json({ error: 'Nesprávné přihlašovací údaje' });
         }
 
-        const response = await issueLoginResponse(user, req);
+        const response = await issueLoginResponse(user, req, res);
         logger.info(`Login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -312,33 +373,38 @@ router.get('/sso', async (req, res, next) => {
         const runtimeConfig = await getSsoRuntimeConfig();
         if (!runtimeConfig.enabled) return res.status(204).end();
 
-        // --- SECURITY: Proxy trust validation ---
+        // --- SECURITY: Proxy trust validation (fail-closed) ---
         const ssoConf = config.auth.sso;
+        const hasSecret  = Boolean(ssoConf.sharedSecret);
+        const hasIpList  = ssoConf.trustedProxies.length > 0;
+        const noBoundary = !hasSecret && !hasIpList;
 
-        // Check shared secret if configured
-        if (ssoConf.sharedSecret) {
-            const reqSecret = req.get(ssoConf.sharedSecretHeader);
-            if (reqSecret !== ssoConf.sharedSecret) {
-                logger.warn(`SSO rejected: invalid or missing shared secret from ${req.ip}`);
+        // If no boundary is configured: fail-closed unless AUTH_SSO_ALLOW_OPEN=true
+        if (noBoundary) {
+            if (!ssoConf.allowOpen) {
+                logger.error('SSO blocked: no boundary guard configured (set AUTH_SSO_SHARED_SECRET, AUTH_SSO_TRUSTED_PROXIES, or AUTH_SSO_ALLOW_OPEN=true).');
+                return res.status(403).json({ error: 'SSO není nakonfigurováno bezpečně. Kontaktujte správce.' });
+            }
+            logger.warn('SSO: running without boundary guard (AUTH_SSO_ALLOW_OPEN=true). Ensure the application is in an isolated network.');
+        }
+
+        // Validate shared secret (takes priority — checked first)
+        if (hasSecret) {
+            const provided = (req.get(ssoConf.sharedSecretHeader) || '').trim();
+            if (!provided || provided !== ssoConf.sharedSecret) {
+                logger.warn(`SSO rejected: invalid or missing ${ssoConf.sharedSecretHeader} from ${req.ip}`);
                 return res.status(403).json({ error: 'SSO request rejected: untrusted source.' });
             }
         }
 
-        // Check trusted proxy IP whitelist if configured
-        if (ssoConf.trustedProxies.length > 0) {
-            const clientIp = req.ip || req.connection?.remoteAddress || '';
-            const isTrusted = ssoConf.trustedProxies.some(
-                proxy => clientIp === proxy || clientIp === `::ffff:${proxy}`
-            );
+        // Validate trusted proxy IP whitelist
+        if (hasIpList) {
+            const clientIp = (req.ip || req.connection?.remoteAddress || '').replace(/^::ffff:/, '');
+            const isTrusted = ssoConf.trustedProxies.includes(clientIp);
             if (!isTrusted) {
                 logger.warn(`SSO rejected: untrusted proxy IP ${clientIp} (allowed: ${ssoConf.trustedProxies.join(', ')})`);
                 return res.status(403).json({ error: 'SSO request rejected: untrusted proxy IP.' });
             }
-        }
-
-        // Warn in logs if neither guard is configured (unsafe for non-isolated environments)
-        if (!ssoConf.sharedSecret && ssoConf.trustedProxies.length === 0) {
-            logger.warn('SSO login without proxy trust validation — set AUTH_SSO_TRUSTED_PROXIES or AUTH_SSO_SHARED_SECRET for production use.');
         }
         // --- End proxy trust validation ---
 
@@ -357,7 +423,7 @@ router.get('/sso', async (req, res, next) => {
             return res.status(403).json({ error: 'Účet je deaktivován.' });
         }
 
-        const response = await issueLoginResponse(user, req, { isSso: true, ssoProfile });
+        const response = await issueLoginResponse(user, req, res, { isSso: true, ssoProfile });
         logger.info(`SSO login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -370,7 +436,7 @@ router.get('/sso', async (req, res, next) => {
  */
 router.post('/refresh', async (req, res, next) => {
     try {
-        const { refresh_token } = req.body;
+        const refresh_token = String(req.body?.refresh_token || getCookie(req, REFRESH_COOKIE_NAME) || '').trim();
         if (!refresh_token) return res.status(400).json({ error: 'Chybí refresh_token' });
 
         let payload;
@@ -405,6 +471,7 @@ router.post('/refresh', async (req, res, next) => {
         );
 
         await storeRefreshToken(user.id, newTokens.refresh);
+        setAuthCookies(req, res, { accessToken: newTokens.access, refreshToken: newTokens.refresh });
 
         res.json({
             access_token: newTokens.access,
@@ -421,7 +488,7 @@ router.post('/refresh', async (req, res, next) => {
  */
 router.post('/logout', requireAuth, async (req, res, next) => {
     try {
-        const { refresh_token } = req.body;
+        const refresh_token = String(req.body?.refresh_token || getCookie(req, REFRESH_COOKIE_NAME) || '').trim();
         if (refresh_token) {
             const hash = crypto.createHash('sha256').update(refresh_token).digest('hex');
             await getPlatformPool().query(
@@ -429,6 +496,7 @@ router.post('/logout', requireAuth, async (req, res, next) => {
                 [hash]
             );
         }
+        clearAuthCookies(req, res);
         res.json({ message: 'Odhlášení úspěšné' });
     } catch (err) {
         next(err);
