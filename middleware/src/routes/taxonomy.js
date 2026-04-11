@@ -30,9 +30,10 @@ const {
     isActiveServiceStatus,
 } = require('../services/readiness');
 const config = require('../config');
+const { tReq } = require('../utils/i18n');
 
 const router = express.Router();
-const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', 'C3 Taxonomy modul není aktivní.');
+const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', (req) => tReq(req, 'taxonomy.errors.module_inactive'));
 
 const cache = new NodeCache({ stdTTL: config.cache.c3TaxonomyTtl });
 const ALLOWED_C3_ITEM_TYPES = ['BP', 'BR', 'CI', 'CO', 'CP', 'CR', 'IP', 'UA', 'OTHER'];
@@ -220,7 +221,7 @@ function getImportTargetMeta(targetKey) {
 
 async function getC3EntityDetailByCode(targetKey, code) {
     const targetConfig = C3_ENTITY_IMPORT_TARGETS[targetKey];
-    if (!targetConfig) throw createHttpError(404, 'Neznámý C3 target');
+    if (!targetConfig) throw createHttpError(404, tReq(req, 'taxonomy.errors.unknown_c3_target'));
 
     const codeField = targetConfig.fields.find((field) => field.required && field.key !== 'uuid')?.key;
     if (!codeField) throw createHttpError(500, `Target ${targetKey} nemá definovaný code field`);
@@ -799,7 +800,7 @@ function normalizeCapabilityBuilderImportRow(row) {
     };
 }
 
-function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPageIds) {
+function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPageIds, translate = (key) => key) {
     const issues = [];
 
     if (!record.page_id) {
@@ -808,7 +809,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'MISSING_PAGE_ID',
             field_name: 'page_id',
             raw_value: null,
-            message: 'Chybí Page ID.',
+            message: translate('taxonomy.errors.missing_page_id'),
         });
     }
     if (!record.uuid) {
@@ -817,7 +818,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'MISSING_UUID',
             field_name: 'uuid',
             raw_value: null,
-            message: 'Chybí UUID.',
+            message: translate('taxonomy.errors.missing_uuid'),
         });
     }
     if (!record.title) {
@@ -826,7 +827,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'MISSING_TITLE',
             field_name: 'title',
             raw_value: null,
-            message: 'Chybí Title.',
+            message: translate('taxonomy.errors.missing_title'),
         });
     }
     if (!record.domain_code) {
@@ -835,7 +836,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'MISSING_DOMAIN_CODE',
             field_name: 'domain_code',
             raw_value: null,
-            message: 'Chybí Domain code.',
+            message: translate('taxonomy.errors.missing_domain_code'),
         });
     } else if (!allowedDomainCodes.has(record.domain_code)) {
         issues.push({
@@ -843,7 +844,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'INVALID_DOMAIN_CODE',
             field_name: 'domain_code',
             raw_value: record.domain_code,
-            message: 'Domain code neexistuje v ref_c3_capability_domain.',
+            message: translate('taxonomy.errors.invalid_domain_code'),
         });
     }
     if (!Number.isInteger(record.level) || record.level < 1 || record.level > 20) {
@@ -852,7 +853,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'INVALID_LEVEL',
             field_name: 'level',
             raw_value: record.level == null ? null : String(record.level),
-            message: 'Level musí být celé číslo 1-20.',
+            message: translate('taxonomy.errors.invalid_level'),
         });
     }
     if (record.parent_id && record.parent_id === record.page_id) {
@@ -861,7 +862,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'SELF_PARENT',
             field_name: 'parent_id',
             raw_value: record.parent_id,
-            message: 'Parent ID nesmí být stejné jako Page ID.',
+            message: translate('taxonomy.errors.same_parent_page_id'),
         });
     }
     if (!record.parent_id && record.level !== 1) {
@@ -870,7 +871,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'ROOT_LEVEL_MISMATCH',
             field_name: 'level',
             raw_value: record.level == null ? null : String(record.level),
-            message: 'Kořenová položka bez Parent ID musí mít level 1.',
+            message: translate('taxonomy.errors.root_level_mismatch'),
         });
     }
     if (record.parent_id && record.level === 1) {
@@ -879,7 +880,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'CHILD_LEVEL_MISMATCH',
             field_name: 'level',
             raw_value: String(record.level),
-            message: 'Položka s Parent ID nemůže mít level 1.',
+            message: translate('taxonomy.errors.child_level_mismatch'),
         });
     }
     if (record.parent_id && !knownPageIds.has(record.parent_id)) {
@@ -888,14 +889,14 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
             issue_code: 'UNKNOWN_PARENT',
             field_name: 'parent_id',
             raw_value: record.parent_id,
-            message: 'Parent ID nebyl nalezen ani v DB, ani v importovaném souboru.',
+            message: translate('taxonomy.errors.parent_not_found'),
         });
     }
 
     return issues;
 }
 
-async function validateCapabilityBuilderImportRows(rawRows) {
+async function validateCapabilityBuilderImportRows(rawRows, translate = (key) => key) {
     const domains = await listCapabilityBuilderDomains();
     const allowedDomainCodes = new Set(domains.map((domain) => domain.code));
     const existingRows = await selectRows(getPool(), `
@@ -914,7 +915,12 @@ async function validateCapabilityBuilderImportRows(rawRows) {
     let errorCount = 0;
 
     normalizedRows.forEach((record, index) => {
-        const rowIssues = buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPageIds);
+        const rowIssues = buildCapabilityBuilderImportIssues(
+            record,
+            allowedDomainCodes,
+            knownPageIds,
+            translate,
+        );
         if (rowIssues.length === 0) validRowCount += 1;
         rowIssues.forEach((issue) => {
             issues.push({ row_number: index + 2, ...issue });
@@ -936,7 +942,7 @@ async function validateCapabilityBuilderImportRows(rawRows) {
 }
 
 async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', createdBy = null } = {}) {
-    const preview = await validateCapabilityBuilderImportRows(rawRows);
+    const preview = await validateCapabilityBuilderImportRows(rawRows, (key, params) => tReq(req, key, params));
     const validRows = rawRows
         .map((rawRow, index) => ({
             row_number: index + 2,
@@ -1209,7 +1215,7 @@ router.get('/c3', async (req, res, next) => {
 router.get('/c3-services/:code', async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode('c3-services', normalizeCodeParam(req.params.code));
-        if (!row) return res.status(404).json({ error: 'C3 Service nebyla nalezena' });
+        if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_service_not_found') });
         res.json(row);
     } catch (err) { next(err); }
 });
@@ -1622,7 +1628,7 @@ router.post('/c3-capability-builder', canAdmin, async (req, res, next) => {
         res.status(201).json(created ?? { id: createdId });
     } catch (err) {
         if (isUniqueViolation(err)) {
-            return res.status(409).json({ error: 'page_id nebo uuid už existuje' });
+            return res.status(409).json({ error: tReq(req, 'taxonomy.errors.duplicate_page_or_uuid') });
         }
         next(err);
     }
@@ -1670,7 +1676,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
         res.json(updated ?? { id });
     } catch (err) {
         if (isUniqueViolation(err)) {
-            return res.status(409).json({ error: 'page_id nebo uuid už existuje' });
+            return res.status(409).json({ error: tReq(req, 'taxonomy.errors.duplicate_page_or_uuid') });
         }
         next(err);
     }
@@ -1905,11 +1911,11 @@ router.delete('/c3/:uuid', canAdmin, async (req, res, next) => {
 router.post('/c3/sync', canAdmin, async (req, res, next) => {
     try {
         const items = req.body.items;
-        if (!Array.isArray(items)) return res.status(400).json({ error: 'items musí být pole' });
+        if (!Array.isArray(items)) return res.status(400).json({ error: tReq(req, 'import.errors.items_array_required') });
         const defaultItemTypeKey = normalizeC3TaxonomyTargetKey(req.body?.target_key ?? req.query?.target_key);
         const defaultItemType = defaultItemTypeKey ? C3_TAXONOMY_IMPORT_TARGETS[defaultItemTypeKey].itemType : null;
         const result = await runC3TaxonomyImport(items, { defaultItemType });
-        res.json({ message: 'C3 Taxonomy synchronizována', ...result });
+        res.json({ message: tReq(req, 'taxonomy.messages.c3_taxonomy_synced'), ...result });
     } catch (err) { next(err); }
 });
 
@@ -1919,10 +1925,10 @@ router.post('/c3/sync', canAdmin, async (req, res, next) => {
 router.post('/c3/csv', canAdmin, require('express').text({ type: ['text/csv', 'text/plain'], limit: '5mb' }), async (req, res, next) => {
     try {
         const csvText = typeof req.body === 'string' ? req.body.replace(/^\uFEFF/, '') : '';
-        if (!csvText.trim()) return res.status(400).json({ error: 'Tělo požadavku musí být CSV text' });
+        if (!csvText.trim()) return res.status(400).json({ error: tReq(req, 'import.errors.csv_text_required') });
 
         const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-        if (lines.length < 2) return res.status(400).json({ error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' });
+        if (lines.length < 2) return res.status(400).json({ error: tReq(req, 'import.errors.csv_requires_header') });
 
         const delim = lines[0].split(';').length >= lines[0].split(',').length ? ';' : ',';
         const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
@@ -1955,7 +1961,7 @@ router.post(
     async (req, res, next) => {
         try {
             const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body ?? '');
-            if (!buffer.length) return res.status(400).json({ error: 'Tělo požadavku musí být XLSX soubor' });
+            if (!buffer.length) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.xlsx_body_required') });
 
             const workbook = parseSimpleXlsxBuffer(buffer);
             const targetKey = normalizeC3TaxonomyTargetKey(req.query?.target_key);
@@ -1965,7 +1971,7 @@ router.post(
             const effectiveTarget = effectiveTargetKey ? C3_TAXONOMY_IMPORT_TARGETS[effectiveTargetKey] : null;
 
             if (!effectiveTarget) {
-                return res.status(400).json({ error: 'Nepodařilo se určit C3 Taxonomy cíl z target_key ani z názvu listu XLSX.' });
+                return res.status(400).json({ error: tReq(req, 'taxonomy.errors.target_detection_failed') });
             }
 
             const result = await runC3TaxonomyImport(workbook.rows, { defaultItemType: effectiveTarget.itemType });
@@ -1998,9 +2004,9 @@ router.post(
                     : Array.isArray(req.body?.data)
                         ? req.body.data
                         : null;
-            if (!items) return res.status(400).json({ error: 'items musí být pole' });
+            if (!items) return res.status(400).json({ error: tReq(req, 'import.errors.items_array_required') });
 
-            const result = await validateCapabilityBuilderImportRows(items);
+            const result = await validateCapabilityBuilderImportRows(items, (key, params) => tReq(req, key, params));
             res.json({
                 ok: true,
                 source: 'json',
@@ -2023,7 +2029,7 @@ router.post(
                     : Array.isArray(req.body?.data)
                         ? req.body.data
                         : null;
-            if (!items) return res.status(400).json({ error: 'items musí být pole' });
+            if (!items) return res.status(400).json({ error: tReq(req, 'import.errors.items_array_required') });
 
             const result = await importCapabilityBuilderRows(items, {
                 sourceName: req.body?.source_name ?? null,
@@ -2033,7 +2039,7 @@ router.post(
             res.json(result);
         } catch (err) {
             if (isUniqueViolation(err)) {
-                return res.status(409).json({ error: 'page_id nebo uuid už existuje' });
+                return res.status(409).json({ error: tReq(req, 'taxonomy.errors.duplicate_page_or_uuid') });
             }
             next(err);
         }
@@ -2047,12 +2053,12 @@ router.post(
     async (req, res, next) => {
         try {
             const csvText = typeof req.body === 'string' ? req.body : '';
-            if (!csvText.trim()) return res.status(400).json({ error: 'Tělo požadavku musí být CSV text' });
+            if (!csvText.trim()) return res.status(400).json({ error: tReq(req, 'import.errors.csv_text_required') });
 
             const rawItems = parseDelimitedRecords(csvText);
-            if (rawItems.length === 0) return res.status(400).json({ error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' });
+            if (rawItems.length === 0) return res.status(400).json({ error: tReq(req, 'import.errors.csv_requires_header') });
 
-            const result = await validateCapabilityBuilderImportRows(rawItems);
+            const result = await validateCapabilityBuilderImportRows(rawItems, (key, params) => tReq(req, key, params));
             res.json({
                 ok: true,
                 source: 'csv',
@@ -2070,10 +2076,10 @@ router.post(
     async (req, res, next) => {
         try {
             const csvText = typeof req.body === 'string' ? req.body : '';
-            if (!csvText.trim()) return res.status(400).json({ error: 'Tělo požadavku musí být CSV text' });
+            if (!csvText.trim()) return res.status(400).json({ error: tReq(req, 'import.errors.csv_text_required') });
 
             const rawItems = parseDelimitedRecords(csvText);
-            if (rawItems.length === 0) return res.status(400).json({ error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' });
+            if (rawItems.length === 0) return res.status(400).json({ error: tReq(req, 'import.errors.csv_requires_header') });
 
             const result = await importCapabilityBuilderRows(rawItems, {
                 sourceName: req.query?.source_name ?? null,
@@ -2083,7 +2089,7 @@ router.post(
             res.json(result);
         } catch (err) {
             if (isUniqueViolation(err)) {
-                return res.status(409).json({ error: 'page_id nebo uuid už existuje' });
+                return res.status(409).json({ error: tReq(req, 'taxonomy.errors.duplicate_page_or_uuid') });
             }
             next(err);
         }
@@ -2141,9 +2147,9 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                         : Array.isArray(req.body?.data)
                             ? req.body.data
                             : null;
-                if (!items) return res.status(400).json({ error: 'items musí být pole' });
+                if (!items) return res.status(400).json({ error: tReq(req, 'import.errors.items_array_required') });
 
-                const result = validateC3EntityRows(targetKey, items);
+                const result = validateC3EntityRows(targetKey, items, (key, params) => tReq(req, key, params));
                 res.json({
                     ok: true,
                     source: 'json',
@@ -2166,7 +2172,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                         : Array.isArray(req.body?.data)
                             ? req.body.data
                             : null;
-                if (!items) return res.status(400).json({ error: 'items musí být pole' });
+                if (!items) return res.status(400).json({ error: tReq(req, 'import.errors.items_array_required') });
 
                 const spiralCode = req.body?.spiral_code ?? req.query?.spiral_code ?? await getActiveSpiralCode();
                 const result = await importC3EntityRows(targetKey, items, { spiralCode });
@@ -2211,12 +2217,12 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
         async (req, res, next) => {
             try {
                 const csvText = typeof req.body === 'string' ? req.body : '';
-                if (!csvText.trim()) return res.status(400).json({ error: 'Tělo požadavku musí být CSV text' });
+                if (!csvText.trim()) return res.status(400).json({ error: tReq(req, 'import.errors.csv_text_required') });
 
                 const rawItems = parseDelimitedRecords(csvText);
-                if (rawItems.length === 0) return res.status(400).json({ error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' });
+                if (rawItems.length === 0) return res.status(400).json({ error: tReq(req, 'import.errors.csv_requires_header') });
 
-                const result = validateC3EntityRows(targetKey, rawItems);
+                const result = validateC3EntityRows(targetKey, rawItems, (key, params) => tReq(req, key, params));
                 res.json({
                     ok: true,
                     source: 'csv',
@@ -2234,10 +2240,10 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
         async (req, res, next) => {
             try {
                 const csvText = typeof req.body === 'string' ? req.body : '';
-                if (!csvText.trim()) return res.status(400).json({ error: 'Tělo požadavku musí být CSV text' });
+                if (!csvText.trim()) return res.status(400).json({ error: tReq(req, 'import.errors.csv_text_required') });
 
                 const rawItems = parseDelimitedRecords(csvText);
-                if (rawItems.length === 0) return res.status(400).json({ error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' });
+                if (rawItems.length === 0) return res.status(400).json({ error: tReq(req, 'import.errors.csv_requires_header') });
 
                 const spiralCode = req.query?.spiral_code ?? await getActiveSpiralCode();
                 const result = await importC3EntityRows(targetKey, rawItems, { spiralCode });
@@ -2459,7 +2465,7 @@ router.post('/c3/import-baseline', canAdmin, async (req, res, next) => {
         invalidateC3CacheKeys();
         const stats = { inserted, updated, failed, total: inserted + updated + failed };
         console.log('[c3/import-baseline]', stats);
-        res.json({ message: 'C3 Baseline import dokončen', ...stats });
+        res.json({ message: tReq(req, 'taxonomy.messages.baseline_import_completed'), ...stats });
     } catch (err) { next(err); }
 });
 
@@ -2759,7 +2765,7 @@ router.delete('/mapping/:serviceId/:mappingId', canAdmin, async (req, res, next)
             newValues: null,
             changedBy: req.user?.username || 'system',
         });
-        res.json({ message: 'Mapování smazáno', id: mappingPk });
+        res.json({ message: tReq(req, 'taxonomy.messages.mapping_deleted'), id: mappingPk });
     } catch (err) { next(err); }
 });
 
@@ -2792,7 +2798,7 @@ router.delete('/mapping/:serviceId', canAdmin, async (req, res, next) => {
                 changedBy: req.user?.username || 'system',
             });
         }
-        res.json({ message: 'C3 mapování smazáno', serviceId });
+        res.json({ message: tReq(req, 'taxonomy.messages.c3_mappings_deleted'), serviceId });
     } catch (err) { next(err); }
 });
 
@@ -3131,7 +3137,7 @@ router.put('/spiral/activate/:code', requireAuth, canAdmin, async (req, res, nex
             FROM data.ref_spiral_baseline
             WHERE spiral_code = $1
         `, [code]);
-        if (!check) return res.status(404).json({ error: 'Spiral nenalezen' });
+        if (!check) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.spiral_not_found') });
 
         await pool.query(`UPDATE data.ref_spiral_baseline SET is_active = FALSE`);
         await pool.query(`
@@ -3150,7 +3156,7 @@ router.post('/spiral', requireAuth, canAdmin, async (req, res, next) => {
     try {
         const { spiral_code, spiral_label, notes } = req.body;
         if (!spiral_code || !spiral_label)
-            return res.status(400).json({ error: 'spiral_code a spiral_label jsou povinné' });
+            return res.status(400).json({ error: tReq(req, 'taxonomy.errors.spiral_required_fields') });
         await getPool().query(`
             INSERT INTO data.ref_spiral_baseline (spiral_code, spiral_label, is_active, notes)
             VALUES ($1, $2, FALSE, $3)
@@ -3158,7 +3164,7 @@ router.post('/spiral', requireAuth, canAdmin, async (req, res, next) => {
         res.status(201).json({ ok: true });
     } catch (err) {
         if (isUniqueViolation(err))
-            return res.status(409).json({ error: 'Spiral s tímto kódem již existuje' });
+            return res.status(409).json({ error: tReq(req, 'taxonomy.errors.spiral_duplicate') });
         next(err);
     }
 });

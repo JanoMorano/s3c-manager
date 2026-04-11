@@ -197,6 +197,11 @@ async function acquireLock(pool, lockedBy = 'installer') {
         const row = await getInstallRow(pool);
         return {
             ok: false,
+            reasonKey: 'install.errors.locked',
+            reasonParams: {
+                lockedBy: row?.locked_by ?? 'unknown',
+                lockAcquiredAt: row?.lock_acquired_at ?? '',
+            },
             reason: `Instalace je již zamčena uživatelem "${row?.locked_by}" od ${row?.lock_acquired_at}`,
         };
     }

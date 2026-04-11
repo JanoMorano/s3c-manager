@@ -184,6 +184,25 @@ describe('import routes', () => {
         }));
     });
 
+    test('POST /services returns a localized missing-required error from accept-language', async () => {
+        const router = require('../routes/import');
+        const app = express();
+        app.use(express.json());
+        app.use('/api/v1/import', router);
+
+        const response = await request(app)
+            .post('/api/v1/import/services')
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({
+                items: [
+                    { service_id: 'SVC-1' },
+                ],
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.errors[0]).toBe('Skipped - service_id or title is missing.');
+    });
+
     test('POST /services/csv/dry-run returns preflight summary for CSV payload', async () => {
         const importRepo = require('../db/import.repo');
         const router = require('../routes/import');

@@ -188,11 +188,12 @@ describe('auth routes', () => {
         try {
             const response = await request(buildApp())
                 .get('/api/v1/auth/sso')
+                .set('accept-language', 'en-US,en;q=0.9')
                 .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
                 .set('x-remote-user', 'DOMAIN\\jnovak');
 
             expect(response.status).toBe(403);
-            expect(response.body.error).toMatch(/trusted-proxy boundary is not configured/i);
+            expect(response.body.error).toBe('SSO trusted-proxy boundary is not configured. Set AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET.');
             expect(queryMock).not.toHaveBeenCalled();
         } finally {
             config.auth.sso.trustedProxySharedSecret = previousSecret;
@@ -207,11 +208,12 @@ describe('auth routes', () => {
         try {
             const response = await request(buildApp())
                 .get('/api/v1/auth/sso')
+                .set('accept-language', 'en-US,en;q=0.9')
                 .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
                 .set('x-remote-user', 'DOMAIN\\jnovak');
 
             expect(response.status).toBe(403);
-            expect(response.body.error).toMatch(/trusted-proxy boundary header is not configured/i);
+            expect(response.body.error).toBe('SSO trusted-proxy boundary header is not configured. Set AUTH_SSO_TRUSTED_PROXY_HEADER.');
             expect(queryMock).not.toHaveBeenCalled();
         } finally {
             config.auth.sso.trustedProxyHeader = previousHeader;
@@ -239,6 +241,16 @@ describe('auth routes', () => {
 
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/doménové přihlášení/i);
+    });
+
+    test('POST /login returns a localized missing-credentials error from accept-language', async () => {
+        const response = await request(buildApp())
+            .post('/api/v1/auth/login')
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({ username: '' });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('Username and password are required.');
     });
 
     test('POST /login sets httpOnly auth cookies on successful local login', async () => {

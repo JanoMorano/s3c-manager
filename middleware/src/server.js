@@ -12,6 +12,7 @@ const logger  = require('./utils/logger');
 const { initDb, closePools, getPool } = require('./db/pool');
 const { startRetentionScheduler, stopRetentionScheduler } = require('./services/retention');
 const { requireModuleApiEnabled } = require('./middleware/module-gates');
+const { tReq } = require('./utils/i18n');
 
 // Routes
 const authRoutes      = require('./routes/auth');
@@ -32,7 +33,7 @@ const groupsRoutes = require('./routes/groups');
 const installSvc      = require('./services/install.service');
 
 const app = express();
-const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', 'C3 Taxonomy modul není aktivní.');
+const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', (req) => tReq(req, 'taxonomy.errors.module_inactive'));
 
 // Important for reverse proxy setups (nginx, Docker, Kubernetes)
 app.set('trust proxy', 1);

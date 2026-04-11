@@ -246,7 +246,7 @@ function getValue(row, candidates) {
     return null;
 }
 
-function buildEntityRecord(targetKey, row) {
+function buildEntityRecord(targetKey, row, translate = (key) => key) {
     const config = C3_ENTITY_IMPORT_TARGETS[targetKey];
     if (!config) throw new Error(`Unknown C3 entity import target: ${targetKey}`);
 
@@ -261,7 +261,7 @@ function buildEntityRecord(targetKey, row) {
                 issue_code: 'INVALID_MODIFICATION_DATE',
                 field_name: field.key,
                 raw_value: String(rawValue),
-                message: 'Pole modification_date není platné datum, bude uloženo jako NULL.',
+                message: translate('c3.import.errors.invalid_modification_date'),
             });
         }
         record[field.key] = normalized;
@@ -274,7 +274,7 @@ function buildEntityRecord(targetKey, row) {
             issue_code: 'MISSING_UUID',
             field_name: 'uuid',
             raw_value: null,
-            message: 'Chybí UUID.',
+            message: translate('taxonomy.errors.missing_uuid'),
         });
     }
     if (!record.title) {
@@ -283,7 +283,7 @@ function buildEntityRecord(targetKey, row) {
             issue_code: 'MISSING_TITLE',
             field_name: 'title',
             raw_value: null,
-            message: 'Chybí Title.',
+            message: translate('taxonomy.errors.missing_title'),
         });
     }
 
@@ -539,7 +539,7 @@ async function importC3EntityRows(targetKey, rawRows, { spiralCode = null } = {}
     };
 }
 
-function validateC3EntityRows(targetKey, rawRows) {
+function validateC3EntityRows(targetKey, rawRows, translate = (key) => key) {
     const config = C3_ENTITY_IMPORT_TARGETS[targetKey];
     if (!config) throw new Error(`Unknown C3 entity import target: ${targetKey}`);
 
@@ -550,7 +550,7 @@ function validateC3EntityRows(targetKey, rawRows) {
 
     for (const [index, rawRow] of rawRows.entries()) {
         const rowNumber = index + 2;
-        const normalized = buildEntityRecord(targetKey, rawRow);
+        const normalized = buildEntityRecord(targetKey, rawRow, translate);
         if (normalized.record) validRowCount += 1;
         normalized.issues.forEach((issue) => {
             issues.push({ row_number: rowNumber, ...issue });

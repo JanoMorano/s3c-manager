@@ -230,6 +230,23 @@ describe('install route security', () => {
         expectNoPrivilegedInstallSideEffects();
     });
 
+    test('POST /execute returns a localized start-required error from accept-language', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/execute')
+            .set(validHeaders)
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({
+                activate_c3: false,
+                seed_demo: false,
+                performed_by: 'installer',
+            });
+
+        expect(response.status).toBe(409);
+        expect(response.body.error).toBe('Installation has not been started. Call /install/start first.');
+    });
+
     test('POST /execute rejects install completion before the first admin exists', async () => {
         const app = buildApp();
         await request(app)

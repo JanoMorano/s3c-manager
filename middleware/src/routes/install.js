@@ -186,13 +186,15 @@ router.post('/start', requireInstallWriteAccess, checkNotReady, async (req, res,
 
         const lockResult = await installSvc.acquireLock(pool, performedBy);
         if (!lockResult.ok) {
-            return res.status(409).json({ error: lockResult.reason });
+            return res.status(409).json({
+                error: lockResult.reasonKey ? tReq(req, lockResult.reasonKey, lockResult.reasonParams) : lockResult.reason,
+            });
         }
 
         currentLockToken = lockResult.token;
 
         logger.info(`install/start: lock acquired by "${performedBy}"`);
-        return res.json({ ok: true, message: 'Instalace zahájena.' });
+        return res.json({ ok: true, message: tReq(req, 'install.messages.started') });
     } catch (err) {
         next(err);
     }
@@ -238,7 +240,7 @@ router.post('/bootstrap-admin', requireInstallWriteAccess, checkNotReady, async 
         const { username, displayName, email, password, mustChangePassword } = req.body || {};
 
         if (!username || !displayName || !email || !password) {
-            return res.status(400).json({ error: 'Chybí povinné pole: username, displayName, email, password.' });
+            return res.status(400).json({ error: tReq(req, 'install.errors.missing_required_fields') });
         }
 
         // Log only non-sensitive fields.
@@ -344,14 +346,14 @@ router.post('/execute', requireInstallWriteAccess, checkNotReady, async (req, re
 
         if (!currentLockToken) {
             return res.status(409).json({
-                error: 'Instalace nebyla zahájena. Nejprve zavolejte /install/start.',
+                error: tReq(req, 'install.errors.start_required'),
             });
         }
 
         const adminExists = await installSvc.hasActiveAdminAccount(pool);
         if (!adminExists) {
             return res.status(422).json({
-                error: 'První admin účet musí být vytvořen v install wizardu před dokončením instalace.',
+                error: tReq(req, 'install.errors.admin_required_before_finish'),
             });
         }
 
@@ -401,18 +403,18 @@ router.get('/summary', requireAdminWhenReady, async (req, res, next) => {
 router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
     try {
         if (req.body?.confirm !== true) {
-            return res.status(400).json({ error: 'Musíte potvrdit: { "confirm": true }' });
+            return res.status(400).json({ error: tReq(req, 'install.errors.confirm_required') });
         }
 
         const pool = getPlatformPool();
         const row  = await installSvc.getInstallRow(pool);
 
         if (!row) {
-            return res.status(404).json({ error: 'Instalační stav nenalezen.' });
+            return res.status(404).json({ error: tReq(req, 'install.errors.install_state_not_found') });
         }
 
         if (row.install_status === 'INSTALL_IN_PROGRESS') {
-            return res.status(409).json({ error: 'Instalace probíhá.' });
+            return res.status(409).json({ error: tReq(req, 'install.errors.install_in_progress') });
         }
 
         // Reset to REPAIR_REQUIRED and release the lock if one exists.
@@ -421,7 +423,7 @@ router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
         currentLockToken = null;
         invalidateModuleStatus();
 
-        return res.json({ ok: true, status: 'REPAIR_REQUIRED', message: 'Systém přepnut do repair módu.' });
+        return res.json({ ok: true, status: 'REPAIR_REQUIRED', message: tReq(req, 'install.messages.repair_completed') });
     } catch (err) {
         next(err);
     }
@@ -436,14 +438,14 @@ router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
 router.post('/reset', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         if (req.body?.confirm !== true) {
-            return res.status(400).json({ error: 'Musíte potvrdit: { "confirm": true }' });
+            return res.status(400).json({ error: tReq(req, 'install.errors.confirm_required') });
         }
 
         const pool = getPlatformPool();
         const row  = await installSvc.getInstallRow(pool);
 
         if (!row) {
-            return res.status(404).json({ error: 'Instalační stav nenalezen.' });
+            return res.status(404).json({ error: tReq(req, 'install.errors.install_state_not_found') });
         }
 
         // Release the lock regardless of token; this is the authoritative reset path.
@@ -480,7 +482,7 @@ router.post('/reset', requireInstallWriteAccess, checkNotReady, async (req, res,
         invalidateModuleStatus();
 
         logger.warn('install/reset: installation state reset to NOT_INSTALLED');
-        return res.json({ ok: true, status: 'NOT_INSTALLED', message: 'Instalační stav resetován. Spusťte wizard znovu.' });
+        return res.json({ ok: true, status: 'NOT_INSTALLED', message: tReq(req, 'install.messages.reset_completed') });
     } catch (err) {
         next(err);
     }
@@ -498,7 +500,7 @@ router.post('/seed-demo', requireAuth, requireInstallAdminAccess, async (req, re
         const row = await installSvc.getInstallRow(pool);
         if (!row || row.install_status !== 'READY') {
             return res.status(409).json({
-                error: `Demo data lze seedovat pouze ve stavu READY. Aktuální stav: ${row?.install_status ?? 'neznámý'}`,
+                error: tReq(req, 'install.errors.demo_ready_only', { status: row?.install_status ?? 'neznámý' }),
             });
         }
 
@@ -518,7 +520,13 @@ router.post('/seed-demo', requireAuth, requireInstallAdminAccess, async (req, re
             return res.status(500).json({ error: result.error });
         }
 
-        return res.json({ ok: true, action, message: action === 'remove' ? 'Testovací data odstraněna.' : 'Testovací data vytvořena.' });
+        return res.json({
+            ok: true,
+            action,
+            message: action === 'remove'
+                ? tReq(req, 'install.messages.demo_removed')
+                : tReq(req, 'install.messages.demo_created'),
+        });
     } catch (err) {
         next(err);
     }
