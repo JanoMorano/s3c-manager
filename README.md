@@ -166,15 +166,18 @@ See [SECURITY.md](SECURITY.md).
 
 ## Support development
 
-<a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_4USD.png">
-  <img src="donations/Coffee_4USD.png" width="150" alt="Buy me a coffee $4">
-</a>
-<a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_10USD.png">
-  <img src="donations/Coffee_10USD.png" width="150" alt="Buy me a coffee $10">
-</a>
-<a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_20USD.png">
-  <img src="donations/Coffee_20USD.png" width="150" alt="Buy me a coffee $20">
-</a>
+<table>
+  <tr>
+    <td align="center"><strong>$4</strong></td>
+    <td align="center"><strong>$10</strong></td>
+    <td align="center"><strong>$20</strong></td>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_4USD.png"><img src="donations/Coffee_4USD.png" width="150"></a></td>
+    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_10USD.png"><img src="donations/Coffee_10USD.png" width="150"></a></td>
+    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_20USD.png"><img src="donations/Coffee_20USD.png" width="150"></a></td>
+  </tr>
+</table>
 
 ## Note About Badges and Release URLs
 
