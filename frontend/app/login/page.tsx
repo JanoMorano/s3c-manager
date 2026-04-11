@@ -83,7 +83,7 @@ export default function LoginPage() {
         body: JSON.stringify({ username: form.username.trim(), password: form.password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Přihlášení selhalo');
+      if (!res.ok) throw new Error(data.error ?? t('auth.login.error_failed'));
       setAuthSnapshotFromUser(data.user);
       const next = searchParams?.get('next') ?? '/';
       if (data.user?.must_change_password) {
@@ -92,7 +92,7 @@ export default function LoginPage() {
       }
       router.replace(next);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Chyba');
+      setError(err instanceof Error ? err.message : t('auth.login.error_generic'));
     } finally { setBusy(false); }
   }
 
@@ -105,7 +105,7 @@ export default function LoginPage() {
         {ssoChecking && <div className={styles.infoMsg}>{t('auth.login.sso_checking')}</div>}
         {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
         <form onSubmit={handleSubmit} className={styles.form}>
-          <label className={styles.label}>Uživatelské jméno</label>
+          <label className={styles.label}>{t('auth.login.username_label')}</label>
           <input
             className={styles.input}
             type="text"
@@ -116,7 +116,7 @@ export default function LoginPage() {
             disabled={busy || ssoChecking}
             required
           />
-          <label className={styles.label}>Heslo</label>
+          <label className={styles.label}>{t('auth.login.password_label')}</label>
           <input
             className={styles.input}
             type="password"
