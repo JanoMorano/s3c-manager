@@ -1,4 +1,5 @@
 {
   "common.loading": "Loading…",
-  "auth.login.submit": "Sign in"
+  "auth.login.submit": "Sign in",
+  "common.welcome_user": "Welcome, {{name}}!"
 }

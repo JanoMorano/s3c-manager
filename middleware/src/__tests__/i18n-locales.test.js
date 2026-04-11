@@ -30,3 +30,12 @@ test('returns canonical catalogs and translates fallback keys', () => {
     expect(translate('weird', 'common.loading')).toBe('Načítám…');
     expect(translate('en', 'missing.key')).toBe('missing.key');
 });
+
+test('interpolates translated values with params', () => {
+    expect(translate('en', 'common.welcome_user', { name: 'Ada' })).toBe('Welcome, Ada!');
+    expect(translate('cs', 'common.welcome_user', { name: 'Ada' })).toBe('Vítej, Ada!');
+});
+
+test('falls back to cs when selected locale is missing a key', () => {
+    expect(translate('en', 'common.only_cs')).toBe('Jen česky');
+});

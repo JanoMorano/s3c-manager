@@ -1,30 +1,7 @@
 'use strict';
 
 const { getCatalog, translate } = require('./catalog');
-
-const DEFAULT_LOCALE = 'cs';
-
-function normalizeLocale(value) {
-    if (typeof value !== 'string') {
-        return DEFAULT_LOCALE;
-    }
-
-    const trimmed = value.trim().toLowerCase().replace(/_/g, '-');
-    if (!trimmed) {
-        return DEFAULT_LOCALE;
-    }
-
-    const base = trimmed.split('-')[0];
-    if (base === 'cs' || base === 'cz' || base === 'cze') {
-        return 'cs';
-    }
-
-    if (base === 'en') {
-        return 'en';
-    }
-
-    return DEFAULT_LOCALE;
-}
+const { DEFAULT_LOCALE, normalizeLocale, normalizeSupportedLocale } = require('./core');
 
 function resolveLocaleFromHeader(acceptLanguage) {
     if (typeof acceptLanguage !== 'string' || !acceptLanguage.trim()) {
@@ -44,15 +21,7 @@ function resolveLocaleFromHeader(acceptLanguage) {
             return;
         }
 
-        const normalizedTag = rawTag.trim().toLowerCase().replace(/_/g, '-');
-        const base = normalizedTag.split('-')[0];
-        let locale = null;
-
-        if (base === 'cs' || base === 'cz' || base === 'cze') {
-            locale = 'cs';
-        } else if (base === 'en') {
-            locale = 'en';
-        }
+        const locale = normalizeSupportedLocale(rawTag);
 
         if (!locale) {
             return;

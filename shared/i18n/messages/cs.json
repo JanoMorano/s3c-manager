@@ -1,4 +1,6 @@
 {
   "common.loading": "Načítám…",
-  "auth.login.submit": "Přihlásit se"
+  "auth.login.submit": "Přihlásit se",
+  "common.welcome_user": "Vítej, {{name}}!",
+  "common.only_cs": "Jen česky"
 }

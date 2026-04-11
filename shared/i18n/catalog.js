@@ -2,38 +2,15 @@
 
 const cs = require('./messages/cs.json');
 const en = require('./messages/en.json');
-
-const DEFAULT_LOCALE = 'cs';
+const { DEFAULT_LOCALE, normalizeLocale } = require('./core');
 
 const CATALOGS = {
     cs,
     en,
 };
 
-function normalizeCatalogLocale(value) {
-    if (typeof value !== 'string') {
-        return DEFAULT_LOCALE;
-    }
-
-    const trimmed = value.trim().toLowerCase().replace(/_/g, '-');
-    if (!trimmed) {
-        return DEFAULT_LOCALE;
-    }
-
-    const base = trimmed.split('-')[0];
-    if (base === 'cs' || base === 'cz' || base === 'cze') {
-        return 'cs';
-    }
-
-    if (base === 'en') {
-        return 'en';
-    }
-
-    return DEFAULT_LOCALE;
-}
-
 function getCatalog(locale) {
-    const canonicalLocale = normalizeCatalogLocale(locale);
+    const canonicalLocale = normalizeLocale(locale);
     return CATALOGS[canonicalLocale] || CATALOGS[DEFAULT_LOCALE];
 }
 
@@ -53,7 +30,9 @@ function interpolate(message, params) {
 function translate(locale, key, params) {
     const catalog = getCatalog(locale);
     const fallbackCatalog = CATALOGS[DEFAULT_LOCALE];
-    const message = catalog[key] || fallbackCatalog[key] || key;
+    const hasCatalogKey = Object.prototype.hasOwnProperty.call(catalog, key);
+    const hasFallbackKey = Object.prototype.hasOwnProperty.call(fallbackCatalog, key);
+    const message = hasCatalogKey ? catalog[key] : hasFallbackKey ? fallbackCatalog[key] : key;
     return interpolate(message, params);
 }
 
