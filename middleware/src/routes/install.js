@@ -24,6 +24,7 @@ const rateLimit   = require('express-rate-limit');
 const { getPlatformPool } = require('../db/pool');
 const installSvc  = require('../services/install.service');
 const logger      = require('../utils/logger');
+const config      = require('../config');
 const { requireAuth } = require('../middleware/auth');
 const { canAdmin }    = require('../middleware/rbac');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
@@ -32,20 +33,20 @@ const router = express.Router();
 
 // ---------------------------------------------------------------------------
 // SECURITY: INSTALL_SETUP_TOKEN guard
-// When INSTALL_SETUP_TOKEN env var is set, all pre-READY write endpoints
-// require the token in X-Install-Token header. This prevents unauthorized
-// takeover of a fresh or partially-installed instance.
+// When config.install.setupToken (INSTALL_SETUP_TOKEN env) is set, all
+// pre-READY write endpoints require the token in X-Install-Token header.
+// This prevents unauthorized takeover of a fresh or partially-installed instance.
 // If not set, a warning is logged but installs proceed (backward compat).
 // ---------------------------------------------------------------------------
-const INSTALL_SETUP_TOKEN = (process.env.INSTALL_SETUP_TOKEN || '').trim();
-if (!INSTALL_SETUP_TOKEN) {
+if (!config.install.setupToken) {
     logger.warn('INSTALL_SETUP_TOKEN is not set — install endpoints are accessible without token. Set this variable to protect fresh installations.');
 }
 
 function requireInstallToken(req, res, next) {
-    if (!INSTALL_SETUP_TOKEN) return next(); // token not configured — open (with warning above)
+    const token = config.install.setupToken;
+    if (!token) return next(); // token not configured — open (with warning above)
     const provided = (req.headers['x-install-token'] || '').trim();
-    if (!provided || provided !== INSTALL_SETUP_TOKEN) {
+    if (!provided || provided !== token) {
         logger.warn(`install: rejected request without valid X-Install-Token from ${req.ip}`);
         return res.status(401).json({ error: 'Přístup odmítnut: chybí nebo neplatný instalační token.' });
     }

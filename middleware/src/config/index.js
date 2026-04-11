@@ -40,7 +40,9 @@ const config = {
         user: pgUser,
         password: pgPassword,
         server: pgHost,
-        ssl: parseBool(process.env.DB_SSL, false) ? { rejectUnauthorized: false } : false,
+        ssl: parseBool(process.env.DB_SSL, false)
+            ? { rejectUnauthorized: !parseBool(process.env.DB_SSL_INSECURE_SKIP_VERIFY, false) }
+            : false,
         pool: {
             max: parseNumber(process.env.DB_POOL_MAX, 10),
             min: parseNumber(process.env.DB_POOL_MIN, 2),
@@ -57,6 +59,11 @@ const config = {
     dbData: {
         database: pgDatabase,
         schema: 'data',
+    },
+
+    install: {
+        // SECURITY: when set, all pre-READY write endpoints require this token in X-Install-Token header.
+        setupToken: (process.env.INSTALL_SETUP_TOKEN || '').trim(),
     },
 
     jwt: {
