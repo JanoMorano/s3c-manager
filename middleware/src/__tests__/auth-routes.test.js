@@ -609,6 +609,84 @@ describe('auth routes', () => {
         jest.resetModules();
     });
 
+    test('requireAuth uses the authenticated user locale for 403 responses', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: jest.fn().mockResolvedValue({
+                    rows: [{
+                        id: 1,
+                        username: 'admin',
+                        display_name: 'Admin',
+                        role: 'admin',
+                        is_active: false,
+                        auth_provider: 'local',
+                        preferred_lang: 'cze',
+                        preferred_theme: 'dark',
+                    }],
+                }),
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(async () => ({
+                'auth.admin_must_change_password': { config_value: 'false' },
+            })),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 1 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                            cookie: 'sc_locale=en',
+                            'accept-language': 'en-US,en;q=0.9',
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        expect(next).not.toHaveBeenCalled();
+                        expect(res.status).toHaveBeenCalledWith(403);
+                        expect(res.json).toHaveBeenCalledWith({ error: 'Účet deaktivován' });
+                        expect(req.user).toEqual(expect.objectContaining({
+                            preferred_lang: 'cs',
+                        }));
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
+    });
+
     test('requireAuth normalizes preferred_lang on req.user', async () => {
         jest.resetModules();
 

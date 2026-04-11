@@ -99,6 +99,7 @@ async function requireAuth(req, res, next) {
         const user = result.rows[0];
 
         if (!user)           return res.status(401).json({ error: tReq(req, 'auth.errors.user_not_found') });
+        req.user = normalizeAuthenticatedUser(user);
         if (!user.is_active) return res.status(403).json({ error: tReq(req, 'auth.errors.account_deactivated') });
 
         if (
@@ -109,7 +110,6 @@ async function requireAuth(req, res, next) {
             return res.status(403).json({ error: tReq(req, 'auth.errors.password_change_required') });
         }
 
-        req.user = normalizeAuthenticatedUser(user);
         next();
     } catch (err) {
         next(err);
