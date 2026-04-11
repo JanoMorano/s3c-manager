@@ -21,6 +21,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { markInstallReady } from '@/app/components/AuthGuard';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import styles from './install.module.css';
 
 // ---------------------------------------------------------------------------
@@ -105,17 +106,17 @@ interface StepDef {
 // ---------------------------------------------------------------------------
 
 const STEPS: StepDef[] = [
-  { id: 'welcome',     label: 'Vítejte' },
-  { id: 'config',      label: 'Konfigurace' },
-  { id: 'secrets',     label: 'Secrets' },
-  { id: 'admin',       label: 'Admin účet' },
-  { id: 'connectivity',label: 'Konektivita' },
-  { id: 'modules',     label: 'Moduly' },
-  { id: 'data-plan',   label: 'Data packages' },
-  { id: 'upload',      label: 'Import (volitelný)' },
-  { id: 'preview',     label: 'Náhled importu' },
-  { id: 'execute',     label: 'Instalace' },
-  { id: 'summary',     label: 'Výsledek' },
+  { id: 'welcome',     label: 'install.step.welcome' },
+  { id: 'config',      label: 'install.step.config' },
+  { id: 'secrets',     label: 'install.step.secrets' },
+  { id: 'admin',       label: 'install.step.admin' },
+  { id: 'connectivity',label: 'install.step.connectivity' },
+  { id: 'modules',     label: 'install.step.modules' },
+  { id: 'data-plan',   label: 'install.step.data_plan' },
+  { id: 'upload',      label: 'install.step.upload' },
+  { id: 'preview',     label: 'install.step.preview' },
+  { id: 'execute',     label: 'install.step.execute' },
+  { id: 'summary',     label: 'install.step.summary' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -141,6 +142,8 @@ function Spinner({ dark }: { dark?: boolean }) {
 // ---------------------------------------------------------------------------
 
 export default function InstallPage() {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -387,7 +390,9 @@ export default function InstallPage() {
           setGlobalError('Příliš mnoho požadavků — zkuste to za 30 sekund. Pokud problém přetrvává, restartujte middleware.');
         } else if (res.status === 409 && d.error?.includes('zamčena')) {
           // Lock held from a previous attempt — offer reset
-          setGlobalError(`Instalace je zamčená z předchozího pokusu. Klikněte na "Resetovat instalaci" níže a zkuste znovu.`);
+          setGlobalError(locale === 'en'
+            ? 'The installation is locked from a previous attempt. Click "Reset installation" below and try again.'
+            : 'Instalace je zamčená z předchozího pokusu. Klikněte na "Resetovat instalaci" níže a zkuste znovu.');
         } else {
           setGlobalError(d.error || 'Nepodařilo se zahájit instalaci.');
         }
@@ -719,19 +724,16 @@ export default function InstallPage() {
   function renderStep0_Welcome() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Vítejte v Service Catalogue</h1>
-        <p className={styles.panelSubtitle}>
-          Tento průvodce vás provede prvním spuštěním aplikace. Detekoval jsem instalační mód
-          a připravil potřebné kroky. Celý proces trvá přibližně 5–10 minut.
-        </p>
+        <h1 className={styles.panelTitle}>{t('install.page.welcome_title')}</h1>
+        <p className={styles.panelSubtitle}>{t('install.page.welcome_subtitle')}</p>
 
         {renderModeBadge()}
 
         {installInfo && (
           <div className={styles.checkList}>
-            {renderConnCheck('Stav aplikace', true, `v${installInfo.app_version}`)}
-            {renderConnCheck('Schema verze', true, installInfo.schema_version)}
-            {renderConnCheck('DB stav', installInfo.status !== 'NOT_INSTALLED' ? true : undefined,
+            {renderConnCheck(t('install.page.app_status'), true, `v${installInfo.app_version}`)}
+            {renderConnCheck(t('install.page.schema_version'), true, installInfo.schema_version)}
+            {renderConnCheck(t('install.page.db_status'), installInfo.status !== 'NOT_INSTALLED' ? true : undefined,
               installInfo.status)}
             {installInfo.db_error && (
               <Alert type="warning">{installInfo.db_error}</Alert>
@@ -753,17 +755,17 @@ export default function InstallPage() {
 
         <div className={styles.fieldGroup}>
           <div className={styles.field}>
-            <label className={styles.label}>Install setup token</label>
+            <label className={styles.label}>{t('install.page.setup_token_label')}</label>
             <input
               className={styles.input}
               type="password"
               value={installSetupToken}
               onChange={e => setInstallSetupToken(e.target.value)}
               autoComplete="off"
-              placeholder="Paste setup token here if backend requires it"
+              placeholder={t('install.page.setup_token_placeholder')}
             />
             <span className={styles.fieldHint}>
-              Token se posílá jen na mutující install endpointy. Bez něj secure bootstrap zůstane uzamčený.
+              {t('install.page.setup_token_hint')}
             </span>
           </div>
         </div>
@@ -771,12 +773,8 @@ export default function InstallPage() {
         {/* Reset section — shown for stuck/failed states OR when lock error occurred */}
         {installInfo && (STUCK_STATUSES.includes(installInfo.status) || installInfo.install_locked || globalError?.includes('zamčená')) && (
           <div className={styles.resetSection}>
-            <div className={styles.resetTitle}>Uvízlá instalace</div>
-            <p className={styles.resetDesc}>
-              Instalace je v neúplném stavu ({installInfo.status}).
-              Pokud průvodce nefunguje správně (např. po restartu), lze ji bezpečně resetovat
-              a zahájit znovu. Existující data v databázi nebudou smazána.
-            </p>
+            <div className={styles.resetTitle}>{t('install.page.reset_title')}</div>
+            <p className={styles.resetDesc}>{t('install.page.reset_description')}</p>
             {resetError && <Alert type="error">{resetError}</Alert>}
             <button
               className={styles.btnDanger}
@@ -784,7 +782,7 @@ export default function InstallPage() {
               disabled={resetting}
             >
               {resetting ? <Spinner /> : null}
-              {resetting ? 'Resetuji...' : 'Resetovat instalaci'}
+              {resetting ? t('common.loading') : t('install.page.reset_button')}
             </button>
           </div>
         )}
@@ -793,7 +791,7 @@ export default function InstallPage() {
           <div />
           <button className={styles.btnPrimary} onClick={handleWelcomeNext} disabled={loadingStatus || isStarting}>
             {(loadingStatus || isStarting) ? <Spinner /> : null}
-            {isStarting ? 'Zahajuji...' : 'Zahájit instalaci →'}
+            {isStarting ? t('common.loading') : t('install.page.start_button')}
           </button>
         </div>
       </>
@@ -803,19 +801,16 @@ export default function InstallPage() {
   function renderStep1_Config() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Konfigurace aplikace</h1>
-        <p className={styles.panelSubtitle}>
-          Nastavte základní provozní parametry aplikace. Secrets (JWT, DB) jsou načítány
-          z Compose environment a mounted secrets — nelze je zde měnit.
-        </p>
+        <h1 className={styles.panelTitle}>{t('install.page.config_title')}</h1>
+        <p className={styles.panelSubtitle}>{t('install.page.config_subtitle')}</p>
 
         {configError && <Alert type="error">{configError}</Alert>}
-        {configSaved && <Alert type="success">Konfigurace uložena.</Alert>}
+        {configSaved && <Alert type="success">{t('install.page.config_saved')}</Alert>}
 
         <div className={styles.fieldGroup}>
           <div className={styles.fieldRow}>
             <div className={styles.field}>
-              <label className={styles.label}>Název aplikace</label>
+              <label className={styles.label}>{locale === 'en' ? 'Application name' : 'Název aplikace'}</label>
               <input
                 className={styles.input}
                 value={sysConfig.app_name}
@@ -824,7 +819,7 @@ export default function InstallPage() {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>Base URL</label>
+              <label className={styles.label}>{locale === 'en' ? 'Base URL' : 'Base URL'}</label>
               <input
                 className={styles.input}
                 value={sysConfig.base_url}
@@ -835,7 +830,7 @@ export default function InstallPage() {
           </div>
           <div className={styles.fieldRow}>
             <div className={styles.field}>
-              <label className={styles.label}>Timezone</label>
+              <label className={styles.label}>{locale === 'en' ? 'Timezone' : 'Časové pásmo'}</label>
               <input
                 className={styles.input}
                 value={sysConfig.timezone}
@@ -844,7 +839,7 @@ export default function InstallPage() {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>Storage path</label>
+              <label className={styles.label}>{locale === 'en' ? 'Storage path' : 'Cesta k úložišti'}</label>
               <input
                 className={styles.input}
                 value={sysConfig.storage_path}
@@ -860,27 +855,29 @@ export default function InstallPage() {
                 checked={sysConfig.https_mode}
                 onChange={e => setSysConfig(c => ({ ...c, https_mode: e.target.checked }))}
               />
-              <span className={styles.label}>HTTPS mode — vynuťte HTTPS v generovaných odkazech</span>
+              <span className={styles.label}>{locale === 'en' ? 'HTTPS mode - force HTTPS in generated links' : 'HTTPS mode — vynuťte HTTPS v generovaných odkazech'}</span>
             </label>
           </div>
         </div>
 
         <div className={styles.checkList}>
-          {renderConnCheck('DATABASE_URL / DB_HOST', true, 'nastaveno přes Compose env')}
-          {renderConnCheck('JWT_SECRET', true, 'nastaveno přes Compose env / secret')}
+          {renderConnCheck('DATABASE_URL / DB_HOST', true, locale === 'en' ? 'set through Compose env' : 'nastaveno přes Compose env')}
+          {renderConnCheck('JWT_SECRET', true, locale === 'en' ? 'set through Compose env / secret' : 'nastaveno přes Compose env / secret')}
           {renderConnCheck('APP_VERSION', true, installInfo?.app_version ?? '1.0.0')}
         </div>
 
         <div className={styles.securityNote}>
-          🔒 Secrets nejsou zobrazovány v čitelné podobě. Konfigurace bude uložena do DB (app_config).
+          {locale === 'en'
+            ? '🔒 Secrets are never displayed in plain text. Configuration will be stored in DB (app_config).'
+            : '🔒 Secrets nejsou zobrazovány v čitelné podobě. Konfigurace bude uložena do DB (app_config).'}
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{t('install.page.config_back')}</button>
           <div style={{ display: 'flex', gap: 12 }}>
-            <button className={styles.btnSecondary} onClick={goNext}>Přeskočit</button>
+            <button className={styles.btnSecondary} onClick={goNext}>{t('install.page.config_skip')}</button>
             <button className={styles.btnPrimary} onClick={handleConfigSave} disabled={configSaving}>
-              {configSaving ? <><Spinner /> Ukládám...</> : 'Uložit a pokračovat →'}
+              {configSaving ? <><Spinner /> {t('common.loading')}</> : t('install.page.config_save')}
             </button>
           </div>
         </div>
@@ -891,31 +888,31 @@ export default function InstallPage() {
   function renderStep2_Secrets() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Validace secrets</h1>
-        <p className={styles.panelSubtitle}>
-          Kontrola, zda jsou povinné secrets předány bezpečným způsobem (Compose secrets nebo env).
-        </p>
+        <h1 className={styles.panelTitle}>{t('install.page.secrets_title')}</h1>
+        <p className={styles.panelSubtitle}>{t('install.page.secrets_subtitle')}</p>
 
         <Alert type="info">
-          Secrets jsou validovány middleware vrstvou při startu. Zobrazujeme pouze výsledky
-          validace — nikdy samotné hodnoty.
+          {locale === 'en'
+            ? 'Secrets are validated by the middleware on startup. We only show validation results, never the secret values themselves.'
+            : 'Secrets jsou validovány middleware vrstvou při startu. Zobrazujeme pouze výsledky validace — nikdy samotné hodnoty.'}
         </Alert>
 
         <div className={styles.checkList}>
-          {renderConnCheck('JWT_SECRET přítomen', true, 'validováno při startu middleware')}
-          {renderConnCheck('DB credentials přítomny', true, 'validováno při startu middleware')}
-          {renderConnCheck('Secrets mimo source kód', true, 'Compose env / secret mount')}
-          {renderConnCheck('Plaintext v logu', false ? false : true, 'žádné secrets v logu')}
+          {renderConnCheck(locale === 'en' ? 'JWT_SECRET present' : 'JWT_SECRET přítomen', true, locale === 'en' ? 'validated on middleware startup' : 'validováno při startu middleware')}
+          {renderConnCheck(locale === 'en' ? 'DB credentials present' : 'DB credentials přítomny', true, locale === 'en' ? 'validated on middleware startup' : 'validováno při startu middleware')}
+          {renderConnCheck(locale === 'en' ? 'Secrets outside source code' : 'Secrets mimo source kód', true, 'Compose env / secret mount')}
+          {renderConnCheck(locale === 'en' ? 'Plaintext in logs' : 'Plaintext v logu', true, locale === 'en' ? 'no secrets in logs' : 'žádné secrets v logu')}
         </div>
 
         <div className={styles.securityNote}>
-          🔒 Hesla a tokeny nesmí být uloženy v plaintext formě, source kódu ani image.
-          Doporučujeme použít Docker Compose secrets (montované jako /run/secrets/&lt;name&gt;).
+          {locale === 'en'
+            ? '🔒 Passwords and tokens must never be stored in plaintext, source code, or the image. We recommend Docker Compose secrets mounted as /run/secrets/<name>.'
+            : '🔒 Hesla a tokeny nesmí být uloženy v plaintext formě, source kódu ani image. Doporučujeme použít Docker Compose secrets (montované jako /run/secrets/<name>).'}
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
-          <button className={styles.btnPrimary} onClick={goNext}>Pokračovat →</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
+          <button className={styles.btnPrimary} onClick={goNext}>{locale === 'en' ? 'Continue →' : 'Pokračovat →'}</button>
         </div>
       </>
     );
@@ -924,29 +921,30 @@ export default function InstallPage() {
   function renderStep3_Admin() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Vytvoření admin účtu</h1>
+        <h1 className={styles.panelTitle}>{t('install.page.admin_title')}</h1>
         <p className={styles.panelSubtitle}>
-          Zadejte přihlašovací údaje pro prvního administrátora systému. Heslo bude uloženo
-          jako bezpečný hash — nikdy v čitelné podobě.
+          {t('install.page.admin_subtitle')}
         </p>
 
         {installInfo?.admin_exists && (
           <Alert type="warning">
-            V databázi už existuje aktivní admin účet. Tento průvodce je určen pro čistou instalaci.
+            {t('install.page.admin_exists_warning')}
           </Alert>
         )}
 
         {adminErrors.general && <Alert type="error">{adminErrors.general}</Alert>}
 
         <div className={styles.securityNote}>
-          🔒 Heslo musí mít alespoň 10 znaků a obsahovat velká písmena, malá písmena, číslice a speciální znak.
+          {locale === 'en'
+            ? '🔒 The password must be at least 10 characters long and contain uppercase letters, lowercase letters, digits, and a special character.'
+            : '🔒 Heslo musí mít alespoň 10 znaků a obsahovat velká písmena, malá písmena, číslice a speciální znak.'}
         </div>
 
         <div className={styles.fieldGroup}>
           <div className={styles.fieldRow}>
             <div className={styles.field}>
               <label className={styles.label}>
-                Username <span className={styles.required}>*</span>
+                {locale === 'en' ? 'Username' : 'Uživatelské jméno'} <span className={styles.required}>*</span>
               </label>
               <input
                 className={`${styles.input} ${adminErrors.username ? styles.error : ''}`}
@@ -959,7 +957,7 @@ export default function InstallPage() {
             </div>
             <div className={styles.field}>
               <label className={styles.label}>
-                Zobrazované jméno <span className={styles.required}>*</span>
+                {locale === 'en' ? 'Display name' : 'Zobrazované jméno'} <span className={styles.required}>*</span>
               </label>
               <input
                 className={`${styles.input} ${adminErrors.displayName ? styles.error : ''}`}
@@ -972,7 +970,7 @@ export default function InstallPage() {
           </div>
           <div className={styles.field}>
             <label className={styles.label}>
-              E-mail <span className={styles.required}>*</span>
+              {locale === 'en' ? 'Email' : 'E-mail'} <span className={styles.required}>*</span>
             </label>
             <input
               className={`${styles.input} ${adminErrors.email ? styles.error : ''}`}
@@ -986,7 +984,7 @@ export default function InstallPage() {
           <div className={styles.fieldRow}>
             <div className={styles.field}>
               <label className={styles.label}>
-                Heslo <span className={styles.required}>*</span>
+                {locale === 'en' ? 'Password' : 'Heslo'} <span className={styles.required}>*</span>
               </label>
               <input
                 className={`${styles.input} ${adminErrors.password ? styles.error : ''}`}
@@ -999,7 +997,7 @@ export default function InstallPage() {
             </div>
             <div className={styles.field}>
               <label className={styles.label}>
-                Potvrdit heslo <span className={styles.required}>*</span>
+                {locale === 'en' ? 'Confirm password' : 'Potvrdit heslo'} <span className={styles.required}>*</span>
               </label>
               <input
                 className={`${styles.input} ${adminErrors.confirmPassword ? styles.error : ''}`}
@@ -1018,15 +1016,15 @@ export default function InstallPage() {
                 checked={adminForm.mustChangePassword}
                 onChange={e => setAdminForm(f => ({ ...f, mustChangePassword: e.target.checked }))}
               />
-              <span className={styles.label}>Vyžadovat změnu hesla po prvním přihlášení</span>
+              <span className={styles.label}>{locale === 'en' ? 'Require password change after first sign-in' : 'Vyžadovat změnu hesla po prvním přihlášení'}</span>
             </label>
           </div>
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
           <button className={styles.btnPrimary} onClick={handleAdminBootstrap}>
-            Vytvořit admin účet →
+            {locale === 'en' ? 'Create admin account →' : 'Vytvořit admin účet →'}
           </button>
         </div>
       </>
@@ -1041,18 +1039,20 @@ export default function InstallPage() {
 
     return (
       <>
-        <h1 className={styles.panelTitle}>Test konektivity</h1>
+        <h1 className={styles.panelTitle}>{locale === 'en' ? 'Connectivity test' : 'Test konektivity'}</h1>
         <p className={styles.panelSubtitle}>
-          Ověřujeme dosažitelnost databáze, oprávnění k zápisu a existenci systémového schématu.
+          {locale === 'en'
+            ? 'We verify database reachability, write permissions, and the presence of the platform schema.'
+            : 'Ověřujeme dosažitelnost databáze, oprávnění k zápisu a existenci systémového schématu.'}
         </p>
 
         <div className={styles.checkList}>
-          {renderConnCheck('DB dostupná', connectivity?.db_reachable,
-            connectivity?.db_reachable ? 'PostgreSQL odpovídá' : (connectivity?.errors?.[0] ?? 'nedostupná'))}
+          {renderConnCheck(locale === 'en' ? 'DB reachable' : 'DB dostupná', connectivity?.db_reachable,
+            connectivity?.db_reachable ? (locale === 'en' ? 'PostgreSQL responds' : 'PostgreSQL odpovídá') : (connectivity?.errors?.[0] ?? (locale === 'en' ? 'unavailable' : 'nedostupná')))}
           {renderConnCheck('Write access', connectivity?.db_write_access,
-            connectivity?.db_write_access ? 'zápis povolen' : 'chyba')}
+            connectivity?.db_write_access ? (locale === 'en' ? 'write allowed' : 'zápis povolen') : (locale === 'en' ? 'error' : 'chyba'))}
           {renderConnCheck('platform schema', connectivity?.platform_schema,
-            connectivity?.platform_schema ? 'existuje' : 'chybí — spusťte init-db-postgres.sh')}
+            connectivity?.platform_schema ? (locale === 'en' ? 'exists' : 'existuje') : (locale === 'en' ? 'missing — run init-db-postgres.sh' : 'chybí — spusťte init-db-postgres.sh'))}
         </div>
 
         {connectivity?.errors && connectivity.errors.length > 0 && (
@@ -1062,25 +1062,25 @@ export default function InstallPage() {
         )}
 
         {!connectivity && !checkingConn && (
-          <Alert type="info">Klikněte na „Spustit check" pro ověření konektivity.</Alert>
+          <Alert type="info">{locale === 'en' ? 'Click “Run check” to verify connectivity.' : 'Klikněte na „Spustit check" pro ověření konektivity.'}</Alert>
         )}
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
           <div style={{ display: 'flex', gap: 12 }}>
             <button
               className={styles.btnSecondary}
               onClick={handleConnectivityCheck}
               disabled={checkingConn}
             >
-              {checkingConn ? <><Spinner dark /> Probíhá...</> : '🔍 Spustit check'}
+              {checkingConn ? <><Spinner dark /> {locale === 'en' ? 'Running…' : 'Probíhá...'}</> : (locale === 'en' ? '🔍 Run check' : '🔍 Spustit check')}
             </button>
             <button
               className={styles.btnPrimary}
               onClick={goNext}
               disabled={!allOk}
             >
-              Pokračovat →
+              {locale === 'en' ? 'Continue →' : 'Pokračovat →'}
             </button>
           </div>
         </div>
@@ -1091,10 +1091,11 @@ export default function InstallPage() {
   function renderStep5_Modules() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Aktivace modulů</h1>
+        <h1 className={styles.panelTitle}>{locale === 'en' ? 'Module activation' : 'Aktivace modulů'}</h1>
         <p className={styles.panelSubtitle}>
-          Service Catalogue Core je povinný a nelze ho deaktivovat.
-          C3 Taxonomy modul je volitelný — lze aktivovat nyní nebo kdykoli později v admin sekci.
+          {locale === 'en'
+            ? 'Service Catalogue Core is mandatory and cannot be disabled. The C3 Taxonomy module is optional and can be activated now or later in the admin section.'
+            : 'Service Catalogue Core je povinný a nelze ho deaktivovat. C3 Taxonomy modul je volitelný — lze aktivovat nyní nebo kdykoli později v admin sekci.'}
         </p>
 
         <div className={styles.moduleGrid}>
@@ -1105,11 +1106,12 @@ export default function InstallPage() {
             <div className={styles.moduleInfo}>
               <div className={styles.moduleTitle}>
                 Service Catalogue Core
-                <span className={styles.moduleMandatoryBadge}>Povinný</span>
+                <span className={styles.moduleMandatoryBadge}>{locale === 'en' ? 'Mandatory' : 'Povinný'}</span>
               </div>
               <div className={styles.moduleDesc}>
-                Jádro aplikace — seznam služeb, detail, editor, import, dashboard, vazby a governance.
-                Nelze deaktivovat.
+                {locale === 'en'
+                  ? 'The application core: service list, detail, editor, import, dashboard, relations, and governance. Cannot be disabled.'
+                  : 'Jádro aplikace — seznam služeb, detail, editor, import, dashboard, vazby a governance. Nelze deaktivovat.'}
               </div>
             </div>
           </div>
@@ -1129,16 +1131,17 @@ export default function InstallPage() {
             <div className={styles.moduleInfo}>
               <div className={styles.moduleTitle}>C3 Taxonomy</div>
               <div className={styles.moduleDesc}>
-                Capability Taxonomy modul — C3 entity, capability map, technologické vazby
-                a C3 dashboard. Volitelný — lze přidat i po instalaci.
+                {locale === 'en'
+                  ? 'Capability Taxonomy module — C3 entities, capability map, technology relations, and the C3 dashboard. Optional and can be added after installation.'
+                  : 'Capability Taxonomy modul — C3 entity, capability map, technologické vazby a C3 dashboard. Volitelný — lze přidat i po instalaci.'}
               </div>
             </div>
           </div>
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
-          <button className={styles.btnPrimary} onClick={goNext}>Pokračovat →</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
+          <button className={styles.btnPrimary} onClick={goNext}>{locale === 'en' ? 'Continue →' : 'Pokračovat →'}</button>
         </div>
       </>
     );
@@ -1147,48 +1150,49 @@ export default function InstallPage() {
   function renderStep6_DataPlan() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Data packages</h1>
+        <h1 className={styles.panelTitle}>{locale === 'en' ? 'Data packages' : 'Datové balíčky'}</h1>
         <p className={styles.panelSubtitle}>
-          Instalace dat je rozdělena do tří vrstev. Core a reference seed jsou povinné.
-          Business data jsou volitelná a lze je importovat kdykoli.
+          {locale === 'en'
+            ? 'Data installation is split into three layers. Core and reference seeds are mandatory. Business data are optional and can be imported at any time.'
+            : 'Instalace dat je rozdělena do tří vrstev. Core a reference seed jsou povinné. Business data jsou volitelná a lze je importovat kdykoli.'}
         </p>
 
         <div className={styles.packageList}>
           <div className={`${styles.packageItem} ${styles.mandatory}`}>
             <span className={styles.packageIcon}>🗄️</span>
-            <span className={styles.packageTitle}>Core Installation</span>
-            <span className={`${styles.packageBadge} ${styles.mandatory}`}>Povinné</span>
+            <span className={styles.packageTitle}>{locale === 'en' ? 'Core installation' : 'Core instalace'}</span>
+            <span className={`${styles.packageBadge} ${styles.mandatory}`}>{locale === 'en' ? 'Mandatory' : 'Povinné'}</span>
           </div>
           <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            DB schema, indexy, constraints, systémové role, default konfigurace
+            {locale === 'en' ? 'DB schema, indexes, constraints, system roles, and default configuration' : 'DB schema, indexy, constraints, systémové role, default konfigurace'}
           </div>
 
           <div className={`${styles.packageItem} ${styles.mandatory}`}>
             <span className={styles.packageIcon}>📋</span>
-            <span className={styles.packageTitle}>Reference Seed — Service Catalogue Core</span>
-            <span className={`${styles.packageBadge} ${styles.mandatory}`}>Povinné</span>
+            <span className={styles.packageTitle}>{locale === 'en' ? 'Reference seed — Service Catalogue Core' : 'Reference seed — Service Catalogue Core'}</span>
+            <span className={`${styles.packageBadge} ${styles.mandatory}`}>{locale === 'en' ? 'Mandatory' : 'Povinné'}</span>
           </div>
           <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            Enumy, systémové dashboard definice, konfigurační taxonomie, editor metadata
+            {locale === 'en' ? 'Enums, system dashboard definitions, configuration taxonomy, editor metadata' : 'Enumy, systémové dashboard definice, konfigurační taxonomie, editor metadata'}
           </div>
 
           {activateC3 && (
             <>
               <div className={`${styles.packageItem} ${styles.mandatory}`}>
                 <span className={styles.packageIcon}>🧩</span>
-                <span className={styles.packageTitle}>Reference Seed — C3 Taxonomy</span>
-                <span className={`${styles.packageBadge} ${styles.mandatory}`}>Povinné (C3)</span>
+                <span className={styles.packageTitle}>{locale === 'en' ? 'Reference seed — C3 Taxonomy' : 'Reference seed — C3 Taxonomy'}</span>
+                <span className={`${styles.packageBadge} ${styles.mandatory}`}>{locale === 'en' ? 'Mandatory (C3)' : 'Povinné (C3)'}</span>
               </div>
             </>
           )}
 
           <div className={`${styles.packageItem} ${styles.optional}`}>
             <span className={styles.packageIcon}>📦</span>
-            <span className={styles.packageTitle}>Business data — Service Catalogue</span>
-            <span className={`${styles.packageBadge} ${styles.optional}`}>Volitelné</span>
+            <span className={styles.packageTitle}>{locale === 'en' ? 'Business data — Service Catalogue' : 'Business data — Service Catalogue'}</span>
+            <span className={`${styles.packageBadge} ${styles.optional}`}>{locale === 'en' ? 'Optional' : 'Volitelné'}</span>
           </div>
           <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            Importovat ve voliteleném kroku nebo kdykoli v admin sekci
+            {locale === 'en' ? 'Import in the optional step or later from the admin section' : 'Importovat ve volitelném kroku nebo kdykoli v admin sekci'}
           </div>
 
           {/* Demo data block */}
@@ -1205,25 +1209,26 @@ export default function InstallPage() {
               onClick={e => e.stopPropagation()}
             />
             <span className={styles.packageIcon}>🧪</span>
-            <span className={styles.packageTitle}>Testovací data</span>
-            <span className={`${styles.packageBadge} ${styles.optional}`}>Doporučeno</span>
+            <span className={styles.packageTitle}>{locale === 'en' ? 'Demo data' : 'Testovací data'}</span>
+            <span className={`${styles.packageBadge} ${styles.optional}`}>{locale === 'en' ? 'Recommended' : 'Doporučeno'}</span>
           </div>
           <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            Vytvoří 3 kompletně vyplněné demo služby (PIS, IAM, DAP) se SLA, ceníky, rolemi,
-            vazbami a napojením na C3 taxonomy (všechny typy: BP, BR, CP, CI, CO, CR, IP, UA).
-            Název služeb je označen prefixem <strong>[DEMO]</strong> — snadno identifikovatelné.
+            {locale === 'en'
+              ? 'Creates 3 fully populated demo services (PIS, IAM, DAP) with SLAs, pricing, roles, relations, and mapped C3 taxonomy entities. Service names are marked with the [DEMO] prefix for easy identification.'
+              : 'Vytvoří 3 kompletně vyplněné demo služby (PIS, IAM, DAP) se SLA, ceníky, rolemi, vazbami a napojením na C3 taxonomy (všechny typy: BP, BR, CP, CI, CO, CR, IP, UA). Název služeb je označen prefixem [DEMO] — snadno identifikovatelné.'}
           </div>
         </div>
 
         <Alert type="info">
-          Core a reference seed budou aplikovány automaticky. Business data lze
-          nahrát v dalším kroku nebo přeskočit.
-          {seedDemoData && <><br /><strong>Testovací data budou vytvořena automaticky během instalace.</strong></>}
+          {locale === 'en'
+            ? 'Core and reference seeds are applied automatically. Business data can be uploaded in the next step or skipped.'
+            : 'Core a reference seed budou aplikovány automaticky. Business data lze nahrát v dalším kroku nebo přeskočit.'}
+          {seedDemoData && <><br /><strong>{locale === 'en' ? 'Demo data will be created automatically during installation.' : 'Testovací data budou vytvořena automaticky během instalace.'}</strong></>}
         </Alert>
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
-          <button className={styles.btnPrimary} onClick={goNext}>Pokračovat →</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
+          <button className={styles.btnPrimary} onClick={goNext}>{locale === 'en' ? 'Continue →' : 'Pokračovat →'}</button>
         </div>
       </>
     );
@@ -1233,10 +1238,11 @@ export default function InstallPage() {
     const totalRows = uploadedFiles.reduce((s, f) => s + f.size, 0);
     return (
       <>
-        <h1 className={styles.panelTitle}>Import business dat (volitelné)</h1>
+        <h1 className={styles.panelTitle}>{locale === 'en' ? 'Business data import (optional)' : 'Import business dat (volitelné)'}</h1>
         <p className={styles.panelSubtitle}>
-          Nahrajte jeden nebo více souborů se službami. Každý soubor bude zpracován jako
-          samostatný batch. Tento krok lze přeskočit a provést import kdykoli v admin sekci.
+          {locale === 'en'
+            ? 'Upload one or more files with services. Each file is processed as a separate batch. This step can be skipped and the import can be done later from the admin section.'
+            : 'Nahrajte jeden nebo více souborů se službami. Každý soubor bude zpracován jako samostatný batch. Tento krok lze přeskočit a provést import kdykoli v admin sekci.'}
         </p>
 
         {/* Drop zone — always visible, allows adding more files */}
@@ -1250,9 +1256,9 @@ export default function InstallPage() {
         >
           <div className={styles.uploadIcon}>📤</div>
           <div className={styles.uploadTitle}>
-            {uploadedFiles.length > 0 ? 'Přidat další soubory' : 'Přetáhněte soubory nebo klikněte pro výběr'}
+            {uploadedFiles.length > 0 ? (locale === 'en' ? 'Add more files' : 'Přidat další soubory') : (locale === 'en' ? 'Drop files here or click to choose' : 'Přetáhněte soubory nebo klikněte pro výběr')}
           </div>
-          <div className={styles.uploadHint}>CSV, XLSX nebo JSON · Více souborů najednou · Max 50 MB na soubor</div>
+          <div className={styles.uploadHint}>{locale === 'en' ? 'CSV, XLSX, or JSON · Multiple files at once · Max 50 MB per file' : 'CSV, XLSX nebo JSON · Více souborů najednou · Max 50 MB na soubor'}</div>
         </div>
 
         <input
@@ -1280,32 +1286,39 @@ export default function InstallPage() {
                 <button
                   onClick={() => removeFile(f.name)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', fontSize: 14, lineHeight: 1, padding: '0 4px' }}
-                  title="Odebrat"
+                  title={locale === 'en' ? 'Remove' : 'Odebrat'}
                 >
                   ✕
                 </button>
               </div>
             ))}
             <div style={{ fontSize: 11, color: 'var(--color-text-muted)', paddingLeft: 4 }}>
-              {uploadedFiles.length} souborů · {(totalRows / 1024).toFixed(1)} KB celkem
+              {locale === 'en'
+                ? `${uploadedFiles.length} files · ${(totalRows / 1024).toFixed(1)} KB total`
+                : `${uploadedFiles.length} souborů · ${(totalRows / 1024).toFixed(1)} KB celkem`}
             </div>
           </div>
         )}
 
         <Alert type="warning">
-          Každý soubor bude zpracován jako samostatný import batch. Záznamy se shodným
-          service_id budou aktualizovány (upsert), nové záznamy vloženy.
+          {locale === 'en'
+            ? 'Each file is processed as a separate import batch. Records with the same service_id are updated (upsert), and new records are inserted.'
+            : 'Každý soubor bude zpracován jako samostatný import batch. Záznamy se shodným service_id budou aktualizovány (upsert), nové záznamy vloženy.'}
         </Alert>
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
           <div style={{ display: 'flex', gap: 12 }}>
             <button className={styles.btnSecondary} onClick={handleUploadNext}>
-              {uploadedFiles.length > 0 ? 'Přeskočit import' : 'Přeskočit →'}
+              {uploadedFiles.length > 0 ? (locale === 'en' ? 'Skip import' : 'Přeskočit import') : (locale === 'en' ? 'Skip →' : 'Přeskočit →')}
             </button>
             {uploadedFiles.length > 0 && (
               <button className={styles.btnPrimary} onClick={handleUploadNext} disabled={previewLoading}>
-                {previewLoading ? <><Spinner /> Načítám...</> : `Pokračovat (${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'soubor' : uploadedFiles.length < 5 ? 'soubory' : 'souborů'}) →`}
+                {previewLoading
+                  ? <><Spinner /> {locale === 'en' ? 'Loading…' : 'Načítám...'}</>
+                  : locale === 'en'
+                    ? `Continue (${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'file' : 'files'}) →`
+                    : `Pokračovat (${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'soubor' : uploadedFiles.length < 5 ? 'soubory' : 'souborů'}) →`}
               </button>
             )}
           </div>
@@ -1375,27 +1388,28 @@ export default function InstallPage() {
 
     return (
       <>
-        <h1 className={styles.panelTitle}>Náhled importu</h1>
+        <h1 className={styles.panelTitle}>{locale === 'en' ? 'Import preview' : 'Náhled importu'}</h1>
         <p className={styles.panelSubtitle}>
           {filePreviews.length > 0
             ? `Analýza ${filePreviews.length} ${filePreviews.length === 1 ? 'souboru' : 'souborů'} — počty záznamů, sloupce, varování.`
-            : 'Žádné soubory k importu. Přejdeme k instalaci.'}
+            : locale === 'en' ? 'No files to import. Continuing to installation.' : 'Žádné soubory k importu. Přejdeme k instalaci.'}
         </p>
 
         {filePreviews.length === 0 ? (
           <Alert type="info">
-            Import přeskočen. Systém bude inicializován s prázdnými business daty.
-            Import lze provést kdykoli v admin sekci po dokončení instalace.
+            {locale === 'en'
+              ? 'Import skipped. The system will be initialized with empty business data. You can import later from the admin section.'
+              : 'Import přeskočen. Systém bude inicializován s prázdnými business daty. Import lze provést kdykoli v admin sekci po dokončení instalace.'}
           </Alert>
         ) : (
           <>
             {/* Aggregate summary */}
             <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
               {[
-                { label: 'Souborů celkem', value: filePreviews.length, color: 'var(--color-text-primary)' },
-                { label: 'Řádků k importu', value: totalRows, color: 'var(--color-action-primary)' },
-                { label: 'Připraveno', value: validCount, color: 'var(--color-success)' },
-                ...(fatalCount > 0 ? [{ label: 'Chyby', value: fatalCount, color: 'var(--color-danger)' }] : []),
+                { label: locale === 'en' ? 'Files total' : 'Souborů celkem', value: filePreviews.length, color: 'var(--color-text-primary)' },
+                { label: locale === 'en' ? 'Rows to import' : 'Řádků k importu', value: totalRows, color: 'var(--color-action-primary)' },
+                { label: locale === 'en' ? 'Ready' : 'Připraveno', value: validCount, color: 'var(--color-success)' },
+                ...(fatalCount > 0 ? [{ label: locale === 'en' ? 'Errors' : 'Chyby', value: fatalCount, color: 'var(--color-danger)' }] : []),
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-4)', background: 'var(--color-bg-surface-raised)', borderRadius: 'var(--radius-md)', minWidth: 80 }}>
                   <div style={{ fontSize: 22, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
@@ -1409,21 +1423,27 @@ export default function InstallPage() {
 
             {validCount > 0 && (
               <Alert type="success">
-                ✅ {validCount} {validCount === 1 ? 'soubor připraven' : 'soubory připraveny'} k importu — celkem {totalRows} záznamů bude zpracováno po dokončení instalace.
+                {locale === 'en'
+                  ? `✅ ${validCount} ${validCount === 1 ? 'file is ready' : 'files are ready'} for import — ${totalRows} records will be processed after installation.`
+                  : `✅ ${validCount} ${validCount === 1 ? 'soubor připraven' : 'soubory připraveny'} k importu — celkem ${totalRows} záznamů bude zpracováno po dokončení instalace.`}
               </Alert>
             )}
             {fatalCount > 0 && (
               <Alert type="warning">
-                {fatalCount} {fatalCount === 1 ? 'soubor' : 'soubory'} se nepodařilo načíst a {fatalCount === 1 ? 'bude přeskočen' : 'budou přeskočeny'}. Lze importovat v admin sekci.
+                {locale === 'en'
+                  ? `${fatalCount} ${fatalCount === 1 ? 'file failed to load and will be skipped' : 'files failed to load and will be skipped'}. You can import them later from the admin section.`
+                  : `${fatalCount} ${fatalCount === 1 ? 'soubor' : 'soubory'} se nepodařilo načíst a ${fatalCount === 1 ? 'bude přeskočen' : 'budou přeskočeny'}. Lze importovat v admin sekci.`}
               </Alert>
             )}
           </>
         )}
 
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
+          <button className={styles.btnSecondary} onClick={goBack}>{locale === 'en' ? '← Back' : '← Zpět'}</button>
           <button className={styles.btnPrimary} onClick={goNext}>
-            {validCount === 0 && filePreviews.length > 0 ? 'Přeskočit import →' : 'Pokračovat →'}
+            {validCount === 0 && filePreviews.length > 0
+              ? (locale === 'en' ? 'Skip import →' : 'Přeskočit import →')
+              : (locale === 'en' ? 'Continue →' : 'Pokračovat →')}
           </button>
         </div>
       </>
@@ -1433,10 +1453,11 @@ export default function InstallPage() {
   function renderStep9_Execute() {
     return (
       <>
-        <h1 className={styles.panelTitle}>Spuštění instalace</h1>
+        <h1 className={styles.panelTitle}>{locale === 'en' ? 'Run installation' : 'Spuštění instalace'}</h1>
         <p className={styles.panelSubtitle}>
-          Vše je připraveno. Instalace provede aktivaci modulů, zápis konfigurace
-          a přepne systém do stavu READY.
+          {locale === 'en'
+            ? 'Everything is ready. Installation will activate modules, persist configuration, and switch the system to READY.'
+            : 'Vše je připraveno. Instalace provede aktivaci modulů, zápis konfigurace a přepne systém do stavu READY.'}
         </p>
 
         {!executing && !completedSteps.has(9) && (
@@ -1465,14 +1486,14 @@ export default function InstallPage() {
 
         <div className={styles.actions}>
           <button className={styles.btnSecondary} onClick={goBack} disabled={executing}>
-            ← Zpět
+            {locale === 'en' ? '← Back' : '← Zpět'}
           </button>
           <button
             className={styles.btnPrimary}
             onClick={handleExecute}
             disabled={executing || completedSteps.has(9)}
           >
-            {executing ? <><Spinner /> Probíhá...</> : '🚀 Spustit instalaci'}
+            {executing ? <><Spinner /> {locale === 'en' ? 'Running…' : 'Probíhá...'}</> : (locale === 'en' ? '🚀 Start installation' : '🚀 Spustit instalaci')}
           </button>
         </div>
       </>
@@ -1488,31 +1509,31 @@ export default function InstallPage() {
         <div className={styles.summaryStatus}>
           <div className={styles.summaryIcon}>{isReady ? '✅' : '❌'}</div>
           <div className={styles.summaryTitle}>
-            {isReady ? 'Instalace dokončena' : 'Instalace selhala'}
+            {isReady ? (locale === 'en' ? 'Installation complete' : 'Instalace dokončena') : (locale === 'en' ? 'Installation failed' : 'Instalace selhala')}
           </div>
           <div className={styles.summaryDesc}>
             {isReady
-              ? 'Systém je ve stavu READY. Aplikace je připravena k provozu.'
-              : 'Zkontrolujte chyby a spusťte repair flow.'}
+              ? (locale === 'en' ? 'The system is in READY state. The application is ready for operation.' : 'Systém je ve stavu READY. Aplikace je připravena k provozu.')
+              : (locale === 'en' ? 'Check the errors and start the repair flow.' : 'Zkontrolujte chyby a spusťte repair flow.')}
           </div>
         </div>
 
         {summary && (
           <div className={styles.metaGrid}>
             <div className={styles.metaItem}>
-              <div className={styles.metaLabel}>Stav systému</div>
+              <div className={styles.metaLabel}>{locale === 'en' ? 'System status' : 'Stav systému'}</div>
               <div className={styles.metaValue}>{String((summary as Record<string, unknown>).status ?? '')}</div>
             </div>
             <div className={styles.metaItem}>
-              <div className={styles.metaLabel}>Verze aplikace</div>
+              <div className={styles.metaLabel}>{locale === 'en' ? 'Application version' : 'Verze aplikace'}</div>
               <div className={styles.metaValue}>{String((summary as Record<string, unknown>).app_version ?? '')}</div>
             </div>
             <div className={styles.metaItem}>
-              <div className={styles.metaLabel}>Schema verze</div>
+              <div className={styles.metaLabel}>{locale === 'en' ? 'Schema version' : 'Schema verze'}</div>
               <div className={styles.metaValue}>{String((summary as Record<string, unknown>).schema_version ?? '')}</div>
             </div>
             <div className={styles.metaItem}>
-              <div className={styles.metaLabel}>Aktivní moduly</div>
+              <div className={styles.metaLabel}>{locale === 'en' ? 'Active modules' : 'Aktivní moduly'}</div>
               <div className={styles.metaValue}>
                 {summaryModules
                   ? summaryModules.filter(m => m.enabled).map(m => String(m.code)).join(', ')
@@ -1527,25 +1548,25 @@ export default function InstallPage() {
               return (
                 <>
                   <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>Import souborů</div>
+                    <div className={styles.metaLabel}>{locale === 'en' ? 'Imported files' : 'Import souborů'}</div>
                     <div className={styles.metaValue}>{importResults.length}</div>
                   </div>
                   <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>Nově importováno</div>
+                    <div className={styles.metaLabel}>{locale === 'en' ? 'Inserted' : 'Nově importováno'}</div>
                     <div className={styles.metaValue}>{totalInserted}</div>
                   </div>
                   <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>Aktualizováno</div>
+                    <div className={styles.metaLabel}>{locale === 'en' ? 'Updated' : 'Aktualizováno'}</div>
                     <div className={styles.metaValue}>{totalUpdated}</div>
                   </div>
                   {totalFailed > 0 && (
                     <div className={styles.metaItem}>
-                      <div className={styles.metaLabel}>Chyby řádků</div>
+                      <div className={styles.metaLabel}>{locale === 'en' ? 'Row errors' : 'Chyby řádků'}</div>
                       <div className={styles.metaValue} style={{ color: 'var(--color-warning)' }}>{totalFailed}</div>
                     </div>
                   )}
                   <div className={styles.metaItem} style={{ gridColumn: '1 / -1' }}>
-                    <div className={styles.metaLabel}>Výsledky po souborech</div>
+                    <div className={styles.metaLabel}>{locale === 'en' ? 'Per-file results' : 'Výsledky po souborech'}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                       {importResults.map(r => (
                         <div key={r.filename} style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center' }}>
@@ -1563,16 +1584,17 @@ export default function InstallPage() {
             })()}
             {importResults.length === 0 && uploadedFiles.length > 0 && (
               <div className={styles.metaItem}>
-                <div className={styles.metaLabel}>Import</div>
-                <div className={styles.metaValue} style={{ color: 'var(--color-text-muted)' }}>Přeskočen — data lze importovat v admin sekci</div>
+                <div className={styles.metaLabel}>{locale === 'en' ? 'Import' : 'Import'}</div>
+                <div className={styles.metaValue} style={{ color: 'var(--color-text-muted)' }}>{locale === 'en' ? 'Skipped — data can be imported later in the admin section' : 'Přeskočen — data lze importovat v admin sekci'}</div>
               </div>
             )}
           </div>
         )}
 
         <Alert type="warning">
-          Tato stránka nebude po odchodu znovu zobrazena jako výchozí vstup.
-          Správa instalace a modulů je dostupná v admin sekci → Installation &amp; Modules.
+          {locale === 'en'
+            ? 'This page will not be shown again as the default entry after you leave it. Installation and module management remains available from the admin section → Installation & Modules.'
+            : 'Tato stránka nebude po odchodu znovu zobrazena jako výchozí vstup. Správa instalace a modulů je dostupná v admin sekci → Installation & Modules.'}
         </Alert>
 
         {isReady && (
@@ -1582,7 +1604,7 @@ export default function InstallPage() {
               className={styles.btnPrimary}
               onClick={() => router.replace('/login')}
             >
-              Přejít na přihlášení →
+              {locale === 'en' ? 'Go to sign-in →' : 'Přejít na přihlášení →'}
             </button>
           </div>
         )}
@@ -1599,7 +1621,7 @@ export default function InstallPage() {
                 fetchInstallStatus();
               }}
             >
-              🔧 Spustit repair flow
+              {locale === 'en' ? '🔧 Start repair flow' : '🔧 Spustit repair flow'}
             </button>
           </div>
         )}
@@ -1635,7 +1657,7 @@ export default function InstallPage() {
         <div style={{ textAlign: 'center' }}>
           <Spinner dark />
           <p style={{ marginTop: 16, color: 'var(--color-text-muted)', fontSize: 14 }}>
-            Načítám stav instalace…
+            {locale === 'en' ? 'Loading installation status…' : 'Načítám stav instalace…'}
           </p>
         </div>
       </div>
@@ -1649,21 +1671,21 @@ export default function InstallPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.header}>
-        <span className={styles.headerLogo}>Service Catalogue</span>
-        <span className={styles.headerSub}>Installation Wizard · v{installInfo?.app_version ?? '1.0.0'}</span>
+        <span className={styles.headerLogo}>{t('home.title')}</span>
+        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.0.0'}</span>
       </div>
 
       <div className={styles.main}>
         {/* Left stepper */}
         <nav className={styles.stepper}>
-          <div className={styles.stepperTitle}>Průběh instalace</div>
+          <div className={styles.stepperTitle}>{t('install.wizard_title')}</div>
           <ul className={styles.stepList}>
             {STEPS.map((s, idx) => {
               const st = stepStatus(idx);
               return (
                 <li key={s.id} className={`${styles.stepItem} ${styles[st]}`}>
                   <StepDot num={idx + 1} status={st} />
-                  <span className={styles.stepLabel}>{s.label}</span>
+                  <span className={styles.stepLabel}>{t(s.label)}</span>
                 </li>
               );
             })}

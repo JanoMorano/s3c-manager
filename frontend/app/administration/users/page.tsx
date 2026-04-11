@@ -1,6 +1,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
@@ -73,10 +74,10 @@ const EMPTY_DRAFT: UserDraft = {
   department: '',
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return 'Nikdy'
+function formatDate(value: string | null, locale: 'cs' | 'en'): string {
+  if (!value) return locale === 'en' ? 'Never' : 'Nikdy'
   try {
-    return new Intl.DateTimeFormat('cs-CZ', {
+    return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'cs-CZ', {
       dateStyle: 'short',
       timeStyle: 'short',
     }).format(new Date(value))
@@ -92,6 +93,8 @@ function compareValues(left: string | number | boolean, right: string | number |
 }
 
 export default function AdministrationUsersPage() {
+  const t = useT();
+  const locale = useLocale();
   const { data, isLoading, error } = useSWR<AdminUser[]>(USERS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
   })
@@ -253,20 +256,18 @@ export default function AdministrationUsersPage() {
   return (
     <div className={styles.shell}>
       <nav className={styles.breadcrumb}>
-        <Link href="/administration">Administration</Link>
+        <Link href="/administration">{t('nav.administration')}</Link>
         <span className={styles.sep}>/</span>
-        <span>User Management</span>
+        <span>{t('administration.card.users.title')}</span>
       </nav>
 
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>User Management</h1>
-          <p className={styles.pageDesc}>
-            Zakládání lokálních i AD účtů, přiřazení rolí a řízení přístupu do `Content Admin` a `Administration`.
-          </p>
+          <h1 className={styles.pageTitle}>{t('administration.card.users.title')}</h1>
+          <p className={styles.pageDesc}>{t('administration.card.users.desc')}</p>
         </div>
         <button type="button" className={styles.primaryButton} onClick={beginCreate}>
-          Nový uživatel
+          {locale === 'en' ? 'New user' : 'Nový uživatel'}
         </button>
       </div>
 
@@ -282,17 +283,17 @@ export default function AdministrationUsersPage() {
       <section ref={editPanelRef} className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
-            <div className={styles.panelTitle}>{editingId ? `Editace uživatele #${editingId}` : 'Nový uživatel'}</div>
+            <div className={styles.panelTitle}>{editingId ? `${locale === 'en' ? 'Editing user' : 'Editace uživatele'} #${editingId}` : locale === 'en' ? 'New user' : 'Nový uživatel'}</div>
             <div className={styles.panelMeta}>
               {selectedProvider.help}
             </div>
           </div>
           <div className={styles.panelActions}>
             <button type="button" className={styles.primaryButton} onClick={handleSave} disabled={saving}>
-              {saving ? 'Ukládám…' : editingId ? 'Uložit změny' : 'Vytvořit uživatele'}
+              {saving ? t('common.loading') : editingId ? (locale === 'en' ? 'Save changes' : 'Uložit změny') : (locale === 'en' ? 'Create user' : 'Vytvořit uživatele')}
             </button>
             <button type="button" className={styles.secondaryButton} onClick={resetEditor} disabled={saving}>
-              Zrušit
+              {locale === 'en' ? 'Cancel' : 'Zrušit'}
             </button>
           </div>
         </div>
@@ -302,7 +303,7 @@ export default function AdministrationUsersPage() {
 
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span className={styles.label}>Username</span>
+            <span className={styles.label}>{locale === 'en' ? 'Username' : 'Uživatelské jméno'}</span>
             <input
               className={styles.input}
               value={draft.username}
@@ -312,7 +313,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Display name</span>
+            <span className={styles.label}>{locale === 'en' ? 'Display name' : 'Zobrazované jméno'}</span>
             <input
               className={styles.input}
               value={draft.display_name}
@@ -322,7 +323,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Role</span>
+            <span className={styles.label}>{locale === 'en' ? 'Role' : 'Role'}</span>
             <select className={styles.select} value={draft.role} onChange={(event) => updateDraft('role', event.target.value as AppRole)}>
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -331,7 +332,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Typ přihlášení</span>
+            <span className={styles.label}>{locale === 'en' ? 'Login type' : 'Typ přihlášení'}</span>
             <select className={styles.select} value={draft.auth_provider} onChange={(event) => updateDraft('auth_provider', event.target.value as AuthProvider)}>
               {PROVIDER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -340,7 +341,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>E-mail</span>
+            <span className={styles.label}>{locale === 'en' ? 'Email' : 'E-mail'}</span>
             <input
               className={styles.input}
               value={draft.email}
@@ -350,7 +351,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Oddělení</span>
+            <span className={styles.label}>{locale === 'en' ? 'Department' : 'Oddělení'}</span>
             <input
               className={styles.input}
               value={draft.department}
@@ -360,7 +361,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Jméno</span>
+            <span className={styles.label}>{locale === 'en' ? 'Given name' : 'Jméno'}</span>
             <input
               className={styles.input}
               value={draft.given_name}
@@ -370,7 +371,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Příjmení</span>
+            <span className={styles.label}>{locale === 'en' ? 'Surname' : 'Příjmení'}</span>
             <input
               className={styles.input}
               value={draft.surname}
@@ -380,7 +381,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={`${styles.field} ${styles.fieldWide}`}>
-            <span className={styles.label}>AD principal / trusted identita</span>
+            <span className={styles.label}>{locale === 'en' ? 'AD principal / trusted identity' : 'AD principal / trusted identita'}</span>
             <input
               className={styles.input}
               value={draft.external_principal}
@@ -391,7 +392,7 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>{editingId ? 'Nové heslo (volitelné)' : 'Heslo'}</span>
+            <span className={styles.label}>{editingId ? (locale === 'en' ? 'New password (optional)' : 'Nové heslo (volitelné)') : (locale === 'en' ? 'Password' : 'Heslo')}</span>
             <input
               className={styles.input}
               type="password"
@@ -403,14 +404,14 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={`${styles.field} ${styles.checkboxField}`}>
-            <span className={styles.label}>Stav účtu</span>
+            <span className={styles.label}>{locale === 'en' ? 'Account status' : 'Stav účtu'}</span>
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
                 checked={draft.is_active}
                 onChange={(event) => updateDraft('is_active', event.target.checked)}
               />
-              <span>Účet je aktivní</span>
+              <span>{locale === 'en' ? 'Account is active' : 'Účet je aktivní'}</span>
             </label>
           </label>
         </div>
@@ -419,34 +420,38 @@ export default function AdministrationUsersPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
           <div>
-            <div className={styles.panelTitle}>Uživatelé</div>
-            <div className={styles.panelMeta}>AD/SSO login funguje jen pro účty typu `AD / SSO`, které v aplikaci existují a jsou aktivní.</div>
+            <div className={styles.panelTitle}>{locale === 'en' ? 'Users' : 'Uživatelé'}</div>
+            <div className={styles.panelMeta}>
+              {locale === 'en'
+                ? 'AD/SSO sign-in works only for accounts of type `AD / SSO` that exist in the application and are active.'
+                : 'AD/SSO login funguje jen pro účty typu `AD / SSO`, které v aplikaci existují a jsou aktivní.'}
+            </div>
           </div>
           <input
             className={styles.searchInput}
             type="search"
-            placeholder="Filtrovat podle username, role, e-mailu nebo AD identity"
+            placeholder={locale === 'en' ? 'Filter by username, role, email, or AD identity' : 'Filtrovat podle username, role, e-mailu nebo AD identity'}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
 
-        {isLoading && <div className={styles.state}>Načítám uživatele…</div>}
-        {error && <div className={styles.errorBox}>Načtení uživatelů selhalo.</div>}
-        {!isLoading && !error && sortedUsers.length === 0 && <div className={styles.state}>Žádné odpovídající záznamy.</div>}
+        {isLoading && <div className={styles.state}>{locale === 'en' ? 'Loading users…' : 'Načítám uživatele…'}</div>}
+        {error && <div className={styles.errorBox}>{locale === 'en' ? 'Failed to load users.' : 'Načtení uživatelů selhalo.'}</div>}
+        {!isLoading && !error && sortedUsers.length === 0 && <div className={styles.state}>{locale === 'en' ? 'No matching records.' : 'Žádné odpovídající záznamy.'}</div>}
 
         {!!sortedUsers.length && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('username')}>Username {sortKey === 'username' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('display_name')}>User {sortKey === 'display_name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('role')}>Role {sortKey === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('auth_provider')}>Login {sortKey === 'auth_provider' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('is_active')}>Status {sortKey === 'is_active' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('last_login_at')}>Last login {sortKey === 'last_login_at' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th>Akce</th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('username')}>{locale === 'en' ? 'Username' : 'Uživatelské jméno'} {sortKey === 'username' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('display_name')}>{locale === 'en' ? 'User' : 'Uživatel'} {sortKey === 'display_name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('role')}>{locale === 'en' ? 'Role' : 'Role'} {sortKey === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('auth_provider')}>{locale === 'en' ? 'Login' : 'Přihlášení'} {sortKey === 'auth_provider' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('is_active')}>{locale === 'en' ? 'Status' : 'Stav'} {sortKey === 'is_active' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('last_login_at')}>{locale === 'en' ? 'Last login' : 'Poslední přihlášení'} {sortKey === 'last_login_at' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th>{locale === 'en' ? 'Actions' : 'Akce'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -455,8 +460,8 @@ export default function AdministrationUsersPage() {
                     <td className={styles.monoCell}>{user.username}</td>
                     <td>
                       <div className={styles.stack}>
-                        <strong>{user.display_name || `${user.given_name ?? ''} ${user.surname ?? ''}`.trim() || 'Bez jména'}</strong>
-                        <span>{user.email || 'Bez e-mailu'}</span>
+                        <strong>{user.display_name || `${user.given_name ?? ''} ${user.surname ?? ''}`.trim() || (locale === 'en' ? 'No name' : 'Bez jména')}</strong>
+                        <span>{user.email || (locale === 'en' ? 'No email' : 'Bez e-mailu')}</span>
                         {user.department && <span>{user.department}</span>}
                       </div>
                     </td>
@@ -474,18 +479,18 @@ export default function AdministrationUsersPage() {
                     </td>
                     <td>
                       <span className={user.is_active ? styles.statusActive : styles.statusInactive}>
-                        {user.is_active ? 'Aktivní' : 'Vypnutý'}
+                        {user.is_active ? (locale === 'en' ? 'Active' : 'Aktivní') : (locale === 'en' ? 'Disabled' : 'Vypnutý')}
                       </span>
                     </td>
                     <td>
                       <div className={styles.stack}>
-                        <span>{formatDate(user.last_login_at)}</span>
-                        {user.last_sso_login_at && <span>SSO: {formatDate(user.last_sso_login_at)}</span>}
+                        <span>{formatDate(user.last_login_at, locale)}</span>
+                        {user.last_sso_login_at && <span>SSO: {formatDate(user.last_sso_login_at, locale)}</span>}
                       </div>
                     </td>
                     <td>
                       <button type="button" className={styles.rowButton} onClick={() => beginEdit(user)}>
-                        Edit
+                        {locale === 'en' ? 'Edit' : 'Upravit'}
                       </button>
                     </td>
                   </tr>

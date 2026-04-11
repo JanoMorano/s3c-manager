@@ -1,6 +1,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import { useEffect, useMemo, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
@@ -44,6 +45,8 @@ function labelForSetting(key: string): string {
 }
 
 export default function AdministrationWebPage() {
+  const t = useT();
+  const locale = useLocale();
   const { data, isLoading, error } = useSWR<WebSettingsResponse>(WEB_SETTINGS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -113,9 +116,9 @@ export default function AdministrationWebPage() {
       }
 
       await globalMutate(WEB_SETTINGS_ENDPOINT);
-      setSaveOk('Web / ADFS nastavení bylo uloženo.');
+      setSaveOk(locale === 'en' ? 'Web / ADFS settings saved.' : 'Web / ADFS nastavení bylo uloženo.');
     } catch (errorValue: unknown) {
-      setSaveError(errorValue instanceof Error ? errorValue.message : 'Uložení selhalo.');
+      setSaveError(errorValue instanceof Error ? errorValue.message : (locale === 'en' ? 'Save failed.' : 'Uložení selhalo.'));
     } finally {
       setSaving(false);
     }
@@ -124,51 +127,40 @@ export default function AdministrationWebPage() {
   return (
     <div className={styles.shell}>
       <nav className={styles.breadcrumb}>
-        <Link href="/administration">Administration</Link>
+        <Link href="/administration">{t('nav.administration')}</Link>
         <span className={styles.sep}>/</span>
-        <span>Web</span>
+        <span>{t('administration.card.web.title')}</span>
       </nav>
 
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Web</h1>
-          <p className={styles.pageDesc}>
-            Konfigurace ADFS / SSO trusted-header přihlášení. Tyto hodnoty určují, z jakých
-            hlaviček aplikace čte doménovou identitu a profil uživatele po předání z IIS, ADFS nebo
-            reverzní proxy.
-          </p>
+          <h1 className={styles.pageTitle}>{t('administration.card.web.title')}</h1>
+          <p className={styles.pageDesc}>{t('administration.card.web.desc')}</p>
         </div>
         <button type="button" className={styles.primaryButton} onClick={handleSave} disabled={saving || isLoading}>
-          {saving ? 'Ukládám…' : 'Uložit nastavení'}
+          {saving ? t('common.loading') : (locale === 'en' ? 'Save settings' : 'Uložit nastavení')}
         </button>
       </div>
 
       <section className={styles.infoCard}>
-        <div className={styles.infoTitle}>Jak to funguje</div>
-        <div className={styles.infoText}>
-          Aplikace sama neprovádí Kerberos/NTLM handshake. Očekává, že důvěryhodná vrstva před ní
-          uživatele ověří a předá jeho identitu v HTTP hlavičkách. Pokud v aplikaci existuje aktivní
-          účet typu <strong>AD / SSO</strong>, uživatel se po otevření webu přihlásí automaticky.
-        </div>
+        <div className={styles.infoTitle}>{t('administration.card.web.title')}</div>
+        <div className={styles.infoText}>{t('administration.card.web.desc')}</div>
       </section>
 
       {saveError && <div className={styles.errorBox}>{saveError}</div>}
       {saveOk && <div className={styles.successBox}>{saveOk}</div>}
-      {error && <div className={styles.errorBox}>Načtení konfigurace selhalo.</div>}
+      {error && <div className={styles.errorBox}>{locale === 'en' ? 'Failed to load configuration.' : 'Načtení konfigurace selhalo.'}</div>}
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
-            <div className={styles.panelTitle}>ADFS / SSO parametry</div>
-            <div className={styles.panelMeta}>
-              Header názvy musí odpovídat tomu, co nastavuje IIS / ADFS / reverse proxy před
-              middleware vrstvou.
-            </div>
+            <div className={styles.panelTitle}>{t('administration.card.web.title')}</div>
+            <div className={styles.panelMeta}>{t('administration.card.web.desc')}</div>
           </div>
         </div>
 
         {isLoading ? (
-          <div className={styles.state}>Načítám konfiguraci…</div>
+          <div className={styles.state}>{t('common.loading')}</div>
         ) : (
           <div className={styles.formGrid}>
             {items.map((item) => {
@@ -190,7 +182,7 @@ export default function AdministrationWebPage() {
                         checked={String(value).toLowerCase() === 'true'}
                         onChange={(event) => updateValue(item.key, event.target.checked ? 'true' : 'false')}
                       />
-                      <span>Povolit automatické doménové přihlášení přes trusted headers</span>
+                      <span>{locale === 'en' ? 'Allow automatic domain sign-in through trusted headers' : 'Povolit automatické doménové přihlášení přes trusted headers'}</span>
                     </span>
                   ) : (
                     <input
@@ -202,9 +194,9 @@ export default function AdministrationWebPage() {
                   )}
 
                   <span className={styles.meta}>
-                    <span className={styles.metaLabel}>Config key:</span> {item.key}
+                    <span className={styles.metaLabel}>{locale === 'en' ? 'Config key:' : 'Konfigurační klíč:'}</span> {item.key}
                     <span className={styles.metaSep}>•</span>
-                    <span className={styles.metaLabel}>Default:</span> {item.default_value}
+                    <span className={styles.metaLabel}>{locale === 'en' ? 'Default:' : 'Výchozí hodnota:'}</span> {item.default_value}
                   </span>
                 </label>
               );

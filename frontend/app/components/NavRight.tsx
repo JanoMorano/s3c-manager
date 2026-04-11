@@ -13,6 +13,7 @@
 import Link from '@/app/components/AppLink';
 import { useEffect, useState } from 'react';
 import { AUTH_STATE_EVENT, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
+import { useT } from '@/app/i18n/useI18n';
 import { hasRoleAccess } from '@/features/auth/roles';
 import NavUser from './NavUser';
 import NavGlobalSearch from './NavGlobalSearch';
@@ -23,6 +24,7 @@ function readRole(): string | null {
 }
 
 export default function NavRight() {
+  const t = useT();
   const [hydrated, setHydrated] = useState(false);
   const [role, setRole] = useState<string | null>(null);
 
@@ -54,10 +56,10 @@ export default function NavRight() {
     <>
       {canSearch && <NavGlobalSearch />}
       {isAdmin && (
-        <Link href="/administration" className={styles.navLink}>Administration</Link>
+        <Link href="/administration" className={styles.navLink}>{t('nav.administration')}</Link>
       )}
       {isEditor && (
-        <Link href="/management" className={styles.navLink}>Content Admin</Link>
+        <Link href="/management" className={styles.navLink}>{t('nav.content_admin')}</Link>
       )}
       <NavUser />
     </>

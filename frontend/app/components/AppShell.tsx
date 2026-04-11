@@ -28,8 +28,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Skip navigation for keyboard users (§10 Accessibility) */}
       <a href="#main-content" className={styles.skipLink}>{t('shell.skip_to_content')}</a>
       <div className={styles.appShell}>
-        <nav className={styles.topNav} aria-label="Main navigation">
-          <Link href="/" className={styles.brand} aria-label="Service Catalogue v2 — home">SC v2</Link>
+        <nav className={styles.topNav} aria-label={t('shell.main_navigation')}>
+          <Link href="/" className={styles.brand} aria-label={t('shell.brand_home')}>SC v2</Link>
 
           {/* ── Left group — topic dropdowns ─────────────────────────── */}
           <MainNav />
