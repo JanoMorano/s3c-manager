@@ -247,6 +247,40 @@ describe('install route security', () => {
         expect(response.body.error).toBe('Installation has not been started. Call /install/start first.');
     });
 
+    test('POST /execute propagates request locale during the fresh install flow', async () => {
+        const app = buildApp();
+
+        await request(app)
+            .post('/api/v1/install/start')
+            .set(validHeaders)
+            .set('cookie', 'sc_locale=en')
+            .send({ performed_by: 'installer' });
+
+        const response = await request(app)
+            .post('/api/v1/install/execute')
+            .set(validHeaders)
+            .set('cookie', 'sc_locale=en')
+            .set('accept-language', 'cs-CZ,cs;q=0.9')
+            .send({
+                activate_c3: false,
+                seed_demo: true,
+                performed_by: 'installer',
+            });
+
+        const installSvc = require('../services/install.service');
+
+        expect(response.status).toBe(200);
+        expect(installSvc.executeInstall).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                seedDemoData: true,
+                locale: 'en',
+            }),
+            'lock-1',
+            'installer',
+        );
+    });
+
     test('POST /execute rejects install completion before the first admin exists', async () => {
         const app = buildApp();
         await request(app)

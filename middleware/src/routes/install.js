@@ -361,7 +361,7 @@ router.post('/execute', requireInstallWriteAccess, checkNotReady, async (req, re
 
         const result = await installSvc.executeInstall(
             pool,
-            { activateC3, seedDemoData: seedDemo, locale: req.user?.preferred_lang },
+            { activateC3, seedDemoData: seedDemo, locale: resolveRequestLocale(req) },
             currentLockToken,
             performedBy,
         );

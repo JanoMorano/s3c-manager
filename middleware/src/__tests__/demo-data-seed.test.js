@@ -13,8 +13,12 @@ test('buildDemoServices returns English demo copy when requested', () => {
 
     expect(services).toHaveLength(3);
     expect(services[0].short_description).toBe('Central integration platform for exchanging data and messages between systems.');
+    expect(services[0].description).toContain('robust middleware for integrating heterogeneous systems');
+    expect(services[0].ordering_note).toContain('Request via ServiceNow');
     expect(services[1].business_purpose).toContain('secure access to applications and data');
+    expect(services[1].sla_restoration_text).toContain('Critical authentication path');
     expect(services[2].scope_text).toContain('operational reporting');
+    expect(JSON.parse(services[2].notes_json).review_notes).toContain('Planned migration');
 });
 
 test('buildDemoServices keeps Czech demo copy as the fallback locale', () => {
