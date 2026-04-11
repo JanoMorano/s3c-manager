@@ -3,6 +3,7 @@
  * kind: text | link | badge | person | date
  */
 import { format } from 'date-fns';
+import { safeHref } from '@/shared/utils/safeHref';
 import styles from './MetadataItem.module.css';
 
 type Kind = 'text' | 'link' | 'badge' | 'person' | 'date';
@@ -21,7 +22,11 @@ export function MetadataItem({ label, value, kind = 'text', href }: MetadataItem
     if (empty) return <span className={styles.empty}>—</span>;
     switch (kind) {
       case 'link':
-        return <a href={href ?? String(value)} target="_blank" rel="noreferrer" className={styles.link}>{String(value)}</a>;
+        {
+          const safe = safeHref(href ?? String(value));
+          if (!safe) return <span>{String(value)}</span>;
+          return <a href={safe} target="_blank" rel="noreferrer" className={styles.link}>{String(value)}</a>;
+        }
       case 'date':
         try {
           return <span>{format(new Date(String(value)), 'dd MMM yyyy')}</span>;

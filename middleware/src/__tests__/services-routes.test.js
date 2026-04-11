@@ -75,11 +75,11 @@ describe('services routes', () => {
         repo.findAllDirect.mockResolvedValue({
             items: [{
                 service_id: 'SVC-1',
-                title: 'Service One',
+                title: '=SUM(1,1)\nService One',
                 service_type: 'CF',
                 service_status: 'active',
                 portfolio_group: 'Application Services',
-                service_owner: 'Owner',
+                service_owner: '+Owner',
                 vlastnik: 'Area',
                 manager: 'Manager',
                 available_on: 'NEXUS,ORBIT',
@@ -100,7 +100,10 @@ describe('services routes', () => {
 
         expect(response.status).toBe(200);
         expect(response.headers['content-type']).toContain('text/csv');
-        expect(response.text).toContain('"service_id","title","service_type"');
-        expect(response.text).toContain('"SVC-1","Service One","CF"');
+        const lines = response.text.split('\n');
+        expect(lines).toHaveLength(2);
+        expect(lines[0]).toContain('"service_id","title","service_type"');
+        expect(lines[1]).toContain('"SVC-1","\'=SUM(1,1) Service One","CF"');
+        expect(lines[1]).not.toContain('\n');
     });
 });
