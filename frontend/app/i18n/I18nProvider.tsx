@@ -24,7 +24,10 @@ export default function I18nProvider({
   initialLocale: string;
   children: React.ReactNode;
 }) {
-  const [locale, setLocale] = useState<Locale>(() => normalizeLocale(initialLocale) as Locale);
+  const [locale, setLocale] = useState<Locale>(() => {
+    const snapshotLocale = getAuthSnapshot()?.preferred_lang;
+    return normalizeLocale(snapshotLocale ?? initialLocale) as Locale;
+  });
 
   useEffect(() => {
     const syncFromSnapshot = () => {
