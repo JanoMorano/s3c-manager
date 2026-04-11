@@ -93,6 +93,11 @@ Typical uses:
 - run repair flows
 - restore demo data
 - activate modules and review module state
+- coordinate backups and restores during maintenance windows
+
+Operations runbook:
+
+- [docs/operations.md](operations.md)
 
 ### First-Run Installation
 

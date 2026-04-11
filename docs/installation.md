@@ -147,6 +147,14 @@ AUTH_SSO_EMAIL_HEADER=x-remote-email
 
 The reverse proxy must forward `X-Remote-User` from an authenticated upstream context.
 
+### Backup and Restore
+
+Before the first production upgrade, rehearse the restore flow in [docs/operations.md](operations.md).
+The supported scripts are:
+
+- `./scripts/backup-postgres.sh`
+- `./scripts/restore-postgres.sh`
+
 ---
 
 ## Environment Variables
