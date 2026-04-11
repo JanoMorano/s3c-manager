@@ -1,5 +1,6 @@
 {
   "common.loading": "Loading…",
+  "shell.skip_to_content": "Skip to content",
   "auth.login.submit": "Sign in",
   "auth.login.subtitle": "Continue to sign in",
   "common.welcome_user": "Welcome, {{name}}!",

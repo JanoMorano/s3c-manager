@@ -1,5 +1,6 @@
 {
   "common.loading": "Načítám…",
+  "shell.skip_to_content": "Přeskočit na obsah",
   "auth.login.submit": "Přihlásit se",
   "auth.login.subtitle": "Přihlaste se pro pokračování",
   "common.welcome_user": "Vítej, {{name}}!",

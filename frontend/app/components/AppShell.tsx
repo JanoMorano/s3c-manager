@@ -7,12 +7,14 @@
  */
 import { usePathname } from 'next/navigation';
 import Link from '@/app/components/AppLink';
+import { useT } from '@/app/i18n/useI18n';
 import styles from '../layout.module.css';
 import AuthGuard from './AuthGuard';
 import NavRight from './NavRight';
 import MainNav from './MainNav';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname() ?? '';
 
   // Install wizard: render only the page without the nav shell.
@@ -24,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Skip navigation for keyboard users (§10 Accessibility) */}
-      <a href="#main-content" className={styles.skipLink}>Skip to content</a>
+      <a href="#main-content" className={styles.skipLink}>{t('shell.skip_to_content')}</a>
       <div className={styles.appShell}>
         <nav className={styles.topNav} aria-label="Main navigation">
           <Link href="/" className={styles.brand} aria-label="Service Catalogue v2 — home">SC v2</Link>

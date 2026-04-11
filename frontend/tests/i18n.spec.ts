@@ -52,5 +52,5 @@ test('english login renders from the locale bootstrap snapshot', async ({ page }
     const cookies = await page.context().cookies(BASE_URL);
     return cookies.find((cookie) => cookie.name === 'sc_locale')?.value;
   }).toBe('en');
-  await expect(page.getByText('Continue to sign in')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeVisible();
 });
