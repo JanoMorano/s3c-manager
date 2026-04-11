@@ -4,6 +4,8 @@ const express = require('express');
 const request = require('supertest');
 
 const queryMock = jest.fn();
+const TRUSTED_PROXY_SECRET = 'proxy-secret';
+const TRUSTED_PROXY_HEADER = 'x-sso-proxy-secret';
 
 jest.mock('express-rate-limit', () => () => (req, res, next) => next());
 jest.mock('../middleware/auth', () => ({
@@ -42,6 +44,8 @@ jest.mock('../config', () => ({
             givenNameHeader: 'x-remote-given-name',
             surnameHeader: 'x-remote-surname',
             departmentHeader: 'x-remote-department',
+            trustedProxyHeader: TRUSTED_PROXY_HEADER,
+            trustedProxySharedSecret: TRUSTED_PROXY_SECRET,
         },
     },
 }));
@@ -76,6 +80,8 @@ describe('auth routes', () => {
             'auth.sso.surname_header': { config_value: 'x-remote-surname' },
             'auth.sso.department_header': { config_value: 'x-remote-department' },
         });
+        require('../config').auth.sso.trustedProxySharedSecret = TRUSTED_PROXY_SECRET;
+        require('../config').auth.sso.trustedProxyHeader = TRUSTED_PROXY_HEADER;
     });
 
     test('GET /sso logs in matching AD user', async () => {
@@ -127,6 +133,7 @@ describe('auth routes', () => {
 
         const response = await request(buildApp())
             .get('/api/v1/auth/sso')
+            .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
             .set('x-remote-user', 'DOMAIN\\jnovak')
             .set('x-remote-name', 'Jan Novak')
             .set('x-remote-email', 'jan.novak@example.local');
@@ -139,6 +146,63 @@ describe('auth routes', () => {
         }));
         expect(response.body.access_token).toBeTruthy();
         expect(response.body.refresh_token).toBeTruthy();
+    });
+
+    test.each([
+        ['missing trusted proxy secret header', undefined],
+        ['mismatched trusted proxy secret header', 'wrong-secret'],
+    ])('GET /sso rejects %s and does not query users', async (_label, presentedSecret) => {
+        const req = request(buildApp()).get('/api/v1/auth/sso');
+        if (presentedSecret !== undefined) {
+            req.set(TRUSTED_PROXY_HEADER, presentedSecret);
+        }
+
+        const response = await req
+            .set('x-remote-user', 'DOMAIN\\jnovak')
+            .set('x-remote-name', 'Jan Novak')
+            .set('x-remote-email', 'jan.novak@example.local');
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toMatch(/trusted-proxy secret/i);
+        expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    test('GET /sso rejects when trusted proxy boundary secret is not configured', async () => {
+        const config = require('../config');
+        const previousSecret = config.auth.sso.trustedProxySharedSecret;
+        config.auth.sso.trustedProxySharedSecret = '';
+
+        try {
+            const response = await request(buildApp())
+                .get('/api/v1/auth/sso')
+                .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
+                .set('x-remote-user', 'DOMAIN\\jnovak');
+
+            expect(response.status).toBe(403);
+            expect(response.body.error).toMatch(/trusted-proxy boundary is not configured/i);
+            expect(queryMock).not.toHaveBeenCalled();
+        } finally {
+            config.auth.sso.trustedProxySharedSecret = previousSecret;
+        }
+    });
+
+    test('GET /sso rejects when trusted proxy boundary header is blank', async () => {
+        const config = require('../config');
+        const previousHeader = config.auth.sso.trustedProxyHeader;
+        config.auth.sso.trustedProxyHeader = '';
+
+        try {
+            const response = await request(buildApp())
+                .get('/api/v1/auth/sso')
+                .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
+                .set('x-remote-user', 'DOMAIN\\jnovak');
+
+            expect(response.status).toBe(403);
+            expect(response.body.error).toMatch(/trusted-proxy boundary header is not configured/i);
+            expect(queryMock).not.toHaveBeenCalled();
+        } finally {
+            config.auth.sso.trustedProxyHeader = previousHeader;
+        }
     });
 
     test('POST /login rejects AD account for local password login', async () => {

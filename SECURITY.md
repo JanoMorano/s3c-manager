@@ -27,7 +27,9 @@ Expect a response within 5 business days.
 ### Authentication
 
 - local login: bcrypt with 12 rounds, rate limit 5 attempts / 15 minutes
-- SSO: trusted headers from a reverse proxy (`x-remote-user`)
+- SSO: trusted headers from a reverse proxy (`x-remote-user`) plus a shared
+  proxy-boundary secret (`AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET`) carried in a
+  dedicated header before trusted identity headers are accepted
 - JWT access token: 60 minutes, RS256 or HS256
 - JWT refresh token: 30 days, hash stored in DB and revocable
 - failed login attempts are written to `platform.audit_log`
@@ -60,6 +62,9 @@ Expect a response within 5 business days.
 ### Network Layer
 
 - recommended: TLS termination on a reverse proxy such as nginx or Traefik
+- trusted-header SSO must be allowed only through a proxy that injects the
+  configured shared-secret header; the backend rejects missing or mismatched
+  secrets before reading identity headers
 - CORS origins explicitly whitelisted through `CORS_ORIGINS`
 - Helmet.js middleware for security headers such as CSP, HSTS, and X-Frame-Options
 

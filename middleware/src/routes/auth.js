@@ -200,6 +200,50 @@ function buildSsoProfile(req, runtimeConfig) {
     };
 }
 
+function getTrustedProxyBoundaryConfig() {
+    return {
+        header: String(config.auth.sso.trustedProxyHeader ?? '').trim(),
+        sharedSecret: String(config.auth.sso.trustedProxySharedSecret || '').trim(),
+    };
+}
+
+function validateTrustedProxyBoundary(req) {
+    const { header, sharedSecret } = getTrustedProxyBoundaryConfig();
+    if (!header) {
+        return {
+            status: 403,
+            error: 'SSO trusted-proxy boundary header is not configured. Set AUTH_SSO_TRUSTED_PROXY_HEADER.',
+        };
+    }
+
+    if (!sharedSecret) {
+        return {
+            status: 403,
+            error: 'SSO trusted-proxy boundary is not configured. Set AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET.',
+        };
+    }
+
+    const presentedSecret = String(req.get(header) || '').trim();
+    if (!presentedSecret) {
+        return {
+            status: 403,
+            error: 'Chybí trusted-proxy secret pro SSO.',
+        };
+    }
+
+    const expected = Buffer.from(sharedSecret);
+    const presented = Buffer.from(presentedSecret);
+    const matches = expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+    if (!matches) {
+        return {
+            status: 403,
+            error: 'Neplatný trusted-proxy secret pro SSO.',
+        };
+    }
+
+    return null;
+}
+
 async function findSsoUser(principal) {
     const [candidate1 = '', candidate2 = '', candidate3 = ''] = deriveIdentityCandidates(principal);
     const result = await getPlatformPool().query(`
@@ -309,6 +353,11 @@ router.get('/sso', async (req, res, next) => {
     try {
         const runtimeConfig = await getSsoRuntimeConfig();
         if (!runtimeConfig.enabled) return res.status(204).end();
+
+        const boundaryError = validateTrustedProxyBoundary(req);
+        if (boundaryError) {
+            return res.status(boundaryError.status).json({ error: boundaryError.error });
+        }
 
         const ssoProfile = buildSsoProfile(req, runtimeConfig);
         if (!ssoProfile?.principal) {

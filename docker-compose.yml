@@ -69,6 +69,8 @@ services:
       # JWT_SECRET_FILE: /run/secrets/jwt_secret   # uncomment for file-based secret
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3000,http://localhost:4000}
       AUTH_SSO_ENABLED: ${AUTH_SSO_ENABLED:-false}
+      AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET: ${AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET:-}
+      AUTH_SSO_TRUSTED_PROXY_HEADER: ${AUTH_SSO_TRUSTED_PROXY_HEADER:-x-sso-proxy-secret}
       AUTH_SSO_HEADER: ${AUTH_SSO_HEADER:-x-remote-user}
       AUTH_SSO_DISPLAY_NAME_HEADER: ${AUTH_SSO_DISPLAY_NAME_HEADER:-x-remote-name}
       AUTH_SSO_EMAIL_HEADER: ${AUTH_SSO_EMAIL_HEADER:-x-remote-email}

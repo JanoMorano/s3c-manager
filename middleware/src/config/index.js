@@ -23,6 +23,7 @@ const pgPort = parseNumber(process.env.DB_PORT || process.env.POSTGRES_PORT, 543
 const pgDatabase = process.env.DB_NAME || process.env.POSTGRES_DB || 'service_catalogue';
 const pgUser = process.env.DB_USER || process.env.POSTGRES_USER || 'postgres';
 const pgPassword = process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres';
+const trustedProxyHeaderEnv = process.env.AUTH_SSO_TRUSTED_PROXY_HEADER;
 
 const config = {
     app: {
@@ -76,6 +77,8 @@ const config = {
             givenNameHeader: process.env.AUTH_SSO_GIVEN_NAME_HEADER || 'x-remote-given-name',
             surnameHeader: process.env.AUTH_SSO_SURNAME_HEADER || 'x-remote-surname',
             departmentHeader: process.env.AUTH_SSO_DEPARTMENT_HEADER || 'x-remote-department',
+            trustedProxyHeader: trustedProxyHeaderEnv === undefined ? 'x-sso-proxy-secret' : String(trustedProxyHeaderEnv).trim(),
+            trustedProxySharedSecret: String(process.env.AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET || '').trim(),
         },
     },
 
