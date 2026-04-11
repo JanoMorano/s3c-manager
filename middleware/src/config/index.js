@@ -76,6 +76,14 @@ const config = {
             givenNameHeader: process.env.AUTH_SSO_GIVEN_NAME_HEADER || 'x-remote-given-name',
             surnameHeader: process.env.AUTH_SSO_SURNAME_HEADER || 'x-remote-surname',
             departmentHeader: process.env.AUTH_SSO_DEPARTMENT_HEADER || 'x-remote-department',
+            // SECURITY: trusted proxy IPs allowed to send SSO headers.
+            // Comma-separated list. Empty = all proxies trusted (legacy behavior, NOT recommended).
+            trustedProxies: (process.env.AUTH_SSO_TRUSTED_PROXIES || '')
+                .split(',').map(s => s.trim()).filter(Boolean),
+            // Shared secret header that the proxy must send to prove it's trusted.
+            // If set, requests without matching header value are rejected for SSO.
+            sharedSecret: process.env.AUTH_SSO_SHARED_SECRET || '',
+            sharedSecretHeader: process.env.AUTH_SSO_SHARED_SECRET_HEADER || 'x-sso-secret',
         },
     },
 

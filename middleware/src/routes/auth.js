@@ -304,11 +304,43 @@ router.post('/login', loginLimiter, async (req, res, next) => {
 /**
  * GET /api/v1/auth/sso
  * Silent login through trusted headers from reverse proxy / IIS / ADFS.
+ * SECURITY: validates that requests come from a trusted proxy via IP whitelist
+ *           and/or shared secret header before accepting SSO identity headers.
  */
 router.get('/sso', async (req, res, next) => {
     try {
         const runtimeConfig = await getSsoRuntimeConfig();
         if (!runtimeConfig.enabled) return res.status(204).end();
+
+        // --- SECURITY: Proxy trust validation ---
+        const ssoConf = config.auth.sso;
+
+        // Check shared secret if configured
+        if (ssoConf.sharedSecret) {
+            const reqSecret = req.get(ssoConf.sharedSecretHeader);
+            if (reqSecret !== ssoConf.sharedSecret) {
+                logger.warn(`SSO rejected: invalid or missing shared secret from ${req.ip}`);
+                return res.status(403).json({ error: 'SSO request rejected: untrusted source.' });
+            }
+        }
+
+        // Check trusted proxy IP whitelist if configured
+        if (ssoConf.trustedProxies.length > 0) {
+            const clientIp = req.ip || req.connection?.remoteAddress || '';
+            const isTrusted = ssoConf.trustedProxies.some(
+                proxy => clientIp === proxy || clientIp === `::ffff:${proxy}`
+            );
+            if (!isTrusted) {
+                logger.warn(`SSO rejected: untrusted proxy IP ${clientIp} (allowed: ${ssoConf.trustedProxies.join(', ')})`);
+                return res.status(403).json({ error: 'SSO request rejected: untrusted proxy IP.' });
+            }
+        }
+
+        // Warn in logs if neither guard is configured (unsafe for non-isolated environments)
+        if (!ssoConf.sharedSecret && ssoConf.trustedProxies.length === 0) {
+            logger.warn('SSO login without proxy trust validation — set AUTH_SSO_TRUSTED_PROXIES or AUTH_SSO_SHARED_SECRET for production use.');
+        }
+        // --- End proxy trust validation ---
 
         const ssoProfile = buildSsoProfile(req, runtimeConfig);
         if (!ssoProfile?.principal) {

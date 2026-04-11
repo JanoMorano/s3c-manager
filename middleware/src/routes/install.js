@@ -30,12 +30,10 @@ const { invalidateModuleStatus } = require('../middleware/module-gates');
 const router = express.Router();
 
 // Rate limit for install endpoints; protects against brute-force attempts.
-// max: 500 because the wizard calls several endpoints per session, React StrictMode
-// may double-invoke calls, and repeated dev restarts/tests can exhaust lower limits.
-// Installation safety is primarily enforced by the lock mechanism, not by rate limits.
+// max: 60 is sufficient for the wizard flow (6-8 endpoints × 2 for StrictMode × safety margin).
 const installLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 500,
+    max: 60,
     message: { error: 'Příliš mnoho instalačních požadavků. Zkuste to za chvíli.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -196,6 +194,21 @@ router.post('/check-db', async (req, res, next) => {
 router.post('/bootstrap-admin', checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
+
+        // SECURITY: block bootstrap if an admin already exists — prevents takeover.
+        try {
+            const adminCheck = await pool.query(
+                `SELECT COUNT(*) AS cnt FROM platform.users WHERE role = 'admin' AND is_active = TRUE`
+            );
+            if (parseInt(adminCheck.rows[0]?.cnt || '0') > 0) {
+                return res.status(409).json({
+                    error: 'Administrátorský účet již existuje. Pro správu účtů použijte admin sekci.',
+                });
+            }
+        } catch {
+            // DB not ready yet — allow bootstrap for fresh install
+        }
+
         const { username, displayName, email, password, mustChangePassword } = req.body || {};
 
         if (!username || !displayName || !email || !password) {
@@ -384,10 +397,10 @@ router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // POST /api/v1/install/reset
 // Resets a stuck installation: releases the lock and switches back to NOT_INSTALLED.
-// Available only when status is not READY, which keeps fresh/failed states safe.
+// SECURITY: requires admin authentication to prevent unauthorized takeover.
 // Body: { confirm: true }
 // ---------------------------------------------------------------------------
-router.post('/reset', checkNotReady, async (req, res, next) => {
+router.post('/reset', requireAuth, canAdmin, checkNotReady, async (req, res, next) => {
     try {
         if (req.body?.confirm !== true) {
             return res.status(400).json({ error: 'Musíte potvrdit: { "confirm": true }' });

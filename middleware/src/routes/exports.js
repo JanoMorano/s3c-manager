@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
+const { canAdmin } = require('../middleware/rbac');
 const { getPool, getPlatformPool } = require('../db/pool');
 const { findAllForExport } = require('../db/services.repo');
 const { applyCacheTags } = require('../utils/cache-tags');
@@ -129,7 +130,8 @@ router.get('/sla', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/archive-audit-reporting', async (req, res, next) => {
+// SECURITY: audit/archive data is admin-only — contains internal operational details.
+router.get('/archive-audit-reporting', canAdmin, async (req, res, next) => {
     try {
         applyCacheTags(res, ['export', 'import'], ['export:archive-audit']);
         const [batchArchive, rowArchive, issueArchive, taxonomyAuditArchive, graphAuditArchive, retentionJobs] = await Promise.all([
@@ -152,7 +154,8 @@ router.get('/archive-audit-reporting', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/bundle', async (req, res, next) => {
+// SECURITY: full bundle export is admin-only — contains audit trails and internal data.
+router.get('/bundle', canAdmin, async (req, res, next) => {
     try {
         applyCacheTags(res, ['export', 'pricing', 'sla', 'c3', 'routes', 'import'], ['export:bundle']);
         const [manifest, routeMetadata, services, taxonomy, capabilityMapHierarchy, c3Relationships, graph, pricing, sla, importBatches, importRows, importIssues, retentionPolicies, taxonomyAudit, graphAudit] = await Promise.all([
