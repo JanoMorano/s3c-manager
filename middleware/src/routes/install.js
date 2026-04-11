@@ -339,6 +339,13 @@ router.post('/execute', requireInstallWriteAccess, checkNotReady, async (req, re
             });
         }
 
+        const adminExists = await installSvc.hasActiveAdminAccount(pool);
+        if (!adminExists) {
+            return res.status(422).json({
+                error: 'První admin účet musí být vytvořen v install wizardu před dokončením instalace.',
+            });
+        }
+
         logger.info(`install/execute: started by "${performedBy}", C3=${activateC3}, seedDemo=${seedDemo}`);
 
         const result = await installSvc.executeInstall(

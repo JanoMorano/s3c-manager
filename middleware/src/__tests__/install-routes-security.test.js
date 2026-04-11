@@ -64,6 +64,7 @@ jest.mock('../services/install.service', () => ({
     detectInstallMode: jest.fn(),
     acquireLock: jest.fn(),
     bootstrapAdmin: jest.fn(),
+    hasActiveAdminAccount: jest.fn(),
     executeInstall: jest.fn(),
     checkConnectivity: jest.fn(),
     getInstallSummary: jest.fn(),
@@ -121,6 +122,7 @@ describe('install route security', () => {
         installSvc.getInstallRow.mockResolvedValue(preReadyInstallRow);
         installSvc.acquireLock.mockResolvedValue({ ok: true, token: 'lock-1' });
         installSvc.bootstrapAdmin.mockResolvedValue({ ok: true, userId: 2 });
+        installSvc.hasActiveAdminAccount.mockResolvedValue(true);
         installSvc.executeInstall.mockResolvedValue({ ok: true, summary: { status: 'READY' } });
         installSvc.checkConnectivity.mockResolvedValue({
             db_reachable: true,
@@ -183,6 +185,29 @@ describe('install route security', () => {
 
         expect(response.status).toBe(401);
         expectNoPrivilegedInstallSideEffects();
+    });
+
+    test('POST /execute rejects install completion before the first admin exists', async () => {
+        const app = buildApp();
+        await request(app)
+            .post('/api/v1/install/start')
+            .set(validHeaders)
+            .send({ performed_by: 'installer' });
+        const installSvc = require('../services/install.service');
+        installSvc.hasActiveAdminAccount.mockResolvedValue(false);
+
+        const response = await request(app)
+            .post('/api/v1/install/execute')
+            .set(validHeaders)
+            .send({
+                activate_c3: false,
+                seed_demo: false,
+                performed_by: 'installer',
+            });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error).toMatch(/admin účet/i);
+        expect(installSvc.executeInstall).not.toHaveBeenCalled();
     });
 
     test('POST /start accepts a valid install setup token before READY', async () => {

@@ -45,7 +45,7 @@ Then open:
 
 - `http://localhost:8080`
 - the first run redirects to `/install`
-- create the first admin account in the install wizard; there is no shared default admin
+- create the first admin account in the install wizard; there is no shared default admin and first-login password change is enabled by default
 
 If you want a full demo environment immediately:
 

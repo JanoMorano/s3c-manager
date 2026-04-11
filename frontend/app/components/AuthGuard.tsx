@@ -85,6 +85,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      if (session.must_change_password && !pathname.startsWith('/user-info')) {
+        router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
       const requiredRole = requiredRoleForPath(pathname);
       if (requiredRole && !hasRoleAccess(session.role, requiredRole)) {
         router.replace('/');

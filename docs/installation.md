@@ -59,14 +59,14 @@ The wizard handles:
 
 1. base application configuration
 2. secret validation
-3. first admin account creation
+3. first admin account creation, including an optional first-login password change requirement
 4. database connectivity checks
 5. module selection (`Core` mandatory, `C3` optional)
 6. optional initial data import
 7. transition to the `READY` state
 
 Clean installs do not ship a shared default admin account. The first usable admin
-is created in this wizard or provisioned explicitly by the operator.
+is created in this wizard; there is no implicit bootstrap admin path.
 
 ### C3 Taxonomy Module
 

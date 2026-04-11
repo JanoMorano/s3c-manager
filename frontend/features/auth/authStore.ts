@@ -10,6 +10,7 @@ export interface AuthSnapshot {
   display_name: string | null;
   role: string | null;
   auth_provider: string | null;
+  must_change_password: boolean;
 }
 
 type AuthUserShape = Partial<AuthSnapshot> & Record<string, unknown>;
@@ -50,6 +51,7 @@ function snapshotFromUser(user: AuthUserShape): AuthSnapshot {
     display_name: typeof user.display_name === 'string' ? user.display_name : null,
     role: typeof user.role === 'string' ? user.role : null,
     auth_provider: typeof user.auth_provider === 'string' ? user.auth_provider : null,
+    must_change_password: user.must_change_password === true,
   };
 }
 

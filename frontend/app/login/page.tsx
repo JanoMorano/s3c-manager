@@ -22,6 +22,10 @@ export default function LoginPage() {
         const session = await restoreAuthSession();
         if (cancelled) return;
         if (session) {
+          if (session.must_change_password) {
+            router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
+            return;
+          }
           router.replace(next);
           return;
         }
@@ -38,6 +42,10 @@ export default function LoginPage() {
           const data = await res.json();
           if (cancelled) return;
           setAuthSnapshotFromUser(data.user);
+          if (data.user?.must_change_password) {
+            router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
+            return;
+          }
           router.replace(next);
           return;
         }
@@ -76,6 +84,10 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error ?? 'Přihlášení selhalo');
       setAuthSnapshotFromUser(data.user);
       const next = searchParams?.get('next') ?? '/';
+      if (data.user?.must_change_password) {
+        router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(next)}`);
+        return;
+      }
       router.replace(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Chyba');

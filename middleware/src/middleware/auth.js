@@ -7,8 +7,10 @@
 const jwt        = require('jsonwebtoken');
 const config     = require('../config');
 const { getPlatformPool } = require('../db/pool');
+const { getConfigValues } = require('../utils/platform-config');
 
 const ACCESS_COOKIE_NAME = 'sc_access_token';
+const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
 
 function readCookie(req, name) {
     const cookieHeader = String(req.headers.cookie || '');
@@ -22,6 +24,30 @@ function readCookie(req, name) {
     }
 
     return null;
+}
+
+function isAuthPasswordChangeBypassPath(req) {
+    const path = String(req.originalUrl || req.path || '');
+    return (
+        path === '/api/v1/auth/me' ||
+        path === '/api/v1/auth/logout' ||
+        path === '/api/v1/auth/refresh' ||
+        path === '/api/v1/auth/change-password' ||
+        path.startsWith('/api/v1/auth/me?') ||
+        path.startsWith('/api/v1/auth/logout?') ||
+        path.startsWith('/api/v1/auth/refresh?') ||
+        path.startsWith('/api/v1/auth/change-password?')
+    );
+}
+
+async function isPasswordChangeRequired() {
+    const rows = await getConfigValues([MUST_CHANGE_PASSWORD_KEY]);
+    const raw = String(rows?.[MUST_CHANGE_PASSWORD_KEY]?.config_value ?? '').trim().toLowerCase();
+    return ['true', '1', 'yes', 'on'].includes(raw);
+}
+
+function canUserBeForcedToChangePassword(user) {
+    return user?.role === 'admin' && (user?.auth_provider ?? 'local') === 'local';
 }
 
 /**
@@ -61,6 +87,14 @@ async function requireAuth(req, res, next) {
 
         if (!user)           return res.status(401).json({ error: 'Uživatel nenalezen' });
         if (!user.is_active) return res.status(403).json({ error: 'Účet deaktivován' });
+
+        if (
+            !isAuthPasswordChangeBypassPath(req) &&
+            canUserBeForcedToChangePassword(user) &&
+            await isPasswordChangeRequired()
+        ) {
+            return res.status(403).json({ error: 'Je vyžadována změna hesla prvního administrátora.' });
+        }
 
         req.user = user;
         next();

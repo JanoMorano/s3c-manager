@@ -8,7 +8,7 @@ const { getPlatformPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const config = require('../config');
 const logger = require('../utils/logger');
-const { getConfigValues } = require('../utils/platform-config');
+const { getConfigValues, upsertConfigValue } = require('../utils/platform-config');
 const audit = require('../db/audit.repo');
 
 /** Records a failed authentication attempt into audit_log (fire-and-forget). */
@@ -28,6 +28,7 @@ function logAuthFailure(req, { username, userId = 0, reason }) {
 const router = express.Router();
 const ACCESS_COOKIE_NAME = 'sc_access_token';
 const REFRESH_COOKIE_NAME = 'sc_refresh_token';
+const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
 
 const loginLimiter = rateLimit({
     windowMs: config.rateLimit.auth.windowMs,
@@ -54,6 +55,17 @@ function generateTokens(userId, username, role, displayName) {
 
 function normalizeIdentity(value) {
     return String(value ?? '').trim().toLowerCase();
+}
+
+function canUserBeForcedToChangePassword(user) {
+    return user?.role === 'admin' && (user?.auth_provider ?? 'local') === 'local';
+}
+
+async function isPasswordChangeRequiredForUser(user) {
+    if (!canUserBeForcedToChangePassword(user)) return false;
+    const rows = await getConfigValues([MUST_CHANGE_PASSWORD_KEY]);
+    const raw = String(rows?.[MUST_CHANGE_PASSWORD_KEY]?.config_value ?? '').trim().toLowerCase();
+    return ['true', '1', 'yes', 'on'].includes(raw);
 }
 
 function isProductionCookieMode() {
@@ -137,13 +149,14 @@ function deriveIdentityCandidates(principal) {
     return [...new Set([raw, noDomain, alias].filter(Boolean))];
 }
 
-function buildUserResponse(user) {
+function buildUserResponse(user, { mustChangePassword = false } = {}) {
     return {
         id: user.id,
         username: user.username,
         display_name: user.display_name,
         role: user.role,
         auth_provider: user.auth_provider ?? 'local',
+        must_change_password: mustChangePassword,
         preferred_lang: user.preferred_lang || 'cz',
         preferred_theme: user.preferred_theme || 'dark',
     };
@@ -221,13 +234,14 @@ async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = 
     await storeRefreshToken(user.id, tokens.refresh);
     await updateLoginState(user.id, req, { isSso, ssoProfile });
     setAuthCookies(res, { accessToken: tokens.access, refreshToken: tokens.refresh });
-
     const currentUser = await loadUserById(user.id);
+    const resolvedUser = currentUser || user;
+    const mustChangePassword = await isPasswordChangeRequiredForUser(resolvedUser);
     return {
         access_token: tokens.access,
         refresh_token: tokens.refresh,
         expires_in: config.jwt.expiryMinutes * 60,
-        user: buildUserResponse(currentUser || user),
+        user: buildUserResponse(resolvedUser, { mustChangePassword }),
     };
 }
 
@@ -543,6 +557,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
             email: user.email ?? null,
             role: user.role,
             auth_provider: user.auth_provider ?? 'local',
+            must_change_password: await isPasswordChangeRequiredForUser(user),
             external_principal: user.external_principal ?? null,
             preferred_lang: user.preferred_lang ?? 'cz',
             preferred_theme: user.preferred_theme ?? 'dark',
@@ -608,12 +623,19 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
         if (!current_password || !new_password) {
             return res.status(400).json({ error: 'Chybí current_password nebo new_password' });
         }
-        if (new_password.length < 8) {
-            return res.status(400).json({ error: 'Nové heslo musí mít alespoň 8 znaků' });
+        if (new_password.length < 10) {
+            return res.status(400).json({ error: 'Nové heslo musí mít alespoň 10 znaků' });
+        }
+        const hasUpper = /[A-Z]/.test(new_password);
+        const hasLower = /[a-z]/.test(new_password);
+        const hasDigit = /[0-9]/.test(new_password);
+        const hasSpecial = /[^A-Za-z0-9]/.test(new_password);
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            return res.status(400).json({ error: 'Nové heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak.' });
         }
 
         const result = await getPlatformPool().query(
-            'SELECT password_hash, auth_provider FROM platform.users WHERE id = $1',
+            'SELECT password_hash, auth_provider, role FROM platform.users WHERE id = $1',
             [req.user.id]
         );
         const user = result.rows[0];
@@ -629,6 +651,16 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
             'UPDATE platform.users SET password_hash = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
             [req.user.id, newHash]
         );
+
+        if (canUserBeForcedToChangePassword(user)) {
+            await upsertConfigValue({
+                configKey: MUST_CHANGE_PASSWORD_KEY,
+                configValue: 'false',
+                configType: 'boolean',
+                description: 'Admin must change password on first login',
+                updatedBy: req.user.username || 'system',
+            });
+        }
 
         logger.info(`Password change: ${req.user.username}`);
         res.json({ message: 'Heslo bylo změněno' });

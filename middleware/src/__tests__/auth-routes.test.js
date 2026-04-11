@@ -2,6 +2,7 @@
 
 const bcrypt = require('bcrypt');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
 const queryMock = jest.fn();
@@ -52,6 +53,7 @@ jest.mock('../config', () => ({
 }));
 jest.mock('../utils/platform-config', () => ({
     getConfigValues: jest.fn(),
+    upsertConfigValue: jest.fn(),
 }));
 jest.mock('../db/pool', () => ({
     getPlatformPool: jest.fn(),
@@ -66,23 +68,29 @@ function buildApp() {
 }
 
 describe('auth routes', () => {
+    const baseRuntimeConfig = {
+        'auth.sso.enabled': { config_value: 'true' },
+        'auth.sso.header': { config_value: 'x-remote-user' },
+        'auth.sso.display_name_header': { config_value: 'x-remote-name' },
+        'auth.sso.email_header': { config_value: 'x-remote-email' },
+        'auth.sso.given_name_header': { config_value: 'x-remote-given-name' },
+        'auth.sso.surname_header': { config_value: 'x-remote-surname' },
+        'auth.sso.department_header': { config_value: 'x-remote-department' },
+        'auth.admin_must_change_password': { config_value: 'false' },
+    };
+
     beforeEach(() => {
         jest.clearAllMocks();
         queryMock.mockReset();
         const pool = require('../db/pool');
         const { getConfigValues } = require('../utils/platform-config');
         pool.getPlatformPool.mockReturnValue({ query: queryMock });
-        getConfigValues.mockResolvedValue({
-            'auth.sso.enabled': { config_value: 'true' },
-            'auth.sso.header': { config_value: 'x-remote-user' },
-            'auth.sso.display_name_header': { config_value: 'x-remote-name' },
-            'auth.sso.email_header': { config_value: 'x-remote-email' },
-            'auth.sso.given_name_header': { config_value: 'x-remote-given-name' },
-            'auth.sso.surname_header': { config_value: 'x-remote-surname' },
-            'auth.sso.department_header': { config_value: 'x-remote-department' },
-        });
-        require('../config').auth.sso.trustedProxySharedSecret = TRUSTED_PROXY_SECRET;
-        require('../config').auth.sso.trustedProxyHeader = TRUSTED_PROXY_HEADER;
+        getConfigValues.mockResolvedValue(baseRuntimeConfig);
+        const runtimeConfig = require('../config');
+        runtimeConfig.auth = runtimeConfig.auth || {};
+        runtimeConfig.auth.sso = runtimeConfig.auth.sso || {};
+        runtimeConfig.auth.sso.trustedProxySharedSecret = TRUSTED_PROXY_SECRET;
+        runtimeConfig.auth.sso.trustedProxyHeader = TRUSTED_PROXY_HEADER;
     });
 
     test('GET /sso logs in matching AD user', async () => {
@@ -272,7 +280,120 @@ describe('auth routes', () => {
         expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
             expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),
             expect.stringMatching(/^sc_refresh_token=.*HttpOnly.*SameSite=Lax/i),
-        ]));
+            ]));
+    });
+
+    test('POST /login exposes must_change_password when first-login enforcement is enabled', async () => {
+        const passwordHash = await bcrypt.hash('Secret123!', 4);
+        const { getConfigValues } = require('../utils/platform-config');
+        getConfigValues.mockResolvedValueOnce({
+            ...baseRuntimeConfig,
+            'auth.admin_must_change_password': { config_value: 'true' },
+        });
+        queryMock
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 11,
+                    username: 'localadmin',
+                    display_name: 'Local Admin',
+                    role: 'admin',
+                    is_active: true,
+                    auth_provider: 'local',
+                    password_hash: passwordHash,
+                    preferred_lang: 'cz',
+                    preferred_theme: 'dark',
+                }],
+            })
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 11,
+                    username: 'localadmin',
+                    display_name: 'Local Admin',
+                    role: 'admin',
+                    is_active: true,
+                    auth_provider: 'local',
+                    preferred_lang: 'cz',
+                    preferred_theme: 'dark',
+                }],
+            });
+
+        const response = await request(buildApp())
+            .post('/api/v1/auth/login')
+            .send({ username: 'localadmin', password: 'Secret123!' });
+
+        expect(response.status).toBe(200);
+        expect(response.body.user).toEqual(expect.objectContaining({
+            username: 'localadmin',
+            must_change_password: true,
+        }));
+    });
+
+    test('GET /me exposes must_change_password when first-login enforcement is enabled', async () => {
+        const { getConfigValues } = require('../utils/platform-config');
+        getConfigValues.mockResolvedValueOnce({
+            ...baseRuntimeConfig,
+            'auth.admin_must_change_password': { config_value: 'true' },
+        });
+        queryMock.mockResolvedValueOnce({
+            rows: [{
+                id: 1,
+                username: 'admin',
+                display_name: 'Admin',
+                email: 'admin@example.local',
+                role: 'admin',
+                is_active: true,
+                auth_provider: 'local',
+                external_principal: null,
+                preferred_lang: 'cz',
+                preferred_theme: 'dark',
+                given_name: null,
+                surname: null,
+                phone: null,
+                department: null,
+                avatar_color: null,
+                last_login_at: null,
+                last_sso_login_at: null,
+            }],
+        });
+
+        const response = await request(buildApp())
+            .get('/api/v1/auth/me')
+            .set('Authorization', `Bearer ${jwt.sign({ sub: 1 }, 'test-secret', {
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            })}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(expect.objectContaining({
+            username: 'admin',
+            must_change_password: true,
+        }));
+    });
+
+    test('POST /change-password clears first-login enforcement flag after success', async () => {
+        const { upsertConfigValue } = require('../utils/platform-config');
+        queryMock
+            .mockResolvedValueOnce({
+                rows: [{
+                    password_hash: await bcrypt.hash('Secret123!', 4),
+                    auth_provider: 'local',
+                    role: 'admin',
+                }],
+            })
+            .mockResolvedValueOnce({ rows: [] });
+
+        const response = await request(buildApp())
+            .post('/api/v1/auth/change-password')
+            .send({ current_password: 'Secret123!', new_password: 'NewSecret123!' });
+
+        expect(response.status).toBe(200);
+        expect(upsertConfigValue).toHaveBeenCalledWith(expect.objectContaining({
+            configKey: 'auth.admin_must_change_password',
+            configValue: 'false',
+            configType: 'boolean',
+        }));
     });
 
     test('POST /refresh accepts refresh token from cookie and rotates auth cookies', async () => {
@@ -405,5 +526,98 @@ describe('auth routes', () => {
             process.env.DEBUG_BYPASS_AUTH = original;
             jest.resetModules();
         }
+    });
+
+    test.each([
+        ['/api/v1/services', false],
+        ['/api/v1/auth/change-password', true],
+    ])('requireAuth %s when first-login password change is required', async (path, shouldPass) => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+            auth: {
+                sso: {
+                    enabled: true,
+                    header: 'x-remote-user',
+                    displayNameHeader: 'x-remote-name',
+                    emailHeader: 'x-remote-email',
+                    givenNameHeader: 'x-remote-given-name',
+                    surnameHeader: 'x-remote-surname',
+                    departmentHeader: 'x-remote-department',
+                    trustedProxyHeader: TRUSTED_PROXY_HEADER,
+                    trustedProxySharedSecret: TRUSTED_PROXY_SECRET,
+                },
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: jest.fn().mockResolvedValue({
+                    rows: [{
+                        id: 1,
+                        username: 'admin',
+                        display_name: 'Admin',
+                        role: 'admin',
+                        is_active: true,
+                        auth_provider: 'local',
+                        preferred_lang: 'cz',
+                        preferred_theme: 'dark',
+                    }],
+                }),
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(async () => ({
+                'auth.admin_must_change_password': { config_value: 'true' },
+            })),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 1 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                        },
+                        path,
+                        originalUrl: path,
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        if (shouldPass) {
+                            expect(next).toHaveBeenCalled();
+                            expect(res.status).not.toHaveBeenCalled();
+                        } else {
+                            expect(next).not.toHaveBeenCalled();
+                            expect(res.status).toHaveBeenCalledWith(403);
+                        }
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
     });
 });
