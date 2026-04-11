@@ -26,7 +26,7 @@ const installSvc  = require('../services/install.service');
 const logger      = require('../utils/logger');
 const { requireAuth } = require('../middleware/auth');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
-const { tReq } = require('../utils/i18n');
+const { resolveRequestLocale, tReq } = require('../utils/i18n');
 
 const router = express.Router();
 const INSTALL_SETUP_TOKEN_HEADER = 'x-install-setup-token';
@@ -361,7 +361,7 @@ router.post('/execute', requireInstallWriteAccess, checkNotReady, async (req, re
 
         const result = await installSvc.executeInstall(
             pool,
-            { activateC3, seedDemoData: seedDemo },
+            { activateC3, seedDemoData: seedDemo, locale: req.user?.preferred_lang },
             currentLockToken,
             performedBy,
         );
@@ -513,7 +513,7 @@ router.post('/seed-demo', requireAuth, requireInstallAdminAccess, async (req, re
             result = await removeDemoData(pool);
         } else {
             logger.info('install/seed-demo: seeding demo data');
-            result = await seedDemoData(pool);
+            result = await seedDemoData(pool, { locale: resolveRequestLocale(req) });
         }
 
         if (!result.ok) {

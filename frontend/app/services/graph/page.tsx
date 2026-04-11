@@ -28,6 +28,8 @@ import type { GraphOverviewEdge, GraphOverviewNode } from '@/features/services/m
 import { StatusPill } from '@/features/services/components/StatusPill';
 import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
 import { applyLineStyleMode, resolveServiceGraphEdgeVisual, SERVICE_RELATION_VISUAL } from '@/features/graph/graphVisuals';
+import { compareText } from '@/app/i18n/format';
+import { useLocale } from '@/app/i18n/useI18n';
 import styles from '../../graph/overview.module.css';
 
 const GROUP_COLOR: Record<string, string> = {
@@ -184,6 +186,7 @@ function buildEntityPositionMap(
   graphEdges: GraphOverviewEdge[],
   anchorPositions: Map<string, { x: number; y: number }>,
   existingEntityPositions: Map<string, { x: number; y: number }>,
+  locale: string,
 ) {
   const positions = new Map<string, { x: number; y: number }>();
   const byKind = new Map<GraphOverviewNode['node_kind'], GraphOverviewNode[]>();
@@ -196,7 +199,7 @@ function buildEntityPositionMap(
 
   Object.entries(ENTITY_COLUMN_X).forEach(([kind, x]) => {
     const items = (byKind.get(kind as GraphOverviewNode['node_kind']) ?? []).slice().sort((a, b) =>
-      `${a.code ?? ''} ${a.title ?? ''}`.localeCompare(`${b.code ?? ''} ${b.title ?? ''}`, 'cs', { numeric: true, sensitivity: 'base' }),
+      compareText(locale, `${a.code ?? ''} ${a.title ?? ''}`, `${b.code ?? ''} ${b.title ?? ''}`, { numeric: true, sensitivity: 'base' }),
     );
 
     items.forEach((node, index) => {
@@ -430,6 +433,7 @@ const nodeTypes: NodeTypes = {
 
 export default function GlobalGraphPage() {
   const { c3Visible } = useInstallStatus();
+  const locale = useLocale();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [portfolioFilter, setPortfolioFilter] = useState('');
@@ -479,16 +483,16 @@ export default function GlobalGraphPage() {
   const capabilityNodes = useMemo(() => allNodes.filter((node) => node.node_kind === 'c3_capability'), [allNodes]);
   const c3EntityNodes = useMemo(() => allNodes.filter((node) => node.node_kind !== 'service' && node.node_kind !== 'c3_capability'), [allNodes]);
   const portfolioOptions = useMemo(
-    () => [...new Set(serviceNodes.map((node) => node.portfolio_group).filter(Boolean) as string[])].sort(),
-    [serviceNodes],
+    () => [...new Set(serviceNodes.map((node) => node.portfolio_group).filter(Boolean) as string[])].sort((left, right) => compareText(locale, left, right)),
+    [locale, serviceNodes],
   );
   const statusOptions = useMemo(
-    () => [...new Set(serviceNodes.map((node) => node.service_status).filter(Boolean) as string[])].sort(),
-    [serviceNodes],
+    () => [...new Set(serviceNodes.map((node) => node.service_status).filter(Boolean) as string[])].sort((left, right) => compareText(locale, left, right)),
+    [locale, serviceNodes],
   );
   const typeOptions = useMemo(
-    () => [...new Set(serviceNodes.map((node) => node.service_type).filter(Boolean) as string[])].sort(),
-    [serviceNodes],
+    () => [...new Set(serviceNodes.map((node) => node.service_type).filter(Boolean) as string[])].sort((left, right) => compareText(locale, left, right)),
+    [locale, serviceNodes],
   );
   const domainOptions = useMemo(
     () => (networkDomains?.map((domain) => domain.code) ?? ['NEXUS', 'VERTEX', 'ORBIT', 'PULSE', 'RELAY', 'CLOUD', 'GRID', 'PRISM', 'HELIX', 'ZENITH', 'APEX', 'VORTEX', 'MATRIX']),
@@ -687,6 +691,7 @@ export default function GlobalGraphPage() {
       [...visibleCapabilityEntityEdges, ...visibleTinEntityEdges],
       anchorPositionMap,
       new Map(),
+      locale,
     );
 
     const entityRfNodes = visibleC3EntityNodes.map((node) => ({
@@ -754,6 +759,7 @@ export default function GlobalGraphPage() {
     visibleCapabilityEntityEdges,
     visibleTinEntityEdges,
     layoutMap,
+    locale,
     selectedNode,
     showFlavours,
     allFlavours,

@@ -21,6 +21,8 @@ import '@xyflow/react/dist/style.css';
 import type { C3RelationGraphEdge, C3RelationGraphNode } from '@/features/services/model/service.types';
 import styles from '../../../app/graph/overview.module.css';
 import { applyLineStyleMode, resolveC3EdgeVisual, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { compareText } from '@/app/i18n/format';
+import { useLocale } from '@/app/i18n/useI18n';
 
 const NODE_KIND_LABEL: Record<C3RelationGraphNode['node_kind'], string> = {
   c3_capability: 'Capability',
@@ -110,6 +112,7 @@ function buildLayout(
   compactMode: boolean,
   edgeType: GraphEdgeType = 'straight',
   lineStyleMode: GraphLineStyleMode = 'auto',
+  locale: string,
 ) {
   const grouped = new Map<C3RelationGraphNode['node_kind'], C3RelationGraphNode[]>();
   NODE_KIND_ORDER.forEach((kind) => grouped.set(kind, []));
@@ -118,7 +121,7 @@ function buildLayout(
   const rfNodes: Node[] = [];
   NODE_KIND_ORDER.forEach((kind) => {
     const items = (grouped.get(kind) ?? []).slice().sort((a, b) =>
-      `${a.code ?? ''} ${a.label}`.localeCompare(`${b.code ?? ''} ${b.label}`, 'cs', { numeric: true, sensitivity: 'base' }),
+      compareText(locale, `${a.code ?? ''} ${a.label}`, `${b.code ?? ''} ${b.label}`, { numeric: true, sensitivity: 'base' }),
     );
     items.forEach((item, index) => {
       rfNodes.push({
@@ -183,9 +186,10 @@ export function C3RelationFlowCanvas({
   edgeType = 'straight',
   lineStyleMode = 'auto',
 }: Props) {
+  const locale = useLocale();
   const { rfNodes, rfEdges } = useMemo(
-    () => buildLayout(graphNodes, graphEdges, onSelectNode, selectedNodeId, compactMode, edgeType, lineStyleMode),
-    [compactMode, edgeType, graphEdges, graphNodes, lineStyleMode, onSelectNode, selectedNodeId],
+    () => buildLayout(graphNodes, graphEdges, onSelectNode, selectedNodeId, compactMode, edgeType, lineStyleMode, locale),
+    [compactMode, edgeType, graphEdges, graphNodes, lineStyleMode, locale, onSelectNode, selectedNodeId],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(rfNodes);

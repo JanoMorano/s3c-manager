@@ -415,7 +415,7 @@ async function getModules(pool) {
 // This function only registers state in module_registry and advances states.
 // ---------------------------------------------------------------------------
 
-async function executeInstall(pool, { activateC3, seedDemoData = false, importJobId = null }, lockToken, performedBy = 'installer') {
+async function executeInstall(pool, { activateC3, seedDemoData = false, importJobId = null, locale = null }, lockToken, performedBy = 'installer') {
     try {
         await transitionTo(pool, 'INSTALL_IN_PROGRESS', performedBy, {
             started_at: new Date().toISOString(),
@@ -466,7 +466,7 @@ async function executeInstall(pool, { activateC3, seedDemoData = false, importJo
             try {
                 const { seedDemoData: runSeed } = require('../utils/demo-data-seed');
                 logger.info('install.service: seeding demo data…');
-                const seedResult = await runSeed(pool);
+                const seedResult = await runSeed(pool, { locale });
                 if (seedResult && !seedResult.ok) {
                     logger.warn(`install.service: demo data seeding failed — ${seedResult.error}`);
                 } else {
