@@ -224,7 +224,7 @@ async function getC3EntityDetailByCode(targetKey, code) {
     if (!targetConfig) throw createHttpError(404, tReq(req, 'taxonomy.errors.unknown_c3_target'));
 
     const codeField = targetConfig.fields.find((field) => field.required && field.key !== 'uuid')?.key;
-    if (!codeField) throw createHttpError(500, `Target ${targetKey} nemá definovaný code field`);
+    if (!codeField) throw createHttpError(500, tReq(req, 'taxonomy.errors.target_missing_code_field', { targetKey }));
 
     return selectOne(getPool(), `
         SELECT *
@@ -723,10 +723,10 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
     if (!uuid) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_uuid'));
     if (!title) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_title'));
     if (!domainCode) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_domain_code'));
-    if (!Number.isInteger(level) || level < 1 || level > maxLevel) throw createHttpError(400, `level musí být celé číslo 1-${maxLevel}`);
-    if (parentId && parentId === pageId) throw createHttpError(400, 'parent_id nesmí být stejné jako page_id');
-    if (!parentId && level !== 1) throw createHttpError(400, 'Kořenová položka bez parent_id musí mít level 1');
-    if (parentId && level === 1) throw createHttpError(400, 'Položka s parent_id nemůže mít level 1');
+    if (!Number.isInteger(level) || level < 1 || level > maxLevel) throw createHttpError(400, tReq(req, 'taxonomy.errors.invalid_level_dynamic', { maxLevel }));
+    if (parentId && parentId === pageId) throw createHttpError(400, tReq(req, 'taxonomy.errors.same_parent_page_id'));
+    if (!parentId && level !== 1) throw createHttpError(400, tReq(req, 'taxonomy.errors.root_level_mismatch'));
+    if (parentId && level === 1) throw createHttpError(400, tReq(req, 'taxonomy.errors.child_level_mismatch'));
 
     const domains = await listCapabilityBuilderDomains();
     const domainExists = domains.some((domain) => domain.code === domainCode);
@@ -746,9 +746,9 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
 
     if (parentId) {
         const parentNode = nodeByPageId.get(parentId);
-        if (!parentNode) throw createHttpError(400, 'Nadřazená položka parent_id nebyla nalezena');
-        if (parentNode.domain_code !== domainCode) throw createHttpError(400, 'Parent a child musí být ve stejném domain');
-        if (level <= Number(parentNode.level)) throw createHttpError(400, 'Child level musí být větší než parent level');
+        if (!parentNode) throw createHttpError(400, tReq(req, 'taxonomy.errors.parent_id_not_found'));
+        if (parentNode.domain_code !== domainCode) throw createHttpError(400, tReq(req, 'taxonomy.errors.parent_domain_mismatch'));
+        if (level <= Number(parentNode.level)) throw createHttpError(400, tReq(req, 'taxonomy.errors.child_level_greater'));
     }
 
     if (currentId != null) {
@@ -758,7 +758,7 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
             parentByPageId.set(pageId, parentId);
             let cursor = parentId;
             while (cursor) {
-                if (cursor === pageId) throw createHttpError(400, 'Zvolený parent_id vytváří cyklus');
+                if (cursor === pageId) throw createHttpError(400, tReq(req, 'taxonomy.errors.parent_cycle'));
                 cursor = parentByPageId.get(cursor) ?? null;
             }
         }
@@ -2375,7 +2375,7 @@ router.post('/c3/import-baseline', canAdmin, async (req, res, next) => {
     try {
         const { sheets } = req.body || {};
         if (!Array.isArray(sheets) || sheets.length === 0)
-            return res.status(400).json({ error: 'Tělo musí obsahovat pole sheets[]' });
+            return res.status(400).json({ error: tReq(req, 'taxonomy.errors.sheets_required') });
 
         // ── Pass 1: build codeToUuid map from all sheets ──────────────────────
         // Allows immediate resolution of parent_uuid and cross-sheet links.
