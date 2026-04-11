@@ -65,6 +65,9 @@ The wizard handles:
 6. optional initial data import
 7. transition to the `READY` state
 
+Clean installs do not ship a shared default admin account. The first usable admin
+is created in this wizard or provisioned explicitly by the operator.
+
 ### C3 Taxonomy Module
 
 The module selection step allows:
@@ -198,6 +201,8 @@ The reverse proxy must forward `X-Remote-User` from an authenticated upstream co
 ## Database Initialization
 
 The database is initialized automatically on startup when `APP_RUN_DB_INIT=true`.
+The init path seeds schemas, reference data, and module metadata only. It does
+not create a reusable default administrator account.
 
 The canonical directory for file-based C3 snapshots is:
 

@@ -45,7 +45,7 @@ Then open:
 
 - `http://localhost:8080`
 - the first run redirects to `/install`
-- default admin credentials after a clean install: `admin / Admin123!`
+- create the first admin account in the install wizard; there is no shared default admin
 
 If you want a full demo environment immediately:
 

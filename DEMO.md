@@ -52,7 +52,7 @@ docker compose up -d
 
 ## Credentials
 
-- username: `admin`
-- password: `Admin123!`
+Use the administrator account you created in the install wizard, or an
+explicitly provisioned admin account in your environment.
 
-After the first public deployment, change the password immediately.
+There is no shared default `admin / Admin123!` login on a clean install.

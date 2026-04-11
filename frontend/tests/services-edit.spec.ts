@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { getConfiguredAdminCredentials, loginWithConfiguredAdmin } from './admin-credentials';
 
 /**
  * Services list → edit → save happy path tests.
@@ -12,16 +13,17 @@ import { test, expect, type Page } from '@playwright/test';
  *
  * Requires INIT_WITH_TEST_SEEDS=true (demo data with DEMO-SVC-001 etc.)
  * or an already-populated database.
+ * Login requires an explicitly provisioned admin account from env.
  */
 
 async function loginAsAdmin(page: Page) {
-  await page.goto('/login');
-  const submitBtn = page.getByRole('button', { name: /přihlásit se/i });
-  await expect(submitBtn).toBeEnabled({ timeout: 10_000 });
-  await page.getByLabel('Uživatelské jméno').fill('admin');
-  await page.getByLabel('Heslo').fill('Admin123!');
-  await submitBtn.click();
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 });
+  const credentials = getConfiguredAdminCredentials();
+  if (!credentials) {
+    test.skip(true, 'Set PLAYWRIGHT_ADMIN_USERNAME and PLAYWRIGHT_ADMIN_PASSWORD to run edit-flow tests.');
+    return;
+  }
+
+  await loginWithConfiguredAdmin(page, credentials);
 }
 
 test('services list renders after login', async ({ page }) => {

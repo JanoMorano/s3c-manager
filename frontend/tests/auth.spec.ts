@@ -1,23 +1,20 @@
 import { test, expect } from '@playwright/test';
+import { getConfiguredAdminCredentials, loginWithConfiguredAdmin } from './admin-credentials';
 
 /**
  * Auth flow tests.
- * Assumes the app is seeded with the default admin account:
- *   username: admin, password: Admin123!
+ * Clean installs do not ship a default admin account.
+ * Login-dependent tests use an explicitly provisioned admin from env.
  */
 
 test('login page renders and accepts credentials', async ({ page }) => {
-  await page.goto('/login');
-  // Wait for SSO check to finish (button is enabled when ssoChecking = false)
-  const submitBtn = page.getByRole('button', { name: /přihlásit se/i });
-  await expect(submitBtn).toBeEnabled({ timeout: 10_000 });
+  const credentials = getConfiguredAdminCredentials();
+  if (!credentials) {
+    test.skip(true, 'Set PLAYWRIGHT_ADMIN_USERNAME and PLAYWRIGHT_ADMIN_PASSWORD to run login tests.');
+    return;
+  }
 
-  await page.getByLabel('Uživatelské jméno').fill('admin');
-  await page.getByLabel('Heslo').fill('Admin123!');
-  await submitBtn.click();
-
-  // After successful login the app redirects away from /login
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 });
+  await loginWithConfiguredAdmin(page, credentials);
 });
 
 test('unauthenticated access to protected route redirects to login', async ({ page }) => {
