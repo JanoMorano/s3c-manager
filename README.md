@@ -164,6 +164,18 @@ See [SECURITY.md](SECURITY.md).
 - secrets kept outside source code
 - GitHub Security Advisories for disclosure
 
+## Support development
+
+<a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_4USD.png">
+  <img src="donations/Coffee_4USD.png" width="150" alt="Buy me a coffee $4">
+</a>
+<a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_10USD.png">
+  <img src="donations/Coffee_10USD.png" width="150" alt="Buy me a coffee $10">
+</a>
+<a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_20USD.png">
+  <img src="donations/Coffee_20USD.png" width="150" alt="Buy me a coffee $20">
+</a>
+
 ## Note About Badges and Release URLs
 
 After the first push to GitHub, replace the placeholder CI badge with the real workflow badge URL of your repository.
