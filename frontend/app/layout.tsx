@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
+import Script from 'next/script';
 import './globals.css';
 import AppShell from './components/AppShell';
 import I18nProvider from './i18n/I18nProvider';
+import { getLocaleBootstrapScript } from './i18n/bootstrap';
 import { normalizeLocale, resolveLocaleFromHeader } from '../../shared/i18n/locales';
 
 export const metadata: Metadata = {
@@ -23,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={resolvedLocale}>
       <body>
+        <Script id="locale-bootstrap" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: getLocaleBootstrapScript() }} />
         <I18nProvider initialLocale={resolvedLocale}>
           <AppShell>{children}</AppShell>
         </I18nProvider>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
 import { normalizeLocale } from '../../../shared/i18n/core';
+import { readBootstrapLocale } from './bootstrap';
 import { I18nContext } from './useI18n';
 import { t as translate, type Locale } from './messages';
 
@@ -25,6 +26,9 @@ export default function I18nProvider({
   children: React.ReactNode;
 }) {
   const [locale, setLocale] = useState<Locale>(() => {
+    const bootstrapLocale = readBootstrapLocale();
+    if (bootstrapLocale) return bootstrapLocale;
+
     const snapshotLocale = getAuthSnapshot()?.preferred_lang;
     return normalizeLocale(snapshotLocale ?? initialLocale) as Locale;
   });

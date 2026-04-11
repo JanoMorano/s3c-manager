@@ -55,7 +55,6 @@ test('english login renders from the locale bootstrap snapshot', async ({ page }
   });
 
   await page.route('**/api/v1/auth/refresh', async (route) => {
-    await page.waitForTimeout(500);
     await route.fulfill({
       status: 401,
       contentType: 'application/json',
@@ -66,5 +65,9 @@ test('english login renders from the locale bootstrap snapshot', async ({ page }
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect.poll(async () => {
+    const cookies = await page.context().cookies(BASE_URL);
+    return cookies.find((cookie) => cookie.name === 'sc_locale')?.value;
+  }).toBe('en');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
 });
