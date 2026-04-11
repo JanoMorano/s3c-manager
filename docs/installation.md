@@ -78,6 +78,24 @@ the `x-install-setup-token` header. The install wizard still reads
 system reaches `READY`, which is suitable only for local or otherwise isolated
 deployments.
 
+### Language and Locale Resolution
+
+The UI and API share the same canonical locale model:
+
+- supported locales: `cs`, `en`
+- no locale prefixes in routes
+- locale resolution order:
+  1. authenticated user `preferred_lang`
+  2. locale cookie `sc_locale`
+  3. browser `Accept-Language`
+  4. fallback `cs`
+
+Legacy values such as `cz`, `cze`, and `cs-CZ` are normalized to `cs`.
+
+During first install there is no authenticated user yet, so the wizard locale
+comes from the `sc_locale` cookie or the browser header. If demo data seeding is
+enabled during install, the demo dataset is created in that resolved locale.
+
 ### C3 Taxonomy Module
 
 The module selection step allows:

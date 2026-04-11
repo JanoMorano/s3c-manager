@@ -656,7 +656,12 @@ export default function InstallPage() {
                       status: (importData.failed ?? 0) === 0 ? 'SUCCESS' : 'PARTIAL_SUCCESS',
                     };
                     results.push(ir);
-                    logMsg(`  ✅ ${fp.file.name} — ${ir.inserted} nových, ${ir.updated} aktualizovaných, ${ir.failed} chyb`);
+                    logMsg(t('install.page.execute.log.import_success', {
+                      name: fp.file.name,
+                      inserted: ir.inserted,
+                      updated: ir.updated,
+                      failed: ir.failed,
+                    }));
                   } else {
                     results.push({ ok: false, filename: fp.file.name, error: importData.error || t('install.page.execute.import_failed_short'), status: 'FAILED' });
                     logMsg(t('install.page.execute.log.import_failed', { name: fp.file.name, error: importData.error || t('install.page.execute.import_failed_short') }));

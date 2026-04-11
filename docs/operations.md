@@ -1,5 +1,23 @@
 # Operations Runbook
 
+## Locale Model
+
+Operations should treat the application locale model as:
+
+- canonical locales: `cs`, `en`
+- persisted user preference: `platform.users.preferred_lang`
+- browser/session locale cookie: `sc_locale`
+- fallback order:
+  1. authenticated user locale
+  2. cookie locale
+  3. browser `Accept-Language`
+  4. system locale for CLI/demo seed flows
+  5. fallback `cs`
+
+There are no locale prefixes in application URLs. Demo data seeding follows the
+resolved locale of the triggering request or the system locale when seeded from
+CLI automation.
+
 ## Backup
 
 Create a timestamped PostgreSQL backup from the repository root:

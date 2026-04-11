@@ -124,6 +124,10 @@ If `INSTALL_SETUP_TOKEN` is set, pre-READY install write routes require the
 
 `/api/v1/install/status` remains public so the wizard can detect install mode.
 
+If the install flow seeds demo data, it uses the resolved request locale from
+the wizard (`preferred_lang` when authenticated, otherwise `sc_locale`, then
+`Accept-Language`, then `cs`).
+
 ### Seed Flags
 
 Current seed behavior is controlled by:
@@ -182,6 +186,15 @@ Administrators manage:
 - AD/SSO-backed accounts
 - role assignments
 - account activity and basic profile data
+- user language preference (`cs` / `en`)
+
+Language preference behavior:
+
+- the canonical user locale is stored in `preferred_lang`
+- the web UI also keeps a locale cookie `sc_locale`
+- when a signed-in user changes language on `/user-info`, both the DB preference
+  and the cookie are refreshed
+- legacy values such as `cz` or `cze` are normalized to `cs`
 
 ### Group Management
 

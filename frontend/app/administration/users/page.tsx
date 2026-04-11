@@ -318,12 +318,12 @@ export default function AdministrationUsersPage() {
 
           <label className={styles.field}>
             <span className={styles.label}>{t('common.display_name')}</span>
-            <input
-              className={styles.input}
-              value={draft.display_name}
-              onChange={(event) => updateDraft('display_name', event.target.value)}
-              placeholder="Jan Novák"
-            />
+              <input
+                className={styles.input}
+                value={draft.display_name}
+                onChange={(event) => updateDraft('display_name', event.target.value)}
+                placeholder={t('administration.users.display_name_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
@@ -346,42 +346,42 @@ export default function AdministrationUsersPage() {
 
           <label className={styles.field}>
             <span className={styles.label}>{t('common.email')}</span>
-            <input
-              className={styles.input}
-              value={draft.email}
-              onChange={(event) => updateDraft('email', event.target.value)}
-              placeholder="jan.novak@firma.local"
-            />
+              <input
+                className={styles.input}
+                value={draft.email}
+                onChange={(event) => updateDraft('email', event.target.value)}
+                placeholder={t('administration.users.email_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
             <span className={styles.label}>{t('common.department')}</span>
-            <input
-              className={styles.input}
-              value={draft.department}
-              onChange={(event) => updateDraft('department', event.target.value)}
-              placeholder="Architecture Office"
-            />
+              <input
+                className={styles.input}
+                value={draft.department}
+                onChange={(event) => updateDraft('department', event.target.value)}
+                placeholder={t('administration.users.department_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
             <span className={styles.label}>{t('common.given_name')}</span>
-            <input
-              className={styles.input}
-              value={draft.given_name}
-              onChange={(event) => updateDraft('given_name', event.target.value)}
-              placeholder="Jan"
-            />
+              <input
+                className={styles.input}
+                value={draft.given_name}
+                onChange={(event) => updateDraft('given_name', event.target.value)}
+                placeholder={t('administration.users.given_name_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
             <span className={styles.label}>{t('common.surname')}</span>
-            <input
-              className={styles.input}
-              value={draft.surname}
-              onChange={(event) => updateDraft('surname', event.target.value)}
-              placeholder="Novák"
-            />
+              <input
+                className={styles.input}
+                value={draft.surname}
+                onChange={(event) => updateDraft('surname', event.target.value)}
+                placeholder={t('administration.users.surname_placeholder')}
+              />
           </label>
 
           <label className={`${styles.field} ${styles.fieldWide}`}>
