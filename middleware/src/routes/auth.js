@@ -26,6 +26,8 @@ function logAuthFailure(req, { username, userId = 0, reason }) {
 }
 
 const router = express.Router();
+const ACCESS_COOKIE_NAME = 'sc_access_token';
+const REFRESH_COOKIE_NAME = 'sc_refresh_token';
 
 const loginLimiter = rateLimit({
     windowMs: config.rateLimit.auth.windowMs,
@@ -52,6 +54,54 @@ function generateTokens(userId, username, role, displayName) {
 
 function normalizeIdentity(value) {
     return String(value ?? '').trim().toLowerCase();
+}
+
+function isProductionCookieMode() {
+    return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+}
+
+function readCookie(req, name) {
+    const cookieHeader = String(req.headers.cookie || '');
+    if (!cookieHeader) return null;
+
+    for (const part of cookieHeader.split(';')) {
+        const [rawKey, ...rest] = part.split('=');
+        const key = String(rawKey || '').trim();
+        if (!key || key !== name) continue;
+        return decodeURIComponent(rest.join('=').trim() || '');
+    }
+
+    return null;
+}
+
+function getAuthCookieOptions(maxAgeMs) {
+    return {
+        httpOnly: true,
+        secure: isProductionCookieMode(),
+        sameSite: 'lax',
+        path: '/',
+        maxAge: maxAgeMs,
+    };
+}
+
+function getAuthCookieClearOptions() {
+    return {
+        httpOnly: true,
+        secure: isProductionCookieMode(),
+        sameSite: 'lax',
+        path: '/',
+    };
+}
+
+function setAuthCookies(res, { accessToken, refreshToken }) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, getAuthCookieOptions(config.jwt.expiryMinutes * 60 * 1000));
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(config.jwt.refreshDays * 24 * 60 * 60 * 1000));
+}
+
+function clearAuthCookies(res) {
+    const clearOptions = getAuthCookieClearOptions();
+    res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
+    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
 }
 
 const SSO_CONFIG_KEYS = {
@@ -165,11 +215,12 @@ async function updateLoginState(userId, req, { isSso = false, ssoProfile = null 
     ]);
 }
 
-async function issueLoginResponse(user, req, { isSso = false, ssoProfile = null } = {}) {
+async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = null } = {}) {
     const effectiveDisplayName = ssoProfile?.display_name || user.display_name || null;
     const tokens = generateTokens(user.id, user.username, user.role, effectiveDisplayName);
     await storeRefreshToken(user.id, tokens.refresh);
     await updateLoginState(user.id, req, { isSso, ssoProfile });
+    setAuthCookies(res, { accessToken: tokens.access, refreshToken: tokens.refresh });
 
     const currentUser = await loadUserById(user.id);
     return {
@@ -337,7 +388,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
             return res.status(401).json({ error: 'Nesprávné přihlašovací údaje' });
         }
 
-        const response = await issueLoginResponse(user, req);
+        const response = await issueLoginResponse(user, req, res);
         logger.info(`Login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -374,7 +425,7 @@ router.get('/sso', async (req, res, next) => {
             return res.status(403).json({ error: 'Účet je deaktivován.' });
         }
 
-        const response = await issueLoginResponse(user, req, { isSso: true, ssoProfile });
+        const response = await issueLoginResponse(user, req, res, { isSso: true, ssoProfile });
         logger.info(`SSO login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -387,12 +438,14 @@ router.get('/sso', async (req, res, next) => {
  */
 router.post('/refresh', async (req, res, next) => {
     try {
-        const { refresh_token } = req.body;
-        if (!refresh_token) return res.status(400).json({ error: 'Chybí refresh_token' });
+        const { refresh_token } = req.body || {};
+        const cookieRefreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+        const refreshToken = String(refresh_token || cookieRefreshToken || '').trim();
+        if (!refreshToken) return res.status(400).json({ error: 'Chybí refresh_token' });
 
         let payload;
         try {
-            payload = jwt.verify(refresh_token, config.jwt.secret, {
+            payload = jwt.verify(refreshToken, config.jwt.secret, {
                 issuer: config.jwt.issuer,
                 audience: config.jwt.audience,
             });
@@ -400,7 +453,7 @@ router.post('/refresh', async (req, res, next) => {
             return res.status(401).json({ error: 'Neplatný nebo vypršený refresh token' });
         }
 
-        const tokenHash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+        const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
         const tokenRes = await getPlatformPool().query(
             'SELECT id, user_id, expires_at, revoked_at FROM platform.refresh_tokens WHERE token_hash = $1',
             [tokenHash]
@@ -422,6 +475,7 @@ router.post('/refresh', async (req, res, next) => {
         );
 
         await storeRefreshToken(user.id, newTokens.refresh);
+        setAuthCookies(res, { accessToken: newTokens.access, refreshToken: newTokens.refresh });
 
         res.json({
             access_token: newTokens.access,
@@ -435,17 +489,21 @@ router.post('/refresh', async (req, res, next) => {
 
 /**
  * POST /api/v1/auth/logout
+ * Idempotent logout: clears auth cookies even when the access token is already expired.
  */
-router.post('/logout', requireAuth, async (req, res, next) => {
+router.post('/logout', async (req, res, next) => {
     try {
-        const { refresh_token } = req.body;
-        if (refresh_token) {
-            const hash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+        const { refresh_token } = req.body || {};
+        const cookieRefreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+        const refreshToken = String(refresh_token || cookieRefreshToken || '').trim();
+        if (refreshToken) {
+            const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
             await getPlatformPool().query(
                 'UPDATE platform.refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = $1',
                 [hash]
             );
         }
+        clearAuthCookies(res);
         res.json({ message: 'Odhlášení úspěšné' });
     } catch (err) {
         next(err);

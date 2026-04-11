@@ -15,9 +15,13 @@ test('login page renders and accepts credentials', async ({ page }) => {
   }
 
   await loginWithConfiguredAdmin(page, credentials);
+  await page.goto('/user-info');
+  await expect(page.getByRole('heading', { name: /user info/i })).toBeVisible({ timeout: 10_000 });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /user info/i })).toBeVisible({ timeout: 10_000 });
 });
 
 test('unauthenticated access to protected route redirects to login', async ({ page }) => {
-  await page.goto('/c3/services');
+  await page.goto('/services/list');
   await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
 });

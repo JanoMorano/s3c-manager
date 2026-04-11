@@ -1,5 +1,6 @@
 'use strict';
 
+const bcrypt = require('bcrypt');
 const express = require('express');
 const request = require('supertest');
 
@@ -226,6 +227,128 @@ describe('auth routes', () => {
 
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/doménové přihlášení/i);
+    });
+
+    test('POST /login sets httpOnly auth cookies on successful local login', async () => {
+        const passwordHash = await bcrypt.hash('Secret123!', 4);
+        queryMock
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 11,
+                    username: 'localadmin',
+                    display_name: 'Local Admin',
+                    role: 'admin',
+                    is_active: true,
+                    auth_provider: 'local',
+                    password_hash: passwordHash,
+                    preferred_lang: 'cz',
+                    preferred_theme: 'dark',
+                }],
+            })
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 11,
+                    username: 'localadmin',
+                    display_name: 'Local Admin',
+                    role: 'admin',
+                    is_active: true,
+                    auth_provider: 'local',
+                    preferred_lang: 'cz',
+                    preferred_theme: 'dark',
+                }],
+            });
+
+        const response = await request(buildApp())
+            .post('/api/v1/auth/login')
+            .send({ username: 'localadmin', password: 'Secret123!' });
+
+        expect(response.status).toBe(200);
+        expect(response.body.user).toEqual(expect.objectContaining({
+            username: 'localadmin',
+            role: 'admin',
+        }));
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),
+            expect.stringMatching(/^sc_refresh_token=.*HttpOnly.*SameSite=Lax/i),
+        ]));
+    });
+
+    test('POST /refresh accepts refresh token from cookie and rotates auth cookies', async () => {
+        const refreshToken = require('jsonwebtoken').sign({ sub: 7 }, 'test-secret', {
+            expiresIn: '7d',
+            issuer: 'service-catalogue',
+            audience: 'service-catalogue-ui',
+        });
+
+        queryMock
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 55,
+                    user_id: 7,
+                    expires_at: '2099-01-01T00:00:00.000Z',
+                    revoked_at: null,
+                }],
+            })
+            .mockResolvedValueOnce({
+                rows: [{
+                    id: 7,
+                    username: 'jnovak',
+                    display_name: 'Jan Novak',
+                    email: 'jan.novak@example.local',
+                    role: 'editor',
+                    is_active: true,
+                    auth_provider: 'local',
+                    external_principal: null,
+                    preferred_lang: 'cz',
+                    preferred_theme: 'dark',
+                    given_name: 'Jan',
+                    surname: 'Novak',
+                    phone: null,
+                    department: 'Architecture',
+                    avatar_color: null,
+                    last_login_at: null,
+                    last_sso_login_at: null,
+                }],
+            })
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({ rows: [] });
+
+        const response = await request(buildApp())
+            .post('/api/v1/auth/refresh')
+            .set('Cookie', `sc_refresh_token=${encodeURIComponent(refreshToken)}`)
+            .send({});
+
+        expect(response.status).toBe(200);
+        expect(response.body.access_token).toBeTruthy();
+        expect(response.body.refresh_token).toBeTruthy();
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),
+            expect.stringMatching(/^sc_refresh_token=.*HttpOnly.*SameSite=Lax/i),
+        ]));
+        expect(queryMock).toHaveBeenNthCalledWith(
+            1,
+            'SELECT id, user_id, expires_at, revoked_at FROM platform.refresh_tokens WHERE token_hash = $1',
+            [expect.any(String)]
+        );
+    });
+
+    test('POST /logout revokes refresh token from cookie and clears auth cookies without request body', async () => {
+        const response = await request(buildApp())
+            .post('/api/v1/auth/logout')
+            .set('Cookie', 'sc_refresh_token=refresh-cookie-token');
+
+        expect(response.status).toBe(200);
+        expect(response.body.message).toMatch(/odhlášení úspěšné/i);
+        expect(queryMock).toHaveBeenCalledWith(
+            'UPDATE platform.refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = $1',
+            [expect.any(String)]
+        );
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_access_token=;.*HttpOnly.*SameSite=Lax/i),
+            expect.stringMatching(/^sc_refresh_token=;.*HttpOnly.*SameSite=Lax/i),
+        ]));
     });
 
     test('requireAuth ignores DEBUG_BYPASS_AUTH in secure mode', async () => {

@@ -8,6 +8,22 @@ const jwt        = require('jsonwebtoken');
 const config     = require('../config');
 const { getPlatformPool } = require('../db/pool');
 
+const ACCESS_COOKIE_NAME = 'sc_access_token';
+
+function readCookie(req, name) {
+    const cookieHeader = String(req.headers.cookie || '');
+    if (!cookieHeader) return null;
+
+    for (const part of cookieHeader.split(';')) {
+        const [rawKey, ...rest] = part.split('=');
+        const key = String(rawKey || '').trim();
+        if (!key || key !== name) continue;
+        return decodeURIComponent(rest.join('=').trim() || '');
+    }
+
+    return null;
+}
+
 /**
  * Required authentication: returns 401 when the token is missing or invalid.
  */
@@ -86,7 +102,7 @@ async function optionalAuth(req, res, next) {
 function extractToken(req) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) return authHeader.slice(7);
-    return null;
+    return readCookie(req, ACCESS_COOKIE_NAME);
 }
 
 module.exports = { requireAuth, optionalAuth };

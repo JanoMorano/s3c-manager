@@ -2,12 +2,12 @@
 /**
  * NavUser — shows logged-in user avatar + name in the top nav.
  * Click opens a dropdown with "User Info" and "Log Out".
- * Reads the JWT from localStorage (client-only, runs in useEffect).
+ * Restores a minimal session snapshot from secure cookies and cached session storage.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
-import { AUTH_STATE_EVENT, clearTokens, getAuthSnapshot, getToken } from '@/features/auth/authStore';
+import { AUTH_STATE_EVENT, clearAuthSession, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
 import styles from './NavUser.module.css';
 
 // ── Avatar colour derived from username (deterministic) ──────────────────────
@@ -27,22 +27,21 @@ export default function NavUser() {
   const [open,        setOpen]        = useState(false);
 
   useEffect(() => {
-    const syncUser = () => {
-      const snapshot = getAuthSnapshot();
+    let cancelled = false;
+    const syncUser = async () => {
+      const snapshot = await restoreAuthSession();
+      if (cancelled) return;
       setDisplayName(snapshot?.display_name || snapshot?.username || null);
       setHydrated(true);
     };
 
-    syncUser();
+    void syncUser();
     window.addEventListener('focus', syncUser);
-    window.addEventListener('storage', syncUser);
     window.addEventListener(AUTH_STATE_EVENT, syncUser);
 
-    if (!getToken()) setDisplayName(null);
-
     return () => {
+      cancelled = true;
       window.removeEventListener('focus', syncUser);
-      window.removeEventListener('storage', syncUser);
       window.removeEventListener(AUTH_STATE_EVENT, syncUser);
     };
   }, []);
@@ -59,9 +58,16 @@ export default function NavUser() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  function handleLogout() {
+  async function handleLogout() {
     setOpen(false);
-    clearTokens();
+    try {
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } finally {
+      clearAuthSession();
+    }
     router.replace('/login');
   }
 
