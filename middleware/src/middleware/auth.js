@@ -12,12 +12,6 @@ const { getPlatformPool } = require('../db/pool');
  * Required authentication: returns 401 when the token is missing or invalid.
  */
 async function requireAuth(req, res, next) {
-    // Debug bypass: only when explicitly enabled through the environment.
-    if (process.env.DEBUG_BYPASS_AUTH === 'true') {
-        req.user = { id: 999999, username: 'debug.user', display_name: 'Debug User', role: 'admin', is_active: true };
-        return next();
-    }
-
     try {
         const token = extractToken(req);
         if (!token) return res.status(401).json({ error: 'Přístup odmítnut: chybí token' });

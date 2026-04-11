@@ -163,6 +163,7 @@ See [SECURITY.md](SECURITY.md).
 - audit log for mutations and authentication failures
 - secrets kept outside source code
 - GitHub Security Advisories for disclosure
+- local development and tests must use the normal login flow, explicit JWTs, or mocked auth; there is no `DEBUG_BYPASS_AUTH` path
 
 ## Support development
 
