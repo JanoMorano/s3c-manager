@@ -219,7 +219,7 @@ function getImportTargetMeta(targetKey) {
     return C3_ENTITY_IMPORT_TARGETS[targetKey] ?? null;
 }
 
-async function getC3EntityDetailByCode(targetKey, code) {
+async function getC3EntityDetailByCode(req, targetKey, code) {
     const targetConfig = C3_ENTITY_IMPORT_TARGETS[targetKey];
     if (!targetConfig) throw createHttpError(404, tReq(req, 'taxonomy.errors.unknown_c3_target'));
 
@@ -1214,7 +1214,7 @@ router.get('/c3', async (req, res, next) => {
 
 router.get('/c3-services/:code', async (req, res, next) => {
     try {
-        const row = await getC3EntityDetailByCode('c3-services', normalizeCodeParam(req.params.code));
+        const row = await getC3EntityDetailByCode(req, 'c3-services', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_service_not_found') });
         res.json(row);
     } catch (err) { next(err); }
@@ -1222,7 +1222,7 @@ router.get('/c3-services/:code', async (req, res, next) => {
 
 router.get('/c3-applications/:code', async (req, res, next) => {
     try {
-        const row = await getC3EntityDetailByCode('c3-application', normalizeCodeParam(req.params.code));
+        const row = await getC3EntityDetailByCode(req, 'c3-application', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_application_not_found') });
         res.json(row);
     } catch (err) { next(err); }
@@ -1230,7 +1230,7 @@ router.get('/c3-applications/:code', async (req, res, next) => {
 
 router.get('/c3-data-objects/:code', async (req, res, next) => {
     try {
-        const row = await getC3EntityDetailByCode('c3-data-objects', normalizeCodeParam(req.params.code));
+        const row = await getC3EntityDetailByCode(req, 'c3-data-objects', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_data_object_not_found') });
         res.json(row);
     } catch (err) { next(err); }
@@ -1238,7 +1238,7 @@ router.get('/c3-data-objects/:code', async (req, res, next) => {
 
 router.get('/c3-technology-interactions/:code', async (req, res, next) => {
     try {
-        const row = await getC3EntityDetailByCode('c3-technology-interactions', normalizeCodeParam(req.params.code));
+        const row = await getC3EntityDetailByCode(req, 'c3-technology-interactions', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_technology_interaction_not_found') });
         res.json(row);
     } catch (err) { next(err); }
