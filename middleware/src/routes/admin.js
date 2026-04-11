@@ -47,26 +47,34 @@ const SSO_SETTINGS = [
     { key: 'auth.sso.department_header', type: 'string', defaultValue: 'x-remote-department', description: 'Trusted header carrying the department.' },
 ];
 
-const USER_SELECT = `
-    SELECT
-        id,
-        username,
-        display_name,
-        email,
-        role,
-        is_active,
-        auth_provider,
-        external_principal,
-        last_login_at,
-        last_sso_login_at,
-        created_at,
-        updated_at,
-        given_name,
-        surname,
-        department,
-        password_hash
-    FROM platform.users
-`;
+const USER_RESPONSE_FIELDS = [
+    'id',
+    'username',
+    'display_name',
+    'email',
+    'role',
+    'is_active',
+    'auth_provider',
+    'external_principal',
+    'last_login_at',
+    'last_sso_login_at',
+    'created_at',
+    'updated_at',
+    'given_name',
+    'surname',
+    'department',
+];
+
+function buildUserSelect(extraFields = []) {
+    return `
+        SELECT
+            ${[...USER_RESPONSE_FIELDS, ...extraFields].join(',\n            ')}
+        FROM platform.users
+    `;
+}
+
+const USER_RESPONSE_SELECT = buildUserSelect();
+const USER_WITH_PASSWORD_SELECT = buildUserSelect(['password_hash']);
 
 function normalizeString(value) {
     if (value === null || value === undefined) return '';
@@ -158,7 +166,7 @@ function handleSqlWriteError(err, res) {
 }
 
 async function fetchUserById(id) {
-    const result = await getPlatformPool().query(`${USER_SELECT} WHERE id = $1`, [id]);
+    const result = await getPlatformPool().query(`${USER_WITH_PASSWORD_SELECT} WHERE id = $1`, [id]);
     return result.rows[0] ?? null;
 }
 
@@ -313,7 +321,7 @@ router.get('/logs', canAdmin, async (req, res, next) => {
 
 router.get('/users', canAdmin, async (req, res, next) => {
     try {
-        const result = await getPlatformPool().query(`${USER_SELECT} ORDER BY username ASC`);
+        const result = await getPlatformPool().query(`${USER_RESPONSE_SELECT} ORDER BY username ASC`);
         res.json(result.rows.map(buildUserResponse));
     } catch (err) {
         next(err);
@@ -427,8 +435,7 @@ router.post('/users', canAdmin, async (req, res, next) => {
                 updated_at,
                 given_name,
                 surname,
-                department,
-                password_hash
+                department
         `, [
             username,
             displayName,
@@ -527,8 +534,7 @@ router.put('/users/:id', canAdmin, async (req, res, next) => {
                 updated_at,
                 given_name,
                 surname,
-                department,
-                password_hash
+                department
         `, [
             id,
             username,

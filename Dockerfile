@@ -44,7 +44,13 @@ COPY backend/db/postgres /pgdb
 COPY init/init-db-postgres.sh /app/init/init-db-postgres.sh
 COPY start.sh /app/start.sh
 
-RUN chmod +x /app/start.sh /app/init/init-db-postgres.sh
+RUN addgroup -S scapp \
+    && adduser -S -D -H -h /app -G scapp scapp \
+    && mkdir -p /app/uploads /app/init \
+    && chmod +x /app/start.sh /app/init/init-db-postgres.sh \
+    && chown -R scapp:scapp /app /pgdb
+
+USER scapp
 
 EXPOSE 3000 4000
 

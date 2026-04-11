@@ -9,10 +9,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from '@/app/components/AppLink';
 import useSWR from 'swr';
 import styles from './user-info.module.css';
-import { getToken, clearTokens } from '@/features/auth/authStore';
+import { clearAuthSession, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { ServiceListResponse, ServiceListItem } from '@/features/services/model/service.types';
 import { useRouter } from 'next/navigation';
@@ -36,6 +37,8 @@ interface MeResponse {
   display_name: string | null;
   email: string | null;
   role: string;
+  auth_provider: string | null;
+  must_change_password: boolean;
   preferred_lang: string | null;
   preferred_theme: string | null;
   given_name: string | null;
@@ -45,23 +48,10 @@ interface MeResponse {
   avatar_color: string | null;
 }
 
-// ── JWT decode (display only) ─────────────────────────────────────────────────
-function jwtExp(token: string): { iat?: number; exp?: number } {
-  try {
-    const p = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(p));
-  } catch { return {}; }
-}
-
-function fmtDate(ts: number): string {
-  try {
-    return new Intl.DateTimeFormat('cs-CZ', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ts * 1000));
-  } catch { return String(ts); }
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UserInfoPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ── Profile data from /me ─────────────────────────────────────────────────
   const { data: me, mutate: mutateMe, error: meError } = useSWR<MeResponse>(
@@ -85,9 +75,10 @@ export default function UserInfoPage() {
   const [pwSaved,    setPwSaved]    = useState(false);
   const [pwError,    setPwError]    = useState<string | null>(null);
 
-  // ── Token info ────────────────────────────────────────────────────────────
-  const [tokenInfo, setTokenInfo] = useState<{ iat?: number; exp?: number }>({});
-  const [showToken, setShowToken] = useState(false);
+  // ── Session info ───────────────────────────────────────────────────────────
+  const [showSession, setShowSession] = useState(false);
+  const mustChangePassword = me?.must_change_password || searchParams?.get('must_change_password') === '1';
+  const redirectAfterPasswordChange = searchParams?.get('next') ?? '/';
 
   // ── Seed form when /me data arrives ──────────────────────────────────────
   useEffect(() => {
@@ -103,10 +94,8 @@ export default function UserInfoPage() {
     });
   }, [me]);
 
-  // ── Decode token for timestamp display ───────────────────────────────────
   useEffect(() => {
-    const t = getToken();
-    if (t) setTokenInfo(jwtExp(t));
+    void restoreAuthSession();
   }, []);
 
   // ── Owned services ────────────────────────────────────────────────────────
@@ -121,8 +110,15 @@ export default function UserInfoPage() {
   const ownedServices: ServiceListItem[] = ownedSvcResp?.items ?? [];
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  function handleLogout() {
-    clearTokens();
+  async function handleLogout() {
+    try {
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } finally {
+      clearAuthSession();
+    }
     router.replace('/login');
   }
 
@@ -164,8 +160,16 @@ export default function UserInfoPage() {
       setPwError('Hesla se neshodují');
       return;
     }
-    if (pwForm.next.length < 8) {
-      setPwError('Nové heslo musí mít alespoň 8 znaků');
+    if (pwForm.next.length < 10) {
+      setPwError('Nové heslo musí mít alespoň 10 znaků');
+      return;
+    }
+    const hasUpper = /[A-Z]/.test(pwForm.next);
+    const hasLower = /[a-z]/.test(pwForm.next);
+    const hasDigit = /[0-9]/.test(pwForm.next);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwForm.next);
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+      setPwError('Nové heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak.');
       return;
     }
     setPwSaving(true);
@@ -184,6 +188,9 @@ export default function UserInfoPage() {
       setPwSaved(true);
       setPwForm({ current: '', next: '', confirm: '' });
       setTimeout(() => setPwSaved(false), 3000);
+      if (mustChangePassword) {
+        router.replace(redirectAfterPasswordChange);
+      }
     } catch (err) {
       setPwError(err instanceof Error ? err.message : 'Error');
     } finally {
@@ -194,7 +201,6 @@ export default function UserInfoPage() {
   // ── Derived ───────────────────────────────────────────────────────────────
   const avatarColor   = profileForm.avatar_color || (me ? pickColorFromName(me.username) : '#64748b');
   const avatarInitial = (profileForm.given_name || me?.display_name || me?.username || '?')[0].toUpperCase();
-  const isExpired     = tokenInfo.exp ? tokenInfo.exp * 1000 < Date.now() : false;
 
   if (meError) {
     return (
@@ -215,6 +221,11 @@ export default function UserInfoPage() {
 
       {/* ── Account card ─────────────────────────────────────────────────── */}
       <section className={styles.card}>
+        {mustChangePassword && (
+          <div className={styles.infoNote}>
+            První přihlášení vyžaduje změnu hesla. Dokončete ji níže před pokračováním do aplikace.
+          </div>
+        )}
         {/* Header */}
         <div className={styles.cardHeader}>
           <div className={styles.avatarLg} style={{ background: avatarColor }}>
@@ -363,7 +374,7 @@ export default function UserInfoPage() {
                   value={pwForm.next}
                   onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
                   autoComplete="new-password"
-                  placeholder="min. 8 znaků"
+                  placeholder="min. 10 znaků + upper/lower/number/special"
                   disabled={!me}
                 />
               </div>
@@ -391,29 +402,30 @@ export default function UserInfoPage() {
 
         {/* ── Token info (collapsed) ────────────────────────────────── */}
         <div className={styles.tokenSection}>
-          <button className={styles.tokenToggle} type="button" onClick={() => setShowToken(s => !s)}>
-            {showToken ? '▴ Skrýt token info' : '▾ Token info'}
+          <button className={styles.tokenToggle} type="button" onClick={() => setShowSession(s => !s)}>
+            {showSession ? '▴ Skrýt session info' : '▾ Session info'}
           </button>
-          {showToken && (
+          {showSession && (
             <dl className={styles.tokenDl}>
               <div className={styles.tokenRow}>
                 <dt>Username</dt>
-                <dd className={styles.mono}>{me?.username ?? '—'}</dd>
+                <dd className={styles.mono}>{me?.username ?? getAuthSnapshot()?.username ?? '—'}</dd>
               </div>
               <div className={styles.tokenRow}>
                 <dt>Role</dt>
-                <dd>{me?.role ? <span className={styles.rolePill}>{me.role}</span> : '—'}</dd>
+                <dd>{me?.role || getAuthSnapshot()?.role ? <span className={styles.rolePill}>{me?.role ?? getAuthSnapshot()?.role}</span> : '—'}</dd>
               </div>
               <div className={styles.tokenRow}>
-                <dt>Token issued</dt>
-                <dd>{tokenInfo.iat ? fmtDate(tokenInfo.iat) : '—'}</dd>
+                <dt>Session</dt>
+                <dd>Secure cookies + /api/v1/auth/me restore</dd>
               </div>
               <div className={styles.tokenRow}>
-                <dt>Token expires</dt>
-                <dd className={isExpired ? styles.expired : ''}>
-                  {tokenInfo.exp ? fmtDate(tokenInfo.exp) : '—'}
-                  {isExpired && ' ⚠ expired'}
-                </dd>
+                <dt>Auth provider</dt>
+                <dd>{me?.auth_provider ?? getAuthSnapshot()?.auth_provider ?? '—'}</dd>
+              </div>
+              <div className={styles.tokenRow}>
+                <dt>Must change password</dt>
+                <dd>{mustChangePassword ? 'Ano' : 'Ne'}</dd>
               </div>
             </dl>
           )}

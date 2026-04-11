@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { getConfiguredAdminCredentials } from './admin-credentials';
 
 /**
  * Demo data smoke tests.
@@ -12,8 +13,14 @@ import { test, expect, type Page } from '@playwright/test';
  */
 
 async function loginAndGetToken(page: Page): Promise<string> {
+  const credentials = getConfiguredAdminCredentials();
+  if (!credentials) {
+    test.skip(true, 'Set PLAYWRIGHT_ADMIN_USERNAME and PLAYWRIGHT_ADMIN_PASSWORD for login-dependent smoke tests.');
+    return '';
+  }
+
   const res = await page.request.post('/api/v1/auth/login', {
-    data: { username: 'admin', password: 'Admin123!' },
+    data: { username: credentials.username, password: credentials.password },
   });
   const body = await res.json();
   return body.access_token as string;

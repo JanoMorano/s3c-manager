@@ -323,6 +323,15 @@ async function bootstrapAdmin(pool, { username, displayName, email, password, mu
     return { ok: true, userId };
 }
 
+async function hasActiveAdminAccount(pool) {
+    const result = await pool.query(`
+        SELECT COUNT(*) AS cnt
+        FROM platform.users
+        WHERE role = 'admin' AND is_active = TRUE
+    `);
+    return Number.parseInt(result.rows[0]?.cnt || '0', 10) > 0;
+}
+
 // ---------------------------------------------------------------------------
 // Module activation
 // ---------------------------------------------------------------------------
@@ -539,6 +548,7 @@ module.exports = {
     transitionTo,
     checkConnectivity,
     bootstrapAdmin,
+    hasActiveAdminAccount,
     activateModule,
     getModules,
     executeInstall,

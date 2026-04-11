@@ -2,6 +2,7 @@
 
 const express = require('express');
 const request = require('supertest');
+let mockCurrentRole = 'viewer';
 
 jest.mock('../db/pool', () => {
     const query = jest.fn();
@@ -13,16 +14,36 @@ jest.mock('../db/pool', () => {
     };
 });
 
-jest.mock('../middleware/auth', () => ({ requireAuth: (req, res, next) => next() }));
-jest.mock('../db/services.repo', () => ({ findAllForExport: jest.fn(async () => [{ service_id: 'SVC-1' }]) }));
+jest.mock('../middleware/auth', () => ({
+    requireAuth: (req, res, next) => {
+        req.user = {
+            id: 42,
+            username: mockCurrentRole === 'admin' ? 'admin' : 'viewer',
+            role: mockCurrentRole,
+        };
+        next();
+    },
+}));
+const mockFindAllForExport = jest.fn(async () => [{ service_id: 'SVC-1' }]);
+jest.mock('../db/services.repo', () => ({ findAllForExport: mockFindAllForExport }));
+
+jest.mock('../middleware/rbac', () => ({
+    canAdmin: (req, res, next) => {
+        if (req.user?.role === 'admin') {
+            return next();
+        }
+
+        return res.status(403).json({ error: 'Forbidden' });
+    },
+}));
 
 describe('export routes', () => {
     beforeEach(() => {
         jest.resetModules();
+        mockCurrentRole = 'viewer';
         const { __query } = require('../db/pool');
         __query.mockReset();
-        const { findAllForExport } = require('../db/services.repo');
-        findAllForExport.mockClear();
+        mockFindAllForExport.mockClear();
     });
 
     test('GET /manifest returns manifest payload with scope', async () => {
@@ -44,6 +65,7 @@ describe('export routes', () => {
 
     test('GET /bundle returns expanded export payload', async () => {
         const { __query } = require('../db/pool');
+        mockCurrentRole = 'admin';
         __query
             .mockResolvedValueOnce({ rows: [{ contract_version: '2026-03-30.c3-v3', schema_version: 'canonical-23' }] })
             .mockResolvedValueOnce({ rows: [{ route_key: 'export.bundle' }] })
@@ -73,12 +95,21 @@ describe('export routes', () => {
         expect(response.body.import_issues).toHaveLength(1);
         expect(response.body.retention_policies).toHaveLength(1);
         expect(response.headers['x-cache-tags']).toContain('export:bundle');
+        expect(mockFindAllForExport).toHaveBeenCalledTimes(1);
     });
 
-    test('GET /route-metadata returns route export list', async () => {
+    test('GET /route-metadata returns route export list for admin', async () => {
         const { __query } = require('../db/pool');
+        mockCurrentRole = 'admin';
         __query.mockResolvedValueOnce({
-            rows: [{ route_key: 'export.bundle', feature_area: 'export', canonical_path: '/api/v1/export/bundle' }],
+            rows: [{
+                route_key: 'export.bundle',
+                feature_area: 'export',
+                canonical_path: '/api/v1/export/bundle',
+                legacy_paths_json: '[]',
+                route_kind: 'export',
+                export_endpoint: '/api/v1/export/bundle',
+            }],
         });
 
         const router = require('../routes/exports');
@@ -89,6 +120,19 @@ describe('export routes', () => {
         expect(response.status).toBe(200);
         expect(response.body[0].route_key).toBe('export.bundle');
         expect(response.headers['x-cache-tags']).toContain('export:routes');
+        expect(__query).toHaveBeenCalledTimes(1);
+    });
+
+    test('GET /route-metadata rejects viewer access without running handler', async () => {
+        const { __query } = require('../db/pool');
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/route-metadata');
+        expect(response.status).toBe(403);
+        expect(__query).not.toHaveBeenCalled();
     });
 
     test('GET /taxonomy returns taxonomy export', async () => {
@@ -178,5 +222,53 @@ describe('export routes', () => {
         expect(response.body.service_relations[0].from_service_id).toBe('SVC-1');
         expect(response.body.taxonomy_mappings[0].c3_uuid).toBe('c3-1');
         expect(response.headers['x-cache-tags']).toContain('export:graph');
+    });
+
+    test('GET /bundle rejects non-admin access', async () => {
+        const { __query } = require('../db/pool');
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/bundle');
+        expect(response.status).toBe(403);
+        expect(__query).not.toHaveBeenCalled();
+        expect(mockFindAllForExport).not.toHaveBeenCalled();
+    });
+
+    test('GET /archive-audit-reporting returns archive payload for admin', async () => {
+        const { __query } = require('../db/pool');
+        mockCurrentRole = 'admin';
+        __query
+            .mockResolvedValueOnce({ rows: [{ id: 1, archived_at: '2026-03-31T10:00:00.000Z' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 2, archived_at: '2026-03-31T10:00:00.000Z' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 3, archived_at: '2026-03-31T10:00:00.000Z' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 4, archived_at: '2026-03-31T10:00:00.000Z' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 5, archived_at: '2026-03-31T10:00:00.000Z' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 6, started_at: '2026-03-31T10:00:00.000Z' }] });
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/archive-audit-reporting');
+        expect(response.status).toBe(200);
+        expect(response.body.import_batch_archive).toHaveLength(1);
+        expect(response.body.retention_job_audit).toHaveLength(1);
+        expect(response.headers['x-cache-tags']).toContain('export:archive-audit');
+        expect(__query).toHaveBeenCalledTimes(6);
+    });
+
+    test('GET /archive-audit-reporting rejects non-admin access without running handler', async () => {
+        const { __query } = require('../db/pool');
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/archive-audit-reporting');
+        expect(response.status).toBe(403);
+        expect(__query).not.toHaveBeenCalled();
     });
 });

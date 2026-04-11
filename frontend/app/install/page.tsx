@@ -169,7 +169,7 @@ export default function InstallPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    mustChangePassword: false,
+    mustChangePassword: true,
   });
   const [adminErrors, setAdminErrors] = useState<Partial<Record<string, string>>>({});
 
@@ -203,6 +203,7 @@ export default function InstallPage() {
 
   // Global error
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [installSetupToken, setInstallSetupToken] = useState('');
 
   // Reset stuck install
   const [resetting, setResetting] = useState(false);
@@ -256,6 +257,13 @@ export default function InstallPage() {
   function goNext() {
     markDone(step);
     setStep(s => Math.min(s + 1, STEPS.length - 1));
+  }
+
+  function installRequestHeaders(): HeadersInit {
+    return {
+      'Content-Type': 'application/json',
+      ...(installSetupToken.trim() ? { 'x-install-setup-token': installSetupToken.trim() } : {}),
+    };
   }
 
   function goBack() {
@@ -349,7 +357,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({ confirm: true }),
       });
       const data = await res.json();
@@ -370,7 +378,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({ performed_by: 'wizard' }),
       });
       if (!res.ok) {
@@ -410,7 +418,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify(sysConfig),
       });
       const data = await res.json();
@@ -473,7 +481,10 @@ export default function InstallPage() {
     setCheckingConn(true);
     setConnectivity(null);
     try {
-      const res = await fetch('/api/v1/install/check-db', { method: 'POST' });
+      const res = await fetch('/api/v1/install/check-db', {
+        method: 'POST',
+        headers: installRequestHeaders(),
+      });
       const data = await res.json();
       setConnectivity(data.checks);
       if (data.ok) {
@@ -495,6 +506,10 @@ export default function InstallPage() {
     if (!adminForm.displayName.trim()) errors.displayName = 'Povinné pole';
     if (!adminForm.email.trim() || !adminForm.email.includes('@')) errors.email = 'Zadejte platný e-mail';
     if (adminForm.password.length < 10) errors.password = 'Minimálně 10 znaků';
+    if (adminForm.password && !/[A-Z]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
+    if (adminForm.password && !/[a-z]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
+    if (adminForm.password && !/[0-9]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
+    if (adminForm.password && !/[^A-Za-z0-9]/.test(adminForm.password)) errors.password = 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak';
     if (adminForm.password !== adminForm.confirmPassword) errors.confirmPassword = 'Hesla se neshodují';
     setAdminErrors(errors);
     return Object.keys(errors).length === 0;
@@ -505,7 +520,7 @@ export default function InstallPage() {
     try {
       const res = await fetch('/api/v1/install/bootstrap-admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({
           username: adminForm.username,
           displayName: adminForm.displayName,
@@ -557,7 +572,7 @@ export default function InstallPage() {
 
       const res = await fetch('/api/v1/install/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: installRequestHeaders(),
         body: JSON.stringify({
           activate_c3: activateC3,
           seed_demo: seedDemoData,
@@ -578,58 +593,62 @@ export default function InstallPage() {
       // Run import for each uploaded file sequentially
       const validPreviews = filePreviews.filter(fp => !fp.preview.fatal_error && fp.preview.row_count > 0);
       if (validPreviews.length > 0) {
-        logMsg('Přihlašuji admin účet pro import dat...');
-        setExecuteProgress(75);
-        try {
-          const loginRes = await fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: adminForm.username, password: adminForm.password }),
-          });
-          const loginData = await loginRes.json();
-          if (loginRes.ok && loginData.access_token) {
-            const results: ImportResult[] = [];
-            for (let i = 0; i < validPreviews.length; i++) {
-              const fp = validPreviews[i];
-              logMsg(`Importuji soubor ${i + 1}/${validPreviews.length}: ${fp.file.name} (${fp.preview.row_count} řádků)...`);
-              setExecuteProgress(75 + Math.round((i / validPreviews.length) * 18));
-              try {
-                const importRes = await fetch('/api/v1/import/services/csv', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'text/csv; charset=utf-8',
-                    'Authorization': `Bearer ${loginData.access_token}`,
-                  },
-                  body: fp.content,
-                });
-                const importData = await importRes.json();
-                if (importRes.ok) {
-                  const ir: ImportResult = {
-                    ok: true,
-                    filename: fp.file.name,
-                    batchId: importData.batchId,
-                    inserted: importData.inserted ?? 0,
-                    updated: importData.updated ?? 0,
-                    failed: importData.failed ?? 0,
-                    status: (importData.failed ?? 0) === 0 ? 'SUCCESS' : 'PARTIAL_SUCCESS',
-                  };
-                  results.push(ir);
-                  logMsg(`  ✅ ${fp.file.name} — ${ir.inserted} nových, ${ir.updated} aktualizovaných, ${ir.failed} chyb`);
-                } else {
-                  results.push({ ok: false, filename: fp.file.name, error: importData.error || 'Import selhal', status: 'FAILED' });
-                  logMsg(`  ⚠️ ${fp.file.name}: ${importData.error || 'selhalo'}`);
+        if (!adminForm.username.trim() || !adminForm.password) {
+          logMsg('⚠️ Import po instalaci byl přeskočen, protože tento wizard běh nevytvořil nový admin účet s dostupnými přihlašovacími údaji.');
+        } else {
+          logMsg('Přihlašuji admin účet pro import dat...');
+          setExecuteProgress(75);
+          try {
+            const loginRes = await fetch('/api/v1/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: adminForm.username, password: adminForm.password }),
+            });
+            const loginData = await loginRes.json();
+            if (loginRes.ok && loginData.access_token) {
+              const results: ImportResult[] = [];
+              for (let i = 0; i < validPreviews.length; i++) {
+                const fp = validPreviews[i];
+                logMsg(`Importuji soubor ${i + 1}/${validPreviews.length}: ${fp.file.name} (${fp.preview.row_count} řádků)...`);
+                setExecuteProgress(75 + Math.round((i / validPreviews.length) * 18));
+                try {
+                  const importRes = await fetch('/api/v1/import/services/csv', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'text/csv; charset=utf-8',
+                      'Authorization': `Bearer ${loginData.access_token}`,
+                    },
+                    body: fp.content,
+                  });
+                  const importData = await importRes.json();
+                  if (importRes.ok) {
+                    const ir: ImportResult = {
+                      ok: true,
+                      filename: fp.file.name,
+                      batchId: importData.batchId,
+                      inserted: importData.inserted ?? 0,
+                      updated: importData.updated ?? 0,
+                      failed: importData.failed ?? 0,
+                      status: (importData.failed ?? 0) === 0 ? 'SUCCESS' : 'PARTIAL_SUCCESS',
+                    };
+                    results.push(ir);
+                    logMsg(`  ✅ ${fp.file.name} — ${ir.inserted} nových, ${ir.updated} aktualizovaných, ${ir.failed} chyb`);
+                  } else {
+                    results.push({ ok: false, filename: fp.file.name, error: importData.error || 'Import selhal', status: 'FAILED' });
+                    logMsg(`  ⚠️ ${fp.file.name}: ${importData.error || 'selhalo'}`);
+                  }
+                } catch {
+                  results.push({ ok: false, filename: fp.file.name, error: 'Síťová chyba', status: 'FAILED' });
+                  logMsg(`  ⚠️ ${fp.file.name}: síťová chyba`);
                 }
-              } catch {
-                results.push({ ok: false, filename: fp.file.name, error: 'Síťová chyba', status: 'FAILED' });
-                logMsg(`  ⚠️ ${fp.file.name}: síťová chyba`);
               }
+              setImportResults(results);
+            } else {
+              logMsg('⚠️ Přihlášení pro import selhalo — data lze importovat v admin sekci');
             }
-            setImportResults(results);
-          } else {
-            logMsg('⚠️ Přihlášení pro import selhalo — data lze importovat v admin sekci');
+          } catch {
+            logMsg('⚠️ Chyba při importu — data lze importovat v admin sekci');
           }
-        } catch {
-          logMsg('⚠️ Chyba při importu — data lze importovat v admin sekci');
         }
       }
 
@@ -731,6 +750,23 @@ export default function InstallPage() {
             Detekovaná verze aplikace je novější než verze v databázi. Bude provedena migrace.
           </Alert>
         )}
+
+        <div className={styles.fieldGroup}>
+          <div className={styles.field}>
+            <label className={styles.label}>Install setup token</label>
+            <input
+              className={styles.input}
+              type="password"
+              value={installSetupToken}
+              onChange={e => setInstallSetupToken(e.target.value)}
+              autoComplete="off"
+              placeholder="Paste setup token here if backend requires it"
+            />
+            <span className={styles.fieldHint}>
+              Token se posílá jen na mutující install endpointy. Bez něj secure bootstrap zůstane uzamčený.
+            </span>
+          </div>
+        </div>
 
         {/* Reset section — shown for stuck/failed states OR when lock error occurred */}
         {installInfo && (STUCK_STATUSES.includes(installInfo.status) || installInfo.install_locked || globalError?.includes('zamčená')) && (
@@ -886,21 +922,6 @@ export default function InstallPage() {
   }
 
   function renderStep3_Admin() {
-    // If admin already exists (repair flow), skip this step
-    if (installInfo?.admin_exists) {
-      return (
-        <>
-          <h1 className={styles.panelTitle}>Admin účet</h1>
-          <p className={styles.panelSubtitle}>Admin účet je již vytvořen.</p>
-          <Alert type="success">Admin účet existuje. V repair flow bude zachován.</Alert>
-          <div className={styles.actions}>
-            <button className={styles.btnSecondary} onClick={goBack}>← Zpět</button>
-            <button className={styles.btnPrimary} onClick={goNext}>Pokračovat →</button>
-          </div>
-        </>
-      );
-    }
-
     return (
       <>
         <h1 className={styles.panelTitle}>Vytvoření admin účtu</h1>
@@ -908,6 +929,12 @@ export default function InstallPage() {
           Zadejte přihlašovací údaje pro prvního administrátora systému. Heslo bude uloženo
           jako bezpečný hash — nikdy v čitelné podobě.
         </p>
+
+        {installInfo?.admin_exists && (
+          <Alert type="warning">
+            V databázi už existuje aktivní admin účet. Tento průvodce je určen pro čistou instalaci.
+          </Alert>
+        )}
 
         {adminErrors.general && <Alert type="error">{adminErrors.general}</Alert>}
 
@@ -1417,7 +1444,7 @@ export default function InstallPage() {
             {renderConnCheck('Service Catalogue Core', true, 'bude aktivován')}
             {renderConnCheck('C3 Taxonomy', activateC3 ? undefined : true,
               activateC3 ? 'bude aktivován' : 'přeskočen')}
-            {renderConnCheck('Admin účet', installInfo?.admin_exists ?? !!adminForm.username, 'připraven')}
+            {renderConnCheck('Admin účet', installInfo?.admin_exists || !!adminForm.username, 'připraven')}
             {renderConnCheck('Release metadata', true, `v${installInfo?.app_version}`)}
           </div>
         )}

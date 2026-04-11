@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getAuthSnapshot, getToken } from '@/features/auth/authStore';
+import { restoreAuthSession } from '@/features/auth/authStore';
 import { hasRoleAccess, requiredRoleForPath } from '@/features/auth/roles';
 import {
   fetchInstallStatusSnapshot,
@@ -22,6 +22,20 @@ function isC3ScopedPath(pathname: string) {
     pathname === '/admin/c3' ||
     pathname.startsWith('/admin/c3/') ||
     pathname.startsWith('/admin/c3-')
+  );
+}
+
+function isPublicC3ReadOnlyPath(pathname: string) {
+  return (
+    pathname === '/c3/list' ||
+    pathname === '/c3/services' ||
+    pathname === '/c3/applications' ||
+    pathname === '/c3/data-objects' ||
+    pathname === '/c3/technology-interactions' ||
+    /^\/c3\/services\/[^/]+$/.test(pathname) ||
+    /^\/c3\/applications\/[^/]+$/.test(pathname) ||
+    /^\/c3\/data-objects\/[^/]+$/.test(pathname) ||
+    /^\/c3\/technology-interactions\/[^/]+$/.test(pathname)
   );
 }
 
@@ -60,13 +74,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
       // Standard auth check.
       if (pathname.startsWith('/login')) { setReady(true); return; }
-      if (!getToken()) {
+      if (isPublicC3ReadOnlyPath(pathname)) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+      const session = await restoreAuthSession();
+      if (cancelled) return;
+      if (!session) {
         router.replace(`/login?next=${encodeURIComponent(pathname)}`);
         return;
       }
 
+      if (session.must_change_password && !pathname.startsWith('/user-info')) {
+        router.replace(`/user-info?must_change_password=1&next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
       const requiredRole = requiredRoleForPath(pathname);
-      if (requiredRole && !hasRoleAccess(getAuthSnapshot()?.role, requiredRole)) {
+      if (requiredRole && !hasRoleAccess(session.role, requiredRole)) {
         router.replace('/');
         return;
       }

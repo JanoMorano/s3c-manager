@@ -5,6 +5,12 @@ const zlib = require('zlib');
 const ZIP_EOCD_SIGNATURE = 0x06054b50;
 const ZIP_CENTRAL_DIR_SIGNATURE = 0x02014b50;
 const ZIP_LOCAL_FILE_SIGNATURE = 0x04034b50;
+const ZIP_LIMITS = Object.freeze({
+    MAX_ZIP_ENTRIES: 128,
+    MAX_SINGLE_ENTRY_UNCOMPRESSED_BYTES: 8 * 1024 * 1024,
+    MAX_TOTAL_UNCOMPRESSED_BYTES: 16 * 1024 * 1024,
+    MAX_COMPRESSION_RATIO: 100,
+});
 
 function decodeXmlEntities(value) {
     return String(value ?? '')
@@ -30,9 +36,14 @@ function findEndOfCentralDirectory(buffer) {
 function listZipEntries(buffer) {
     const eocdOffset = findEndOfCentralDirectory(buffer);
     const entryCount = buffer.readUInt16LE(eocdOffset + 10);
+    if (entryCount > ZIP_LIMITS.MAX_ZIP_ENTRIES) {
+        throw new Error(`XLSX parser: ZIP entry count exceeds limit (${entryCount} > ${ZIP_LIMITS.MAX_ZIP_ENTRIES})`);
+    }
+
     const centralDirectoryOffset = buffer.readUInt32LE(eocdOffset + 16);
     const entries = new Map();
     let cursor = centralDirectoryOffset;
+    let totalUncompressedBytes = 0;
 
     for (let index = 0; index < entryCount; index += 1) {
         if (buffer.readUInt32LE(cursor) !== ZIP_CENTRAL_DIR_SIGNATURE) {
@@ -47,6 +58,26 @@ function listZipEntries(buffer) {
         const fileCommentLength = buffer.readUInt16LE(cursor + 32);
         const localHeaderOffset = buffer.readUInt32LE(cursor + 42);
         const fileName = buffer.toString('utf8', cursor + 46, cursor + 46 + fileNameLength);
+
+        if (uncompressedSize > ZIP_LIMITS.MAX_SINGLE_ENTRY_UNCOMPRESSED_BYTES) {
+            throw new Error(
+                `XLSX parser: ZIP entry ${fileName || index + 1} exceeds uncompressed size limit (${uncompressedSize} > ${ZIP_LIMITS.MAX_SINGLE_ENTRY_UNCOMPRESSED_BYTES})`
+            );
+        }
+
+        const compressedBytes = compressedSize > 0 ? compressedSize : (uncompressedSize === 0 ? 1 : 0);
+        if (compressedBytes === 0 || (uncompressedSize / compressedBytes) > ZIP_LIMITS.MAX_COMPRESSION_RATIO) {
+            throw new Error(
+                `XLSX parser: ZIP entry ${fileName || index + 1} exceeds compression ratio limit (${uncompressedSize}:${compressedSize})`
+            );
+        }
+
+        totalUncompressedBytes += uncompressedSize;
+        if (totalUncompressedBytes > ZIP_LIMITS.MAX_TOTAL_UNCOMPRESSED_BYTES) {
+            throw new Error(
+                `XLSX parser: ZIP total uncompressed size exceeds limit (${totalUncompressedBytes} > ${ZIP_LIMITS.MAX_TOTAL_UNCOMPRESSED_BYTES})`
+            );
+        }
 
         entries.set(fileName, {
             fileName,
@@ -221,4 +252,5 @@ function parseSimpleXlsxBuffer(input) {
 
 module.exports = {
     parseSimpleXlsxBuffer,
+    ZIP_LIMITS,
 };

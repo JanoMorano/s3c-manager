@@ -1,25 +1,20 @@
-import { getToken, getRefreshToken, setTokens, clearTokens } from '@/features/auth/authStore';
+import { clearAuthSession, refreshAuthSession, restoreAuthSession } from '@/features/auth/authStore';
 
 async function tryRefresh(): Promise<boolean> {
-  const refresh = getRefreshToken();
-  if (!refresh) return false;
   try {
-    const res = await fetch('/api/v1/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refresh }),
-    });
-    if (!res.ok) { clearTokens(); return false; }
-    const data = await res.json();
-    setTokens(data.access_token, data.refresh_token);
+    const refreshed = await refreshAuthSession();
+    if (!refreshed) { clearAuthSession(); return false; }
+    await restoreAuthSession(true);
     return true;
-  } catch { clearTokens(); return false; }
+  } catch {
+    clearAuthSession();
+    return false;
+  }
 }
 
 /** Returns the Authorization header for fetch() mutations in editor.api.ts and admin pages. */
 export function authHeaders(): Record<string, string> {
-  const t = getToken();
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  return {};
 }
 
 import type {
@@ -34,6 +29,7 @@ const BASE = '/api/v1';
 function buildApiRequestInit(extraHeaders: Record<string, string> = {}) {
   return {
     cache: 'no-store' as const,
+    credentials: 'include' as const,
     headers: {
       ...authHeaders(),
       ...extraHeaders,

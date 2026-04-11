@@ -8,7 +8,7 @@ const { getPlatformPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const config = require('../config');
 const logger = require('../utils/logger');
-const { getConfigValues } = require('../utils/platform-config');
+const { getConfigValues, upsertConfigValue } = require('../utils/platform-config');
 const audit = require('../db/audit.repo');
 
 /** Records a failed authentication attempt into audit_log (fire-and-forget). */
@@ -26,6 +26,9 @@ function logAuthFailure(req, { username, userId = 0, reason }) {
 }
 
 const router = express.Router();
+const ACCESS_COOKIE_NAME = 'sc_access_token';
+const REFRESH_COOKIE_NAME = 'sc_refresh_token';
+const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
 
 const loginLimiter = rateLimit({
     windowMs: config.rateLimit.auth.windowMs,
@@ -52,6 +55,65 @@ function generateTokens(userId, username, role, displayName) {
 
 function normalizeIdentity(value) {
     return String(value ?? '').trim().toLowerCase();
+}
+
+function canUserBeForcedToChangePassword(user) {
+    return user?.role === 'admin' && (user?.auth_provider ?? 'local') === 'local';
+}
+
+async function isPasswordChangeRequiredForUser(user) {
+    if (!canUserBeForcedToChangePassword(user)) return false;
+    const rows = await getConfigValues([MUST_CHANGE_PASSWORD_KEY]);
+    const raw = String(rows?.[MUST_CHANGE_PASSWORD_KEY]?.config_value ?? '').trim().toLowerCase();
+    return ['true', '1', 'yes', 'on'].includes(raw);
+}
+
+function isProductionCookieMode() {
+    return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+}
+
+function readCookie(req, name) {
+    const cookieHeader = String(req.headers.cookie || '');
+    if (!cookieHeader) return null;
+
+    for (const part of cookieHeader.split(';')) {
+        const [rawKey, ...rest] = part.split('=');
+        const key = String(rawKey || '').trim();
+        if (!key || key !== name) continue;
+        return decodeURIComponent(rest.join('=').trim() || '');
+    }
+
+    return null;
+}
+
+function getAuthCookieOptions(maxAgeMs) {
+    return {
+        httpOnly: true,
+        secure: isProductionCookieMode(),
+        sameSite: 'lax',
+        path: '/',
+        maxAge: maxAgeMs,
+    };
+}
+
+function getAuthCookieClearOptions() {
+    return {
+        httpOnly: true,
+        secure: isProductionCookieMode(),
+        sameSite: 'lax',
+        path: '/',
+    };
+}
+
+function setAuthCookies(res, { accessToken, refreshToken }) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, getAuthCookieOptions(config.jwt.expiryMinutes * 60 * 1000));
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(config.jwt.refreshDays * 24 * 60 * 60 * 1000));
+}
+
+function clearAuthCookies(res) {
+    const clearOptions = getAuthCookieClearOptions();
+    res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
+    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
 }
 
 const SSO_CONFIG_KEYS = {
@@ -87,13 +149,14 @@ function deriveIdentityCandidates(principal) {
     return [...new Set([raw, noDomain, alias].filter(Boolean))];
 }
 
-function buildUserResponse(user) {
+function buildUserResponse(user, { mustChangePassword = false } = {}) {
     return {
         id: user.id,
         username: user.username,
         display_name: user.display_name,
         role: user.role,
         auth_provider: user.auth_provider ?? 'local',
+        must_change_password: mustChangePassword,
         preferred_lang: user.preferred_lang || 'cz',
         preferred_theme: user.preferred_theme || 'dark',
     };
@@ -165,18 +228,20 @@ async function updateLoginState(userId, req, { isSso = false, ssoProfile = null 
     ]);
 }
 
-async function issueLoginResponse(user, req, { isSso = false, ssoProfile = null } = {}) {
+async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = null } = {}) {
     const effectiveDisplayName = ssoProfile?.display_name || user.display_name || null;
     const tokens = generateTokens(user.id, user.username, user.role, effectiveDisplayName);
     await storeRefreshToken(user.id, tokens.refresh);
     await updateLoginState(user.id, req, { isSso, ssoProfile });
-
+    setAuthCookies(res, { accessToken: tokens.access, refreshToken: tokens.refresh });
     const currentUser = await loadUserById(user.id);
+    const resolvedUser = currentUser || user;
+    const mustChangePassword = await isPasswordChangeRequiredForUser(resolvedUser);
     return {
         access_token: tokens.access,
         refresh_token: tokens.refresh,
         expires_in: config.jwt.expiryMinutes * 60,
-        user: buildUserResponse(currentUser || user),
+        user: buildUserResponse(resolvedUser, { mustChangePassword }),
     };
 }
 
@@ -198,6 +263,50 @@ function buildSsoProfile(req, runtimeConfig) {
         surname: surname ? String(surname).trim() : null,
         department: department ? String(department).trim() : null,
     };
+}
+
+function getTrustedProxyBoundaryConfig() {
+    return {
+        header: String(config.auth.sso.trustedProxyHeader ?? '').trim(),
+        sharedSecret: String(config.auth.sso.trustedProxySharedSecret || '').trim(),
+    };
+}
+
+function validateTrustedProxyBoundary(req) {
+    const { header, sharedSecret } = getTrustedProxyBoundaryConfig();
+    if (!header) {
+        return {
+            status: 403,
+            error: 'SSO trusted-proxy boundary header is not configured. Set AUTH_SSO_TRUSTED_PROXY_HEADER.',
+        };
+    }
+
+    if (!sharedSecret) {
+        return {
+            status: 403,
+            error: 'SSO trusted-proxy boundary is not configured. Set AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET.',
+        };
+    }
+
+    const presentedSecret = String(req.get(header) || '').trim();
+    if (!presentedSecret) {
+        return {
+            status: 403,
+            error: 'Chybí trusted-proxy secret pro SSO.',
+        };
+    }
+
+    const expected = Buffer.from(sharedSecret);
+    const presented = Buffer.from(presentedSecret);
+    const matches = expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+    if (!matches) {
+        return {
+            status: 403,
+            error: 'Neplatný trusted-proxy secret pro SSO.',
+        };
+    }
+
+    return null;
 }
 
 async function findSsoUser(principal) {
@@ -293,7 +402,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
             return res.status(401).json({ error: 'Nesprávné přihlašovací údaje' });
         }
 
-        const response = await issueLoginResponse(user, req);
+        const response = await issueLoginResponse(user, req, res);
         logger.info(`Login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -310,6 +419,11 @@ router.get('/sso', async (req, res, next) => {
         const runtimeConfig = await getSsoRuntimeConfig();
         if (!runtimeConfig.enabled) return res.status(204).end();
 
+        const boundaryError = validateTrustedProxyBoundary(req);
+        if (boundaryError) {
+            return res.status(boundaryError.status).json({ error: boundaryError.error });
+        }
+
         const ssoProfile = buildSsoProfile(req, runtimeConfig);
         if (!ssoProfile?.principal) {
             return res.status(401).json({ error: 'Doménová identita nebyla předána do aplikace.' });
@@ -325,7 +439,7 @@ router.get('/sso', async (req, res, next) => {
             return res.status(403).json({ error: 'Účet je deaktivován.' });
         }
 
-        const response = await issueLoginResponse(user, req, { isSso: true, ssoProfile });
+        const response = await issueLoginResponse(user, req, res, { isSso: true, ssoProfile });
         logger.info(`SSO login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -338,12 +452,14 @@ router.get('/sso', async (req, res, next) => {
  */
 router.post('/refresh', async (req, res, next) => {
     try {
-        const { refresh_token } = req.body;
-        if (!refresh_token) return res.status(400).json({ error: 'Chybí refresh_token' });
+        const { refresh_token } = req.body || {};
+        const cookieRefreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+        const refreshToken = String(refresh_token || cookieRefreshToken || '').trim();
+        if (!refreshToken) return res.status(400).json({ error: 'Chybí refresh_token' });
 
         let payload;
         try {
-            payload = jwt.verify(refresh_token, config.jwt.secret, {
+            payload = jwt.verify(refreshToken, config.jwt.secret, {
                 issuer: config.jwt.issuer,
                 audience: config.jwt.audience,
             });
@@ -351,7 +467,7 @@ router.post('/refresh', async (req, res, next) => {
             return res.status(401).json({ error: 'Neplatný nebo vypršený refresh token' });
         }
 
-        const tokenHash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+        const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
         const tokenRes = await getPlatformPool().query(
             'SELECT id, user_id, expires_at, revoked_at FROM platform.refresh_tokens WHERE token_hash = $1',
             [tokenHash]
@@ -373,6 +489,7 @@ router.post('/refresh', async (req, res, next) => {
         );
 
         await storeRefreshToken(user.id, newTokens.refresh);
+        setAuthCookies(res, { accessToken: newTokens.access, refreshToken: newTokens.refresh });
 
         res.json({
             access_token: newTokens.access,
@@ -386,17 +503,21 @@ router.post('/refresh', async (req, res, next) => {
 
 /**
  * POST /api/v1/auth/logout
+ * Idempotent logout: clears auth cookies even when the access token is already expired.
  */
-router.post('/logout', requireAuth, async (req, res, next) => {
+router.post('/logout', async (req, res, next) => {
     try {
-        const { refresh_token } = req.body;
-        if (refresh_token) {
-            const hash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+        const { refresh_token } = req.body || {};
+        const cookieRefreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+        const refreshToken = String(refresh_token || cookieRefreshToken || '').trim();
+        if (refreshToken) {
+            const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
             await getPlatformPool().query(
                 'UPDATE platform.refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = $1',
                 [hash]
             );
         }
+        clearAuthCookies(res);
         res.json({ message: 'Odhlášení úspěšné' });
     } catch (err) {
         next(err);
@@ -436,6 +557,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
             email: user.email ?? null,
             role: user.role,
             auth_provider: user.auth_provider ?? 'local',
+            must_change_password: await isPasswordChangeRequiredForUser(user),
             external_principal: user.external_principal ?? null,
             preferred_lang: user.preferred_lang ?? 'cz',
             preferred_theme: user.preferred_theme ?? 'dark',
@@ -501,12 +623,19 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
         if (!current_password || !new_password) {
             return res.status(400).json({ error: 'Chybí current_password nebo new_password' });
         }
-        if (new_password.length < 8) {
-            return res.status(400).json({ error: 'Nové heslo musí mít alespoň 8 znaků' });
+        if (new_password.length < 10) {
+            return res.status(400).json({ error: 'Nové heslo musí mít alespoň 10 znaků' });
+        }
+        const hasUpper = /[A-Z]/.test(new_password);
+        const hasLower = /[a-z]/.test(new_password);
+        const hasDigit = /[0-9]/.test(new_password);
+        const hasSpecial = /[^A-Za-z0-9]/.test(new_password);
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            return res.status(400).json({ error: 'Nové heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak.' });
         }
 
         const result = await getPlatformPool().query(
-            'SELECT password_hash, auth_provider FROM platform.users WHERE id = $1',
+            'SELECT password_hash, auth_provider, role FROM platform.users WHERE id = $1',
             [req.user.id]
         );
         const user = result.rows[0];
@@ -522,6 +651,16 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
             'UPDATE platform.users SET password_hash = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
             [req.user.id, newHash]
         );
+
+        if (canUserBeForcedToChangePassword(user)) {
+            await upsertConfigValue({
+                configKey: MUST_CHANGE_PASSWORD_KEY,
+                configValue: 'false',
+                configType: 'boolean',
+                description: 'Admin must change password on first login',
+                updatedBy: req.user.username || 'system',
+            });
+        }
 
         logger.info(`Password change: ${req.user.username}`);
         res.json({ message: 'Heslo bylo změněno' });

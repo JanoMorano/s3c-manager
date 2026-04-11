@@ -13,6 +13,7 @@ frontend/node_modules/
 middleware/node_modules/
 .vscode/
 claude/
+.worktrees/
 
 logs/
 output/

@@ -3,6 +3,11 @@
 const express = require('express');
 const request = require('supertest');
 
+const mockAuthState = {
+    authenticated: true,
+    role: 'admin',
+};
+
 jest.mock('../db/pool', () => {
     const query = jest.fn();
     const pool = { query };
@@ -13,10 +18,35 @@ jest.mock('../db/pool', () => {
     };
 });
 
-jest.mock('../middleware/auth', () => ({ requireAuth: (req, res, next) => next() }));
+jest.mock('../middleware/auth', () => ({
+    requireAuth: (req, res, next) => {
+        if (!mockAuthState.authenticated) {
+            return res.status(401).json({ error: 'Neautorizovaný přístup' });
+        }
+        req.user = {
+            id: 1,
+            username: 'admin',
+            display_name: 'Admin',
+            role: mockAuthState.role,
+            preferred_lang: 'cz',
+            preferred_theme: 'dark',
+        };
+        return next();
+    },
+}));
 jest.mock('../middleware/rbac', () => ({
-    canAdmin: (req, res, next) => next(),
-    canEdit: (req, res, next) => next(),
+    canAdmin: (req, res, next) => {
+        if (req.user?.role !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+        return next();
+    },
+    canEdit: (req, res, next) => {
+        if (req.user?.role === 'admin' || req.user?.role === 'editor') {
+            return next();
+        }
+        return res.status(403).json({ error: 'Forbidden' });
+    },
 }));
 jest.mock('../middleware/module-gates', () => ({
     isModuleApiEnabled: jest.fn(async () => true),
@@ -34,11 +64,175 @@ jest.mock('../config', () => ({
     },
 }));
 
+function buildEocdOnlyZip(entryCount) {
+    const buffer = Buffer.alloc(22);
+    buffer.writeUInt32LE(0x06054b50, 0);
+    buffer.writeUInt16LE(0, 4);
+    buffer.writeUInt16LE(0, 6);
+    buffer.writeUInt16LE(entryCount, 8);
+    buffer.writeUInt16LE(entryCount, 10);
+    buffer.writeUInt32LE(0, 12);
+    buffer.writeUInt32LE(0, 16);
+    buffer.writeUInt16LE(0, 20);
+    return buffer;
+}
+
 describe('taxonomy public c3 endpoints', () => {
     beforeEach(() => {
         jest.resetModules();
+        mockAuthState.authenticated = true;
+        mockAuthState.role = 'admin';
         const { __query } = require('../db/pool');
         __query.mockReset();
+    });
+
+    test.each([
+        {
+            path: '/api/v1/taxonomy/c3/types',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ code: 'ZZ' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(expect.arrayContaining([
+                    expect.objectContaining({ code: 'BP', name: 'BP' }),
+                    expect.objectContaining({ code: 'ZZ', name: 'ZZ' }),
+                ]));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3/statuses',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ code: 'zzz' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(expect.arrayContaining(['active', 'archived', 'zzz']));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3/parent-options?item_type=BP',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ title: 'Parent A' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(['Parent A']);
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/security-classifications',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ code: 'OPEN', name: 'Open', sort_order: 1 }] }),
+            expectBody: (body) => {
+                expect(body[0]).toEqual(expect.objectContaining({ code: 'OPEN' }));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({
+                rows: [{
+                    uuid: 'u1',
+                    title: 'Capability',
+                    item_type: 'BP',
+                    external_id: 'BP-1',
+                    source_external_id: 'BP-1',
+                    application: 'App',
+                    parent_code: null,
+                    references_raw: null,
+                    datasets_raw: null,
+                    parent_uuid: null,
+                }],
+            }),
+            expectBody: (body) => {
+                expect(Array.isArray(body)).toBe(true);
+                expect(body[0]).toEqual(expect.objectContaining({ title: 'Capability' }));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3-services/SRV-1',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ service_code: 'SRV-1', title: 'Service One' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(expect.objectContaining({ service_code: 'SRV-1' }));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3-applications/APL-1',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ application_code: 'APL-1', title: 'App One' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(expect.objectContaining({ application_code: 'APL-1' }));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3-data-objects/DOB-1',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ data_object_code: 'DOB-1', title: 'Data One' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(expect.objectContaining({ data_object_code: 'DOB-1' }));
+            },
+        },
+        {
+            path: '/api/v1/taxonomy/c3-technology-interactions/TIN-1',
+            setup: (queryMock) => queryMock.mockResolvedValueOnce({ rows: [{ technology_interaction_code: 'TIN-1', title: 'TIN One' }] }),
+            expectBody: (body) => {
+                expect(body).toEqual(expect.objectContaining({ technology_interaction_code: 'TIN-1' }));
+            },
+        },
+    ])('public allowlist keeps $path public', async ({ path, setup, expectBody }) => {
+        const { __query } = require('../db/pool');
+        setup(__query);
+        mockAuthState.authenticated = false;
+
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app).get(path);
+        expect(response.status).toBe(200);
+        expectBody(response.body);
+    });
+
+    test.each([
+        ['/api/v1/taxonomy/c3/dashboard'],
+        ['/api/v1/taxonomy/c3/capability-map'],
+        ['/api/v1/taxonomy/c3/capability-map-spiral7'],
+        ['/api/v1/taxonomy/c3/capability-map-spiral6'],
+        ['/api/v1/taxonomy/c3-capability-builder/domains'],
+    ])('protected endpoint %s rejects unauthenticated requests and does not hit handler', async (path) => {
+        const { __query } = require('../db/pool');
+        mockAuthState.authenticated = false;
+
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app).get(path);
+        expect(response.status).toBe(401);
+        expect(__query).not.toHaveBeenCalled();
+    });
+
+    test('POST /c3/xlsx returns 400 for oversized ZIP entry counts', async () => {
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use(express.json());
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app)
+            .post('/api/v1/taxonomy/c3/xlsx')
+            .set('Content-Type', 'application/zip')
+            .send(buildEocdOnlyZip(129));
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toMatch(/zip entry count/i);
+    });
+
+    test('GET /c3-capability-builder/domains returns domains for authenticated users', async () => {
+        const { __query } = require('../db/pool');
+        __query.mockResolvedValueOnce({
+            rows: [
+                { code: 'BusinessProcesses', label: 'BUSINESS PROCESSES', css_class: 'dom-bp', heading_color: '#e65c00', background_color: '#ffd0a0' },
+            ],
+        });
+
+        mockAuthState.authenticated = true;
+        mockAuthState.role = 'admin';
+
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app).get('/api/v1/taxonomy/c3-capability-builder/domains');
+        expect(response.status).toBe(200);
+        expect(response.body[0]).toEqual(expect.objectContaining({ code: 'BusinessProcesses' }));
     });
 
     test('GET /c3/dashboard returns aggregate payload', async () => {
