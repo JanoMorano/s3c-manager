@@ -2571,7 +2571,7 @@ router.put('/mapping/:serviceId', canAdmin, async (req, res, next) => {
             }));
         nextMappings.push(candidateMapping);
 
-        await assertServiceMappingsAllowedForState(catalogId, nextMappings);
+        await assertServiceMappingsAllowedForState(catalogId, nextMappings, (key, params) => tReq(req, key, params));
 
         const existing = await selectOne(getPool(), `
             SELECT *
@@ -2746,7 +2746,7 @@ router.delete('/mapping/:serviceId/:mappingId', canAdmin, async (req, res, next)
         if (isNaN(mappingPk)) return res.status(400).json({ error: 'Neplatné mappingId' });
         const currentMappings = await getMappingsForCatalogId(catId);
         const nextMappings = currentMappings.filter((mapping) => Number(mapping.id) !== Number(mappingPk));
-        await assertServiceMappingsAllowedForState(catId, nextMappings);
+        await assertServiceMappingsAllowedForState(catId, nextMappings, (key, params) => tReq(req, key, params));
         const oldRow = await selectOne(getPool(), `
             SELECT *
             FROM data.service_c3_mapping
