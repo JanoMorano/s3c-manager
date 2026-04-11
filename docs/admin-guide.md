@@ -94,6 +94,7 @@ Typical uses:
 - restore demo data
 - activate modules and review module state
 - coordinate backups and restores during maintenance windows
+- rehearse restores before upgrades or `./deploy.sh rebuild-db`
 
 Operations runbook:
 

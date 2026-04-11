@@ -1,44 +1,64 @@
 # Operations Runbook
 
-## Backups
+## Backup
 
-Use the backup script before upgrades, schema changes, or any destructive maintenance:
+Create a timestamped PostgreSQL backup from the repository root:
 
 ```bash
 ./scripts/backup-postgres.sh
 ```
 
-By default it writes a custom-format dump to `backups/<db>_<timestamp>.dump`.
-You can pass an explicit path if you need to control the filename.
+If you prefer the deployment helper wrapper, use:
+
+```bash
+./deploy.sh backup
+```
+
+The script writes a custom-format dump to `./backups/` by default. You can
+override the destination if you need a controlled storage location:
+
+```bash
+./scripts/backup-postgres.sh --output-dir /var/backups/service-catalogue
+./scripts/backup-postgres.sh --file /var/backups/service-catalogue/prod-20260411.dump
+```
 
 Recommended cadence:
 
-- take a backup before every upgrade
-- keep at least one recent off-host copy
-- rehearse restores on a non-production clone regularly
+- back up before every release upgrade
+- keep at least one recent backup off-host
+- automate the backup on a daily schedule for production
 
-## Restores
+## Restore
 
-Restore from a custom dump or plain SQL backup:
-
-```bash
-./scripts/restore-postgres.sh backups/service_catalogue_20260411_120000.dump
-```
-
-Operational notes:
-
-- stop the app container before restoring
-- restore into the running `sc-postgres` container
-- restart the app after the restore completes
-- verify the app with `/api/health/ready` and `/api/v1/install/status`
-
-## Practical Recovery Flow
+Restore a dump into the running PostgreSQL container:
 
 ```bash
-docker compose stop app
-./scripts/backup-postgres.sh
-./scripts/restore-postgres.sh backups/<known-good>.dump
-docker compose up -d app
+./scripts/restore-postgres.sh --file ./backups/service-catalogue_20260411_120000.dump
 ```
 
-If a restore is part of an upgrade rollback, use the last backup taken before the upgrade attempt.
+The deploy helper exposes the same flow:
+
+```bash
+./deploy.sh restore --file ./backups/service-catalogue_20260411_120000.dump --recreate-db
+```
+
+If you want a clean database before restoring, add `--recreate-db`:
+
+```bash
+./scripts/restore-postgres.sh --file ./backups/service-catalogue_20260411_120000.dump --recreate-db
+```
+
+Use plain SQL backups only when you need them for legacy tooling; custom-format
+dumps are the default and preferred recovery path.
+
+## Recovery Flow
+
+Suggested maintenance sequence:
+
+1. stop the app container if the change requires downtime
+2. create or verify a fresh backup
+3. restore into the target environment
+4. restart the app container
+5. verify `/api/health/ready`
+
+Do not use `./deploy.sh rebuild-db` as a substitute for backup and restore.

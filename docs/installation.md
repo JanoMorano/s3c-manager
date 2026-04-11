@@ -103,7 +103,9 @@ See [docs/c3-module.md](c3-module.md) for details.
 
 ### Docker Secrets (Recommended)
 
-Use file-based secrets instead of plain environment variables:
+Use file-based secrets instead of plain environment variables. The runtime
+supports `*_FILE` variables for `JWT_SECRET`, `DB_PASSWORD`, and
+`POSTGRES_PASSWORD`:
 
 ```bash
 mkdir -p secrets
@@ -113,7 +115,16 @@ echo "your-db-password" > secrets/db_password.txt
 chmod 600 secrets/*.txt
 ```
 
-Then enable the relevant `secrets:` sections in `docker-compose.yml`.
+Then pass the mounted secret file paths through the environment, for example:
+
+```env
+JWT_SECRET_FILE=/run/secrets/jwt_secret
+DB_PASSWORD_FILE=/run/secrets/db_password
+POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+```
+
+Keep the files outside the repository and rotate them together when the database
+password changes.
 
 ### Reverse Proxy (nginx Example)
 
@@ -149,11 +160,18 @@ The reverse proxy must forward `X-Remote-User` from an authenticated upstream co
 
 ### Backup and Restore
 
-Before the first production upgrade, rehearse the restore flow in [docs/operations.md](operations.md).
-The supported scripts are:
+Before the first production upgrade, rehearse the restore flow in
+[docs/operations.md](operations.md). The supported scripts are:
 
 - `./scripts/backup-postgres.sh`
 - `./scripts/restore-postgres.sh`
+
+Recommended cadence:
+
+- take a backup before every upgrade
+- keep at least one recent off-host copy
+- rehearse restores on a non-production clone regularly
+- treat `./deploy.sh rebuild-db` as a destructive reset, not a backup path
 
 ---
 
@@ -165,6 +183,9 @@ The supported scripts are:
 |---|---|---|
 | `JWT_SECRET` | JWT signing key (min. 32 chars) | `openssl rand -base64 48` |
 | `DB_PASSWORD` | PostgreSQL password | `securepassword123` |
+| `JWT_SECRET_FILE` | File path containing the JWT secret | `/run/secrets/jwt_secret` |
+| `DB_PASSWORD_FILE` | File path containing the DB password | `/run/secrets/db_password` |
+| `POSTGRES_PASSWORD_FILE` | File path containing the DB password for the postgres service | `/run/secrets/db_password` |
 
 ### Database Configuration
 
@@ -175,6 +196,7 @@ The supported scripts are:
 | `DB_NAME` | `service_catalogue` | Database name |
 | `DB_USER` | `postgres` | Database user |
 | `DB_SSL` | `false` | Enforce SSL connection |
+| `DB_SSL_INSECURE_SKIP_VERIFY` | `false` | Allow self-signed DB TLS only in local/dev environments |
 
 ### Application
 
