@@ -168,14 +168,17 @@ See [SECURITY.md](SECURITY.md).
 
 <table>
   <tr>
-    <td align="center"><strong>$4</strong></td>
-    <td align="center"><strong>$10</strong></td>
-    <td align="center"><strong>$20</strong></td>
+    <td align="center"><strong>$4 - Czech wire transfer</strong></td>
+    <td align="center"><strong>$10 - Czech wire transfer</strong></td>
+    <td align="center"><strong>$20 - Czech wire transfer</strong></td>
+    <td align="center"><strong>Revolut support</strong></td>
   </tr>
   <tr>
     <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_4USD.png"><img src="donations/Coffee_4USD.png" width="150"></a></td>
     <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_10USD.png"><img src="donations/Coffee_10USD.png" width="150"></a></td>
     <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_20USD.png"><img src="donations/Coffee_20USD.png" width="150"></a></td>
+    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/revolut_qr.jpg"><img src="donations/revolut_qr.jpg" width="150"></a></td>
+    
   </tr>
 </table>
 
