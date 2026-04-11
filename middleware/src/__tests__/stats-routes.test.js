@@ -46,4 +46,39 @@ describe('stats routes', () => {
         expect(response.body.c3_coverage[0].item_type).toBe('BP');
         expect(response.body.by_owner[0].display_name).toBe('Owner One');
     });
+
+    test('GET /export?format=csv neutralizes formula prefixes and normalizes newlines', async () => {
+        const { findAllForExport } = require('../db/services.repo');
+        findAllForExport.mockResolvedValueOnce([
+            {
+                service_id: '=SUM(1,1)',
+                title: 'Line 1\nLine 2',
+                service_type: '-Type',
+                service_status: '@Status',
+                unit_of_measure: 'Units',
+                sla_availability: 99.9,
+                sla_delivery: null,
+                sla_restoration: null,
+                portfolio_group: '+Portfolio',
+                summary: 'Summary\r\nWith break',
+            },
+        ]);
+
+        const router = require('../routes/stats');
+        const app = express();
+        app.use('/api/v1/stats', router);
+
+        const response = await request(app).get('/api/v1/stats/export?format=csv');
+        expect(response.status).toBe(200);
+
+        const lines = response.text.replace(/^\uFEFF/, '').split('\n');
+        expect(lines).toHaveLength(2);
+        expect(lines[1]).toContain('"\'=SUM(1,1)"');
+        expect(lines[1]).toContain('"Line 1 Line 2"');
+        expect(lines[1]).toContain('"\'-Type"');
+        expect(lines[1]).toContain('"\'@Status"');
+        expect(lines[1]).toContain("\"'+Portfolio\"");
+        expect(lines[1]).toContain('"Summary With break"');
+        expect(lines[1]).not.toContain('\n');
+    });
 });

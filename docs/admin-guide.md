@@ -93,6 +93,12 @@ Typical uses:
 - run repair flows
 - restore demo data
 - activate modules and review module state
+- coordinate backups and restores during maintenance windows
+- rehearse restores before upgrades or `./deploy.sh rebuild-db`
+
+Operations runbook:
+
+- [docs/operations.md](operations.md)
 
 ### First-Run Installation
 
@@ -103,6 +109,20 @@ When `APP_RUN_DB_INIT=true`, the init script runs:
 ```
 
 It always creates the core schema and conditionally applies seed data based on flags.
+It does not create a reusable default admin account.
+
+If `INSTALL_SETUP_TOKEN` is set, pre-READY install write routes require the
+`x-install-setup-token` header. This affects:
+
+- `/api/v1/install/start`
+- `/api/v1/install/bootstrap-admin`
+- `/api/v1/install/config`
+- `/api/v1/install/modules`
+- `/api/v1/install/execute`
+- `/api/v1/install/reset`
+- `/api/v1/install/check-db`
+
+`/api/v1/install/status` remains public so the wizard can detect install mode.
 
 ### Seed Flags
 
@@ -200,6 +220,16 @@ Relevant environment variables:
 - `AUTH_SSO_GIVEN_NAME_HEADER`
 - `AUTH_SSO_SURNAME_HEADER`
 - `AUTH_SSO_DEPARTMENT_HEADER`
+- `AUTH_SSO_TRUSTED_PROXY_HEADER`
+- `AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET`
+
+Operational notes:
+
+- the backend trusts SSO identity headers only when the trusted proxy header is
+  present and its shared secret matches
+- browser auth uses `HttpOnly` cookies for access and refresh tokens
+- the frontend keeps only a small user snapshot in `sessionStorage`; JWTs are
+  not persisted in browser storage
 
 ## Service Catalogue Administration
 

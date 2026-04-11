@@ -4,7 +4,7 @@
 #
 # Usage:
 #   chmod +x deploy.sh
-#   ./deploy.sh [start|stop|restart|logs|status|rebuild-db]
+#   ./deploy.sh [start|stop|restart|backup|restore|logs|status|rebuild-db]
 #
 # Prerequisites:
 #   - Docker and Docker Compose installed
@@ -30,6 +30,12 @@ check_env() {
     echo "   Create it with: cp .env.example .env  (or follow docker-compose.yml)"
     echo "   Required variables: POSTGRES_PASSWORD, JWT_SECRET"
   fi
+}
+
+backup_notice() {
+  echo "⚠️  Before destructive database changes, create a fresh backup first:"
+  echo "   ./scripts/backup-postgres.sh"
+  echo "   Restore rehearsal: ./scripts/restore-postgres.sh --file <backup.dump> --recreate-db"
 }
 
 case "${1:-start}" in
@@ -59,6 +65,16 @@ case "${1:-start}" in
     echo "✅ Restart complete."
     ;;
 
+  backup)
+    shift || true
+    ./scripts/backup-postgres.sh "$@"
+    ;;
+
+  restore)
+    shift || true
+    ./scripts/restore-postgres.sh "$@"
+    ;;
+
   pull-image)
     TAR="${2:-sc-images-amd64.tar}"
     if [ ! -f "$TAR" ]; then
@@ -72,6 +88,7 @@ case "${1:-start}" in
     ;;
 
   rebuild-db)
+    backup_notice
     echo "⚠️  WARNING: This will DELETE all PostgreSQL data and reinitialize the database!"
     echo "   Volumes: sc-pgdata (PostgreSQL data)"
     read -rp "Really continue? Type 'yes' to confirm: " confirm
@@ -135,12 +152,14 @@ case "${1:-start}" in
     ;;
 
   *)
-    echo "Usage: $0 {start|stop|restart|pull-image [tar]|rebuild-db|logs [app|db]|status|update|exec [service] [cmd]}"
+    echo "Usage: $0 {start|stop|restart|pull-image [tar]|backup|restore|rebuild-db|logs [app|db]|status|update|exec [service] [cmd]}"
     echo ""
     echo "Examples:"
     echo "  ./deploy.sh start                  # start the stack"
     echo "  ./deploy.sh logs app               # live logs from the app container"
     echo "  ./deploy.sh pull-image my.tar      # load images from a tar archive"
+    echo "  ./deploy.sh backup                 # create a PostgreSQL backup"
+    echo "  ./deploy.sh restore --file backup.dump --recreate-db"
     echo "  ./deploy.sh exec app sh            # shell inside the app container"
     echo "  ./deploy.sh rebuild-db             # wipe and reinitialize the DB"
     exit 1

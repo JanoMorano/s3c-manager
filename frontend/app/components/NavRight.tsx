@@ -1,19 +1,18 @@
 'use client';
 /**
  * NavRight — right side of the top nav bar.
- * Renders conditional admin links based on the user's JWT role, then NavUser at far right.
+ * Renders conditional admin links based on the active session role, then NavUser at far right.
  *
  * Role matrix:
  *   admin  → Search + Administration + Content Admin + NavUser
  *   editor → Search + Content Admin + NavUser
  *   viewer → Search + NavUser
  *
- * Flash fix (6F): role is cached in sessionStorage so it is available on re-navigations
- * and page reloads without waiting for useEffect to fire.
+ * Session is restored from secure cookies and cached in sessionStorage as a minimal snapshot.
  */
 import Link from '@/app/components/AppLink';
 import { useEffect, useState } from 'react';
-import { AUTH_STATE_EVENT, getAuthSnapshot, getToken } from '@/features/auth/authStore';
+import { AUTH_STATE_EVENT, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
 import NavUser from './NavUser';
 import NavGlobalSearch from './NavGlobalSearch';
@@ -28,28 +27,28 @@ export default function NavRight() {
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const syncRole = () => {
-      setRole(readRole());
+    let cancelled = false;
+    const syncRole = async () => {
+      const snapshot = await restoreAuthSession();
+      if (cancelled) return;
+      setRole(snapshot?.role ?? readRole());
       setHydrated(true);
     };
-    syncRole();
+    void syncRole();
 
     window.addEventListener('focus', syncRole);
-    window.addEventListener('storage', syncRole);
     window.addEventListener(AUTH_STATE_EVENT, syncRole);
 
-    if (!getToken()) setRole(null);
-
     return () => {
+      cancelled = true;
       window.removeEventListener('focus', syncRole);
-      window.removeEventListener('storage', syncRole);
       window.removeEventListener(AUTH_STATE_EVENT, syncRole);
     };
   }, []);
 
   const isEditor = hasRoleAccess(role, 'editor');
   const isAdmin  = hasRoleAccess(role, 'admin');
-  const canSearch = hydrated && (Boolean(role) || Boolean(getToken()));
+  const canSearch = hydrated && Boolean(role);
 
   return (
     <>

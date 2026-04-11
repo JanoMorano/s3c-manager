@@ -15,6 +15,14 @@ router.use(requireAuth);
 
 const cache = new NodeCache({ stdTTL: config.cache.dashboardTtl, checkperiod: 60 });
 
+function csvEscapeCell(value) {
+    const normalized = String(value ?? '')
+        .replace(/\r\n|\r|\n/g, ' ')
+        .replace(/^\s*([=+\-@])/, "'$1")
+        .replace(/"/g, '""');
+    return `"${normalized}"`;
+}
+
 // ─── GET /stats/dashboard ─────────────────────────────────────────────────────
 router.get('/dashboard', async (req, res, next) => {
     try {
@@ -174,8 +182,8 @@ router.get('/export', canAdmin, async (req, res, next) => {
             ];
             const header = cols.join(';');
             const rows   = services.map(s => cols.map(c => {
-                const val = (s[c] ?? '').toString().replace(/;/g, ',').replace(/\n/g, ' ');
-                return `"${val}"`;
+                const val = s[c] ?? '';
+                return csvEscapeCell(val);
             }).join(';'));
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
             res.setHeader('Content-Disposition', 'attachment; filename="service-catalogue.csv"');
