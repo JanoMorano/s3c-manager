@@ -458,27 +458,27 @@ async function assertServiceMappingsAllowedForState(catalogId, nextMappings) {
     const completenessMap = await getCapabilityCompletenessMap(primaryMappings.map((mapping) => mapping.c3_uuid));
     const incompletePrimary = primaryMappings.find((mapping) => completenessMap.get(mapping.c3_uuid) !== 'complete');
     if (incompletePrimary) {
-        throw createHttpError(409, 'Primary C3 capability ve stavu active služby musí být complete.');
+        throw createHttpError(409, tReq(req, 'taxonomy.errors.primary_capability_incomplete'));
     }
 }
 
 async function updateC3ImportEntity(targetKey, entityId, body) {
     const targetConfig = C3_ENTITY_IMPORT_TARGETS[targetKey];
-    if (!targetConfig) throw createHttpError(404, 'C3 entita nenalezena');
+    if (!targetConfig) throw createHttpError(404, tReq(req, 'taxonomy.errors.c3_entity_not_found'));
 
     const current = await selectOne(getPool(), `
         SELECT *
         FROM ${targetConfig.table}
         WHERE id = $1
     `, [entityId]);
-    if (!current) throw createHttpError(404, 'Záznam nenalezen');
+    if (!current) throw createHttpError(404, tReq(req, 'taxonomy.errors.record_not_found'));
 
     const merged = {};
     for (const field of targetConfig.fields) {
         const rawValue = hasOwn(body, field.key) ? body[field.key] : current[field.key];
         const normalized = field.normalize ? field.normalize(rawValue) : rawValue;
         if (field.required && (normalized == null || normalized === '')) {
-            throw createHttpError(400, `Pole ${field.key} je povinné`);
+            throw createHttpError(400, tReq(req, 'taxonomy.errors.required_field', { field: field.key }));
         }
         merged[field.key] = normalized;
     }
@@ -522,8 +522,8 @@ async function listCapabilityBuilderDomains() {
 
 function normalizeCapabilityMapTitle(value) {
     const title = String(value ?? '').trim();
-    if (!title) throw createHttpError(400, 'page_title je povinné');
-    if (title.length > 200) throw createHttpError(400, 'page_title je příliš dlouhé');
+    if (!title) throw createHttpError(400, tReq(req, 'taxonomy.errors.page_title_required'));
+    if (title.length > 200) throw createHttpError(400, tReq(req, 'taxonomy.errors.page_title_too_long'));
     return title;
 }
 
@@ -719,10 +719,10 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
     const domainCode = String(payload?.domain_code ?? payload?.domain ?? '').trim();
     const level = Number.parseInt(String(payload?.level ?? ''), 10);
 
-    if (!pageId) throw createHttpError(400, 'page_id je povinné');
-    if (!uuid) throw createHttpError(400, 'uuid je povinné');
-    if (!title) throw createHttpError(400, 'title je povinné');
-    if (!domainCode) throw createHttpError(400, 'domain_code je povinné');
+    if (!pageId) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_page_id'));
+    if (!uuid) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_uuid'));
+    if (!title) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_title'));
+    if (!domainCode) throw createHttpError(400, tReq(req, 'taxonomy.errors.missing_domain_code'));
     if (!Number.isInteger(level) || level < 1 || level > maxLevel) throw createHttpError(400, `level musí být celé číslo 1-${maxLevel}`);
     if (parentId && parentId === pageId) throw createHttpError(400, 'parent_id nesmí být stejné jako page_id');
     if (!parentId && level !== 1) throw createHttpError(400, 'Kořenová položka bez parent_id musí mít level 1');
@@ -730,7 +730,7 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
 
     const domains = await listCapabilityBuilderDomains();
     const domainExists = domains.some((domain) => domain.code === domainCode);
-    if (!domainExists) throw createHttpError(400, 'Neplatný domain_code');
+    if (!domainExists) throw createHttpError(400, tReq(req, 'taxonomy.errors.invalid_domain_code'));
 
     const treeResult = await selectRows(getPool(), `
         SELECT id, page_id, parent_id, level, domain_code
@@ -741,7 +741,7 @@ async function validateCapabilityBuilderPayload(payload, currentId = null, table
 
     if (currentId != null) {
         const currentNode = nodes.find((node) => Number(node.id) === Number(currentId));
-        if (!currentNode) throw createHttpError(404, 'C3 Capability Builder položka nenalezena');
+        if (!currentNode) throw createHttpError(404, tReq(req, 'taxonomy.errors.capability_builder_item_not_found'));
     }
 
     if (parentId) {
@@ -941,7 +941,7 @@ async function validateCapabilityBuilderImportRows(rawRows, translate = (key) =>
     };
 }
 
-async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', createdBy = null } = {}) {
+async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', createdBy = null, translate = (key, params) => key } = {}) {
     const preview = await validateCapabilityBuilderImportRows(rawRows, (key, params) => tReq(req, key, params));
     const validRows = rawRows
         .map((rawRow, index) => ({
@@ -1075,7 +1075,7 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
     return {
         ok: true,
         source: sourceKind,
-        message: `${CAPABILITY_BUILDER_IMPORT_TARGET.label} synchronizována`,
+        message: translate('taxonomy.messages.entity_synced', { label: CAPABILITY_BUILDER_IMPORT_TARGET.label }),
         run_id: runId,
         target: CAPABILITY_BUILDER_IMPORT_TARGET.key,
         label: CAPABILITY_BUILDER_IMPORT_TARGET.label,
@@ -1223,7 +1223,7 @@ router.get('/c3-services/:code', async (req, res, next) => {
 router.get('/c3-applications/:code', async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode('c3-application', normalizeCodeParam(req.params.code));
-        if (!row) return res.status(404).json({ error: 'C3 Application nebyla nalezena' });
+        if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_application_not_found') });
         res.json(row);
     } catch (err) { next(err); }
 });
@@ -1231,7 +1231,7 @@ router.get('/c3-applications/:code', async (req, res, next) => {
 router.get('/c3-data-objects/:code', async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode('c3-data-objects', normalizeCodeParam(req.params.code));
-        if (!row) return res.status(404).json({ error: 'C3 Data Object nebyl nalezen' });
+        if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_data_object_not_found') });
         res.json(row);
     } catch (err) { next(err); }
 });
@@ -1239,7 +1239,7 @@ router.get('/c3-data-objects/:code', async (req, res, next) => {
 router.get('/c3-technology-interactions/:code', async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode('c3-technology-interactions', normalizeCodeParam(req.params.code));
-        if (!row) return res.status(404).json({ error: 'C3 Technology Interaction nebyla nalezena' });
+        if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_technology_interaction_not_found') });
         res.json(row);
     } catch (err) { next(err); }
 });
@@ -1639,7 +1639,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
         await ensureCapabilityBuilderSeeded();
 
         const id = parseIntFilter(req.params.id, { fallback: null, min: 1, max: 2147483647 });
-        if (!id) return res.status(400).json({ error: 'Neplatné id' });
+        if (!id) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.invalid_id') });
 
         const normalized = await validateCapabilityBuilderPayload(req.body, id, 'data.c3_capability_builder', 20);
         const updateResult = await getPool().query(`
@@ -1664,7 +1664,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
                 normalized.state,
                 normalized.domainCode,
             ]);
-        if (resultRowCount(updateResult) === 0) return res.status(404).json({ error: 'C3 Capability Builder položka nenalezena' });
+        if (resultRowCount(updateResult) === 0) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.capability_builder_item_not_found') });
 
         invalidateC3CacheKeys();
 
@@ -1687,14 +1687,14 @@ router.delete('/c3-capability-builder/:id', canAdmin, async (req, res, next) => 
         await ensureCapabilityBuilderSeeded();
 
         const id = parseIntFilter(req.params.id, { fallback: null, min: 1, max: 2147483647 });
-        if (!id) return res.status(400).json({ error: 'Neplatné id' });
+        if (!id) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.invalid_id') });
 
         const item = await selectOne(getPool(), `
             SELECT id, page_id
             FROM data.c3_capability_builder
             WHERE id = $1
         `, [id]);
-        if (!item) return res.status(404).json({ error: 'C3 Capability Builder položka nenalezena' });
+        if (!item) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.capability_builder_item_not_found') });
 
         const childResult = await selectOne(getPool(), `
             SELECT COUNT(1) AS child_count
@@ -1702,7 +1702,7 @@ router.delete('/c3-capability-builder/:id', canAdmin, async (req, res, next) => 
             WHERE parent_id = $1
         `, [item.page_id]);
         if (Number(childResult?.child_count ?? 0) > 0) {
-            return res.status(409).json({ error: 'Položku nelze smazat, dokud má podřízené záznamy' });
+            return res.status(409).json({ error: tReq(req, 'taxonomy.errors.cannot_delete_with_children') });
         }
 
         await getPool().query(`
@@ -1747,7 +1747,7 @@ async function _getCatalogId(serviceIdStr) {
 router.get('/c3/:uuid', async (req, res, next) => {
     try {
         const row = await getC3TaxonomyRowByUuid(req.params.uuid);
-        if (!row) return res.status(404).json({ error: 'C3 položka nenalezena' });
+        if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_item_not_found') });
         res.json(row);
     } catch (err) { next(err); }
 });
@@ -1758,7 +1758,7 @@ router.put('/c3/:uuid', canAdmin, async (req, res, next) => {
         const { uuid } = req.params;
         const b = req.body || {};
         const existing = await getC3TaxonomyRowByUuid(uuid);
-        if (!existing) return res.status(404).json({ error: 'C3 položka nenalezena' });
+        if (!existing) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_item_not_found') });
 
         const parentCode = b.parent_code ?? null;
         const parentUuid = b.parent_uuid ?? await resolveParentUuidByCode(parentCode);
@@ -1822,7 +1822,7 @@ router.put('/c3/:uuid', canAdmin, async (req, res, next) => {
 
         await syncCapabilityDerivedLinksForCapability(uuid);
         invalidateC3CacheKeys();
-        res.json({ message: 'C3 položka aktualizována', uuid });
+        res.json({ message: tReq(req, 'taxonomy.messages.c3_item_updated'), uuid });
     } catch (err) { next(err); }
 });
 
@@ -1830,7 +1830,7 @@ router.put('/c3/:uuid', canAdmin, async (req, res, next) => {
 router.post('/c3', canAdmin, async (req, res, next) => {
     try {
         const b = req.body || {};
-        if (!b.title) return res.status(400).json({ error: 'Pole title je povinné' });
+        if (!b.title) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.required_field', { field: 'title' }) });
 
         const newUuid = b.uuid || crypto.randomUUID();
         const parentCode = b.parent_code ?? null;
@@ -1895,7 +1895,7 @@ router.delete('/c3/:uuid', canAdmin, async (req, res, next) => {
     try {
         const { uuid } = req.params;
         const existing = await getC3TaxonomyRowByUuid(uuid);
-        if (!existing) return res.status(404).json({ error: 'C3 položka nenalezena' });
+        if (!existing) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_item_not_found') });
 
         await getPool().query(`
             DELETE FROM data.c3_taxonomy
@@ -1903,7 +1903,7 @@ router.delete('/c3/:uuid', canAdmin, async (req, res, next) => {
         `, [uuid]);
 
         invalidateC3CacheKeys();
-        res.json({ message: 'C3 položka smazána', uuid });
+        res.json({ message: tReq(req, 'taxonomy.messages.c3_item_deleted'), uuid });
     } catch (err) { next(err); }
 });
 
@@ -2010,7 +2010,7 @@ router.post(
             res.json({
                 ok: true,
                 source: 'json',
-                message: `${CAPABILITY_BUILDER_IMPORT_TARGET.label} dry-run dokončen`,
+                message: tReq(req, 'taxonomy.messages.dry_run_completed', { label: CAPABILITY_BUILDER_IMPORT_TARGET.label }),
                 ...result,
             });
         } catch (err) { next(err); }
@@ -2035,6 +2035,7 @@ router.post(
                 sourceName: req.body?.source_name ?? null,
                 sourceKind: 'json',
                 createdBy: req.user?.username ?? null,
+                translate: (key, params) => tReq(req, key, params),
             });
             res.json(result);
         } catch (err) {
@@ -2058,13 +2059,13 @@ router.post(
             const rawItems = parseDelimitedRecords(csvText);
             if (rawItems.length === 0) return res.status(400).json({ error: tReq(req, 'import.errors.csv_requires_header') });
 
-            const result = await validateCapabilityBuilderImportRows(rawItems, (key, params) => tReq(req, key, params));
-            res.json({
-                ok: true,
-                source: 'csv',
-                message: `${CAPABILITY_BUILDER_IMPORT_TARGET.label} dry-run dokončen`,
-                ...result,
-            });
+                const result = await validateCapabilityBuilderImportRows(rawItems, (key, params) => tReq(req, key, params));
+                res.json({
+                    ok: true,
+                    source: 'csv',
+                    message: tReq(req, 'taxonomy.messages.dry_run_completed', { label: CAPABILITY_BUILDER_IMPORT_TARGET.label }),
+                    ...result,
+                });
         } catch (err) { next(err); }
     }
 );
@@ -2085,6 +2086,7 @@ router.post(
                 sourceName: req.query?.source_name ?? null,
                 sourceKind: 'csv',
                 createdBy: req.user?.username ?? null,
+                translate: (key, params) => tReq(req, key, params),
             });
             res.json(result);
         } catch (err) {
@@ -2127,10 +2129,10 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
         async (req, res, next) => {
             try {
                 const entityId = parseIntFilter(req.params.id, { fallback: null, min: 1, max: 2147483647 });
-                if (!entityId) return res.status(400).json({ error: 'Neplatné id' });
+                if (!entityId) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.invalid_id') });
 
                 await updateC3ImportEntity(targetKey, entityId, req.body ?? {});
-                res.json({ ok: true, message: `${targetConfig.label} upravena` });
+                res.json({ ok: true, message: tReq(req, 'taxonomy.messages.entity_updated', { label: targetConfig.label }) });
             } catch (err) { next(err); }
         }
     );
@@ -2153,7 +2155,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                 res.json({
                     ok: true,
                     source: 'json',
-                    message: `${targetConfig.label} dry-run dokončen`,
+                    message: tReq(req, 'taxonomy.messages.dry_run_completed', { label: targetConfig.label }),
                     ...result,
                 });
             } catch (err) { next(err); }
@@ -2202,7 +2204,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                 res.json({
                     ok: true,
                     source: 'json',
-                    message: `${targetConfig.label} synchronizována`,
+                    message: tReq(req, 'taxonomy.messages.entity_synced', { label: targetConfig.label }),
                     run_id: runId,
                     ...result,
                 });
@@ -2226,7 +2228,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                 res.json({
                     ok: true,
                     source: 'csv',
-                    message: `${targetConfig.label} dry-run dokončen`,
+                    message: tReq(req, 'taxonomy.messages.dry_run_completed', { label: targetConfig.label }),
                     ...result,
                 });
             } catch (err) { next(err); }
@@ -2273,7 +2275,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                 res.json({
                     ok: true,
                     source: 'csv',
-                    message: `${targetConfig.label} importována`,
+                    message: tReq(req, 'taxonomy.messages.entity_imported', { label: targetConfig.label }),
                     run_id: runId,
                     ...result,
                 });
@@ -2548,7 +2550,7 @@ router.put('/mapping/:serviceId', canAdmin, async (req, res, next) => {
         const mapType   = b.mapping_type_code || 'supports';
         const paceCode  = b.pace_code || null;
 
-        if (!c3Uuid) return res.status(400).json({ error: 'Pole c3_uuid je povinné' });
+        if (!c3Uuid) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.required_field', { field: 'c3_uuid' }) });
 
         const currentMappings = await getMappingsForCatalogId(catalogId);
         const existingMapping = currentMappings.find((mapping) =>
