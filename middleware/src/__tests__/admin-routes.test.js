@@ -86,6 +86,16 @@ describe('admin routes', () => {
         }));
     });
 
+    test('GET /users does not select password hashes for list responses', async () => {
+        queryMock.mockResolvedValueOnce({ rows: [] });
+
+        const response = await request(buildApp()).get('/api/v1/admin/users');
+
+        expect(response.status).toBe(200);
+        expect(queryMock).toHaveBeenCalledTimes(1);
+        expect(queryMock.mock.calls[0][0]).not.toMatch(/password_hash/i);
+    });
+
     test('POST /users rejects local account without password', async () => {
         const response = await request(buildApp())
             .post('/api/v1/admin/users')
