@@ -53,6 +53,23 @@ If `INSTALL_SETUP_TOKEN` is configured, pre-READY install write actions require
 the `x-install-setup-token` header. `/api/v1/install/status` stays public so the
 wizard can detect the current install mode.
 
+## Language Model
+
+The application uses canonical locales `cs` and `en` with no locale prefix in
+the URL structure.
+
+Locale resolution order:
+
+1. authenticated user preference `preferred_lang`
+2. locale cookie `sc_locale`
+3. browser/system language (`Accept-Language` or system locale for CLI/demo seed)
+4. fallback `cs`
+
+Legacy values such as `cz`, `cze`, and `cs-CZ` are normalized to `cs`.
+Changing the language in the user profile updates both the persisted user
+preference and the locale cookie. Demo seed content follows the resolved locale
+used by the install or seed request.
+
 If you want a full demo environment immediately:
 
 ```bash

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { restoreAuthSession, setAuthSnapshotFromUser } from '@/features/auth/authStore';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './login.module.css';
 
 /**
@@ -29,6 +30,7 @@ function sanitizeNext(raw: string | null | undefined): string {
 }
 
 export default function LoginPage() {
+  const t = useT();
   const router       = useRouter();
   const searchParams = useSearchParams();
   const [form,  setForm]  = useState({ username: '', password: '' });
@@ -74,10 +76,10 @@ export default function LoginPage() {
           return;
         }
 
-        const text = await res.text().catch(() => '');
+        await res.text().catch(() => '');
         if (cancelled) return;
         if (res.status === 403) {
-          setSsoMessage('Doménový účet byl rozpoznán, ale v aplikaci pro něj není aktivní účet.');
+          setSsoMessage(t('auth.login.sso_denied'));
         } else {
           setSsoMessage(null);
         }
@@ -92,7 +94,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [router, searchParams, t]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -105,7 +107,7 @@ export default function LoginPage() {
         body: JSON.stringify({ username: form.username.trim(), password: form.password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Přihlášení selhalo');
+      if (!res.ok) throw new Error(data.error ?? t('auth.login.error_failed'));
       setAuthSnapshotFromUser(data.user);
       const next = sanitizeNext(searchParams?.get('next'));
       if (data.user?.must_change_password) {
@@ -114,20 +116,20 @@ export default function LoginPage() {
       }
       router.replace(next);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Chyba');
+      setError(err instanceof Error ? err.message : t('auth.login.error_generic'));
     } finally { setBusy(false); }
   }
 
   return (
     <div className={styles.shell}>
-      <div className={styles.card}>
+        <div className={styles.card}>
         <div className={styles.logo}>SC v2</div>
         <h1 className={styles.title}>Service Catalogue</h1>
-        <p className={styles.subtitle}>Přihlaste se pro pokračování</p>
-        {ssoChecking && <div className={styles.infoMsg}>Zkouším automatické doménové přihlášení…</div>}
+        <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
+        {ssoChecking && <div className={styles.infoMsg}>{t('auth.login.sso_checking')}</div>}
         {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
         <form onSubmit={handleSubmit} className={styles.form}>
-          <label className={styles.label}>Uživatelské jméno</label>
+          <label className={styles.label}>{t('auth.login.username_label')}</label>
           <input
             className={styles.input}
             type="text"
@@ -138,7 +140,7 @@ export default function LoginPage() {
             disabled={busy || ssoChecking}
             required
           />
-          <label className={styles.label}>Heslo</label>
+          <label className={styles.label}>{t('auth.login.password_label')}</label>
           <input
             className={styles.input}
             type="password"
@@ -150,7 +152,7 @@ export default function LoginPage() {
           />
           {error && <div className={styles.errorMsg}>{error}</div>}
           <button className={styles.btn} type="submit" disabled={busy || ssoChecking}>
-            {ssoChecking ? 'Kontroluji doménový login…' : busy ? 'Přihlašuji…' : 'Přihlásit se'}
+            {ssoChecking ? t('common.loading') : busy ? t('auth.login.logging_in') : t('auth.login.submit')}
           </button>
         </form>
       </div>

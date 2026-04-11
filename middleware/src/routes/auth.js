@@ -8,8 +8,10 @@ const { getPlatformPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const config = require('../config');
 const logger = require('../utils/logger');
-const { getConfigValues } = require('../utils/platform-config');
+const { getConfigValues, upsertConfigValue } = require('../utils/platform-config');
 const audit = require('../db/audit.repo');
+const { normalizeLocale } = require('../../../shared/i18n/locales');
+const { tReq } = require('../utils/i18n');
 
 /** Records a failed authentication attempt into audit_log (fire-and-forget). */
 function logAuthFailure(req, { username, userId = 0, reason }) {
@@ -26,74 +28,18 @@ function logAuthFailure(req, { username, userId = 0, reason }) {
 }
 
 const router = express.Router();
+const ACCESS_COOKIE_NAME = 'sc_access_token';
+const REFRESH_COOKIE_NAME = 'sc_refresh_token';
+const LOCALE_COOKIE_NAME = 'sc_locale';
+const MUST_CHANGE_PASSWORD_KEY = 'auth.admin_must_change_password';
 
 const loginLimiter = rateLimit({
     windowMs: config.rateLimit.auth.windowMs,
     max: config.rateLimit.auth.max,
-    message: { error: 'Příliš mnoho pokusů o přihlášení. Zkuste to za 15 minut.' },
+    message: (req) => ({ error: tReq(req, 'auth.rate_limit.login') }),
     standardHeaders: true,
     legacyHeaders: false,
 });
-
-const ACCESS_COOKIE_NAME = 'sc_access_token';
-const REFRESH_COOKIE_NAME = 'sc_refresh_token';
-
-function parseCookies(req) {
-    const raw = String(req.headers.cookie || '');
-    if (!raw) return {};
-    const out = {};
-    for (const part of raw.split(';')) {
-        const idx = part.indexOf('=');
-        if (idx === -1) continue;
-        const key = part.slice(0, idx).trim();
-        const value = part.slice(idx + 1).trim();
-        if (!key) continue;
-        try {
-            out[key] = decodeURIComponent(value);
-        } catch {
-            out[key] = value;
-        }
-    }
-    return out;
-}
-
-function getCookie(req, name) {
-    const cookies = parseCookies(req);
-    const value = cookies[name];
-    return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-function isHttpsRequest(req) {
-    const forwardedProto = String(req.get('x-forwarded-proto') || '')
-        .split(',')[0]
-        .trim()
-        .toLowerCase();
-    return Boolean(req.secure) || forwardedProto === 'https';
-}
-
-function buildCookieOptions(req, maxAgeMs) {
-    return {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: isHttpsRequest(req),
-        path: '/',
-        maxAge: maxAgeMs,
-    };
-}
-
-function setAuthCookies(req, res, { accessToken, refreshToken }) {
-    res.cookie(ACCESS_COOKIE_NAME, accessToken, buildCookieOptions(req, config.jwt.expiryMinutes * 60 * 1000));
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, buildCookieOptions(req, config.jwt.refreshDays * 24 * 60 * 60 * 1000));
-}
-
-function clearAuthCookies(req, res) {
-    const clearOpts = {
-        ...buildCookieOptions(req, 0),
-        maxAge: 0,
-    };
-    res.clearCookie(ACCESS_COOKIE_NAME, clearOpts);
-    res.clearCookie(REFRESH_COOKIE_NAME, clearOpts);
-}
 
 function generateTokens(userId, username, role, displayName) {
     const payload = { sub: userId, username, role, display_name: displayName ?? null };
@@ -112,6 +58,82 @@ function generateTokens(userId, username, role, displayName) {
 
 function normalizeIdentity(value) {
     return String(value ?? '').trim().toLowerCase();
+}
+
+function canUserBeForcedToChangePassword(user) {
+    return user?.role === 'admin' && (user?.auth_provider ?? 'local') === 'local';
+}
+
+async function isPasswordChangeRequiredForUser(user) {
+    if (!canUserBeForcedToChangePassword(user)) return false;
+    const rows = await getConfigValues([MUST_CHANGE_PASSWORD_KEY]);
+    const raw = String(rows?.[MUST_CHANGE_PASSWORD_KEY]?.config_value ?? '').trim().toLowerCase();
+    return ['true', '1', 'yes', 'on'].includes(raw);
+}
+
+function isHttpsRequest(req) {
+    const forwardedProto = String(req.get('x-forwarded-proto') || '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+    return Boolean(req.secure) || forwardedProto === 'https';
+}
+
+function readCookie(req, name) {
+    const cookieHeader = String(req.headers.cookie || '');
+    if (!cookieHeader) return null;
+
+    for (const part of cookieHeader.split(';')) {
+        const [rawKey, ...rest] = part.split('=');
+        const key = String(rawKey || '').trim();
+        if (!key || key !== name) continue;
+        return decodeURIComponent(rest.join('=').trim() || '');
+    }
+
+    return null;
+}
+
+function getAuthCookieOptions(req, maxAgeMs) {
+    return {
+        httpOnly: true,
+        secure: isHttpsRequest(req),
+        sameSite: 'lax',
+        path: '/',
+        maxAge: maxAgeMs,
+    };
+}
+
+function getAuthCookieClearOptions(req) {
+    return {
+        httpOnly: true,
+        secure: isHttpsRequest(req),
+        sameSite: 'lax',
+        path: '/',
+    };
+}
+
+function setAuthCookies(req, res, { accessToken, refreshToken }) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, getAuthCookieOptions(req, config.jwt.expiryMinutes * 60 * 1000));
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(req, config.jwt.refreshDays * 24 * 60 * 60 * 1000));
+}
+
+function getLocaleCookieOptions(req) {
+    return {
+        secure: isHttpsRequest(req),
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+    };
+}
+
+function setLocaleCookie(req, res, locale) {
+    res.cookie(LOCALE_COOKIE_NAME, normalizeLocale(locale), getLocaleCookieOptions(req));
+}
+
+function clearAuthCookies(req, res) {
+    const clearOptions = getAuthCookieClearOptions(req);
+    res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
+    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
 }
 
 const SSO_CONFIG_KEYS = {
@@ -147,14 +169,15 @@ function deriveIdentityCandidates(principal) {
     return [...new Set([raw, noDomain, alias].filter(Boolean))];
 }
 
-function buildUserResponse(user) {
+function buildUserResponse(user, { mustChangePassword = false } = {}) {
     return {
         id: user.id,
         username: user.username,
         display_name: user.display_name,
         role: user.role,
         auth_provider: user.auth_provider ?? 'local',
-        preferred_lang: user.preferred_lang || 'cz',
+        must_change_password: mustChangePassword,
+        preferred_lang: normalizeLocale(user.preferred_lang),
         preferred_theme: user.preferred_theme || 'dark',
     };
 }
@@ -231,13 +254,15 @@ async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = 
     await storeRefreshToken(user.id, tokens.refresh);
     await updateLoginState(user.id, req, { isSso, ssoProfile });
     setAuthCookies(req, res, { accessToken: tokens.access, refreshToken: tokens.refresh });
-
     const currentUser = await loadUserById(user.id);
+    const resolvedUser = currentUser || user;
+    const mustChangePassword = await isPasswordChangeRequiredForUser(resolvedUser);
+    setLocaleCookie(req, res, resolvedUser.preferred_lang);
     return {
         access_token: tokens.access,
         refresh_token: tokens.refresh,
         expires_in: config.jwt.expiryMinutes * 60,
-        user: buildUserResponse(currentUser || user),
+        user: buildUserResponse(resolvedUser, { mustChangePassword }),
     };
 }
 
@@ -259,6 +284,50 @@ function buildSsoProfile(req, runtimeConfig) {
         surname: surname ? String(surname).trim() : null,
         department: department ? String(department).trim() : null,
     };
+}
+
+function getTrustedProxyBoundaryConfig() {
+    return {
+        header: String(config.auth.sso.trustedProxyHeader ?? '').trim(),
+        sharedSecret: String(config.auth.sso.trustedProxySharedSecret || '').trim(),
+    };
+}
+
+function validateTrustedProxyBoundary(req) {
+    const { header, sharedSecret } = getTrustedProxyBoundaryConfig();
+    if (!header) {
+        return {
+            status: 403,
+            error: tReq(req, 'auth.sso.errors.boundary_header_missing'),
+        };
+    }
+
+    if (!sharedSecret) {
+        return {
+            status: 403,
+            error: tReq(req, 'auth.sso.errors.boundary_secret_missing'),
+        };
+    }
+
+    const presentedSecret = String(req.get(header) || '').trim();
+    if (!presentedSecret) {
+        return {
+            status: 403,
+            error: tReq(req, 'auth.sso.errors.boundary_secret_required'),
+        };
+    }
+
+    const expected = Buffer.from(sharedSecret);
+    const presented = Buffer.from(presentedSecret);
+    const matches = expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+    if (!matches) {
+        return {
+            status: 403,
+            error: tReq(req, 'auth.sso.errors.boundary_secret_invalid'),
+        };
+    }
+
+    return null;
 }
 
 async function findSsoUser(principal) {
@@ -312,7 +381,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
         const password = String(req.body.password ?? '');
 
         if (!username || !password) {
-            return res.status(400).json({ error: 'Chybí username nebo password' });
+            return res.status(400).json({ error: tReq(req, 'auth.login.errors.missing_credentials') });
         }
 
         const result = await getPlatformPool().query(`
@@ -333,25 +402,25 @@ router.post('/login', loginLimiter, async (req, res, next) => {
         const user = result.rows[0];
         if (!user) {
             logAuthFailure(req, { username, reason: 'user_not_found' });
-            return res.status(401).json({ error: 'Nesprávné přihlašovací údaje' });
+            return res.status(401).json({ error: tReq(req, 'auth.login.errors.invalid_credentials') });
         }
         if (!user.is_active) {
             logAuthFailure(req, { username, userId: user.id, reason: 'account_disabled' });
-            return res.status(403).json({ error: 'Účet deaktivován' });
+            return res.status(403).json({ error: tReq(req, 'auth.errors.account_deactivated') });
         }
         if (user.auth_provider === 'ad') {
             logAuthFailure(req, { username, userId: user.id, reason: 'ad_account_local_attempt' });
-            return res.status(401).json({ error: 'Tento účet používá doménové přihlášení přes AD/SSO.' });
+            return res.status(401).json({ error: tReq(req, 'auth.login.errors.ad_account') });
         }
         if (!user.password_hash) {
             logAuthFailure(req, { username, userId: user.id, reason: 'no_password_hash' });
-            return res.status(401).json({ error: 'Tento účet nemá nastavené lokální heslo.' });
+            return res.status(401).json({ error: tReq(req, 'auth.login.errors.local_password_missing') });
         }
 
         const valid = await bcrypt.compare(password, user.password_hash);
         if (!valid) {
             logAuthFailure(req, { username, userId: user.id, reason: 'invalid_password' });
-            return res.status(401).json({ error: 'Nesprávné přihlašovací údaje' });
+            return res.status(401).json({ error: tReq(req, 'auth.login.errors.invalid_credentials') });
         }
 
         const response = await issueLoginResponse(user, req, res);
@@ -365,62 +434,30 @@ router.post('/login', loginLimiter, async (req, res, next) => {
 /**
  * GET /api/v1/auth/sso
  * Silent login through trusted headers from reverse proxy / IIS / ADFS.
- * SECURITY: validates that requests come from a trusted proxy via IP whitelist
- *           and/or shared secret header before accepting SSO identity headers.
  */
 router.get('/sso', async (req, res, next) => {
     try {
         const runtimeConfig = await getSsoRuntimeConfig();
         if (!runtimeConfig.enabled) return res.status(204).end();
 
-        // --- SECURITY: Proxy trust validation (fail-closed) ---
-        const ssoConf = config.auth.sso;
-        const hasSecret  = Boolean(ssoConf.sharedSecret);
-        const hasIpList  = ssoConf.trustedProxies.length > 0;
-        const noBoundary = !hasSecret && !hasIpList;
-
-        // If no boundary is configured: fail-closed unless AUTH_SSO_ALLOW_OPEN=true
-        if (noBoundary) {
-            if (!ssoConf.allowOpen) {
-                logger.error('SSO blocked: no boundary guard configured (set AUTH_SSO_SHARED_SECRET, AUTH_SSO_TRUSTED_PROXIES, or AUTH_SSO_ALLOW_OPEN=true).');
-                return res.status(403).json({ error: 'SSO není nakonfigurováno bezpečně. Kontaktujte správce.' });
-            }
-            logger.warn('SSO: running without boundary guard (AUTH_SSO_ALLOW_OPEN=true). Ensure the application is in an isolated network.');
+        const boundaryError = validateTrustedProxyBoundary(req);
+        if (boundaryError) {
+            return res.status(boundaryError.status).json({ error: boundaryError.error });
         }
-
-        // Validate shared secret (takes priority — checked first)
-        if (hasSecret) {
-            const provided = (req.get(ssoConf.sharedSecretHeader) || '').trim();
-            if (!provided || provided !== ssoConf.sharedSecret) {
-                logger.warn(`SSO rejected: invalid or missing ${ssoConf.sharedSecretHeader} from ${req.ip}`);
-                return res.status(403).json({ error: 'SSO request rejected: untrusted source.' });
-            }
-        }
-
-        // Validate trusted proxy IP whitelist
-        if (hasIpList) {
-            const clientIp = (req.ip || req.connection?.remoteAddress || '').replace(/^::ffff:/, '');
-            const isTrusted = ssoConf.trustedProxies.includes(clientIp);
-            if (!isTrusted) {
-                logger.warn(`SSO rejected: untrusted proxy IP ${clientIp} (allowed: ${ssoConf.trustedProxies.join(', ')})`);
-                return res.status(403).json({ error: 'SSO request rejected: untrusted proxy IP.' });
-            }
-        }
-        // --- End proxy trust validation ---
 
         const ssoProfile = buildSsoProfile(req, runtimeConfig);
         if (!ssoProfile?.principal) {
-            return res.status(401).json({ error: 'Doménová identita nebyla předána do aplikace.' });
+            return res.status(401).json({ error: tReq(req, 'auth.sso.errors.missing_identity') });
         }
 
         const user = await findSsoUser(ssoProfile.principal);
         if (!user) {
             logAuthFailure(req, { username: ssoProfile.principal, reason: 'sso_user_not_found' });
-            return res.status(403).json({ error: 'Doménový uživatel nemá v aplikaci aktivní účet.' });
+            return res.status(403).json({ error: tReq(req, 'auth.sso.errors.no_active_account') });
         }
         if (!user.is_active) {
             logAuthFailure(req, { username: user.username, userId: user.id, reason: 'sso_account_disabled' });
-            return res.status(403).json({ error: 'Účet je deaktivován.' });
+            return res.status(403).json({ error: tReq(req, 'auth.sso.errors.account_deactivated') });
         }
 
         const response = await issueLoginResponse(user, req, res, { isSso: true, ssoProfile });
@@ -436,20 +473,22 @@ router.get('/sso', async (req, res, next) => {
  */
 router.post('/refresh', async (req, res, next) => {
     try {
-        const refresh_token = String(req.body?.refresh_token || getCookie(req, REFRESH_COOKIE_NAME) || '').trim();
-        if (!refresh_token) return res.status(400).json({ error: 'Chybí refresh_token' });
+        const { refresh_token } = req.body || {};
+        const cookieRefreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+        const refreshToken = String(refresh_token || cookieRefreshToken || '').trim();
+        if (!refreshToken) return res.status(400).json({ error: tReq(req, 'auth.refresh.errors.missing_token') });
 
         let payload;
         try {
-            payload = jwt.verify(refresh_token, config.jwt.secret, {
+            payload = jwt.verify(refreshToken, config.jwt.secret, {
                 issuer: config.jwt.issuer,
                 audience: config.jwt.audience,
             });
         } catch {
-            return res.status(401).json({ error: 'Neplatný nebo vypršený refresh token' });
+            return res.status(401).json({ error: tReq(req, 'auth.refresh.errors.invalid_token') });
         }
 
-        const tokenHash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+        const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
         const tokenRes = await getPlatformPool().query(
             'SELECT id, user_id, expires_at, revoked_at FROM platform.refresh_tokens WHERE token_hash = $1',
             [tokenHash]
@@ -457,11 +496,11 @@ router.post('/refresh', async (req, res, next) => {
         const tokenRow = tokenRes.rows[0];
 
         if (!tokenRow || tokenRow.revoked_at || new Date(tokenRow.expires_at) < new Date()) {
-            return res.status(401).json({ error: 'Refresh token je neplatný nebo byl odvolán' });
+            return res.status(401).json({ error: tReq(req, 'auth.refresh.errors.revoked_token') });
         }
 
         const user = await loadUserById(payload.sub);
-        if (!user || !user.is_active) return res.status(401).json({ error: 'Uživatel nenalezen' });
+        if (!user || !user.is_active) return res.status(401).json({ error: tReq(req, 'auth.refresh.errors.user_not_found') });
 
         const newTokens = generateTokens(user.id, user.username, user.role, user.display_name);
 
@@ -485,19 +524,22 @@ router.post('/refresh', async (req, res, next) => {
 
 /**
  * POST /api/v1/auth/logout
+ * Idempotent logout: clears auth cookies even when the access token is already expired.
  */
-router.post('/logout', requireAuth, async (req, res, next) => {
+router.post('/logout', async (req, res, next) => {
     try {
-        const refresh_token = String(req.body?.refresh_token || getCookie(req, REFRESH_COOKIE_NAME) || '').trim();
-        if (refresh_token) {
-            const hash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+        const { refresh_token } = req.body || {};
+        const cookieRefreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+        const refreshToken = String(refresh_token || cookieRefreshToken || '').trim();
+        if (refreshToken) {
+            const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
             await getPlatformPool().query(
                 'UPDATE platform.refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = $1',
                 [hash]
             );
         }
         clearAuthCookies(req, res);
-        res.json({ message: 'Odhlášení úspěšné' });
+        res.json({ message: tReq(req, 'auth.logout.success') });
     } catch (err) {
         next(err);
     }
@@ -527,7 +569,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
             user = result.rows[0];
         }
 
-        if (!user) return res.status(404).json({ error: 'Uživatel nenalezen' });
+        if (!user) return res.status(404).json({ error: tReq(req, 'auth.refresh.errors.user_not_found') });
 
         res.json({
             id: user.id,
@@ -536,8 +578,9 @@ router.get('/me', requireAuth, async (req, res, next) => {
             email: user.email ?? null,
             role: user.role,
             auth_provider: user.auth_provider ?? 'local',
+            must_change_password: await isPasswordChangeRequiredForUser(user),
             external_principal: user.external_principal ?? null,
-            preferred_lang: user.preferred_lang ?? 'cz',
+            preferred_lang: normalizeLocale(user.preferred_lang),
             preferred_theme: user.preferred_theme ?? 'dark',
             given_name: user.given_name ?? null,
             surname: user.surname ?? null,
@@ -586,7 +629,7 @@ router.patch('/me', requireAuth, async (req, res, next) => {
             }
         }
 
-        res.json({ message: 'Profil uložen' });
+        res.json({ message: tReq(req, 'auth.profile.saved') });
     } catch (err) {
         next(err);
     }
@@ -599,23 +642,30 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
     try {
         const { current_password, new_password } = req.body;
         if (!current_password || !new_password) {
-            return res.status(400).json({ error: 'Chybí current_password nebo new_password' });
+            return res.status(400).json({ error: tReq(req, 'auth.password.errors.missing_fields') });
         }
-        if (new_password.length < 8) {
-            return res.status(400).json({ error: 'Nové heslo musí mít alespoň 8 znaků' });
+        if (new_password.length < 10) {
+            return res.status(400).json({ error: tReq(req, 'auth.password.errors.too_short') });
+        }
+        const hasUpper = /[A-Z]/.test(new_password);
+        const hasLower = /[a-z]/.test(new_password);
+        const hasDigit = /[0-9]/.test(new_password);
+        const hasSpecial = /[^A-Za-z0-9]/.test(new_password);
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            return res.status(400).json({ error: tReq(req, 'auth.password.errors.policy') });
         }
 
         const result = await getPlatformPool().query(
-            'SELECT password_hash, auth_provider FROM platform.users WHERE id = $1',
+            'SELECT password_hash, auth_provider, role FROM platform.users WHERE id = $1',
             [req.user.id]
         );
         const user = result.rows[0];
         if (!user || user.auth_provider === 'ad' || !user.password_hash) {
-            return res.status(400).json({ error: 'Tento účet používá doménové přihlášení a lokální heslo změnit nelze.' });
+            return res.status(400).json({ error: tReq(req, 'auth.password.errors.ad_account') });
         }
 
         const valid = await bcrypt.compare(current_password, user.password_hash);
-        if (!valid) return res.status(401).json({ error: 'Nesprávné aktuální heslo' });
+        if (!valid) return res.status(401).json({ error: tReq(req, 'auth.password.errors.invalid_current') });
 
         const newHash = await bcrypt.hash(new_password, 12);
         await getPlatformPool().query(
@@ -623,8 +673,18 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
             [req.user.id, newHash]
         );
 
+        if (canUserBeForcedToChangePassword(user)) {
+            await upsertConfigValue({
+                configKey: MUST_CHANGE_PASSWORD_KEY,
+                configValue: 'false',
+                configType: 'boolean',
+                description: 'Admin must change password on first login',
+                updatedBy: req.user.username || 'system',
+            });
+        }
+
         logger.info(`Password change: ${req.user.username}`);
-        res.json({ message: 'Heslo bylo změněno' });
+        res.json({ message: tReq(req, 'auth.password.success') });
     } catch (err) {
         next(err);
     }
@@ -636,11 +696,14 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
 router.put('/preferences', requireAuth, async (req, res, next) => {
     try {
         const { preferred_lang, preferred_theme } = req.body;
+        const normalizedPreferredLang = normalizeLocale(preferred_lang ?? req.user.preferred_lang);
+        const normalizedPreferredTheme = preferred_theme || req.user.preferred_theme;
         await getPlatformPool().query(
             'UPDATE platform.users SET preferred_lang = $2, preferred_theme = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-            [req.user.id, preferred_lang || req.user.preferred_lang, preferred_theme || req.user.preferred_theme]
+            [req.user.id, normalizedPreferredLang, normalizedPreferredTheme]
         );
-        res.json({ message: 'Preference uloženy' });
+        setLocaleCookie(req, res, normalizedPreferredLang);
+        res.json({ message: tReq(req, 'auth.preferences.saved'), preferred_lang: normalizedPreferredLang });
     } catch (err) {
         next(err);
     }

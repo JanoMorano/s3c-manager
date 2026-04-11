@@ -1,26 +1,16 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
-import { ROLE_ACCESS_LABELS, ROLE_LABELS, type AppRole } from '@/features/auth/roles';
+import type { AppRole } from '@/features/auth/roles';
 import styles from './users.module.css';
 
 const USERS_ENDPOINT = '/api/v1/admin/users';
 
-const ROLE_OPTIONS: Array<{ value: AppRole; label: string; access: string }> = [
-  { value: 'viewer', label: ROLE_LABELS.viewer, access: ROLE_ACCESS_LABELS.viewer },
-  { value: 'editor', label: ROLE_LABELS.editor, access: ROLE_ACCESS_LABELS.editor },
-  { value: 'admin', label: ROLE_LABELS.admin, access: ROLE_ACCESS_LABELS.admin },
-]
-
-const PROVIDER_OPTIONS = [
-  { value: 'local', label: 'Local login', help: 'Přihlášení přes username + heslo.' },
-  { value: 'ad', label: 'AD / SSO', help: 'Doménové přihlášení přes trusted hlavičky z reverse proxy nebo IIS.' },
-] as const
-
-type AuthProvider = (typeof PROVIDER_OPTIONS)[number]['value']
+type AuthProvider = 'local' | 'ad'
 type SortKey = 'username' | 'display_name' | 'role' | 'auth_provider' | 'is_active' | 'last_login_at'
 type SortDirection = 'asc' | 'desc'
 
@@ -73,10 +63,14 @@ const EMPTY_DRAFT: UserDraft = {
   department: '',
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return 'Nikdy'
+function formatDate(value: string | null, locale: 'cs' | 'en', neverLabel: string): string {
+  if (!value) return neverLabel
   try {
-    return new Intl.DateTimeFormat('cs-CZ', {
+    const dateLocale: Record<'cs' | 'en', string> = {
+      cs: 'cs-CZ',
+      en: 'en-GB',
+    }
+    return new Intl.DateTimeFormat(dateLocale[locale], {
       dateStyle: 'short',
       timeStyle: 'short',
     }).format(new Date(value))
@@ -92,9 +86,35 @@ function compareValues(left: string | number | boolean, right: string | number |
 }
 
 export default function AdministrationUsersPage() {
+  const t = useT();
+  const locale = useLocale();
+  const roleOptions: Array<{ value: AppRole; label: string; access: string }> = [
+    {
+      value: 'viewer',
+      label: t('administration.users.role.viewer.label'),
+      access: t('administration.users.role.viewer.access'),
+    },
+    {
+      value: 'editor',
+      label: t('administration.users.role.editor.label'),
+      access: t('administration.users.role.editor.access'),
+    },
+    {
+      value: 'admin',
+      label: t('administration.users.role.admin.label'),
+      access: t('administration.users.role.admin.access'),
+    },
+  ];
+  const PROVIDER_OPTIONS = [
+    { value: 'local', label: t('administration.users.provider.local.label'), help: t('administration.users.provider.local.help') },
+    { value: 'ad', label: t('administration.users.provider.ad.label'), help: t('administration.users.provider.ad.help') },
+  ] as const;
+  const roleLabelByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.label])) as Record<AppRole, string>;
+  const roleAccessByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.access])) as Record<AppRole, string>;
+  const providerLabelByValue = Object.fromEntries(PROVIDER_OPTIONS.map((option) => [option.value, option.label])) as Record<AuthProvider, string>;
   const { data, isLoading, error } = useSWR<AdminUser[]>(USERS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
-  })
+  });
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [sortKey, setSortKey] = useState<SortKey>('username')
@@ -118,6 +138,18 @@ export default function AdministrationUsersPage() {
     scrollEditorIntoView()
   }, [draft.username, editingId])
 
+  function getRoleLabel(role: AppRole) {
+    return roleLabelByValue[role] ?? role;
+  }
+
+  function getRoleAccess(role: AppRole) {
+    return roleAccessByValue[role] ?? '';
+  }
+
+  function getProviderLabel(provider: AuthProvider) {
+    return providerLabelByValue[provider] ?? provider;
+  }
+
   const filteredUsers = useMemo(() => {
     const rows = data ?? []
     const query = deferredSearch.trim().toLowerCase()
@@ -128,15 +160,15 @@ export default function AdministrationUsersPage() {
         user.username,
         user.display_name,
         user.email,
-        user.role_label,
-        user.auth_provider_label,
+        getRoleLabel(user.role),
+        getProviderLabel(user.auth_provider),
         user.external_principal,
         user.given_name,
         user.surname,
         user.department,
       ].some((value) => String(value ?? '').toLowerCase().includes(query))
     )
-  }, [data, deferredSearch])
+  }, [data, deferredSearch, roleLabelByValue, providerLabelByValue])
 
   const sortedUsers = useMemo(() => {
     const direction = sortDirection === 'asc' ? 1 : -1
@@ -146,20 +178,28 @@ export default function AdministrationUsersPage() {
           ? Number(left.is_active)
           : sortKey === 'last_login_at'
             ? new Date(left.last_login_at ?? '1970-01-01T00:00:00Z').getTime()
-            : String(left[sortKey] ?? '').toLocaleLowerCase('cs')
+            : sortKey === 'role'
+              ? getRoleLabel(left.role).toLocaleLowerCase(locale)
+              : sortKey === 'auth_provider'
+                ? getProviderLabel(left.auth_provider).toLocaleLowerCase(locale)
+                : String(left[sortKey] ?? '').toLocaleLowerCase(locale)
 
       const rightValue =
         sortKey === 'is_active'
           ? Number(right.is_active)
           : sortKey === 'last_login_at'
             ? new Date(right.last_login_at ?? '1970-01-01T00:00:00Z').getTime()
-            : String(right[sortKey] ?? '').toLocaleLowerCase('cs')
+            : sortKey === 'role'
+              ? getRoleLabel(right.role).toLocaleLowerCase(locale)
+              : sortKey === 'auth_provider'
+                ? getProviderLabel(right.auth_provider).toLocaleLowerCase(locale)
+                : String(right[sortKey] ?? '').toLocaleLowerCase(locale)
 
       const result = compareValues(leftValue, rightValue)
       if (result !== 0) return result * direction
-      return left.username.localeCompare(right.username, 'cs') * direction
+      return left.username.localeCompare(right.username, locale) * direction
     })
-  }, [filteredUsers, sortDirection, sortKey])
+  }, [filteredUsers, locale, providerLabelByValue, roleLabelByValue, sortDirection, sortKey])
 
   function beginCreate() {
     setEditingId(null)
@@ -234,44 +274,43 @@ export default function AdministrationUsersPage() {
       }
 
       if (!res.ok) {
-        throw new Error(payload?.error ?? text ?? `Uložení selhalo (${res.status})`)
+        throw new Error(payload?.error ?? text ?? t('administration.users.save_failed_status', { status: String(res.status) }))
       }
 
       await globalMutate(USERS_ENDPOINT)
       setEditingId(null)
       setDraft(EMPTY_DRAFT)
-      setSaveOk(editingId ? 'Uživatel byl upraven.' : 'Uživatel byl vytvořen.')
+      setSaveOk(editingId ? t('administration.users.save_updated') : t('administration.users.save_created'))
     } catch (errorValue: unknown) {
-      setSaveError(errorValue instanceof Error ? errorValue.message : 'Uložení selhalo')
+      setSaveError(errorValue instanceof Error ? errorValue.message : t('administration.users.save_failed'))
     } finally {
       setSaving(false)
     }
   }
 
   const selectedProvider = PROVIDER_OPTIONS.find((option) => option.value === draft.auth_provider) ?? PROVIDER_OPTIONS[0]
+  const neverLabel = t('common.never')
 
   return (
     <div className={styles.shell}>
       <nav className={styles.breadcrumb}>
-        <Link href="/administration">Administration</Link>
+        <Link href="/administration">{t('nav.administration')}</Link>
         <span className={styles.sep}>/</span>
-        <span>User Management</span>
+        <span>{t('administration.card.users.title')}</span>
       </nav>
 
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>User Management</h1>
-          <p className={styles.pageDesc}>
-            Zakládání lokálních i AD účtů, přiřazení rolí a řízení přístupu do `Content Admin` a `Administration`.
-          </p>
+          <h1 className={styles.pageTitle}>{t('administration.card.users.title')}</h1>
+          <p className={styles.pageDesc}>{t('administration.card.users.desc')}</p>
         </div>
         <button type="button" className={styles.primaryButton} onClick={beginCreate}>
-          Nový uživatel
+          {t('administration.users.new_button')}
         </button>
       </div>
 
       <div className={styles.roleGrid}>
-        {ROLE_OPTIONS.map((option) => (
+        {roleOptions.map((option) => (
           <article key={option.value} className={styles.roleCard}>
             <div className={styles.roleTitle}>{option.label}</div>
             <div className={styles.roleDesc}>{option.access}</div>
@@ -282,17 +321,17 @@ export default function AdministrationUsersPage() {
       <section ref={editPanelRef} className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
-            <div className={styles.panelTitle}>{editingId ? `Editace uživatele #${editingId}` : 'Nový uživatel'}</div>
+            <div className={styles.panelTitle}>{editingId ? t('administration.users.edit_title', { id: editingId }) : t('administration.users.new_title')}</div>
             <div className={styles.panelMeta}>
               {selectedProvider.help}
             </div>
           </div>
           <div className={styles.panelActions}>
             <button type="button" className={styles.primaryButton} onClick={handleSave} disabled={saving}>
-              {saving ? 'Ukládám…' : editingId ? 'Uložit změny' : 'Vytvořit uživatele'}
+              {saving ? t('common.loading') : editingId ? t('administration.users.save_changes') : t('administration.users.create_user')}
             </button>
             <button type="button" className={styles.secondaryButton} onClick={resetEditor} disabled={saving}>
-              Zrušit
+              {t('administration.users.cancel')}
             </button>
           </div>
         </div>
@@ -302,7 +341,7 @@ export default function AdministrationUsersPage() {
 
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span className={styles.label}>Username</span>
+            <span className={styles.label}>{t('administration.users.username_label')}</span>
             <input
               className={styles.input}
               value={draft.username}
@@ -312,26 +351,26 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Display name</span>
-            <input
-              className={styles.input}
-              value={draft.display_name}
-              onChange={(event) => updateDraft('display_name', event.target.value)}
-              placeholder="Jan Novák"
-            />
+            <span className={styles.label}>{t('common.display_name')}</span>
+              <input
+                className={styles.input}
+                value={draft.display_name}
+                onChange={(event) => updateDraft('display_name', event.target.value)}
+                placeholder={t('administration.users.display_name_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Role</span>
+            <span className={styles.label}>{t('common.role')}</span>
             <select className={styles.select} value={draft.role} onChange={(event) => updateDraft('role', event.target.value as AppRole)}>
-              {ROLE_OPTIONS.map((option) => (
+              {roleOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Typ přihlášení</span>
+            <span className={styles.label}>{t('common.login_type')}</span>
             <select className={styles.select} value={draft.auth_provider} onChange={(event) => updateDraft('auth_provider', event.target.value as AuthProvider)}>
               {PROVIDER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -340,77 +379,81 @@ export default function AdministrationUsersPage() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>E-mail</span>
-            <input
-              className={styles.input}
-              value={draft.email}
-              onChange={(event) => updateDraft('email', event.target.value)}
-              placeholder="jan.novak@firma.local"
-            />
+            <span className={styles.label}>{t('common.email')}</span>
+              <input
+                className={styles.input}
+                value={draft.email}
+                onChange={(event) => updateDraft('email', event.target.value)}
+                placeholder={t('administration.users.email_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Oddělení</span>
-            <input
-              className={styles.input}
-              value={draft.department}
-              onChange={(event) => updateDraft('department', event.target.value)}
-              placeholder="Architecture Office"
-            />
+            <span className={styles.label}>{t('common.department')}</span>
+              <input
+                className={styles.input}
+                value={draft.department}
+                onChange={(event) => updateDraft('department', event.target.value)}
+                placeholder={t('administration.users.department_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Jméno</span>
-            <input
-              className={styles.input}
-              value={draft.given_name}
-              onChange={(event) => updateDraft('given_name', event.target.value)}
-              placeholder="Jan"
-            />
+            <span className={styles.label}>{t('common.given_name')}</span>
+              <input
+                className={styles.input}
+                value={draft.given_name}
+                onChange={(event) => updateDraft('given_name', event.target.value)}
+                placeholder={t('administration.users.given_name_placeholder')}
+              />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>Příjmení</span>
-            <input
-              className={styles.input}
-              value={draft.surname}
-              onChange={(event) => updateDraft('surname', event.target.value)}
-              placeholder="Novák"
-            />
+            <span className={styles.label}>{t('common.surname')}</span>
+              <input
+                className={styles.input}
+                value={draft.surname}
+                onChange={(event) => updateDraft('surname', event.target.value)}
+                placeholder={t('administration.users.surname_placeholder')}
+              />
           </label>
 
           <label className={`${styles.field} ${styles.fieldWide}`}>
-            <span className={styles.label}>AD principal / trusted identita</span>
+            <span className={styles.label}>{t('administration.users.ad_principal_label')}</span>
             <input
               className={styles.input}
               value={draft.external_principal}
               onChange={(event) => updateDraft('external_principal', event.target.value)}
-              placeholder={draft.auth_provider === 'ad' ? 'DOMENA\\jnovak nebo jnovak@firma.local' : 'Pro local účet nechej prázdné'}
+              placeholder={draft.auth_provider === 'ad'
+                ? t('administration.users.ad_principal_placeholder_ad')
+                : t('administration.users.ad_principal_placeholder_local')}
               disabled={draft.auth_provider !== 'ad'}
             />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.label}>{editingId ? 'Nové heslo (volitelné)' : 'Heslo'}</span>
+            <span className={styles.label}>{editingId ? t('administration.users.new_password_optional') : t('common.password')}</span>
             <input
               className={styles.input}
               type="password"
               value={draft.password}
               onChange={(event) => updateDraft('password', event.target.value)}
-              placeholder={draft.auth_provider === 'local' ? 'Minimálně 8 znaků' : 'AD účet používá doménové přihlášení'}
+              placeholder={draft.auth_provider === 'local'
+                ? t('administration.users.password_placeholder_local')
+                : t('administration.users.password_placeholder_ad')}
               disabled={draft.auth_provider !== 'local'}
             />
           </label>
 
           <label className={`${styles.field} ${styles.checkboxField}`}>
-            <span className={styles.label}>Stav účtu</span>
+            <span className={styles.label}>{t('administration.users.account_status')}</span>
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
                 checked={draft.is_active}
                 onChange={(event) => updateDraft('is_active', event.target.checked)}
               />
-              <span>Účet je aktivní</span>
+              <span>{t('administration.users.account_active')}</span>
             </label>
           </label>
         </div>
@@ -419,34 +462,36 @@ export default function AdministrationUsersPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
           <div>
-            <div className={styles.panelTitle}>Uživatelé</div>
-            <div className={styles.panelMeta}>AD/SSO login funguje jen pro účty typu `AD / SSO`, které v aplikaci existují a jsou aktivní.</div>
+            <div className={styles.panelTitle}>{t('administration.users.title')}</div>
+            <div className={styles.panelMeta}>
+              {t('administration.users.ad_signin_note')}
+            </div>
           </div>
           <input
             className={styles.searchInput}
             type="search"
-            placeholder="Filtrovat podle username, role, e-mailu nebo AD identity"
+            placeholder={t('administration.users.search_placeholder')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
 
-        {isLoading && <div className={styles.state}>Načítám uživatele…</div>}
-        {error && <div className={styles.errorBox}>Načtení uživatelů selhalo.</div>}
-        {!isLoading && !error && sortedUsers.length === 0 && <div className={styles.state}>Žádné odpovídající záznamy.</div>}
+        {isLoading && <div className={styles.state}>{t('administration.users.loading')}</div>}
+        {error && <div className={styles.errorBox}>{t('administration.users.load_failed')}</div>}
+        {!isLoading && !error && sortedUsers.length === 0 && <div className={styles.state}>{t('administration.users.no_matches')}</div>}
 
         {!!sortedUsers.length && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('username')}>Username {sortKey === 'username' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('display_name')}>User {sortKey === 'display_name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('role')}>Role {sortKey === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('auth_provider')}>Login {sortKey === 'auth_provider' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('is_active')}>Status {sortKey === 'is_active' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('last_login_at')}>Last login {sortKey === 'last_login_at' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th>Akce</th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('username')}>{t('common.username')} {sortKey === 'username' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('display_name')}>{t('common.user')} {sortKey === 'display_name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('role')}>{t('common.role')} {sortKey === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('auth_provider')}>{t('common.login')} {sortKey === 'auth_provider' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('is_active')}>{t('common.status')} {sortKey === 'is_active' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('last_login_at')}>{t('common.last_login')} {sortKey === 'last_login_at' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -455,37 +500,37 @@ export default function AdministrationUsersPage() {
                     <td className={styles.monoCell}>{user.username}</td>
                     <td>
                       <div className={styles.stack}>
-                        <strong>{user.display_name || `${user.given_name ?? ''} ${user.surname ?? ''}`.trim() || 'Bez jména'}</strong>
-                        <span>{user.email || 'Bez e-mailu'}</span>
+                        <strong>{user.display_name || `${user.given_name ?? ''} ${user.surname ?? ''}`.trim() || t('common.no_name')}</strong>
+                        <span>{user.email || t('common.no_email')}</span>
                         {user.department && <span>{user.department}</span>}
                       </div>
                     </td>
                     <td>
                       <div className={styles.stack}>
-                        <span className={styles.rolePill}>{user.role_label}</span>
-                        <span>{user.access_label}</span>
+                        <span className={styles.rolePill}>{getRoleLabel(user.role)}</span>
+                        <span>{getRoleAccess(user.role)}</span>
                       </div>
                     </td>
                     <td>
                       <div className={styles.stack}>
-                        <span className={styles.providerPill}>{user.auth_provider_label}</span>
+                        <span className={styles.providerPill}>{getProviderLabel(user.auth_provider)}</span>
                         <span className={styles.monoMuted}>{user.external_principal || '—'}</span>
                       </div>
                     </td>
                     <td>
                       <span className={user.is_active ? styles.statusActive : styles.statusInactive}>
-                        {user.is_active ? 'Aktivní' : 'Vypnutý'}
+                        {user.is_active ? t('common.active') : t('common.disabled')}
                       </span>
                     </td>
                     <td>
                       <div className={styles.stack}>
-                        <span>{formatDate(user.last_login_at)}</span>
-                        {user.last_sso_login_at && <span>SSO: {formatDate(user.last_sso_login_at)}</span>}
+                        <span>{formatDate(user.last_login_at, locale, neverLabel)}</span>
+                        {user.last_sso_login_at && <span>SSO: {formatDate(user.last_sso_login_at, locale, neverLabel)}</span>}
                       </div>
                     </td>
                     <td>
                       <button type="button" className={styles.rowButton} onClick={() => beginEdit(user)}>
-                        Edit
+                        {t('common.edit')}
                       </button>
                     </td>
                   </tr>

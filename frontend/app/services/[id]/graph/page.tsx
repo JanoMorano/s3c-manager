@@ -30,6 +30,8 @@ import type { ServiceGraphV2Response, ServiceGraphV2Node, ServiceGraphV2Edge } f
 import { StatusPill } from '@/features/services/components/StatusPill';
 import shellStyles from '../../../graph/overview.module.css';
 import localStyles from './graph.module.css';
+import { compareText } from '@/app/i18n/format';
+import { useLocale } from '@/app/i18n/useI18n';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -84,6 +86,7 @@ function layoutNodes(
   items: ServiceGraphV2Node[],
   selectedNodeId: string | null,
   onSelectNode: (node: ServiceGraphV2Node) => void,
+  locale: string,
 ): Node[] {
   const grouped = new Map<ServiceGraphV2Node['node_kind'], ServiceGraphV2Node[]>();
   items.forEach((item) => {
@@ -94,7 +97,7 @@ function layoutNodes(
   return Object.entries(COLUMN_X).flatMap(([kind, x]) => {
     const rows = (grouped.get(kind as ServiceGraphV2Node['node_kind']) ?? []).slice().sort((a, b) => {
       if (a.node_kind === 'service' && a.is_root !== b.is_root) return a.is_root ? -1 : 1;
-      return `${a.code ?? ''} ${a.label}`.localeCompare(`${b.code ?? ''} ${b.label}`, 'cs', { numeric: true, sensitivity: 'base' });
+      return compareText(locale, `${a.code ?? ''} ${a.label}`, `${b.code ?? ''} ${b.label}`, { numeric: true, sensitivity: 'base' });
     });
 
     return rows.map((item, index) => ({
@@ -215,6 +218,7 @@ function resolveNodeHref(node: ServiceGraphV2Node): string | null {
 export default function GraphPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const locale = useLocale();
   const [depth, setDepth] = useState(2);
   const [selectedNode, setSelectedNode] = useState<ServiceGraphV2Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<ServiceGraphV2Edge | null>(null);
@@ -230,8 +234,8 @@ export default function GraphPage({ params }: Props) {
     () => layoutNodes(graphData?.nodes ?? [], selectedNode?.id ?? null, (node) => {
       setSelectedNode(node);
       setSelectedEdge(null);
-    }),
-    [graphData?.nodes, selectedNode?.id],
+    }, locale),
+    [graphData?.nodes, locale, selectedNode?.id],
   );
 
   const rfEdges = useMemo<Edge[]>(() => {
@@ -337,7 +341,7 @@ export default function GraphPage({ params }: Props) {
         </FilterGroup>
 
         <FilterGroup label="Vazby">
-          {Array.from(edgeCounts.entries()).sort((a, b) => a[0].localeCompare(b[0], 'cs')).map(([kind, count]) => (
+          {Array.from(edgeCounts.entries()).sort((a, b) => compareText(locale, a[0], b[0])).map(([kind, count]) => (
             <div key={kind} className={shellStyles.meta}>
               {kind.replace(/_/g, ' ')}: {count}
             </div>

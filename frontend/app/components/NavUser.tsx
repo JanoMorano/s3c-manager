@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
+import { useT } from '@/app/i18n/useI18n';
 import { AUTH_STATE_EVENT, clearAuthSession, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
 import styles from './NavUser.module.css';
 
@@ -20,6 +21,7 @@ function pickColor(name: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function NavUser() {
+  const t = useT();
   const router   = useRouter();
   const wrapRef  = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -101,7 +103,7 @@ export default function NavUser() {
             role="menuitem"
             onClick={() => setOpen(false)}
           >
-            User Info
+            {t('nav.user_info')}
           </Link>
           <hr className={styles.menuDivider} />
           <button
@@ -110,7 +112,7 @@ export default function NavUser() {
             type="button"
             onClick={handleLogout}
           >
-            Log Out
+            {t('nav.log_out')}
           </button>
         </div>
       )}

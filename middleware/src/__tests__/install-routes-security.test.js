@@ -172,6 +172,49 @@ describe('install route security', () => {
         }));
     });
 
+    test('GET /status returns a localized DB unavailable message', async () => {
+        const installSvc = require('../services/install.service');
+        installSvc.detectInstallMode.mockRejectedValueOnce(new Error('db down'));
+
+        const app = buildApp();
+        const response = await request(app)
+            .get('/api/v1/install/status')
+            .set('accept-language', 'en-US,en;q=0.9');
+
+        expect(response.status).toBe(200);
+        expect(response.body.db_error).toBe('The database is not yet available or has not been initialized.');
+    });
+
+    test('POST /start returns a localized admin-required error when READY and user locale wins', async () => {
+        const installSvc = require('../services/install.service');
+        installSvc.getInstallRow.mockResolvedValue({
+            id: 1,
+            install_status: 'READY',
+            lock_token: null,
+            install_lock: false,
+            locked_by: null,
+        });
+        mockRequireAuth.mockImplementationOnce((req, res, next) => {
+            req.user = {
+                id: 42,
+                username: 'viewer',
+                role: 'viewer',
+                preferred_lang: 'en',
+            };
+            next();
+        });
+
+        const app = buildApp();
+        const response = await request(app)
+            .post('/api/v1/install/start')
+            .set('cookie', 'sc_locale=cs')
+            .set('accept-language', 'cs-CZ,cs;q=0.9')
+            .send({ performed_by: 'installer' });
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe('Administrator privileges required.');
+    });
+
     test('POST /execute requires a valid install setup token on a fresh install', async () => {
         const app = buildApp();
 
@@ -185,6 +228,57 @@ describe('install route security', () => {
 
         expect(response.status).toBe(401);
         expectNoPrivilegedInstallSideEffects();
+    });
+
+    test('POST /execute returns a localized start-required error from accept-language', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/execute')
+            .set(validHeaders)
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({
+                activate_c3: false,
+                seed_demo: false,
+                performed_by: 'installer',
+            });
+
+        expect(response.status).toBe(409);
+        expect(response.body.error).toBe('Installation has not been started. Call /install/start first.');
+    });
+
+    test('POST /execute propagates request locale during the fresh install flow', async () => {
+        const app = buildApp();
+
+        await request(app)
+            .post('/api/v1/install/start')
+            .set(validHeaders)
+            .set('cookie', 'sc_locale=en')
+            .send({ performed_by: 'installer' });
+
+        const response = await request(app)
+            .post('/api/v1/install/execute')
+            .set(validHeaders)
+            .set('cookie', 'sc_locale=en')
+            .set('accept-language', 'cs-CZ,cs;q=0.9')
+            .send({
+                activate_c3: false,
+                seed_demo: true,
+                performed_by: 'installer',
+            });
+
+        const installSvc = require('../services/install.service');
+
+        expect(response.status).toBe(200);
+        expect(installSvc.executeInstall).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                seedDemoData: true,
+                locale: 'en',
+            }),
+            'lock-1',
+            'installer',
+        );
     });
 
     test('POST /execute rejects install completion before the first admin exists', async () => {
@@ -256,7 +350,6 @@ describe('install route security', () => {
 
         expect(response.status).toBe(403);
         expect(mockRequireAuth).toHaveBeenCalled();
-        expect(mockCanAdmin).toHaveBeenCalled();
         if (sideEffect === 'queryMock') {
             expect(queryMock).not.toHaveBeenCalled();
         } else {
@@ -274,6 +367,18 @@ describe('install route security', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.ok).toBe(true);
+    });
+
+    test('POST /check-db returns a localized setup-token error when missing token', async () => {
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/check-db')
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({});
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toBe('The setup token is missing or invalid.');
     });
 
     test('POST /modules accepts a valid install setup token before READY', async () => {

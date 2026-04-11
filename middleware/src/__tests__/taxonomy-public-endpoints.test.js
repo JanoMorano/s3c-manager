@@ -6,6 +6,7 @@ const request = require('supertest');
 const mockAuthState = {
     authenticated: true,
     role: 'admin',
+    preferred_lang: 'cz',
 };
 
 jest.mock('../db/pool', () => {
@@ -28,7 +29,7 @@ jest.mock('../middleware/auth', () => ({
             username: 'admin',
             display_name: 'Admin',
             role: mockAuthState.role,
-            preferred_lang: 'cz',
+            preferred_lang: mockAuthState.preferred_lang,
             preferred_theme: 'dark',
         };
         return next();
@@ -82,6 +83,7 @@ describe('taxonomy public c3 endpoints', () => {
         jest.resetModules();
         mockAuthState.authenticated = true;
         mockAuthState.role = 'admin';
+        mockAuthState.preferred_lang = 'cz';
         const { __query } = require('../db/pool');
         __query.mockReset();
     });
@@ -401,6 +403,7 @@ describe('taxonomy public c3 endpoints', () => {
     });
 
     test('POST /c3-data-objects/dry-run returns validation error for missing title', async () => {
+        mockAuthState.preferred_lang = 'en';
         const router = require('../routes/taxonomy');
         const app = express();
         app.use(express.json());
@@ -408,6 +411,7 @@ describe('taxonomy public c3 endpoints', () => {
 
         const response = await request(app)
             .post('/api/v1/taxonomy/c3-data-objects/dry-run')
+            .set('accept-language', 'en-US,en;q=0.9')
             .send({
                 items: [{ 'Data Object': 'DOB-1', UUID: 'uuid-1' }],
             });
@@ -415,6 +419,7 @@ describe('taxonomy public c3 endpoints', () => {
         expect(response.status).toBe(200);
         expect(response.body.error_count).toBe(1);
         expect(response.body.issues[0].issue_code).toBe('MISSING_TITLE');
+        expect(response.body.issues[0].message).toBe('Title is required.');
     });
 
     test('GET /c3-services returns admin list view', async () => {

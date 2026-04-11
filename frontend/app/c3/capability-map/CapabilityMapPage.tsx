@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { apiFetch } from '@/features/services/api/services.api';
 import { readStoredC3TaxonomySort } from '../../lib/c3Routes';
+import { compareText } from '@/app/i18n/format';
+import { useLocale } from '@/app/i18n/useI18n';
 import styles from './capability-map.module.css';
 
 const CATALOGUE_STATE_KEY = 'czech_army_sharepoint_live_v2';
@@ -146,6 +148,7 @@ export default function CapabilityMapPage({
   emptyStateDescription,
 }: CapabilityMapPageProps) {
   const router = useRouter();
+  const locale = useLocale();
   const { data, isLoading, error } = useSWR<CapabilityMapResponse>(
     apiPath,
     apiFetch,
@@ -207,7 +210,9 @@ export default function CapabilityMapPage({
     if (!data) return null;
 
     const domainByCode = new Map(data.domains.map((domain) => [domain.code, domain]));
-    const sortedDomains = [...data.domains].sort((left, right) => left.sort_order - right.sort_order || left.code.localeCompare(right.code));
+    const sortedDomains = [...data.domains].sort((left, right) =>
+      left.sort_order - right.sort_order || compareText(locale, left.code, right.code),
+    );
     const byDomain = new Map<string, CapabilityItem[]>();
     const childrenByParentId = new Map<string, CapabilityItem[]>();
     const descendantsCache = new Map<string, CapabilityItem[]>();
@@ -224,7 +229,7 @@ export default function CapabilityMapPage({
     });
 
     function getChildren(pageId: string) {
-      return [...(childrenByParentId.get(pageId) ?? [])].sort((left, right) => left.title.localeCompare(right.title));
+      return [...(childrenByParentId.get(pageId) ?? [])].sort((left, right) => compareText(locale, left.title, right.title));
     }
 
     function getDescendants(pageId: string) {
@@ -259,7 +264,7 @@ export default function CapabilityMapPage({
 
     const domains = sortedDomains.map((domain) => {
       const nodes = [...(byDomain.get(domain.code) ?? [])];
-      const l2s = nodes.filter((node) => node.level === 2).sort((left, right) => left.title.localeCompare(right.title));
+      const l2s = nodes.filter((node) => node.level === 2).sort((left, right) => compareText(locale, left.title, right.title));
       const l3Map = new Map<string, CapabilityItem[]>();
 
       nodes.filter((node) => node.level === 3).forEach((node) => {
@@ -272,11 +277,11 @@ export default function CapabilityMapPage({
       const totalPosterNodesCount = nodes.filter((node) => node.level >= 3).length;
 
       // Flat fallback: level-1 items shown as chips when domain has no L2 structure
-      const l1s = nodes.filter((node) => node.level === 1 && node.parent_id === null).sort((left, right) => left.title.localeCompare(right.title));
+      const l1s = nodes.filter((node) => node.level === 1 && node.parent_id === null).sort((left, right) => compareText(locale, left.title, right.title));
 
       if (domain.code === 'UserApplications') {
         const uaChips = l2s.reduce<PosterChip[]>((chips, l2) => {
-          const children = [...(l3Map.get(l2.page_id) ?? [])].sort((left, right) => left.title.localeCompare(right.title));
+          const children = [...(l3Map.get(l2.page_id) ?? [])].sort((left, right) => compareText(locale, left.title, right.title));
           const mapped = isMappedDeep(l2) || children.some((child) => isMappedDeep(child));
           if (!showUnmapped && !mapped) return chips;
 
@@ -309,7 +314,7 @@ export default function CapabilityMapPage({
       }
 
       const groups = l2s.reduce<PosterGroup[]>((acc, l2) => {
-        const children = [...(l3Map.get(l2.page_id) ?? [])].sort((left, right) => left.title.localeCompare(right.title));
+        const children = [...(l3Map.get(l2.page_id) ?? [])].sort((left, right) => compareText(locale, left.title, right.title));
         const mapped = isMappedDeep(l2) || children.some((child) => isMappedDeep(child));
         if (!showUnmapped && !mapped) return acc;
 
@@ -390,7 +395,7 @@ export default function CapabilityMapPage({
       isMapped,
       totalItems: data.items.length,
     };
-  }, [data, mappedPageIds, mappedUuids, showUnmapped]);
+  }, [data, locale, mappedPageIds, mappedUuids, showUnmapped]);
 
   const infoDomain = infoNode && runtime?.domainByCode.get(infoNode.domain_code);
   const infoDescendants = infoNode && runtime ? runtime.getDescendants(infoNode.page_id) : [];

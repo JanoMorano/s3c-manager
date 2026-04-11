@@ -5,7 +5,7 @@
  * Endpoints:
  *   GET  /api/v1/install/status          — current installation state + detection mode
  *   POST /api/v1/install/start           — start installation + lock
- *   POST /api/v1/install/check-db        — connectivity check (token-gated)
+ *   POST /api/v1/install/check-db        — connectivity check
  *   POST /api/v1/install/bootstrap-admin — create first admin
  *   POST /api/v1/install/modules         — configure modules
  *   POST /api/v1/install/execute         — execute installation (migrate+seed+state)
@@ -13,7 +13,6 @@
  *
  * Security rules:
  *   - After READY, write endpoints are blocked (409)
- *   - Pre-READY write endpoints require INSTALL_SETUP_TOKEN when set
  *   - Parallel installations are blocked by the install lock
  *   - Secrets must never be written to logs
  *   - Admin passwords must never be returned in response bodies
@@ -21,44 +20,25 @@
 
 const express     = require('express');
 const rateLimit   = require('express-rate-limit');
+const config      = require('../config');
 const { getPlatformPool } = require('../db/pool');
 const installSvc  = require('../services/install.service');
 const logger      = require('../utils/logger');
-const config      = require('../config');
 const { requireAuth } = require('../middleware/auth');
-const { canAdmin }    = require('../middleware/rbac');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
+const { resolveRequestLocale, tReq } = require('../utils/i18n');
 
 const router = express.Router();
-
-// ---------------------------------------------------------------------------
-// SECURITY: INSTALL_SETUP_TOKEN guard
-// When config.install.setupToken (INSTALL_SETUP_TOKEN env) is set, all
-// pre-READY write endpoints require the token in X-Install-Token header.
-// This prevents unauthorized takeover of a fresh or partially-installed instance.
-// If not set, a warning is logged but installs proceed (backward compat).
-// ---------------------------------------------------------------------------
-if (!config.install.setupToken) {
-    logger.warn('INSTALL_SETUP_TOKEN is not set — install endpoints are accessible without token. Set this variable to protect fresh installations.');
-}
-
-function requireInstallToken(req, res, next) {
-    const token = config.install.setupToken;
-    if (!token) return next(); // token not configured — open (with warning above)
-    const provided = (req.headers['x-install-token'] || '').trim();
-    if (!provided || provided !== token) {
-        logger.warn(`install: rejected request without valid X-Install-Token from ${req.ip}`);
-        return res.status(401).json({ error: 'Přístup odmítnut: chybí nebo neplatný instalační token.' });
-    }
-    next();
-}
+const INSTALL_SETUP_TOKEN_HEADER = 'x-install-setup-token';
 
 // Rate limit for install endpoints; protects against brute-force attempts.
-// max: 60 is sufficient for the wizard flow (6-8 endpoints × 2 for StrictMode × safety margin).
+// max: 500 because the wizard calls several endpoints per session, React StrictMode
+// may double-invoke calls, and repeated dev restarts/tests can exhaust lower limits.
+// Installation safety is primarily enforced by the lock mechanism, not by rate limits.
 const installLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 60,
-    message: { error: 'Příliš mnoho instalačních požadavků. Zkuste to za chvíli.' },
+    max: 500,
+    message: (req) => ({ error: tReq(req, 'install.rate_limit') }),
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -77,7 +57,7 @@ async function checkNotReady(req, res, next) {
         const row  = await installSvc.getInstallRow(pool);
         if (row && row.install_status === 'READY') {
             return res.status(409).json({
-                error: 'Instalace již byla dokončena. Pro repair nebo upgrade použijte admin sekci.',
+                error: tReq(req, 'install.errors.already_ready'),
                 status: 'READY',
             });
         }
@@ -88,6 +68,14 @@ async function checkNotReady(req, res, next) {
     }
 }
 
+function requireInstallAdminAccess(req, res, next) {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ error: tReq(req, 'auth.errors.admin_required') });
+    }
+
+    return next();
+}
+
 async function requireAdminWhenReady(req, res, next) {
     try {
         const pool = getPlatformPool();
@@ -96,8 +84,36 @@ async function requireAdminWhenReady(req, res, next) {
 
         return requireAuth(req, res, (authErr) => {
             if (authErr) return next(authErr);
-            return canAdmin(req, res, next);
+            return requireInstallAdminAccess(req, res, next);
         });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+function readInstallSetupToken(req) {
+    const headerToken = req.get(INSTALL_SETUP_TOKEN_HEADER);
+    return headerToken && String(headerToken).trim() ? String(headerToken).trim() : '';
+}
+
+async function requireInstallWriteAccess(req, res, next) {
+    try {
+        const pool = getPlatformPool();
+        const row = await installSvc.getInstallRow(pool).catch(() => null);
+
+        if (row?.install_status === 'READY') {
+            return requireAuth(req, res, (authErr) => {
+                if (authErr) return next(authErr);
+                return requireInstallAdminAccess(req, res, next);
+            });
+        }
+
+        const expectedToken = String(config.install?.setupToken ?? '').trim();
+        if (!expectedToken || readInstallSetupToken(req) !== expectedToken) {
+            return res.status(401).json({ error: tReq(req, 'install.errors.setup_token_required') });
+        }
+
+        return next();
     } catch (err) {
         return next(err);
     }
@@ -153,7 +169,7 @@ router.get('/status', async (req, res, next) => {
             schema_version: installSvc.INSTALL_SCHEMA_VERSION,
             admin_exists: false,
             modules: [],
-            db_error: 'DB není ještě dostupná nebo nebyla inicializována.',
+            db_error: tReq(req, 'install.errors.db_unavailable'),
         });
     }
 });
@@ -163,20 +179,22 @@ router.get('/status', async (req, res, next) => {
 // Starts installation and acquires the install lock.
 // Body: { performed_by?: string }
 // ---------------------------------------------------------------------------
-router.post('/start', requireInstallToken, checkNotReady, async (req, res, next) => {
+router.post('/start', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const performedBy = String(req.body?.performed_by ?? 'installer').trim().slice(0, 200);
 
         const lockResult = await installSvc.acquireLock(pool, performedBy);
         if (!lockResult.ok) {
-            return res.status(409).json({ error: lockResult.reason });
+            return res.status(409).json({
+                error: lockResult.reasonKey ? tReq(req, lockResult.reasonKey, lockResult.reasonParams) : lockResult.reason,
+            });
         }
 
         currentLockToken = lockResult.token;
 
         logger.info(`install/start: lock acquired by "${performedBy}"`);
-        return res.json({ ok: true, message: 'Instalace zahájena.' });
+        return res.json({ ok: true, message: tReq(req, 'install.messages.started') });
     } catch (err) {
         next(err);
     }
@@ -185,27 +203,34 @@ router.post('/start', requireInstallToken, checkNotReady, async (req, res, next)
 // ---------------------------------------------------------------------------
 // POST /api/v1/install/check-db
 // Connectivity check: returns results for wizard step 5.
-// SECURITY: token-gated; internal error messages are never exposed to caller.
+// Internal error details are logged server-side and never exposed in the response.
 // ---------------------------------------------------------------------------
-router.post('/check-db', requireInstallToken, async (req, res, next) => {
+router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const results = await installSvc.checkConnectivity(pool);
 
         const allOk = results.db_reachable && results.db_write_access && results.platform_schema;
-        // Strip raw error strings before sending — log them server-side only.
         const safeChecks = {
-            db_reachable:    results.db_reachable,
+            db_reachable: results.db_reachable,
             db_write_access: results.db_write_access,
             platform_schema: results.platform_schema,
         };
         if (!allOk) logger.warn({ checks: results }, 'install/check-db: connectivity issues');
-        return res.status(allOk ? 200 : 503).json({ ok: allOk, checks: safeChecks });
+        return res.status(allOk ? 200 : 503).json({
+            ok: allOk,
+            checks: safeChecks,
+        });
     } catch (err) {
         logger.error({ err }, 'install/check-db: unexpected error');
         return res.status(503).json({
             ok: false,
-            checks: { db_reachable: false, db_write_access: false, platform_schema: false },
+            error: tReq(req, 'install.errors.check_db_failed'),
+            checks: {
+                db_reachable: false,
+                db_write_access: false,
+                platform_schema: false,
+            },
         });
     }
 });
@@ -216,11 +241,10 @@ router.post('/check-db', requireInstallToken, async (req, res, next) => {
 // Body: { username, displayName, email, password, mustChangePassword? }
 // Important: passwords must never be logged.
 // ---------------------------------------------------------------------------
-router.post('/bootstrap-admin', requireInstallToken, checkNotReady, async (req, res, next) => {
+router.post('/bootstrap-admin', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
 
-        // SECURITY: block bootstrap if an admin already exists — prevents takeover.
         try {
             const adminCheck = await pool.query(
                 `SELECT COUNT(*) AS cnt FROM platform.users WHERE role = 'admin' AND is_active = TRUE`
@@ -237,7 +261,7 @@ router.post('/bootstrap-admin', requireInstallToken, checkNotReady, async (req, 
         const { username, displayName, email, password, mustChangePassword } = req.body || {};
 
         if (!username || !displayName || !email || !password) {
-            return res.status(400).json({ error: 'Chybí povinné pole: username, displayName, email, password.' });
+            return res.status(400).json({ error: tReq(req, 'install.errors.missing_required_fields') });
         }
 
         // Log only non-sensitive fields.
@@ -270,7 +294,7 @@ router.post('/bootstrap-admin', requireInstallToken, checkNotReady, async (req, 
 // Saves base system configuration (app_name, base_url, timezone, ...).
 // Optional step; defaults are suitable for most deployments.
 // ---------------------------------------------------------------------------
-router.post('/config', requireInstallToken, checkNotReady, async (req, res, next) => {
+router.post('/config', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const { app_name, base_url, timezone, storage_path, https_mode } = req.body || {};
@@ -307,7 +331,7 @@ router.post('/config', requireInstallToken, checkNotReady, async (req, res, next
 // Configures modules.
 // Body: { activate_c3: boolean }
 // ---------------------------------------------------------------------------
-router.post('/modules', requireInstallToken, checkNotReady, async (req, res, next) => {
+router.post('/modules', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const activateC3 = req.body?.activate_c3 === true;
@@ -334,7 +358,7 @@ router.post('/modules', requireInstallToken, checkNotReady, async (req, res, nex
 // Executes installation: module activation, state transitions, READY.
 // Body: { activate_c3: boolean, performed_by?: string }
 // ---------------------------------------------------------------------------
-router.post('/execute', requireInstallToken, checkNotReady, async (req, res, next) => {
+router.post('/execute', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
         const activateC3    = req.body?.activate_c3   === true;
@@ -343,7 +367,14 @@ router.post('/execute', requireInstallToken, checkNotReady, async (req, res, nex
 
         if (!currentLockToken) {
             return res.status(409).json({
-                error: 'Instalace nebyla zahájena. Nejprve zavolejte /install/start.',
+                error: tReq(req, 'install.errors.start_required'),
+            });
+        }
+
+        const adminExists = await installSvc.hasActiveAdminAccount(pool);
+        if (!adminExists) {
+            return res.status(422).json({
+                error: tReq(req, 'install.errors.admin_required_before_finish'),
             });
         }
 
@@ -351,7 +382,7 @@ router.post('/execute', requireInstallToken, checkNotReady, async (req, res, nex
 
         const result = await installSvc.executeInstall(
             pool,
-            { activateC3, seedDemoData: seedDemo },
+            { activateC3, seedDemoData: seedDemo, locale: resolveRequestLocale(req) },
             currentLockToken,
             performedBy,
         );
@@ -393,18 +424,18 @@ router.get('/summary', requireAdminWhenReady, async (req, res, next) => {
 router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
     try {
         if (req.body?.confirm !== true) {
-            return res.status(400).json({ error: 'Musíte potvrdit: { "confirm": true }' });
+            return res.status(400).json({ error: tReq(req, 'install.errors.confirm_required') });
         }
 
         const pool = getPlatformPool();
         const row  = await installSvc.getInstallRow(pool);
 
         if (!row) {
-            return res.status(404).json({ error: 'Instalační stav nenalezen.' });
+            return res.status(404).json({ error: tReq(req, 'install.errors.install_state_not_found') });
         }
 
         if (row.install_status === 'INSTALL_IN_PROGRESS') {
-            return res.status(409).json({ error: 'Instalace probíhá.' });
+            return res.status(409).json({ error: tReq(req, 'install.errors.install_in_progress') });
         }
 
         // Reset to REPAIR_REQUIRED and release the lock if one exists.
@@ -413,7 +444,7 @@ router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
         currentLockToken = null;
         invalidateModuleStatus();
 
-        return res.json({ ok: true, status: 'REPAIR_REQUIRED', message: 'Systém přepnut do repair módu.' });
+        return res.json({ ok: true, status: 'REPAIR_REQUIRED', message: tReq(req, 'install.messages.repair_completed') });
     } catch (err) {
         next(err);
     }
@@ -422,20 +453,20 @@ router.post('/repair', requireAdminWhenReady, async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // POST /api/v1/install/reset
 // Resets a stuck installation: releases the lock and switches back to NOT_INSTALLED.
-// SECURITY: requires admin authentication to prevent unauthorized takeover.
+// Available only when status is not READY, which keeps fresh/failed states safe.
 // Body: { confirm: true }
 // ---------------------------------------------------------------------------
-router.post('/reset', requireAuth, canAdmin, checkNotReady, async (req, res, next) => {
+router.post('/reset', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
         if (req.body?.confirm !== true) {
-            return res.status(400).json({ error: 'Musíte potvrdit: { "confirm": true }' });
+            return res.status(400).json({ error: tReq(req, 'install.errors.confirm_required') });
         }
 
         const pool = getPlatformPool();
         const row  = await installSvc.getInstallRow(pool);
 
         if (!row) {
-            return res.status(404).json({ error: 'Instalační stav nenalezen.' });
+            return res.status(404).json({ error: tReq(req, 'install.errors.install_state_not_found') });
         }
 
         // Release the lock regardless of token; this is the authoritative reset path.
@@ -472,7 +503,7 @@ router.post('/reset', requireAuth, canAdmin, checkNotReady, async (req, res, nex
         invalidateModuleStatus();
 
         logger.warn('install/reset: installation state reset to NOT_INSTALLED');
-        return res.json({ ok: true, status: 'NOT_INSTALLED', message: 'Instalační stav resetován. Spusťte wizard znovu.' });
+        return res.json({ ok: true, status: 'NOT_INSTALLED', message: tReq(req, 'install.messages.reset_completed') });
     } catch (err) {
         next(err);
     }
@@ -482,7 +513,7 @@ router.post('/reset', requireAuth, canAdmin, checkNotReady, async (req, res, nex
 // POST /api/v1/install/seed-demo — post-install demo data seeding.
 // Requires READY state (opposite of checkNotReady). Available to admin users.
 // ---------------------------------------------------------------------------
-router.post('/seed-demo', requireAuth, canAdmin, async (req, res, next) => {
+router.post('/seed-demo', requireAuth, requireInstallAdminAccess, async (req, res, next) => {
     try {
         const pool = getPlatformPool();
 
@@ -490,7 +521,7 @@ router.post('/seed-demo', requireAuth, canAdmin, async (req, res, next) => {
         const row = await installSvc.getInstallRow(pool);
         if (!row || row.install_status !== 'READY') {
             return res.status(409).json({
-                error: `Demo data lze seedovat pouze ve stavu READY. Aktuální stav: ${row?.install_status ?? 'neznámý'}`,
+                error: tReq(req, 'install.errors.demo_ready_only', { status: row?.install_status ?? 'neznámý' }),
             });
         }
 
@@ -503,14 +534,20 @@ router.post('/seed-demo', requireAuth, canAdmin, async (req, res, next) => {
             result = await removeDemoData(pool);
         } else {
             logger.info('install/seed-demo: seeding demo data');
-            result = await seedDemoData(pool);
+            result = await seedDemoData(pool, { locale: resolveRequestLocale(req) });
         }
 
         if (!result.ok) {
             return res.status(500).json({ error: result.error });
         }
 
-        return res.json({ ok: true, action, message: action === 'remove' ? 'Testovací data odstraněna.' : 'Testovací data vytvořena.' });
+        return res.json({
+            ok: true,
+            action,
+            message: action === 'remove'
+                ? tReq(req, 'install.messages.demo_removed')
+                : tReq(req, 'install.messages.demo_created'),
+        });
     } catch (err) {
         next(err);
     }

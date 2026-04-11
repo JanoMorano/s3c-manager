@@ -152,9 +152,13 @@ describe('auth routes', () => {
             username: 'jnovak',
             role: 'editor',
             auth_provider: 'ad',
+            preferred_lang: 'cs',
         }));
         expect(response.body.access_token).toBeTruthy();
         expect(response.body.refresh_token).toBeTruthy();
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_locale=cs(?:;|$)/i),
+        ]));
     });
 
     test.each([
@@ -184,11 +188,12 @@ describe('auth routes', () => {
         try {
             const response = await request(buildApp())
                 .get('/api/v1/auth/sso')
+                .set('accept-language', 'en-US,en;q=0.9')
                 .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
                 .set('x-remote-user', 'DOMAIN\\jnovak');
 
             expect(response.status).toBe(403);
-            expect(response.body.error).toMatch(/trusted-proxy boundary is not configured/i);
+            expect(response.body.error).toBe('SSO trusted-proxy boundary is not configured. Set AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET.');
             expect(queryMock).not.toHaveBeenCalled();
         } finally {
             config.auth.sso.trustedProxySharedSecret = previousSecret;
@@ -203,11 +208,12 @@ describe('auth routes', () => {
         try {
             const response = await request(buildApp())
                 .get('/api/v1/auth/sso')
+                .set('accept-language', 'en-US,en;q=0.9')
                 .set(TRUSTED_PROXY_HEADER, TRUSTED_PROXY_SECRET)
                 .set('x-remote-user', 'DOMAIN\\jnovak');
 
             expect(response.status).toBe(403);
-            expect(response.body.error).toMatch(/trusted-proxy boundary header is not configured/i);
+            expect(response.body.error).toBe('SSO trusted-proxy boundary header is not configured. Set AUTH_SSO_TRUSTED_PROXY_HEADER.');
             expect(queryMock).not.toHaveBeenCalled();
         } finally {
             config.auth.sso.trustedProxyHeader = previousHeader;
@@ -235,6 +241,16 @@ describe('auth routes', () => {
 
         expect(response.status).toBe(401);
         expect(response.body.error).toMatch(/doménové přihlášení/i);
+    });
+
+    test('POST /login returns a localized missing-credentials error from accept-language', async () => {
+        const response = await request(buildApp())
+            .post('/api/v1/auth/login')
+            .set('accept-language', 'en-US,en;q=0.9')
+            .send({ username: '' });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('Username and password are required.');
     });
 
     test('POST /login sets httpOnly auth cookies on successful local login', async () => {
@@ -276,11 +292,13 @@ describe('auth routes', () => {
         expect(response.body.user).toEqual(expect.objectContaining({
             username: 'localadmin',
             role: 'admin',
+            preferred_lang: 'cs',
         }));
         expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
             expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),
             expect.stringMatching(/^sc_refresh_token=.*HttpOnly.*SameSite=Lax/i),
-            ]));
+            expect.stringMatching(/^sc_locale=cs(?:;|$)/i),
+        ]));
     });
 
     test('POST /login exposes must_change_password when first-login enforcement is enabled', async () => {
@@ -327,6 +345,7 @@ describe('auth routes', () => {
         expect(response.body.user).toEqual(expect.objectContaining({
             username: 'localadmin',
             must_change_password: true,
+            preferred_lang: 'cs',
         }));
     });
 
@@ -369,7 +388,26 @@ describe('auth routes', () => {
         expect(response.body).toEqual(expect.objectContaining({
             username: 'admin',
             must_change_password: true,
+            preferred_lang: 'cs',
         }));
+    });
+
+    test('PUT /preferences normalizes preferred_lang and refreshes locale cookie', async () => {
+        const response = await request(buildApp())
+            .put('/api/v1/auth/preferences')
+            .send({
+                preferred_lang: 'en-US',
+                preferred_theme: 'light',
+            });
+
+        expect(response.status).toBe(200);
+        expect(queryMock).toHaveBeenCalledWith(
+            'UPDATE platform.users SET preferred_lang = $2, preferred_theme = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [1, 'en', 'light']
+        );
+        expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
+            expect.stringMatching(/^sc_locale=en(?:;|$)/i),
+        ]));
     });
 
     test('POST /change-password clears first-login enforcement flag after success', async () => {
@@ -526,6 +564,296 @@ describe('auth routes', () => {
             process.env.DEBUG_BYPASS_AUTH = original;
             jest.resetModules();
         }
+    });
+
+    test('requireAuth returns a localized missing-token error from accept-language', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            'accept-language': 'en-US,en;q=0.9',
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        expect(next).not.toHaveBeenCalled();
+                        expect(res.status).toHaveBeenCalledWith(401);
+                        expect(res.json).toHaveBeenCalledWith({ error: 'Access denied: token is missing' });
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
+    });
+
+    test('requireAuth uses the authenticated user locale for 403 responses', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: jest.fn().mockResolvedValue({
+                    rows: [{
+                        id: 1,
+                        username: 'admin',
+                        display_name: 'Admin',
+                        role: 'admin',
+                        is_active: false,
+                        auth_provider: 'local',
+                        preferred_lang: 'cze',
+                        preferred_theme: 'dark',
+                    }],
+                }),
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(async () => ({
+                'auth.admin_must_change_password': { config_value: 'false' },
+            })),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 1 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                            cookie: 'sc_locale=en',
+                            'accept-language': 'en-US,en;q=0.9',
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        expect(next).not.toHaveBeenCalled();
+                        expect(res.status).toHaveBeenCalledWith(403);
+                        expect(res.json).toHaveBeenCalledWith({ error: 'Účet deaktivován' });
+                        expect(req.user).toEqual(expect.objectContaining({
+                            preferred_lang: 'cs',
+                        }));
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
+    });
+
+    test('requireAuth normalizes preferred_lang on req.user', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+            auth: {
+                sso: {
+                    enabled: true,
+                    header: 'x-remote-user',
+                    displayNameHeader: 'x-remote-name',
+                    emailHeader: 'x-remote-email',
+                    givenNameHeader: 'x-remote-given-name',
+                    surnameHeader: 'x-remote-surname',
+                    departmentHeader: 'x-remote-department',
+                    trustedProxyHeader: TRUSTED_PROXY_HEADER,
+                    trustedProxySharedSecret: TRUSTED_PROXY_SECRET,
+                },
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: jest.fn().mockResolvedValue({
+                    rows: [{
+                        id: 1,
+                        username: 'admin',
+                        display_name: 'Admin',
+                        role: 'admin',
+                        is_active: true,
+                        auth_provider: 'local',
+                        preferred_lang: 'cze',
+                        preferred_theme: 'dark',
+                    }],
+                }),
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(async () => ({
+                'auth.admin_must_change_password': { config_value: 'false' },
+            })),
+        }));
+        jest.unmock('../middleware/auth');
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { requireAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 1 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        ip: '127.0.0.1',
+                        get: () => null,
+                    };
+                    const res = {
+                        status: jest.fn(() => res),
+                        json: jest.fn(() => res),
+                    };
+                    const next = jest.fn();
+
+                    (async () => {
+                        await requireAuth(req, res, next);
+                        expect(next).toHaveBeenCalled();
+                        expect(res.status).not.toHaveBeenCalled();
+                        expect(req.user.preferred_lang).toBe('cs');
+                        resolve();
+                    })().catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
+    });
+
+    test('optionalAuth selects and normalizes preferred_lang on req.user', async () => {
+        jest.resetModules();
+
+        jest.doMock('../config', () => ({
+            jwt: {
+                secret: 'test-secret',
+                expiryMinutes: 60,
+                refreshDays: 7,
+                issuer: 'service-catalogue',
+                audience: 'service-catalogue-ui',
+            },
+        }));
+        jest.doMock('../db/pool', () => ({
+            getPlatformPool: jest.fn(() => ({
+                query: queryMock,
+            })),
+        }));
+        jest.doMock('../utils/platform-config', () => ({
+            getConfigValues: jest.fn(),
+        }));
+        jest.unmock('../middleware/auth');
+
+        queryMock.mockResolvedValueOnce({
+            rows: [{
+                id: 2,
+                username: 'viewer',
+                display_name: 'Viewer',
+                role: 'viewer',
+                is_active: true,
+                auth_provider: 'local',
+                preferred_lang: 'cze',
+            }],
+        });
+
+        await new Promise((resolve, reject) => {
+            jest.isolateModules(() => {
+                try {
+                    const { optionalAuth } = require('../middleware/auth');
+                    const req = {
+                        headers: {
+                            authorization: `Bearer ${jwt.sign({ sub: 2 }, 'test-secret', {
+                                issuer: 'service-catalogue',
+                                audience: 'service-catalogue-ui',
+                            })}`,
+                        },
+                        path: '/api/v1/services',
+                        originalUrl: '/api/v1/services',
+                        get: () => null,
+                    };
+                    const res = {};
+                    const next = jest.fn(() => {
+                        expect(req.user).toEqual(expect.objectContaining({
+                            preferred_lang: 'cs',
+                        }));
+                        expect(queryMock).toHaveBeenCalledWith(
+                            expect.stringContaining('preferred_lang'),
+                            [2]
+                        );
+                        resolve();
+                    });
+
+                    optionalAuth(req, res, next).catch(reject);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        jest.resetModules();
     });
 
     test.each([

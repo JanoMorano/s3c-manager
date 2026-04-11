@@ -33,12 +33,19 @@ function generateLockToken() {
 
 async function logInstallEvent(pool, action, details, performedBy = 'system') {
     try {
+        const eventName = String(action || 'INSTALL_EVENT').slice(0, 255);
+        const actor = String(performedBy || 'system').slice(0, 200);
+        const payload = JSON.stringify({
+            event: eventName,
+            ...(details && typeof details === 'object' ? details : {}),
+        });
+
         await pool.query(`
             INSERT INTO platform.audit_log
                 (table_name, record_id, record_label, action, new_values, performed_by)
             VALUES
-                ('system_installation', 1, 'install', $1, $2, $3)
-        `, [action, JSON.stringify(details), performedBy]);
+                ($1, $2, $3, $4, $5, $6)
+        `, ['system_installation', 1, eventName, 'UPDATE', payload, actor]);
     } catch (err) {
         // audit logging must never block the install flow
         logger.warn(`install.service: audit log write failed — ${err.message}`);
@@ -190,6 +197,11 @@ async function acquireLock(pool, lockedBy = 'installer') {
         const row = await getInstallRow(pool);
         return {
             ok: false,
+            reasonKey: 'install.errors.locked',
+            reasonParams: {
+                lockedBy: row?.locked_by ?? 'unknown',
+                lockAcquiredAt: row?.lock_acquired_at ?? '',
+            },
             reason: `Instalace je již zamčena uživatelem "${row?.locked_by}" od ${row?.lock_acquired_at}`,
         };
     }
@@ -403,7 +415,7 @@ async function getModules(pool) {
 // This function only registers state in module_registry and advances states.
 // ---------------------------------------------------------------------------
 
-async function executeInstall(pool, { activateC3, seedDemoData = false, importJobId = null }, lockToken, performedBy = 'installer') {
+async function executeInstall(pool, { activateC3, seedDemoData = false, importJobId = null, locale = null }, lockToken, performedBy = 'installer') {
     try {
         await transitionTo(pool, 'INSTALL_IN_PROGRESS', performedBy, {
             started_at: new Date().toISOString(),
@@ -454,7 +466,7 @@ async function executeInstall(pool, { activateC3, seedDemoData = false, importJo
             try {
                 const { seedDemoData: runSeed } = require('../utils/demo-data-seed');
                 logger.info('install.service: seeding demo data…');
-                const seedResult = await runSeed(pool);
+                const seedResult = await runSeed(pool, { locale });
                 if (seedResult && !seedResult.ok) {
                     logger.warn(`install.service: demo data seeding failed — ${seedResult.error}`);
                 } else {

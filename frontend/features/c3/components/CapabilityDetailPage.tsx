@@ -11,6 +11,8 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { CapabilityLinksPanel } from '@/features/c3/components/CapabilityLinksPanel';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
+import { useLocale } from '@/app/i18n/useI18n';
+import { formatCapabilityTimestamp, sortCapabilityParentItems } from '../locale-utils';
 
 const BASE = '/api/v1/taxonomy';
 
@@ -95,13 +97,6 @@ function itemToForm(item: C3Item): FormState {
   };
 }
 
-function fmtDate(value: string | null) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('cs-CZ');
-}
-
 function ReadonlyField({ label, value, mono = false }: { label: string; value: string | number | null | undefined; mono?: boolean }) {
   const text = value == null || value === '' ? '—' : String(value);
   return (
@@ -134,6 +129,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
   const resolvedParams = params ? use(params) : null;
   const uuid = initialUuid ?? resolvedParams?.uuid ?? '';
   const isEdit = mode === 'edit';
+  const locale = useLocale();
   const [role, setRole] = useState<string | null>(null);
   const canEdit = hasRoleAccess(role, 'editor');
   const isAdmin = hasRoleAccess(role, 'admin');
@@ -175,6 +171,11 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
     if (!item) return null;
     return (c3AllItems ?? []).find((entry) => entry.uuid === item.parent_uuid) ?? null;
   }, [c3AllItems, item]);
+
+  const sortedParentItems = useMemo(
+    () => sortCapabilityParentItems(locale, c3AllItems ?? [], uuid),
+    [c3AllItems, locale, uuid],
+  );
 
   const validationIssues = useMemo(() => {
     const source = isEdit ? form : item;
@@ -273,8 +274,8 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
             </Link>
           )}
           <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>
-            Synced: {fmtDate(item.synced_at)}<br />
-            Modified: {fmtDate(item.modification_date)}
+            Synced: {formatCapabilityTimestamp(locale, item.synced_at)}<br />
+            Modified: {formatCapabilityTimestamp(locale, item.modification_date)}
           </div>
         </div>
       </div>
@@ -297,14 +298,11 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
                   <FieldBlock label="Nadřazená schopnost (Parent)">
                     <select className={styles.editInput} value={editForm.parent_uuid ?? ''} onChange={(e) => set('parent_uuid', e.target.value)}>
                       <option value="">— žádný (kořenová schopnost) —</option>
-                      {(c3AllItems ?? [])
-                        .filter((entry) => entry.uuid !== uuid)
-                        .sort((a, b) => `${a.external_id ?? a.title}`.localeCompare(`${b.external_id ?? b.title}`, 'cs'))
-                        .map((entry) => (
+                      {sortedParentItems.map((entry) => (
                           <option key={entry.uuid} value={entry.uuid}>
-                            {entry.external_id ? `[${entry.external_id}] ` : ''}{entry.title}{entry.item_type ? ` (${entry.item_type})` : ''}
+                            {entry.external_id ? `[${entry.external_id}] ` : ''}{entry.title}
                           </option>
-                        ))}
+                      ))}
                     </select>
                   </FieldBlock>
                 </div>
@@ -465,8 +463,14 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
                   <ReadonlyField label="Data source" value={item.data_source} />
                   <ReadonlyField label="SS overall status" value={item.ss_overall_status} />
                   <ReadonlyField label="SS baseline status" value={item.ss_baseline_status} />
-                  <ReadonlyField label="Modification date" value={fmtDate(item.modification_date)} />
-                  <ReadonlyField label="Synced at" value={fmtDate(item.synced_at)} />
+                  <ReadonlyField
+                    label="Modification date"
+                    value={formatCapabilityTimestamp(locale, item.modification_date)}
+                  />
+                  <ReadonlyField
+                    label="Synced at"
+                    value={formatCapabilityTimestamp(locale, item.synced_at)}
+                  />
                 </div>
               </div>
             </section>

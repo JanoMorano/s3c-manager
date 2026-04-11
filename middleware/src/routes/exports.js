@@ -10,7 +10,7 @@ const { applyCacheTags } = require('../utils/cache-tags');
 
 router.use(requireAuth);
 
-router.get('/route-metadata', async (req, res, next) => {
+router.get('/route-metadata', canAdmin, async (req, res, next) => {
     try {
         applyCacheTags(res, ['export', 'routes'], ['export:routes']);
         const result = await getPlatformPool().query(`

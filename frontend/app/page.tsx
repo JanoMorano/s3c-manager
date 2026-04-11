@@ -1,44 +1,48 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import { useT } from '@/app/i18n/useI18n';
 import { useInstallStatus } from '@/features/install/installStatus';
 import styles from './administration/administration.module.css';
 import { C3_ROUTES } from './lib/c3Routes';
 
-const BASE_CARDS = [
-  {
-    href: '/services/dashboard',
-    title: 'Service Catalogue',
-    desc: 'Přehled služeb, KPI a navigace do seznamu a grafu Service Catalogue.',
-    icon: '🧭',
-  },
-];
-
-const C3_CARDS = [
-  {
-    href: '/c3/dashboard',
-    title: 'C3 Taxonomy',
-    desc: 'Dashboard C3 taxonomie, kategorií a navigace do C3 seznamů.',
-    icon: '🧩',
-  },
-  {
-    href: C3_ROUTES.capabilityMapSpiral7,
-    title: 'C3 Dashboard',
-    desc: 'Vizualizace C3 Capability Map.',
-    icon: '🗺',
-  },
-];
-
 export default function HomePage() {
+  const t = useT();
   const { c3Visible } = useInstallStatus();
-  const cards = c3Visible ? [...BASE_CARDS, ...C3_CARDS] : BASE_CARDS;
+  const cards = c3Visible
+    ? [
+        {
+          href: '/services/dashboard',
+          title: t('home.card.service_catalogue.title'),
+          desc: t('home.card.service_catalogue.desc'),
+          icon: '🧭',
+        },
+        {
+          href: '/c3/dashboard',
+          title: t('home.card.c3_taxonomy.title'),
+          desc: t('home.card.c3_taxonomy.desc'),
+          icon: '🧩',
+        },
+        {
+          href: C3_ROUTES.capabilityMapSpiral7,
+          title: t('home.card.c3_dashboard.title'),
+          desc: t('home.card.c3_dashboard.desc'),
+          icon: '🗺',
+        },
+      ]
+    : [
+        {
+          href: '/services/dashboard',
+          title: t('home.card.service_catalogue.title'),
+          desc: t('home.card.service_catalogue.desc'),
+          icon: '🧭',
+        },
+      ];
 
   return (
     <div className={styles.shell}>
-      <h1 className={styles.pageTitle}>Service Catalogue</h1>
-      <p className={styles.pageDesc}>
-        Hlavní rozcestník po přihlášení. Vyber si dostupné moduly aplikace podle aktivované instalace.
-      </p>
+      <h1 className={styles.pageTitle}>{t('home.title')}</h1>
+      <p className={styles.pageDesc}>{t('home.subtitle')}</p>
       <div className={styles.homeCardGrid}>
         {cards.map((card) => (
           <Link key={card.href} href={card.href} className={styles.card}>

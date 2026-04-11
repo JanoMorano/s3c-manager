@@ -40,6 +40,7 @@ const { canEdit } = require('../middleware/rbac');
 const { getPool } = require('../db/pool');
 const logger = require('../utils/logger');
 const rateLimit = require('express-rate-limit');
+const { tReq } = require('../utils/i18n');
 
 // Stricter import limit: max 10 requests per 5 minutes per IP.
 const importLimiter = rateLimit({
@@ -47,7 +48,7 @@ const importLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Příliš mnoho importů. Zkuste to znovu za 5 minut.' }
+  message: (req) => ({ error: tReq(req, 'import.rate_limit') })
 });
 
 // CSV text parser: no new dependency, just express.text().
@@ -504,15 +505,15 @@ function _hashSha256(value) {
   return crypto.createHash('sha256').update(String(value ?? ''), 'utf8').digest('hex');
 }
 
-function _parseCsvText(csvText) {
+function _parseCsvText(csvText, translate = (key) => key) {
   const normalized = typeof csvText === 'string' ? csvText.replace(/^\uFEFF/, '') : '';
   if (!normalized.trim()) {
-    return { error: 'Tělo požadavku musí být CSV text' };
+    return { error: translate('import.errors.csv_text_required') };
   }
 
   const lines = normalized.split(/\r?\n/).filter((line) => line.trim());
   if (lines.length < 2) {
-    return { error: 'CSV musí mít hlavičku a alespoň jeden datový řádek' };
+    return { error: translate('import.errors.csv_requires_header') };
   }
 
   const delim = lines[0].split(';').length >= lines[0].split(',').length ? ';' : ',';
@@ -964,7 +965,7 @@ router.post('/services/dry-run', canEdit, importLimiter, async (req, res, next) 
   try {
     const payload = _extractImportPayload(req.body);
     if (!payload || !Array.isArray(payload.items)) {
-      return res.status(400).json({ error: 'Payload musí obsahovat items[] nebo ServiceCatalog[]' });
+      return res.status(400).json({ error: tReq(req, 'import.errors.payload_required') });
     }
     const sourceName = req.body?.source_name || 'api-import.json';
     const sourceHashSha256 = _hashSha256(JSON.stringify(req.body ?? {}));
@@ -1013,7 +1014,7 @@ router.get('/contract-report/by-hash/:sha256', async (req, res, next) => {
   try {
     const sha256 = String(req.params.sha256 ?? '').trim().toLowerCase();
     if (!/^[a-f0-9]{64}$/.test(sha256)) {
-      return res.status(400).json({ error: 'Neplatný SHA-256 hash' });
+      return res.status(400).json({ error: tReq(req, 'import.errors.invalid_sha256') });
     }
 
     const [report, batches] = await Promise.all([
@@ -1022,7 +1023,7 @@ router.get('/contract-report/by-hash/:sha256', async (req, res, next) => {
     ]);
 
     if (!report && (!batches || batches.length === 0)) {
-      return res.status(404).json({ error: 'Import contract report pro daný hash nebyl nalezen' });
+      return res.status(404).json({ error: tReq(req, 'import.errors.report_not_found') });
     }
 
     res.json({
@@ -1052,13 +1053,14 @@ router.post('/services', canEdit, importLimiter, async (req, res, next) => {
   try {
     const payload = _extractImportPayload(req.body);
     if (!payload || !Array.isArray(payload.items)) {
-      return res.status(400).json({ error: 'Payload musí obsahovat items[] nebo ServiceCatalog[]' });
+      return res.status(400).json({ error: tReq(req, 'import.errors.payload_required') });
     }
     const sourceName = req.body?.source_name || (payload.source === '3-table-json' ? 'api-import-3-table.json' : 'api-import.json');
     const sourceHashSha256 = _hashSha256(JSON.stringify(req.body ?? {}));
     const result = await _runImport(payload.items, req.user.username, {
       sourceName,
       sourceHashSha256,
+      translate: (key, params) => tReq(req, key, params),
     });
 
     // Optional top-level relation import outside items[].
@@ -1097,6 +1099,7 @@ router.post('/services', canEdit, importLimiter, async (req, res, next) => {
 async function _runImport(items, username, options = {}) {
   const sourceName = options.sourceName || 'api-import';
   const sourceHashSha256 = options.sourceHashSha256 || null;
+  const translate = typeof options.translate === 'function' ? options.translate : ((key) => key);
   const batchId = await importRepo.createBatch({
     filename: sourceName,
     importedBy: username,
@@ -1170,12 +1173,12 @@ async function _runImport(items, username, options = {}) {
 
     try {
       if (!item.service_id || !item.title) {
-        errors.push('Přeskočeno — chybí service_id nebo title');
+        errors.push(translate('import.errors.missing_required_fields'));
         failed++;
         if (rowId) await importRepo.logIssue({ batchId, rowId,
           serviceId: item.service_id, severity: 'error',
           issueCode: 'MISSING_REQUIRED', fieldName: 'service_id,title',
-          message: 'Chybí service_id nebo title' }).catch(() => {});
+          message: translate('import.errors.missing_required_fields') }).catch(() => {});
         continue;
       }
 
@@ -1344,7 +1347,7 @@ async function _runImport(items, username, options = {}) {
               issueCode: 'SLA_PARSED',
               fieldName: 'support_availability_raw',
               rawValue: _jsonAuditValue(_buildParsedSlaAudit(sla)),
-              message: 'Parsováno service-level SLA z raw textu',
+              message: translate('import.messages.service_sla_parsed'),
             }).catch(() => {});
           } catch (se) {
             errors.push(`${item.service_id} sla(parsed): ${se.message}`);
@@ -1418,7 +1421,7 @@ function _parseCsvLine(line, delim) {
 // Content-Type: text/csv or text/plain; delimiter may be ; or ,.
 router.post('/services/csv/dry-run', canEdit, importLimiter, csvTextParser, async (req, res, next) => {
   try {
-    const parsed = _parseCsvText(req.body);
+    const parsed = _parseCsvText(req.body, (key, params) => tReq(req, key, params));
     if (parsed.error) return res.status(400).json({ error: parsed.error });
 
     const sourceName = req.query.source_name || 'csv-import.csv';
@@ -1458,7 +1461,7 @@ router.post('/services/csv/dry-run', canEdit, importLimiter, csvTextParser, asyn
 
 router.post('/services/csv', canEdit, importLimiter, csvTextParser, async (req, res, next) => {
   try {
-    const parsed = _parseCsvText(req.body);
+    const parsed = _parseCsvText(req.body, (key, params) => tReq(req, key, params));
     if (parsed.error) return res.status(400).json({ error: parsed.error });
 
     const sourceName = req.query.source_name || 'csv-import.csv';
@@ -1518,9 +1521,9 @@ router.get('/relation-raw', async (req, res, next) => {
 router.get('/batches/:id', async (req, res, next) => {
   try {
     const batchId = parseInt(req.params.id, 10);
-    if (isNaN(batchId)) return res.status(400).json({ error: 'Neplatné ID' });
+    if (isNaN(batchId)) return res.status(400).json({ error: tReq(req, 'import.errors.invalid_id') });
     const batch = await importRepo.getBatchWithIssues(batchId);
-    if (!batch) return res.status(404).json({ error: 'Batch nenalezen' });
+    if (!batch) return res.status(404).json({ error: tReq(req, 'import.errors.batch_not_found') });
     res.json(batch);
   } catch (err) { next(err); }
 });

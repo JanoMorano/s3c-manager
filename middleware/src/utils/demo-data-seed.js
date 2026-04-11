@@ -17,6 +17,7 @@
  */
 
 const logger = require('../utils/logger');
+const { normalizeLocale } = require('../../../shared/i18n/locales');
 
 // ── Demo UUIDs (stable, deterministic) ────────────────────────────────────────
 const DEMO_UUIDS = {
@@ -39,6 +40,254 @@ const DEMO_UUIDS = {
     DO_02:  'demo-do--0002-0000-000000000014',
     C3SVC_01: 'demo-svc-0001-0000-000000000015',
 };
+
+const DEMO_SERVICE_COPY = {
+    en: {
+        'DEMO-PIS-001': {
+            short_description: 'Central integration platform for exchanging data and messages between systems.',
+            description: 'Platform Integration Service (PIS) provides robust middleware for integrating heterogeneous systems. It includes an API gateway, message broker, and event bus. It supports synchronous REST/SOAP and asynchronous AMQP/Kafka communication and runs as an HA cluster with automatic failover.',
+            business_purpose: 'Eliminate point-to-point integration links. Centralize monitoring of data flows. Standardize the organisation\'s integration layer.',
+            scope_text: 'Covers internal system integrations, partner interfaces, and cloud APIs. Does not include end-user applications.',
+            value_proposition: 'Reduces integration project TCO by ~40% through reusable connectors and centralized governance.',
+            service_features: 'API Gateway, Message Broker, Event Streaming, Data Transformation, Monitoring Dashboard, 500+ prebuilt connectors',
+            sla_restoration_text: 'P1 incidents: 4h RTO, P2 incidents: 8h RTO',
+            sla_delivery_text: 'New connector: 5 business days from request approval',
+            rate_note: 'Base fee EUR 5,000/month plus EUR 0.002 per transaction above the 1M/month threshold.',
+            ordering_note: 'Request via ServiceNow (category: Middleware). Requires manager approval plus J6 approval. Service activation within 5 business days.',
+            exclusions: 'Does not include end-user applications or mobile clients. Communication outside organisational networks requires a separate agreement.',
+            operational_notes_raw: '24/7 NOC monitoring. Maintenance window: Sunday 02:00-04:00 UTC. Escalation contact: integration-ops@example.org.',
+            notes_json: JSON.stringify({
+                lifecycle_state: 'production',
+                review_date: '2025-06-30',
+                next_review_date: '2026-06-30',
+                compliance_flags: ['NIS2', 'ISO-27001'],
+                hosting_model: 'on-premise HA cluster',
+                platform_ref: 'CMDB-CI-00412',
+                risk_level: 'high',
+                review_notes: 'Latest review completed without findings. Hybrid cloud migration is planned for Q3 2025.',
+            }),
+        },
+        'DEMO-IAM-002': {
+            short_description: 'Identity, authentication, and authorization management for users and systems across the organisation.',
+            description: 'Identity & Access Management (IAM) provides central user identity management, single sign-on (SSO), MFA, and role-based access control (RBAC). It integrates with Active Directory, LDAP, and external identity providers through SAML 2.0 and OIDC, and provides a full audit trail of access events.',
+            business_purpose: 'Provide secure access to applications and data while keeping the user experience simple. Meet compliance requirements (NIS2, ISO 27001).',
+            scope_text: 'Covers all internal systems and cloud applications connected through SSO. Includes privileged access management (PAM).',
+            value_proposition: 'Reduces unauthorized-access risk. One identity for all systems. Automated onboarding and offboarding.',
+            service_features: 'SSO, MFA, RBAC, PAM, lifecycle management, self-service portal, audit logs, identity-management API',
+            sla_restoration_text: 'Critical authentication path: 2h RTO, self-service features: 4h RTO',
+            sla_delivery_text: 'New user: 1 business day',
+            rate_note: 'Standard tier: EUR 8/user/month. Governance tier (IGA): EUR 25/user/month. Initiation fee: EUR 20,000.',
+            ordering_note: 'New user: helpdesk ticket. New application (SSO integration): architecture request via J6 with a 5 business day target.',
+            exclusions: 'Does not include identity management for external contractors without an NDA. Biometric systems are handled in a separate project.',
+            operational_notes_raw: 'Critical dependency on Active Directory domain controllers. Geo-redundancy between Prague and Brno. PAM vault: CyberArk cluster.',
+            notes_json: JSON.stringify({
+                lifecycle_state: 'production',
+                review_date: '2025-03-15',
+                next_review_date: '2026-03-15',
+                compliance_flags: ['NIS2', 'ISO-27001', 'GDPR', 'SOC2'],
+                hosting_model: 'on-premise geo-redundant (Prague + Brno)',
+                platform_ref: 'CMDB-CI-00198',
+                risk_level: 'critical',
+                review_notes: 'The NIS2 audit passed in 03/2025. Recommended next step: extend MFA to contractors in Q2 2025.',
+            }),
+        },
+        'DEMO-DAP-003': {
+            short_description: 'Analytical platform for collecting, processing, and visualizing data across the organisation.',
+            description: 'Data Analytics Platform (DAP) provides end-to-end analytical capabilities: data ingestion, ETL pipelines, a data lake, an SQL warehouse, and BI dashboards. It is built on a modern lakehouse approach and supports self-service analytics for business users as well as advanced ML/AI workloads.',
+            business_purpose: 'Enable data-driven decision making at every organisational level. Provide a standardized way to work with data. Reduce time-to-insight from weeks to hours.',
+            scope_text: 'Covers operational reporting, strategic dashboards, and exploratory analytics. Does not include transactional systems.',
+            value_proposition: 'Provides access to consolidated data. Self-service analytics without IT dependency. Scalable ML infrastructure.',
+            service_features: 'Data Ingestion, ETL/ELT Pipeline, Data Lake, SQL Warehouse, BI Dashboards, ML Workbench, Data Catalog, Self-service Analytics',
+            sla_restoration_text: 'P1 dashboards: 8h RTO, batch pipelines: next business day',
+            sla_delivery_text: 'New dataset: 3 business days after source data delivery',
+            rate_note: 'Reporting: EUR 0.10/report. Compute: EUR 0.05/CPU-hour. Ingestion: EUR 2/GB. Monthly minimum: EUR 1,000.',
+            ordering_note: 'Self-service onboarding via the analytics portal. New data source: J9/CDO ticket including dataset description and classification.',
+            exclusions: 'Does not include real-time OLTP databases. Production ML inference is a separate service. Data older than 7 years is archived outside the base SLA.',
+            operational_notes_raw: 'Batch window: nightly 22:00-06:00. Streaming workloads run 24/7. Cluster: Databricks + Delta Lake. Backup: daily snapshot to cold storage.',
+            notes_json: JSON.stringify({
+                lifecycle_state: 'production',
+                review_date: '2025-09-01',
+                next_review_date: '2026-09-01',
+                compliance_flags: ['GDPR', 'NIS2'],
+                hosting_model: 'hybrid cloud (Azure + on-premise DWH)',
+                platform_ref: 'CMDB-CI-00731',
+                risk_level: 'medium',
+                review_notes: 'Planned migration of the DWH layer to Azure Synapse in Q4 2025. Data classification completed in 08/2025.',
+            }),
+        },
+    },
+};
+
+function getDemoServiceCopy(locale, serviceId) {
+    const normalizedLocale = normalizeLocale(locale);
+    return DEMO_SERVICE_COPY[normalizedLocale]?.[serviceId] ?? {};
+}
+
+function resolveDemoSeedLocale(locale) {
+    if (typeof locale === 'string' && locale.trim()) {
+        return normalizeLocale(locale);
+    }
+
+    return normalizeLocale(
+        process.env.LC_ALL
+        || process.env.LC_MESSAGES
+        || process.env.LANG
+        || 'cs',
+    );
+}
+
+function buildDemoServices(locale = 'cs') {
+    const resolvedLocale = resolveDemoSeedLocale(locale);
+    return [
+        {
+            service_id: 'DEMO-PIS-001',
+            title: '[DEMO] Platform Integration Service',
+            service_type_code: 'CF',
+            service_status_code: 'active',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'SHARED',
+            global_service_group_code: 'INFRA',
+            service_line_code: 'INTEGRATION',
+            organizational_element_code: 'CIS',
+            // §2 Description
+            short_description: 'Centrální integrační platforma zajišťující výměnu dat a zpráv mezi systémy organisace.',
+            description: 'Platform Integration Service (PIS) poskytuje robustní middleware pro integraci heterogenních systémů. Zahrnuje API gateway, message broker a event bus. Umožňuje synchronní REST/SOAP a asynchronní AMQP/Kafka komunikaci. Nasazena jako HA cluster s automatickým failover.',
+            business_purpose: 'Eliminace point-to-point integračních vazeb. Centralizovaný monitoring toků dat. Standardizace integrační vrstvy organisace.',
+            scope_text: 'Pokrývá integraci interních systémů, napojení partnerských rozhraní a cloud API. Nezahrnuje end-user aplikace.',
+            value_proposition: 'Snižuje TCO integračních projektů o ~40% díky znovupoužitelným konektorům a centralizované správě.',
+            service_features: 'API Gateway, Message Broker, Event Streaming, Data Transformation, Monitoring Dashboard, 500+ předdefinovaných konektorů',
+            // §5 Availability / SLA
+            sla_availability: 99.9,
+            sla_restoration_hours: 4,
+            sla_delivery_days: 5,
+            sla_restoration_text: 'Kategorie P1: 4h RTO, P2: 8h RTO',
+            sla_delivery_text: 'Nový konektor: 5 pracovních dnů od požadavku',
+            // §10 Governance
+            security_classification_code: 'RESTRICTED',
+            retired_note: null,
+            // §11 Technical
+            service_url: 'https://integration.example.org/portal',
+            unit_of_measure: 'per transaction / per month',
+            charging_basis: 'Volume + Base fee',
+            rate_note: 'Základní paušál 5 000 EUR/měsíc + 0.002 EUR/transakci nad limit 1M/měsíc.',
+            ordering_note: 'Požadavek přes ServiceNow (kategorie: Middleware). Schválení vedoucího oddělení + J6. Zprovoznění do 5 pracovních dnů.',
+            exclusions: 'Nezahrnuje end-user aplikace ani mobilní klienty. Komunikace mimo organisační sítě podléhá samostatné dohodě.',
+            customer_type: ['Internal', 'Partner'],
+            operational_notes_raw: '24/7 monitoring NOC. Maintenance window: neděle 02:00-04:00 UTC. Escalační kontakt: integration-ops@example.org.',
+            budget_activity_code: 'BA-INFRA-2024',
+            // §12 Review / structured notes
+            notes_json: JSON.stringify({
+                lifecycle_state: 'production',
+                review_date: '2025-06-30',
+                next_review_date: '2026-06-30',
+                compliance_flags: ['NIS2', 'ISO-27001'],
+                hosting_model: 'on-premise HA cluster',
+                platform_ref: 'CMDB-CI-00412',
+                risk_level: 'high',
+                review_notes: 'Poslední review proběhl bez nálezů. Plánovaná migrace na cloud hybrid v Q3 2025.',
+            }),
+            ...getDemoServiceCopy(resolvedLocale, 'DEMO-PIS-001'),
+        },
+        {
+            service_id: 'DEMO-IAM-002',
+            title: '[DEMO] Identity & Access Management',
+            service_type_code: 'ES',
+            service_status_code: 'active',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'SECURITY',
+            global_service_group_code: 'SEC',
+            service_line_code: 'IDENTITY',
+            organizational_element_code: 'CSO',
+            // §2 Description
+            short_description: 'Správa identit, autentizace a autorizace uživatelů a systémů napříč celou organisací.',
+            description: 'Identity & Access Management (IAM) zajišťuje centrální správu uživatelských identit, single sign-on (SSO), MFA a role-based access control (RBAC). Integruje se s Active Directory, LDAP a externími IdP (SAML 2.0, OIDC). Poskytuje auditní trail všech přístupů.',
+            business_purpose: 'Zajištění bezpečného přístupu k aplikacím a datům při zachování uživatelského komfortu. Splnění compliance požadavků (NIS2, ISO 27001).',
+            scope_text: 'Pokrývá všechny interní systémy a cloudové aplikace napojené přes SSO. Zahrnuje privileged access management (PAM).',
+            value_proposition: 'Snižuje riziko neoprávněného přístupu. Single identity pro všechny systémy. Automatizované onboarding/offboarding.',
+            service_features: 'SSO, MFA, RBAC, PAM, Lifecycle Management, Self-service portal, Audit logs, API pro správu identit',
+            // §5 Availability / SLA
+            sla_availability: 99.95,
+            sla_restoration_hours: 2,
+            sla_delivery_days: 1,
+            sla_restoration_text: 'Auth kritická cesta: 2h RTO, Self-service: 4h RTO',
+            sla_delivery_text: 'Nový uživatel: 1 pracovní den',
+            // §10 Governance
+            security_classification_code: 'CONFIDENTIAL',
+            retired_note: null,
+            // §11 Technical
+            service_url: 'https://iam.example.org',
+            unit_of_measure: 'per user / per month',
+            charging_basis: 'Per seat',
+            rate_note: 'Standard tier: 8 EUR/user/měsíc. Governance tier (IGA): 25 EUR/user/měsíc. Initiation fee: 20 000 EUR.',
+            ordering_note: 'Nový uživatel: helpdesk ticket. Nová aplikace (SSO integrace): architektonická žádost přes J6 — lhůta 5 prac. dní.',
+            exclusions: 'Nezahrnuje správu identit externích dodavatelů bez smlouvy NDA. Biometrické systémy jsou v samostatném projektu.',
+            customer_type: ['Internal'],
+            operational_notes_raw: 'Kritická závislost na DC Active Directory. Georedundance Praha/Brno. PAM vault: Cyberark cluster.',
+            budget_activity_code: 'BA-SEC-2024',
+            // §12 Review / structured notes
+            notes_json: JSON.stringify({
+                lifecycle_state: 'production',
+                review_date: '2025-03-15',
+                next_review_date: '2026-03-15',
+                compliance_flags: ['NIS2', 'ISO-27001', 'GDPR', 'SOC2'],
+                hosting_model: 'on-premise georedundant (Praha + Brno)',
+                platform_ref: 'CMDB-CI-00198',
+                risk_level: 'critical',
+                review_notes: 'Audit NIS2 proběhl 03/2025 — splněno. Doporučení: rozšíření MFA na dodavatele do Q2 2025.',
+            }),
+            ...getDemoServiceCopy(resolvedLocale, 'DEMO-IAM-002'),
+        },
+        {
+            service_id: 'DEMO-DAP-003',
+            title: '[DEMO] Data Analytics Platform',
+            service_type_code: 'SS',
+            service_status_code: 'active',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'DATA',
+            global_service_group_code: 'ANALYTICS',
+            service_line_code: 'BI',
+            organizational_element_code: 'CDO',
+            // §2 Description
+            short_description: 'Analytická platforma pro sběr, zpracování a vizualizaci dat z celé organisace.',
+            description: 'Data Analytics Platform (DAP) poskytuje end-to-end analytické kapacity: data ingestion, ETL pipeline, data lake, SQL warehouse a BI dashboardy. Postavena na moderním lakehouse přístupu. Podporuje self-service analytiku pro business uživatele i pokročilé ML/AI workloady.',
+            business_purpose: 'Datově řízené rozhodování na všech úrovních organisace. Standardizovaný přístup k datům. Zkrácení time-to-insight z týdnů na hodiny.',
+            scope_text: 'Pokrývá provozní reporting, strategické dashboardy a experimentální analytiku. Nezahrnuje transakční systémy.',
+            value_proposition: 'Přístup ke konsolidovaným datům. Self-service analytika bez závislosti na IT. Škálovatelná ML infrastruktura.',
+            service_features: 'Data Ingestion, ETL/ELT Pipeline, Data Lake, SQL Warehouse, BI Dashboards, ML Workbench, Data Catalog, Self-service Analytics',
+            // §5 Availability / SLA
+            sla_availability: 99.5,
+            sla_restoration_hours: 8,
+            sla_delivery_days: 3,
+            sla_restoration_text: 'Dashboardy P1: 8h, Batch pipeline: next-day',
+            sla_delivery_text: 'Nový dataset: 3 pracovní dny od dodání dat',
+            // §10 Governance
+            security_classification_code: 'RESTRICTED',
+            retired_note: null,
+            // §11 Technical
+            service_url: 'https://analytics.example.org',
+            unit_of_measure: 'per report / per compute-hour',
+            charging_basis: 'Usage-based',
+            rate_note: 'Reporting: 0,10 EUR/report. Compute: 0,05 EUR/CPU-hour. Ingestion: 2 EUR/GB. Měsíční minimum 1 000 EUR.',
+            ordering_note: 'Self-service onboarding přes analytický portál. Nový datový zdroj: ticket J9/CDO s popisem datasetu a klasifikací.',
+            exclusions: 'Nezahrnuje real-time OLTP databáze. ML inference v produkci je samostatná služba. Data starší 7 let jsou v archivu mimo základní SLA.',
+            customer_type: ['Internal', 'Command'],
+            operational_notes_raw: 'Batch okno: noc 22:00-06:00. Streaming zpracování 24/7. Cluster: Databricks + Delta Lake. Backup: denní snapshot do cold storage.',
+            budget_activity_code: 'BA-DATA-2024',
+            // §12 Review / structured notes
+            notes_json: JSON.stringify({
+                lifecycle_state: 'production',
+                review_date: '2025-09-01',
+                next_review_date: '2026-09-01',
+                compliance_flags: ['GDPR', 'NIS2'],
+                hosting_model: 'hybrid cloud (Azure + on-premise DWH)',
+                platform_ref: 'CMDB-CI-00731',
+                risk_level: 'medium',
+                review_notes: 'Plánovaná migrace DWH vrstvy na Azure Synapse v Q4 2025. Datová klasifikace provedena 08/2025.',
+            }),
+            ...getDemoServiceCopy(resolvedLocale, 'DEMO-DAP-003'),
+        },
+    ];
+}
 
 // ── Helper ──────────────────────────────────────────────────────────────────────
 async function safeQuery(pool, sql, params = [], label = '') {
@@ -159,154 +408,8 @@ async function seedReferenceData(pool) {
 }
 
 // ── 1. SERVICE CATALOGUE — 3 demo services ───────────────────────────────────
-async function seedServices(pool) {
-    const services = [
-        {
-            service_id: 'DEMO-PIS-001',
-            title: '[DEMO] Platform Integration Service',
-            service_type_code: 'CF',
-            service_status_code: 'active',
-            catalogue_version: '2.1',
-            portfolio_group_code: 'SHARED',
-            global_service_group_code: 'INFRA',
-            service_line_code: 'INTEGRATION',
-            organizational_element_code: 'CIS',
-            // §2 Description
-            short_description: 'Centrální integrační platforma zajišťující výměnu dat a zpráv mezi systémy organisace.',
-            description: 'Platform Integration Service (PIS) poskytuje robustní middleware pro integraci heterogenních systémů. Zahrnuje API gateway, message broker a event bus. Umožňuje synchronní REST/SOAP a asynchronní AMQP/Kafka komunikaci. Nasazena jako HA cluster s automatickým failover.',
-            business_purpose: 'Eliminace point-to-point integračních vazeb. Centralizovaný monitoring toků dat. Standardizace integrační vrstvy organisace.',
-            scope_text: 'Pokrývá integraci interních systémů, napojení partnerských rozhraní a cloud API. Nezahrnuje end-user aplikace.',
-            value_proposition: 'Snižuje TCO integračních projektů o ~40% díky znovupoužitelným konektorům a centralizované správě.',
-            service_features: 'API Gateway, Message Broker, Event Streaming, Data Transformation, Monitoring Dashboard, 500+ předdefinovaných konektorů',
-            // §5 Availability / SLA
-            sla_availability: 99.9,
-            sla_restoration_hours: 4,
-            sla_delivery_days: 5,
-            sla_restoration_text: 'Kategorie P1: 4h RTO, P2: 8h RTO',
-            sla_delivery_text: 'Nový konektor: 5 pracovních dnů od požadavku',
-            // §10 Governance
-            security_classification_code: 'RESTRICTED',
-            retired_note: null,
-            // §11 Technical
-            service_url: 'https://integration.example.org/portal',
-            unit_of_measure: 'per transaction / per month',
-            charging_basis: 'Volume + Base fee',
-            rate_note: 'Základní paušál 5 000 EUR/měsíc + 0.002 EUR/transakci nad limit 1M/měsíc.',
-            ordering_note: 'Požadavek přes ServiceNow (kategorie: Middleware). Schválení vedoucího oddělení + J6. Zprovoznění do 5 pracovních dnů.',
-            exclusions: 'Nezahrnuje end-user aplikace ani mobilní klienty. Komunikace mimo organisační sítě podléhá samostatné dohodě.',
-            customer_type: ['Internal', 'Partner'],
-            operational_notes_raw: '24/7 monitoring NOC. Maintenance window: neděle 02:00-04:00 UTC. Escalační kontakt: integration-ops@example.org.',
-            budget_activity_code: 'BA-INFRA-2024',
-            // §12 Review / structured notes
-            notes_json: JSON.stringify({
-                lifecycle_state: 'production',
-                review_date: '2025-06-30',
-                next_review_date: '2026-06-30',
-                compliance_flags: ['NIS2', 'ISO-27001'],
-                hosting_model: 'on-premise HA cluster',
-                platform_ref: 'CMDB-CI-00412',
-                risk_level: 'high',
-                review_notes: 'Poslední review proběhl bez nálezů. Plánovaná migrace na cloud hybrid v Q3 2025.',
-            }),
-        },
-        {
-            service_id: 'DEMO-IAM-002',
-            title: '[DEMO] Identity & Access Management',
-            service_type_code: 'ES',
-            service_status_code: 'active',
-            catalogue_version: '2.1',
-            portfolio_group_code: 'SECURITY',
-            global_service_group_code: 'SEC',
-            service_line_code: 'IDENTITY',
-            organizational_element_code: 'CSO',
-            // §2 Description
-            short_description: 'Správa identit, autentizace a autorizace uživatelů a systémů napříč celou organisací.',
-            description: 'Identity & Access Management (IAM) zajišťuje centrální správu uživatelských identit, single sign-on (SSO), MFA a role-based access control (RBAC). Integruje se s Active Directory, LDAP a externími IdP (SAML 2.0, OIDC). Poskytuje auditní trail všech přístupů.',
-            business_purpose: 'Zajištění bezpečného přístupu k aplikacím a datům při zachování uživatelského komfortu. Splnění compliance požadavků (NIS2, ISO 27001).',
-            scope_text: 'Pokrývá všechny interní systémy a cloudové aplikace napojené přes SSO. Zahrnuje privileged access management (PAM).',
-            value_proposition: 'Snižuje riziko neoprávněného přístupu. Single identity pro všechny systémy. Automatizované onboarding/offboarding.',
-            service_features: 'SSO, MFA, RBAC, PAM, Lifecycle Management, Self-service portal, Audit logs, API pro správu identit',
-            // §5 Availability / SLA
-            sla_availability: 99.95,
-            sla_restoration_hours: 2,
-            sla_delivery_days: 1,
-            sla_restoration_text: 'Auth kritická cesta: 2h RTO, Self-service: 4h RTO',
-            sla_delivery_text: 'Nový uživatel: 1 pracovní den',
-            // §10 Governance
-            security_classification_code: 'CONFIDENTIAL',
-            retired_note: null,
-            // §11 Technical
-            service_url: 'https://iam.example.org',
-            unit_of_measure: 'per user / per month',
-            charging_basis: 'Per seat',
-            rate_note: 'Standard tier: 8 EUR/user/měsíc. Governance tier (IGA): 25 EUR/user/měsíc. Initiation fee: 20 000 EUR.',
-            ordering_note: 'Nový uživatel: helpdesk ticket. Nová aplikace (SSO integrace): architektonická žádost přes J6 — lhůta 5 prac. dní.',
-            exclusions: 'Nezahrnuje správu identit externích dodavatelů bez smlouvy NDA. Biometrické systémy jsou v samostatném projektu.',
-            customer_type: ['Internal'],
-            operational_notes_raw: 'Kritická závislost na DC Active Directory. Georedundance Praha/Brno. PAM vault: Cyberark cluster.',
-            budget_activity_code: 'BA-SEC-2024',
-            // §12 Review / structured notes
-            notes_json: JSON.stringify({
-                lifecycle_state: 'production',
-                review_date: '2025-03-15',
-                next_review_date: '2026-03-15',
-                compliance_flags: ['NIS2', 'ISO-27001', 'GDPR', 'SOC2'],
-                hosting_model: 'on-premise georedundant (Praha + Brno)',
-                platform_ref: 'CMDB-CI-00198',
-                risk_level: 'critical',
-                review_notes: 'Audit NIS2 proběhl 03/2025 — splněno. Doporučení: rozšíření MFA na dodavatele do Q2 2025.',
-            }),
-        },
-        {
-            service_id: 'DEMO-DAP-003',
-            title: '[DEMO] Data Analytics Platform',
-            service_type_code: 'SS',
-            service_status_code: 'active',
-            catalogue_version: '2.1',
-            portfolio_group_code: 'DATA',
-            global_service_group_code: 'ANALYTICS',
-            service_line_code: 'BI',
-            organizational_element_code: 'CDO',
-            // §2 Description
-            short_description: 'Analytická platforma pro sběr, zpracování a vizualizaci dat z celé organisace.',
-            description: 'Data Analytics Platform (DAP) poskytuje end-to-end analytické kapacity: data ingestion, ETL pipeline, data lake, SQL warehouse a BI dashboardy. Postavena na moderním lakehouse přístupu. Podporuje self-service analytiku pro business uživatele i pokročilé ML/AI workloady.',
-            business_purpose: 'Datově řízené rozhodování na všech úrovních organisace. Standardizovaný přístup k datům. Zkrácení time-to-insight z týdnů na hodiny.',
-            scope_text: 'Pokrývá provozní reporting, strategické dashboardy a experimentální analytiku. Nezahrnuje transakční systémy.',
-            value_proposition: 'Přístup ke konsolidovaným datům. Self-service analytika bez závislosti na IT. Škálovatelná ML infrastruktura.',
-            service_features: 'Data Ingestion, ETL/ELT Pipeline, Data Lake, SQL Warehouse, BI Dashboards, ML Workbench, Data Catalog, Self-service Analytics',
-            // §5 Availability / SLA
-            sla_availability: 99.5,
-            sla_restoration_hours: 8,
-            sla_delivery_days: 3,
-            sla_restoration_text: 'Dashboardy P1: 8h, Batch pipeline: next-day',
-            sla_delivery_text: 'Nový dataset: 3 pracovní dny od dodání dat',
-            // §10 Governance
-            security_classification_code: 'RESTRICTED',
-            retired_note: null,
-            // §11 Technical
-            service_url: 'https://analytics.example.org',
-            unit_of_measure: 'per report / per compute-hour',
-            charging_basis: 'Usage-based',
-            rate_note: 'Reporting: 0,10 EUR/report. Compute: 0,05 EUR/CPU-hour. Ingestion: 2 EUR/GB. Měsíční minimum 1 000 EUR.',
-            ordering_note: 'Self-service onboarding přes analytický portál. Nový datový zdroj: ticket J9/CDO s popisem datasetu a klasifikací.',
-            exclusions: 'Nezahrnuje real-time OLTP databáze. ML inference v produkci je samostatná služba. Data starší 7 let jsou v archivu mimo základní SLA.',
-            customer_type: ['Internal', 'Command'],
-            operational_notes_raw: 'Batch okno: noc 22:00-06:00. Streaming zpracování 24/7. Cluster: Databricks + Delta Lake. Backup: denní snapshot do cold storage.',
-            budget_activity_code: 'BA-DATA-2024',
-            // §12 Review / structured notes
-            notes_json: JSON.stringify({
-                lifecycle_state: 'production',
-                review_date: '2025-09-01',
-                next_review_date: '2026-09-01',
-                compliance_flags: ['GDPR', 'NIS2'],
-                hosting_model: 'hybrid cloud (Azure + on-premise DWH)',
-                platform_ref: 'CMDB-CI-00731',
-                risk_level: 'medium',
-                review_notes: 'Plánovaná migrace DWH vrstvy na Azure Synapse v Q4 2025. Datová klasifikace provedena 08/2025.',
-            }),
-        },
-    ];
-
+async function seedServices(pool, locale = 'cs') {
+    const services = buildDemoServices(locale);
     for (const svc of services) {
         await safeQuery(pool, `
             INSERT INTO data.service_catalog (
@@ -919,11 +1022,12 @@ async function seedCapabilityEntityLinks(pool) {
 }
 
 // ── MAIN EXPORT ──────────────────────────────────────────────────────────────────
-async function seedDemoData(pool) {
+async function seedDemoData(pool, options = {}) {
     logger.info('demo-seed: starting demo data seeding...');
     try {
+        const locale = resolveDemoSeedLocale(options?.locale);
         await seedReferenceData(pool);
-        await seedServices(pool);
+        await seedServices(pool, locale);
         await seedDomainAvailability(pool);
         await seedRoleAssignments(pool);
         await seedFlavours(pool);
@@ -1017,4 +1121,4 @@ async function removeDemoData(pool) {
     }
 }
 
-module.exports = { seedDemoData, removeDemoData, DEMO_UUIDS };
+module.exports = { seedDemoData, removeDemoData, DEMO_UUIDS, buildDemoServices, resolveDemoSeedLocale };

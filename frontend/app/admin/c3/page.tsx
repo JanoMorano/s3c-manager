@@ -10,6 +10,8 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import C3Breadcrumbs from '../../components/C3Breadcrumbs';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
+import { compareText, formatDate } from '@/app/i18n/format';
+import { useLocale } from '@/app/i18n/useI18n';
 import {
   C3_ROUTES,
   C3_TAXONOMY_TYPE_OPTIONS,
@@ -94,13 +96,6 @@ function statusClass(status: string | null): string {
   return styles.status_default;
 }
 
-function formatDate(value: string | null) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('cs-CZ');
-}
-
 function parseCellTokens(value: string | null | undefined) {
   if (!value) return [];
   const seen = new Set<string>();
@@ -117,12 +112,12 @@ function parseCellTokens(value: string | null | undefined) {
     });
 }
 
-function compareValues(left: string | number | null, right: string | number | null) {
+function compareValues(locale: string, left: string | number | null, right: string | number | null) {
   if (left == null && right == null) return 0;
   if (left == null) return 1;
   if (right == null) return -1;
   if (typeof left === 'number' && typeof right === 'number') return left - right;
-  return String(left).localeCompare(String(right), 'cs', { sensitivity: 'base', numeric: true });
+  return compareText(locale, String(left), String(right), { sensitivity: 'base', numeric: true });
 }
 
 function resolveEntityHrefByCode(value: string) {
@@ -158,6 +153,7 @@ function C3CatalogueInner() {
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
   const search = searchParams?.get('search') ?? '';
   const exact = searchParams?.get('exact') ?? '';
   const itemTypeFilter = splitFilterValue(searchParams?.get('item_type') ?? null);
@@ -223,8 +219,8 @@ function C3CatalogueInner() {
 
   const statusOptions = useMemo(() => {
     const values = new Set((data ?? []).map((item) => item.item_status).filter(Boolean) as string[]);
-    return [...values].sort((left, right) => left.localeCompare(right, 'cs'));
-  }, [data]);
+    return [...values].sort((left, right) => compareText(locale, left, right));
+  }, [data, locale]);
 
   const pushParams = useCallback((updates: Record<string, string | string[] | undefined>) => {
     const params = new URLSearchParams(searchParams?.toString() ?? '');
@@ -298,9 +294,9 @@ function C3CatalogueInner() {
     return [...filtered].sort((left, right) => {
       const leftValue = normalizeSortValue(left, sortKey);
       const rightValue = normalizeSortValue(right, sortKey);
-      return compareValues(leftValue, rightValue) * direction;
+      return compareValues(locale, leftValue, rightValue) * direction;
     });
-  }, [data, exact, itemTypeFilter, parentFilter, search, sortDirection, sortKey, statusFilter]);
+  }, [data, exact, itemTypeFilter, locale, parentFilter, search, sortDirection, sortKey, statusFilter]);
 
   const toggleSort = useCallback((column: string) => {
     if (!SORTABLE_COLUMNS.has(column)) return;
@@ -538,7 +534,7 @@ function C3CatalogueInner() {
                             </span>
                           )}
                           <span className={styles.c3MetaPill}>{item.mapping_count ?? 0} mapped</span>
-                          {item.modification_date && <span className={styles.cellMuted}>{formatDate(item.modification_date)}</span>}
+                          {item.modification_date && <span className={styles.cellMuted}>{formatDate(locale, item.modification_date, { dateStyle: 'medium' })}</span>}
                         </div>
                       </div>
                     </td>

@@ -2,9 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useT } from '@/app/i18n/useI18n';
 import styles from '../layout.module.css';
 
 export default function NavGlobalSearch() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -23,17 +25,17 @@ export default function NavGlobalSearch() {
   }
 
   return (
-    <form className={styles.navSearchForm} onSubmit={handleSubmit} role="search" aria-label="Global search">
+    <form className={styles.navSearchForm} onSubmit={handleSubmit} role="search" aria-label={t('nav.global_search_aria')}>
       <input
         className={styles.navSearchInput}
         type="search"
-        placeholder="Search všude…"
+        placeholder={t('nav.global_search_placeholder')}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        aria-label="Search everywhere"
+        aria-label={t('nav.global_search_aria')}
       />
       <button type="submit" className={styles.navSearchButton}>
-        Search
+        {t('nav.global_search_submit')}
       </button>
     </form>
   );

@@ -51,7 +51,8 @@ function requireModuleApiEnabled(moduleCode, message = 'Požadovaný modul není
         try {
             const enabled = await isModuleApiEnabled(moduleCode);
             if (!enabled) {
-                return res.status(404).json({ error: message });
+                const resolvedMessage = typeof message === 'function' ? message(req) : message;
+                return res.status(404).json({ error: resolvedMessage });
             }
             return next();
         } catch (err) {
