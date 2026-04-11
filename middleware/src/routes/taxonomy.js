@@ -209,6 +209,10 @@ function normalizeCodeParam(value) {
     return String(value ?? '').trim();
 }
 
+function isXlsxParserError(err) {
+    return String(err?.message ?? '').startsWith('XLSX parser:');
+}
+
 function getImportTargetMeta(targetKey) {
     if (targetKey === CAPABILITY_BUILDER_IMPORT_TARGET.key) return CAPABILITY_BUILDER_IMPORT_TARGET;
     return C3_ENTITY_IMPORT_TARGETS[targetKey] ?? null;
@@ -1973,7 +1977,12 @@ router.post(
                 target_label: effectiveTarget.label,
                 ...result,
             });
-        } catch (err) { next(err); }
+        } catch (err) {
+            if (isXlsxParserError(err)) {
+                return res.status(400).json({ error: err.message });
+            }
+            next(err);
+        }
     }
 );
 

@@ -64,6 +64,19 @@ jest.mock('../config', () => ({
     },
 }));
 
+function buildEocdOnlyZip(entryCount) {
+    const buffer = Buffer.alloc(22);
+    buffer.writeUInt32LE(0x06054b50, 0);
+    buffer.writeUInt16LE(0, 4);
+    buffer.writeUInt16LE(0, 6);
+    buffer.writeUInt16LE(entryCount, 8);
+    buffer.writeUInt16LE(entryCount, 10);
+    buffer.writeUInt32LE(0, 12);
+    buffer.writeUInt32LE(0, 16);
+    buffer.writeUInt16LE(0, 20);
+    return buffer;
+}
+
 describe('taxonomy public c3 endpoints', () => {
     beforeEach(() => {
         jest.resetModules();
@@ -185,6 +198,21 @@ describe('taxonomy public c3 endpoints', () => {
         const response = await request(app).get(path);
         expect(response.status).toBe(401);
         expect(__query).not.toHaveBeenCalled();
+    });
+
+    test('POST /c3/xlsx returns 400 for oversized ZIP entry counts', async () => {
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use(express.json());
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app)
+            .post('/api/v1/taxonomy/c3/xlsx')
+            .set('Content-Type', 'application/zip')
+            .send(buildEocdOnlyZip(129));
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toMatch(/zip entry count/i);
     });
 
     test('GET /c3-capability-builder/domains returns domains for authenticated users', async () => {
