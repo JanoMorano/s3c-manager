@@ -1,7 +1,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { useLocale, useT } from '@/app/i18n/useI18n';
+import { useT } from '@/app/i18n/useI18n';
 import { useEffect, useMemo, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
@@ -23,22 +23,22 @@ interface WebSettingsResponse {
   items: WebSetting[];
 }
 
-function labelForSetting(key: string): string {
+function labelForSetting(t: ReturnType<typeof useT>, key: string): string {
   switch (key) {
     case 'auth.sso.enabled':
-      return 'Zapnout ADFS / SSO';
+      return t('administration.web.setting.auth.sso.enabled');
     case 'auth.sso.header':
-      return 'Identity header';
+      return t('administration.web.setting.auth.sso.header');
     case 'auth.sso.display_name_header':
-      return 'Display name header';
+      return t('administration.web.setting.auth.sso.display_name_header');
     case 'auth.sso.email_header':
-      return 'Email header';
+      return t('administration.web.setting.auth.sso.email_header');
     case 'auth.sso.given_name_header':
-      return 'Given name header';
+      return t('administration.web.setting.auth.sso.given_name_header');
     case 'auth.sso.surname_header':
-      return 'Surname header';
+      return t('administration.web.setting.auth.sso.surname_header');
     case 'auth.sso.department_header':
-      return 'Department header';
+      return t('administration.web.setting.auth.sso.department_header');
     default:
       return key;
   }
@@ -46,7 +46,6 @@ function labelForSetting(key: string): string {
 
 export default function AdministrationWebPage() {
   const t = useT();
-  const locale = useLocale();
   const { data, isLoading, error } = useSWR<WebSettingsResponse>(WEB_SETTINGS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -116,9 +115,9 @@ export default function AdministrationWebPage() {
       }
 
       await globalMutate(WEB_SETTINGS_ENDPOINT);
-      setSaveOk(locale === 'en' ? 'Web / ADFS settings saved.' : 'Web / ADFS nastavení bylo uloženo.');
+      setSaveOk(t('administration.web.save_ok'));
     } catch (errorValue: unknown) {
-      setSaveError(errorValue instanceof Error ? errorValue.message : (locale === 'en' ? 'Save failed.' : 'Uložení selhalo.'));
+      setSaveError(errorValue instanceof Error ? errorValue.message : t('administration.web.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -138,7 +137,7 @@ export default function AdministrationWebPage() {
           <p className={styles.pageDesc}>{t('administration.card.web.desc')}</p>
         </div>
         <button type="button" className={styles.primaryButton} onClick={handleSave} disabled={saving || isLoading}>
-          {saving ? t('common.loading') : (locale === 'en' ? 'Save settings' : 'Uložit nastavení')}
+          {saving ? t('common.loading') : t('administration.web.save_button')}
         </button>
       </div>
 
@@ -149,7 +148,7 @@ export default function AdministrationWebPage() {
 
       {saveError && <div className={styles.errorBox}>{saveError}</div>}
       {saveOk && <div className={styles.successBox}>{saveOk}</div>}
-      {error && <div className={styles.errorBox}>{locale === 'en' ? 'Failed to load configuration.' : 'Načtení konfigurace selhalo.'}</div>}
+      {error && <div className={styles.errorBox}>{t('administration.web.load_failed')}</div>}
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
@@ -172,7 +171,7 @@ export default function AdministrationWebPage() {
                   key={item.key}
                   className={isBoolean ? `${styles.field} ${styles.fieldWide}` : styles.fieldWide}
                 >
-                  <span className={styles.label}>{labelForSetting(item.key)}</span>
+                  <span className={styles.label}>{labelForSetting(t, item.key)}</span>
                   <span className={styles.hint}>{item.description}</span>
 
                   {isBoolean ? (
@@ -182,7 +181,7 @@ export default function AdministrationWebPage() {
                         checked={String(value).toLowerCase() === 'true'}
                         onChange={(event) => updateValue(item.key, event.target.checked ? 'true' : 'false')}
                       />
-                      <span>{locale === 'en' ? 'Allow automatic domain sign-in through trusted headers' : 'Povolit automatické doménové přihlášení přes trusted headers'}</span>
+                      <span>{t('administration.web.checkbox_label')}</span>
                     </span>
                   ) : (
                     <input
@@ -194,9 +193,9 @@ export default function AdministrationWebPage() {
                   )}
 
                   <span className={styles.meta}>
-                    <span className={styles.metaLabel}>{locale === 'en' ? 'Config key:' : 'Konfigurační klíč:'}</span> {item.key}
+                    <span className={styles.metaLabel}>{t('common.config_key')}</span> {item.key}
                     <span className={styles.metaSep}>•</span>
-                    <span className={styles.metaLabel}>{locale === 'en' ? 'Default:' : 'Výchozí hodnota:'}</span> {item.default_value}
+                    <span className={styles.metaLabel}>{t('common.default_value')}</span> {item.default_value}
                   </span>
                 </label>
               );
