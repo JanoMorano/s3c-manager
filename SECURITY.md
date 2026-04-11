@@ -43,9 +43,11 @@ Expect a response within 5 business days.
 ### Secrets Management
 
 - no secrets in source code or Docker images
-- recommended: Docker Compose secrets mounted under `/run/secrets/`
+- recommended: Docker Compose secrets mounted under `/run/secrets/` and passed
+  through `JWT_SECRET_FILE`, `DB_PASSWORD_FILE`, and `POSTGRES_PASSWORD_FILE`
 - alternative: strong environment variables in an isolated `.env` file
-- `JWT_SECRET` should contain at least 32 random characters, for example `openssl rand -base64 48`
+- `JWT_SECRET` should contain at least 32 random characters, for example
+  `openssl rand -base64 48`
 
 ### Audit Trail
 
@@ -67,6 +69,15 @@ Expect a response within 5 business days.
   secrets before reading identity headers
 - CORS origins explicitly whitelisted through `CORS_ORIGINS`
 - Helmet.js middleware for security headers such as CSP, HSTS, and X-Frame-Options
+
+### Backup and Recovery
+
+- PostgreSQL backups are required before upgrades and before destructive reset
+  flows such as `./deploy.sh rebuild-db`
+- backup cadence should be at least daily for production
+- restore rehearsals should be performed regularly, at minimum monthly
+- keep at least one recent backup off-host or off-node
+- treat `./scripts/restore-postgres.sh` as the supported recovery path
 
 ## Security Contacts
 
