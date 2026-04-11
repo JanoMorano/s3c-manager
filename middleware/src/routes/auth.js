@@ -699,7 +699,7 @@ router.put('/preferences', requireAuth, async (req, res, next) => {
             [req.user.id, normalizedPreferredLang, normalizedPreferredTheme]
         );
         setLocaleCookie(res, normalizedPreferredLang);
-        res.json({ message: 'Preference uloženy' });
+        res.json({ message: 'Preference uloženy', preferred_lang: normalizedPreferredLang });
     } catch (err) {
         next(err);
     }

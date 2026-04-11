@@ -52,10 +52,10 @@ export default function LoginPage() {
           return;
         }
 
-        const text = await res.text().catch(() => '');
+        await res.text().catch(() => '');
         if (cancelled) return;
         if (res.status === 403) {
-          setSsoMessage('Doménový účet byl rozpoznán, ale v aplikaci pro něj není aktivní účet.');
+          setSsoMessage(t('auth.login.sso_denied'));
         } else {
           setSsoMessage(null);
         }
@@ -70,7 +70,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [router, searchParams, t]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +102,7 @@ export default function LoginPage() {
         <div className={styles.logo}>SC v2</div>
         <h1 className={styles.title}>Service Catalogue</h1>
         <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
-        {ssoChecking && <div className={styles.infoMsg}>Zkouším automatické doménové přihlášení…</div>}
+        {ssoChecking && <div className={styles.infoMsg}>{t('auth.login.sso_checking')}</div>}
         {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
         <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label}>Uživatelské jméno</label>
@@ -128,7 +128,7 @@ export default function LoginPage() {
           />
           {error && <div className={styles.errorMsg}>{error}</div>}
           <button className={styles.btn} type="submit" disabled={busy || ssoChecking}>
-            {ssoChecking ? 'Kontroluji doménový login…' : busy ? 'Přihlašuji…' : t('auth.login.submit')}
+            {ssoChecking ? t('common.loading') : busy ? t('auth.login.logging_in') : t('auth.login.submit')}
           </button>
         </form>
       </div>

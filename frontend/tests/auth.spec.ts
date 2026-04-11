@@ -16,9 +16,29 @@ test('login page renders and accepts credentials', async ({ page }) => {
 
   await loginWithConfiguredAdmin(page, credentials);
   await page.goto('/user-info');
-  await expect(page.getByRole('heading', { name: /user info/i })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('heading', { name: /user info|informace o uživateli/i })).toBeVisible({ timeout: 10_000 });
   await page.reload();
-  await expect(page.getByRole('heading', { name: /user info/i })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('heading', { name: /user info|informace o uživateli/i })).toBeVisible({ timeout: 10_000 });
+});
+
+test('persists preferred language across refresh', async ({ page }) => {
+  const credentials = getConfiguredAdminCredentials();
+  if (!credentials) {
+    test.skip(true, 'Set PLAYWRIGHT_ADMIN_USERNAME and PLAYWRIGHT_ADMIN_PASSWORD to run login tests.');
+    return;
+  }
+
+  await page.goto('/login');
+  await page.locator('input').nth(0).fill(credentials.username);
+  await page.locator('input').nth(1).fill(credentials.password);
+  await page.getByRole('button', { name: /přihlásit se|sign in/i }).click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 10_000 });
+  await page.goto('/user-info');
+  await expect(page.getByRole('heading', { name: /user info|informace o uživateli/i })).toBeVisible({ timeout: 10_000 });
+  await page.selectOption('select[name="preferred_lang"]', 'en');
+  await expect(page.getByRole('heading', { name: 'User Info' })).toBeVisible({ timeout: 10_000 });
+  await page.reload();
+  await expect(page.getByText('User Info')).toBeVisible({ timeout: 10_000 });
 });
 
 test('unauthenticated access to protected route redirects to login', async ({ page }) => {

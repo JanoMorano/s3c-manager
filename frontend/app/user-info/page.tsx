@@ -11,12 +11,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from '@/app/components/AppLink';
+import { useT } from '@/app/i18n/useI18n';
 import useSWR from 'swr';
 import styles from './user-info.module.css';
-import { clearAuthSession, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
+import { clearAuthSession, getAuthSnapshot, restoreAuthSession, setAuthSnapshotFromUser } from '@/features/auth/authStore';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { ServiceListResponse, ServiceListItem } from '@/features/services/model/service.types';
 import { useRouter } from 'next/navigation';
+import type { Locale } from '@/app/i18n/messages';
 
 // ── Avatar colour palette ─────────────────────────────────────────────────────
 const PALETTE = [
@@ -50,6 +52,7 @@ interface MeResponse {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UserInfoPage() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -64,10 +67,13 @@ export default function UserInfoPage() {
   const [profileForm, setProfileForm] = useState({
     display_name: '', given_name: '', surname: '',
     email: '', department: '', phone: '', avatar_color: '',
+    preferred_lang: 'cs' as Locale,
   });
   const [profileSaving,  setProfileSaving]  = useState(false);
   const [profileSaved,   setProfileSaved]   = useState(false);
   const [profileError,   setProfileError]   = useState<string | null>(null);
+  const [langSaving, setLangSaving] = useState(false);
+  const [langError, setLangError] = useState<string | null>(null);
 
   // ── Password form state ───────────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -92,6 +98,7 @@ export default function UserInfoPage() {
       department:   me.department   ?? '',
       phone:        me.phone        ?? '',
       avatar_color: me.avatar_color ?? pickColorFromName(me.username),
+      preferred_lang: me.preferred_lang === 'en' ? 'en' : 'cs',
     });
   }, [me]);
 
@@ -154,6 +161,47 @@ export default function UserInfoPage() {
     }
   }
 
+  async function handlePreferredLangChange(nextLang: Locale) {
+    setProfileForm(p => ({ ...p, preferred_lang: nextLang }));
+    setLangSaving(true);
+    setLangError(null);
+
+    try {
+      const res = await fetch('/api/v1/auth/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ preferred_lang: nextLang }),
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`${res.status}: ${t}`);
+      }
+
+      let persistedLang: Locale = nextLang;
+      try {
+        const data = await res.json() as { preferred_lang?: string };
+        if (data.preferred_lang === 'en') {
+          persistedLang = 'en';
+        }
+      } catch {
+        // Keep optimistic locale when the response body is not JSON.
+      }
+
+      setAuthSnapshotFromUser({
+        ...me,
+        preferred_lang: persistedLang,
+      });
+      await mutateMe();
+    } catch (err) {
+      setProfileForm(p => ({ ...p, preferred_lang: me?.preferred_lang === 'en' ? 'en' : 'cs' }));
+      setLangError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setLangSaving(false);
+    }
+  }
+
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
     setPwError(null); setPwSaved(false);
@@ -206,7 +254,7 @@ export default function UserInfoPage() {
   if (meError) {
     return (
       <div className={styles.shell}>
-        <h1 className={styles.pageTitle}>User Info</h1>
+        <h1 className={styles.pageTitle}>{t('user_info.title')}</h1>
         <div className={styles.card}>
           <div className={styles.noToken}>
             Could not load profile. <Link href="/login">Log in again</Link>
@@ -218,7 +266,7 @@ export default function UserInfoPage() {
 
   return (
     <div className={styles.shell}>
-      <h1 className={styles.pageTitle}>User Info</h1>
+      <h1 className={styles.pageTitle}>{t('user_info.title')}</h1>
 
       {/* ── Account card ─────────────────────────────────────────────────── */}
       <section className={styles.card}>
@@ -296,6 +344,27 @@ export default function UserInfoPage() {
                 />
               </div>
             </div>
+
+            <div className={styles.formGroup}>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>{t('user_info.language_label')}</label>
+                <select
+                  name="preferred_lang"
+                  className={styles.input}
+                  value={profileForm.preferred_lang}
+                  onChange={e => void handlePreferredLangChange((e.target.value === 'en' ? 'en' : 'cs') as Locale)}
+                  disabled={!me || langSaving}
+                >
+                  <option value="cs">{t('user_info.language_cs')}</option>
+                  <option value="en">{t('user_info.language_en')}</option>
+                </select>
+              </div>
+            </div>
+            {langError && (
+              <div className={styles.saveRow}>
+                <span className={styles.saveError}>{langError}</span>
+              </div>
+            )}
 
             {/* Department + phone */}
             <div className={styles.formGroup}>
