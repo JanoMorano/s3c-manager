@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { restoreAuthSession, setAuthSnapshotFromUser } from '@/features/auth/authStore';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './login.module.css';
 
 export default function LoginPage() {
+  const t = useT();
   const router       = useRouter();
   const searchParams = useSearchParams();
   const [form,  setForm]  = useState({ username: '', password: '' });
@@ -126,7 +128,7 @@ export default function LoginPage() {
           />
           {error && <div className={styles.errorMsg}>{error}</div>}
           <button className={styles.btn} type="submit" disabled={busy || ssoChecking}>
-            {ssoChecking ? 'Kontroluji doménový login…' : busy ? 'Přihlašuji…' : 'Přihlásit se'}
+            {ssoChecking ? 'Kontroluji doménový login…' : busy ? 'Přihlašuji…' : t('auth.login.submit')}
           </button>
         </form>
       </div>
