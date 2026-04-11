@@ -1,6 +1,7 @@
 {
   "common.loading": "Loading…",
   "auth.login.submit": "Sign in",
+  "auth.login.subtitle": "Continue to sign in",
   "common.welcome_user": "Welcome, {{name}}!",
   "auth.errors.missing_token": "Access denied: token is missing",
   "auth.errors.expired_token": "Token expired, please sign in again",

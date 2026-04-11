@@ -98,10 +98,10 @@ export default function LoginPage() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.card}>
+        <div className={styles.card}>
         <div className={styles.logo}>SC v2</div>
         <h1 className={styles.title}>Service Catalogue</h1>
-        <p className={styles.subtitle}>Přihlaste se pro pokračování</p>
+        <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
         {ssoChecking && <div className={styles.infoMsg}>Zkouším automatické doménové přihlášení…</div>}
         {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
         <form onSubmit={handleSubmit} className={styles.form}>

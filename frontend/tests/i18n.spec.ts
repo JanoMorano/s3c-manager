@@ -45,23 +45,6 @@ test('english login renders from the locale bootstrap snapshot', async ({ page }
     });
   });
 
-  await page.route('**/api/v1/auth/me', async (route) => {
-    await page.waitForTimeout(500);
-    await route.fulfill({
-      status: 401,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: 'unauthorized' }),
-    });
-  });
-
-  await page.route('**/api/v1/auth/refresh', async (route) => {
-    await route.fulfill({
-      status: 401,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: 'unauthorized' }),
-    });
-  });
-
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
@@ -69,5 +52,5 @@ test('english login renders from the locale bootstrap snapshot', async ({ page }
     const cookies = await page.context().cookies(BASE_URL);
     return cookies.find((cookie) => cookie.name === 'sc_locale')?.value;
   }).toBe('en');
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByText('Continue to sign in')).toBeVisible();
 });

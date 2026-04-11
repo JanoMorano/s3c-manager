@@ -1,6 +1,7 @@
 {
   "common.loading": "Načítám…",
   "auth.login.submit": "Přihlásit se",
+  "auth.login.subtitle": "Přihlaste se pro pokračování",
   "common.welcome_user": "Vítej, {{name}}!",
   "common.only_cs": "Jen česky",
   "auth.errors.missing_token": "Přístup odmítnut: chybí token",
