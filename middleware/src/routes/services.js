@@ -251,7 +251,7 @@ router.get('/:id/c3-mappings', async (req, res, next) => {
                 ct.external_id    AS c3_external_id,
                 ct.item_type      AS c3_item_type,
                 ct.item_status    AS c3_item_status,
-                ct.short_title    AS c3_short_title,
+                NULL::VARCHAR(500) AS c3_short_title,
                 rmt.name          AS mapping_type_name,
                 rpc.name          AS pace_name
             FROM data.service_c3_mapping scm

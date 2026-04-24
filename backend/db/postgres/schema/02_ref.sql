@@ -233,9 +233,10 @@ CREATE TABLE IF NOT EXISTS ref_flavour_status (
 
 INSERT INTO ref_flavour_status (code, name, sort_order)
 VALUES
-    ('active',        'Active',        1),
-    ('no_new_orders', 'No new orders', 2),
-    ('retired',       'Retired',       3)
+    ('available',     'Available',     1),
+    ('active',        'Active',        2),
+    ('no_new_orders', 'No new orders', 3),
+    ('retired',       'Retired',       4)
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
     sort_order = EXCLUDED.sort_order;
