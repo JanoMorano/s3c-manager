@@ -504,22 +504,38 @@ async function setRole(serviceId, roleCode, displayName, email = null, orgName =
     await getPool().query(`
         UPDATE data.service_role_assignment
         SET valid_to = CURRENT_TIMESTAMP
-        WHERE service_id = $1
-          AND role_code = $2
+        WHERE service_id = $1::bigint
+          AND role_code = $2::varchar
           AND valid_to IS NULL
-          AND (display_name <> $3 OR coalesce(email, '') <> coalesce($4, ''))
-    `, [catalogId, roleCode, displayName, email ?? null]);
+          AND (
+            display_name <> $3::varchar
+            OR (email IS NULL AND $4::varchar IS NOT NULL)
+            OR (email IS NOT NULL AND $4::varchar IS NULL)
+            OR email <> $4::varchar
+            OR (organization_name IS NULL AND $5::varchar IS NOT NULL)
+            OR (organization_name IS NOT NULL AND $5::varchar IS NULL)
+            OR organization_name <> $5::varchar
+          )
+    `, [catalogId, roleCode, displayName, email ?? null, orgName ?? null]);
 
     await getPool().query(`
         INSERT INTO data.service_role_assignment
             (service_id, role_code, display_name, email, organization_name, valid_from)
-        SELECT $1, $2, $3, $4, $5, CURRENT_TIMESTAMP
+        SELECT $1::bigint, $2::varchar, $3::varchar, $4::varchar, $5::varchar, CURRENT_TIMESTAMP
         WHERE NOT EXISTS (
             SELECT 1
             FROM data.service_role_assignment
-            WHERE service_id = $1
-              AND role_code = $2
-              AND display_name = $3
+            WHERE service_id = $1::bigint
+              AND role_code = $2::varchar
+              AND display_name = $3::varchar
+              AND (
+                (email IS NULL AND $4::varchar IS NULL)
+                OR email = $4::varchar
+              )
+              AND (
+                (organization_name IS NULL AND $5::varchar IS NULL)
+                OR organization_name = $5::varchar
+              )
               AND valid_to IS NULL
         )
     `, [catalogId, roleCode, displayName, email ?? null, orgName ?? null]);

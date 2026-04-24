@@ -2,6 +2,15 @@
 
 require('dotenv').config();
 
+function firstNonEmpty(...values) {
+    for (const value of values) {
+        if (value != null && String(value).trim() !== '') {
+            return String(value);
+        }
+    }
+    return '';
+}
+
 function required(name) {
     const value = process.env[name];
     if (!value) throw new Error(`Missing required environment variable: ${name}`);
@@ -91,8 +100,25 @@ const config = {
             // When set, requests without matching value are hard-rejected (fail-closed).
             // When not set and no trustedProxies configured, SSO logs a warning and proceeds
             // only if AUTH_SSO_ALLOW_OPEN=true — otherwise rejects (fail-closed by default).
-            sharedSecret: process.env.AUTH_SSO_SHARED_SECRET || '',
-            sharedSecretHeader: process.env.AUTH_SSO_SHARED_SECRET_HEADER || 'x-sso-secret',
+            sharedSecret: firstNonEmpty(
+                process.env.AUTH_SSO_SHARED_SECRET,
+                process.env.AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET
+            ),
+            sharedSecretHeader: firstNonEmpty(
+                process.env.AUTH_SSO_SHARED_SECRET_HEADER,
+                process.env.AUTH_SSO_TRUSTED_PROXY_HEADER,
+                'x-sso-secret'
+            ),
+            // Backward-compatible aliases used by auth route validation/tests.
+            trustedProxySharedSecret: firstNonEmpty(
+                process.env.AUTH_SSO_SHARED_SECRET,
+                process.env.AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET
+            ),
+            trustedProxyHeader: firstNonEmpty(
+                process.env.AUTH_SSO_SHARED_SECRET_HEADER,
+                process.env.AUTH_SSO_TRUSTED_PROXY_HEADER,
+                'x-sso-secret'
+            ),
             // Safety valve: explicitly set to 'true' to allow SSO with no boundary guards.
             // Intended only for fully isolated environments. NOT recommended.
             allowOpen: process.env.AUTH_SSO_ALLOW_OPEN === 'true',
@@ -100,7 +126,7 @@ const config = {
     },
 
     cors: {
-        origins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000')
+        origins: (process.env.CORS_ORIGINS || 'http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://localhost:3000')
             .split(/[,;]/)
             .map((item) => item.trim())
             .filter(Boolean),

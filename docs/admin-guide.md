@@ -233,13 +233,15 @@ Relevant environment variables:
 - `AUTH_SSO_GIVEN_NAME_HEADER`
 - `AUTH_SSO_SURNAME_HEADER`
 - `AUTH_SSO_DEPARTMENT_HEADER`
-- `AUTH_SSO_TRUSTED_PROXY_HEADER`
-- `AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET`
+- `AUTH_SSO_SHARED_SECRET_HEADER`
+- `AUTH_SSO_SHARED_SECRET`
 
 Operational notes:
 
 - the backend trusts SSO identity headers only when the trusted proxy header is
   present and its shared secret matches
+- legacy aliases `AUTH_SSO_TRUSTED_PROXY_HEADER` and
+  `AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET` are still accepted
 - browser auth uses `HttpOnly` cookies for access and refresh tokens
 - the frontend keeps only a small user snapshot in `sessionStorage`; JWTs are
   not persisted in browser storage

@@ -99,7 +99,7 @@ export default function ImportReviewPage() {
           {manifest?.schema_version && <span className={styles.uploadBtn}>Schema {manifest.schema_version}</span>}
           <a href="/api/v1/export/bundle" className={styles.uploadBtn}>Export bundle →</a>
           <a href="/api/v1/export/manifest" className={styles.uploadBtn}>Export manifest →</a>
-          <a href="/health/import" className={styles.uploadBtn}>Import health →</a>
+          <a href="/api/health/import" className={styles.uploadBtn}>Import health →</a>
           <a href="/import/upload" className={styles.uploadBtn}>Upload CSV →</a>
         </div>
       </div>

@@ -155,7 +155,7 @@ describe('auth routes', () => {
             preferred_lang: 'cs',
         }));
         expect(response.body.access_token).toBeTruthy();
-        expect(response.body.refresh_token).toBeTruthy();
+        expect(response.body.refresh_token).toBeUndefined();
         expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
             expect.stringMatching(/^sc_locale=cs(?:;|$)/i),
         ]));
@@ -481,7 +481,7 @@ describe('auth routes', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.access_token).toBeTruthy();
-        expect(response.body.refresh_token).toBeTruthy();
+        expect(response.body.refresh_token).toBeUndefined();
         expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
             expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),
             expect.stringMatching(/^sc_refresh_token=.*HttpOnly.*SameSite=Lax/i),

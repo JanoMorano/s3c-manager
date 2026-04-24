@@ -19,11 +19,11 @@ export function getConfiguredAdminCredentials(): AdminCredentials | null {
 export async function loginWithConfiguredAdmin(page: Page, credentials: AdminCredentials): Promise<void> {
   await page.goto('/login');
 
-  const submitBtn = page.getByRole('button', { name: /přihlásit se/i });
+  const submitBtn = page.getByRole('button', { name: /přihlásit se|sign in/i });
   await expect(submitBtn).toBeEnabled({ timeout: 10_000 });
 
-  await page.getByLabel('Uživatelské jméno').fill(credentials.username);
-  await page.getByLabel('Heslo').fill(credentials.password);
+  await page.getByLabel(/uživatelské jméno|username/i).fill(credentials.username);
+  await page.getByLabel(/heslo|password/i).fill(credentials.password);
   await submitBtn.click();
 
   await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 });

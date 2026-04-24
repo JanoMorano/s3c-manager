@@ -33,6 +33,8 @@ export default function LoginPage() {
   const t = useT();
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const usernameInputId = 'login-username';
+  const passwordInputId = 'login-password';
   const [form,  setForm]  = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy,  setBusy]  = useState(false);
@@ -129,8 +131,9 @@ export default function LoginPage() {
         {ssoChecking && <div className={styles.infoMsg}>{t('auth.login.sso_checking')}</div>}
         {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
         <form onSubmit={handleSubmit} className={styles.form}>
-          <label className={styles.label}>{t('auth.login.username_label')}</label>
+          <label className={styles.label} htmlFor={usernameInputId}>{t('auth.login.username_label')}</label>
           <input
+            id={usernameInputId}
             className={styles.input}
             type="text"
             autoComplete="username"
@@ -140,8 +143,9 @@ export default function LoginPage() {
             disabled={busy || ssoChecking}
             required
           />
-          <label className={styles.label}>{t('auth.login.password_label')}</label>
+          <label className={styles.label} htmlFor={passwordInputId}>{t('auth.login.password_label')}</label>
           <input
+            id={passwordInputId}
             className={styles.input}
             type="password"
             autoComplete="current-password"
