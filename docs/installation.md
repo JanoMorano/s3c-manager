@@ -264,8 +264,12 @@ Recommended cadence:
 | `AUTH_SSO_GIVEN_NAME_HEADER` | `x-remote-given-name` | Header carrying the given name |
 | `AUTH_SSO_SURNAME_HEADER` | `x-remote-surname` | Header carrying the surname |
 | `AUTH_SSO_DEPARTMENT_HEADER` | `x-remote-department` | Header carrying the department |
-| `AUTH_SSO_TRUSTED_PROXY_HEADER` | `x-sso-proxy-secret` | Proxy-boundary header required before SSO identity headers are trusted |
-| `AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET` | unset | Shared secret expected in the trusted proxy header |
+| `AUTH_SSO_SHARED_SECRET_HEADER` | `x-sso-secret` | Proxy-boundary header required before SSO identity headers are trusted |
+| `AUTH_SSO_SHARED_SECRET` | unset | Shared secret expected in the trusted proxy header |
+
+Legacy aliases `AUTH_SSO_TRUSTED_PROXY_HEADER` and
+`AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET` are still accepted for backward
+compatibility.
 
 ---
 

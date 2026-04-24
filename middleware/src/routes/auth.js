@@ -260,7 +260,6 @@ async function issueLoginResponse(user, req, res, { isSso = false, ssoProfile = 
     setLocaleCookie(req, res, resolvedUser.preferred_lang);
     return {
         access_token: tokens.access,
-        refresh_token: tokens.refresh,
         expires_in: config.jwt.expiryMinutes * 60,
         user: buildUserResponse(resolvedUser, { mustChangePassword }),
     };
@@ -514,7 +513,6 @@ router.post('/refresh', async (req, res, next) => {
 
         res.json({
             access_token: newTokens.access,
-            refresh_token: newTokens.refresh,
             expires_in: config.jwt.expiryMinutes * 60,
         });
     } catch (err) {
