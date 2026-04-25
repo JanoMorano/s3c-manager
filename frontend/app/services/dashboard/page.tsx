@@ -27,6 +27,18 @@ const STATUS_COLORS: Record<string, string> = {
   deprecated:'#ff8b00', retired:'#6b778c',
 };
 
+const LIFECYCLE_COLORS: Record<string, string> = {
+  draft:        '#a1a1aa',
+  under_review: '#3b82f6',
+  approved:     '#10b981',
+  live:         '#059669',
+  deprecated:   '#f59e0b',
+  retired:      '#ef4444',
+  unset:        '#e4e4e7',
+};
+
+const LIFECYCLE_ORDER = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired', 'unset'];
+
 export default function DashboardPage() {
   const { c3Visible } = useInstallStatus();
   const { data, isLoading, error } = useDashboard();
@@ -45,16 +57,25 @@ export default function DashboardPage() {
     by_owner,
     expensive_flavours: expensiveFlavours,
     c3_coverage: c3Coverage,
+    by_lifecycle: byLifecycle = [],
   } = data;
 
   // Build status data from summary — coerce nulls to 0 (SQL SUM returns NULL for empty table)
   const s = {
-    total:      summary.total_services      ?? 0,
-    active:     summary.active_services     ?? 0,
-    draft:      summary.draft_services      ?? 0,
-    deprecated: summary.deprecated_services ?? 0,
-    retired:    summary.retired_services    ?? 0,
+    total:       summary.total_services      ?? 0,
+    active:      summary.active_services     ?? 0,
+    draft:       summary.draft_services      ?? 0,
+    deprecated:  summary.deprecated_services ?? 0,
+    retired:     summary.retired_services    ?? 0,
+    requestable: summary.requestable_services ?? 0,
   };
+
+  // Sort lifecycle data by canonical order
+  const lifecycleData = [...byLifecycle].sort((a, b) => {
+    const ai = LIFECYCLE_ORDER.indexOf(a.lifecycle_state);
+    const bi = LIFECYCLE_ORDER.indexOf(b.lifecycle_state);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
   const statusData = [
     { name: 'Active',     value: s.active,                                                         status: 'active' },
     { name: 'Draft',      value: s.draft,                                                          status: 'draft' },
@@ -80,8 +101,8 @@ export default function DashboardPage() {
       <div className={styles.kpiRow}>
         <KpiTile label="Total Services"   value={s.total}                         />
         <KpiTile label="Active"           value={s.active}           color="#36b37e" />
+        <KpiTile label="Requestable"      value={s.requestable}      color="#3b82f6" hint={`${s.total > 0 ? Math.round(s.requestable / s.total * 100) : 0}% of catalogue`} />
         <KpiTile label="Total Relations"  value={summary.total_relations ?? 0}   />
-        <KpiTile label="Total Flavours"   value={summary.total_flavours  ?? 0}   />
         <KpiTile label="Draft"            value={s.draft}            color="#97a0af" />
         <KpiTile label="Deprecated"       value={s.deprecated}       color="#ff8b00" />
       </div>
@@ -161,6 +182,65 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      {/* ── Lifecycle row ─────────────────────────────────────────── */}
+      {lifecycleData.length > 0 && (
+        <div className={styles.chartsRow}>
+          <ChartCard title="Lifecycle Distribution" hint="Click bar to filter by lifecycle state">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={lifecycleData} layout="vertical" margin={{ left: 24 }}>
+                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                <YAxis
+                  type="category"
+                  dataKey="lifecycle_state"
+                  tick={{ fontSize: 12 }}
+                  width={90}
+                  tickFormatter={(v: string) => v.replace('_', ' ')}
+                />
+                <Tooltip formatter={(v: number) => [v, 'services']} labelFormatter={(l: string) => l.replace('_', ' ')} />
+                <Bar
+                  dataKey="count"
+                  radius={[0, 3, 3, 0]}
+                  style={{ cursor: 'pointer' }}
+                  onClick={(entry: { lifecycle_state: string }) => {
+                    if (entry.lifecycle_state !== 'unset') {
+                      router.push(`/services/list?lifecycle=${entry.lifecycle_state}`);
+                    }
+                  }}
+                >
+                  {lifecycleData.map((entry) => (
+                    <Cell key={entry.lifecycle_state} fill={LIFECYCLE_COLORS[entry.lifecycle_state] ?? '#a1a1aa'} style={{ cursor: entry.lifecycle_state !== 'unset' ? 'pointer' : 'default' }} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Requestable breakdown */}
+          <ChartCard title="Requestable Services" hint="Click to filter catalogue">
+            <div style={{ padding: '20px 8px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, marginBottom: 16 }}>
+                <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => router.push('/services/list?requestable=true')}>
+                  <div style={{ fontSize: 36, fontWeight: 700, color: '#3b82f6', lineHeight: 1 }}>{s.requestable}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>Requestable</div>
+                </div>
+                <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => router.push('/services/list?requestable=false')}>
+                  <div style={{ fontSize: 36, fontWeight: 700, color: '#a1a1aa', lineHeight: 1 }}>{s.total - s.requestable}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>Not requestable</div>
+                </div>
+              </div>
+              {s.total > 0 && (
+                <div style={{ height: 10, borderRadius: 5, background: '#f4f4f5', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${(s.requestable / s.total) * 100}%`, background: '#3b82f6', borderRadius: 5, transition: 'width 0.4s' }} />
+                </div>
+              )}
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-muted)' }}>
+                {s.total > 0 ? Math.round((s.requestable / s.total) * 100) : 0}% of catalogue is requestable
+              </div>
+            </div>
+          </ChartCard>
+        </div>
+      )}
 
       <div className={styles.insightsRow}>
         <div className={styles.bottomCard}>
@@ -467,13 +547,14 @@ export default function DashboardPage() {
 }
 
 // ── Local components ──────────────────────────────────────────────────────────
-function KpiTile({ label, value, color }: { label: string; value: number | null | undefined; color?: string }) {
+function KpiTile({ label, value, color, hint }: { label: string; value: number | null | undefined; color?: string; hint?: string }) {
   return (
     <div className={styles.kpiTile}>
       <div className={styles.kpiValue} style={{ color: color ?? 'var(--color-text-primary)' }}>
         {(value ?? 0).toLocaleString()}
       </div>
       <div className={styles.kpiLabel}>{label}</div>
+      {hint && <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>{hint}</div>}
     </div>
   );
 }

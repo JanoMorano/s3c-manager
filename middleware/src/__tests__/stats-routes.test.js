@@ -28,13 +28,14 @@ describe('stats routes', () => {
     test('GET /dashboard returns expensive flavours and C3 coverage', async () => {
         const { __query } = require('../db/pool');
         __query
-            .mockResolvedValueOnce({ rows: [{ total_services: 10, active_services: 8, draft_services: 1, deprecated_services: 1, retired_services: 0, total_relations: 14, total_flavours: 5 }] })
+            .mockResolvedValueOnce({ rows: [{ total_services: 10, active_services: 8, draft_services: 1, deprecated_services: 1, retired_services: 0, requestable_services: 3, total_relations: 14, total_flavours: 5 }] })
             .mockResolvedValueOnce({ rows: [{ service_type: 'CF', count: 4 }] })
             .mockResolvedValueOnce({ rows: [{ portfolio_group: 'Application Services', count: 4 }] })
             .mockResolvedValueOnce({ rows: [{ domain_code: 'NEXUS', service_count: 3 }] })
             .mockResolvedValueOnce({ rows: [{ display_name: 'Owner One', email: 'owner@example.com', service_count: 4 }] })
             .mockResolvedValueOnce({ rows: [{ service_id: 'SVC-1', flavour_code: 'BASE', flavour_title: 'Base', service_unit: 'Per User', price_value: 1000, currency_code: 'EUR' }] })
-            .mockResolvedValueOnce({ rows: [{ item_type: 'BP', total_count: 20, mapped_count: 5 }] });
+            .mockResolvedValueOnce({ rows: [{ item_type: 'BP', total_count: 20, mapped_count: 5 }] })
+            .mockResolvedValueOnce({ rows: [{ lifecycle_state: 'live', count: 6 }] });
 
         const router = require('../routes/stats');
         const app = express();

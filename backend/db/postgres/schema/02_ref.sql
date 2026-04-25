@@ -62,6 +62,7 @@ VALUES
     ('requires_account', 'Requires account',         TRUE,  TRUE,  NULL,        NULL),
     ('uses',             'Uses',                     TRUE,  TRUE,  NULL,        NULL),
     ('provides',         'Provides',                 TRUE,  TRUE,  NULL,        NULL),
+    ('provided_by',      'Provided by',              TRUE,  TRUE,  NULL,        NULL),
     ('replaces',         'Replaces',                 TRUE,  FALSE, NULL,        NULL),
     ('replaced_by',      'Replaced by',              TRUE,  FALSE, NULL,        NULL),
     ('integrates_with',  'Integrates with',          TRUE,  FALSE, NULL,        NULL),

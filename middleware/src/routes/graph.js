@@ -37,7 +37,7 @@ async function buildOverviewPayload(query, options = {}) {
     const domains = parseCsvFilter(query.domain, { maxItems: 12 });
     const relationTypes = parseCsvFilter(query.relation_type, {
         maxItems: 10,
-        allowed: ['depends_on', 'prerequisite', 'underlying', 'replaces', 'related_to', 'c3_parent'],
+        allowed: ['depends_on', 'prerequisite', 'underlying', 'replaces', 'related_to', 'provided_by', 'c3_parent'],
     });
 
     const serviceNodesResult = await pool.query(`

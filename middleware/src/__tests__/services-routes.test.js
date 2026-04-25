@@ -10,10 +10,19 @@ jest.mock('../middleware/rbac', () => ({
 }));
 jest.mock('../db/flavours.repo', () => ({}));
 jest.mock('../db/relations.repo', () => ({}));
+jest.mock('../db/offerings.repo', () => ({}));
+jest.mock('../db/support-model.repo', () => ({}));
+jest.mock('../db/audience.repo', () => ({}));
+jest.mock('../db/operational-links.repo', () => ({}));
 jest.mock('../db/audit.repo', () => ({}));
 jest.mock('../services/validation', () => ({
     validateCreate: () => [],
     validateUpdate: () => [],
+    validateOffering: () => [],
+    validateSupportModel: () => [],
+    validateAudiencePolicy: () => [],
+    validateOperationalLink: () => [],
+    validateLifecycleOperationalReadiness: () => [],
 }));
 jest.mock('../services/scoring', () => ({
     serviceScore: () => 0,
@@ -38,6 +47,7 @@ jest.mock('../db/services.repo', () => ({
     updateScore: jest.fn(),
     setRole: jest.fn(),
     setDomains: jest.fn(),
+    getCatalogId: jest.fn(),
 }));
 
 describe('services routes', () => {

@@ -1,0 +1,586 @@
+/* ═══════════════════════════════════════════════════════════════
+   Service Onboarding Wizard — wizard.module.css
+   Multi-step průvodce zavedením služby do ITIL katalogu.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Shell ──────────────────────────────────────────────────────── */
+.wizardShell {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-6) var(--space-8);
+}
+
+/* ── Breadcrumb ─────────────────────────────────────────────────── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+}
+.breadcrumb a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* ── Wizard header ──────────────────────────────────────────────── */
+.wizardHeader { margin-bottom: var(--space-6); }
+.wizardTitle {
+  font: var(--text-title-lg);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
+}
+.wizardSubtitle {
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── Step progress (numbered dots) ─────────────────────────────── */
+.stepProgress {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: var(--space-7);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 56px;
+  position: relative;
+}
+
+/* connector line */
+.stepItem:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: calc(50% + 12px);
+  right: calc(-50% + 12px);
+  height: 2px;
+  background: var(--color-border-default);
+  z-index: 0;
+}
+.stepItemDone:not(:last-child)::after,
+.stepItemActive:not(:last-child)::after {
+  background: var(--color-action-primary);
+}
+
+.stepDot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.stepDotActive {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: #fff;
+}
+.stepDotDone {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: #fff;
+  font-size: 11px;
+}
+
+.stepLabel {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.3;
+  max-width: 64px;
+  word-break: keep-all;
+}
+.stepLabelActive {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.stepLabelDone { color: var(--color-text-secondary); }
+
+/* ── Step card ──────────────────────────────────────────────────── */
+.stepCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.stepHeader { margin-bottom: var(--space-5); }
+.stepTitle {
+  font: var(--text-title-md);
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+.stepDescription {
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── Wizard field ───────────────────────────────────────────────── */
+.fieldWrapper { margin-bottom: var(--space-4); }
+
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+.fieldLabel {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+}
+.fieldRequired { color: var(--color-danger); }
+.fieldHint {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+.fieldError {
+  font: var(--text-label-sm);
+  color: var(--color-danger);
+  margin-top: 4px;
+}
+
+/* ── Tooltip trigger ────────────────────────────────────────────── */
+.tooltipTrigger {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+  vertical-align: middle;
+}
+.tooltipTrigger:hover {
+  border-color: var(--color-info);
+  color: var(--color-info);
+  background: rgba(37,99,235,0.06);
+}
+
+.tooltipContent {
+  background: #1e1e2e;
+  color: #e2e8f0;
+  font: var(--text-body-sm);
+  line-height: 1.6;
+  padding: 10px 13px;
+  border-radius: var(--radius-md);
+  max-width: 300px;
+  box-shadow: var(--shadow-medium);
+  z-index: 9999;
+}
+.tooltipArrow { fill: #1e1e2e; }
+
+/* ── Input styles ───────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+/* Blue placeholder = example value hint */
+.input::placeholder {
+  color: #3b82f6;
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.inputError { border-color: var(--color-danger) !important; }
+
+.textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.textarea::placeholder {
+  color: #3b82f6;
+  opacity: 0.55;
+  font-style: italic;
+}
+.textarea.inputError { border-color: var(--color-danger); }
+
+/* ── Field grid ─────────────────────────────────────────────────── */
+.fieldRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+.fieldRow2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* ── Toggle row (requestable) ───────────────────────────────────── */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1.5px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  user-select: none;
+}
+.toggleRowActive {
+  border-color: var(--color-success);
+  background: rgba(22, 163, 74, 0.04);
+}
+.toggleRowText { flex: 1; }
+.toggleRowLabel {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+}
+.toggleRowSub {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+.toggleCheckmark {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.toggleCheckmarkActive {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #fff;
+}
+
+/* ── Conditional request block ──────────────────────────────────── */
+.conditionalBlock {
+  margin-top: var(--space-3);
+  padding: var(--space-4) var(--space-4);
+  background: rgba(37, 99, 235, 0.03);
+  border-left: 3px solid var(--color-info);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.conditionalBlockTitle {
+  font: var(--text-label-md);
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+/* ── Approval toggle ────────────────────────────────────────────── */
+.approvalRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.approvalRow input[type="checkbox"] { cursor: pointer; }
+
+/* ── Domain chips ───────────────────────────────────────────────── */
+.domainGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.domainChip {
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-default);
+  font: var(--text-label-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.domainChip:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+.domainChipActive {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: #fff;
+}
+
+/* ── SLA inputs ─────────────────────────────────────────────────── */
+.slaRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+}
+.slaUnit {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* ── C3 step ────────────────────────────────────────────────────── */
+.c3InfoBanner {
+  padding: var(--space-4);
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius-md);
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+  line-height: 1.6;
+}
+.c3SearchInput { margin-bottom: var(--space-3); }
+.c3List {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+.c3EmptyState {
+  padding: var(--space-4);
+  text-align: center;
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+.c3Item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 9px var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.c3Item:last-child { border-bottom: none; }
+.c3Item:hover { background: var(--color-bg-subtle); }
+.c3ItemSelected { background: rgba(22, 163, 74, 0.05); }
+.c3ItemSelected:hover { background: rgba(22, 163, 74, 0.08); }
+
+.c3Tick {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1.5px solid var(--color-border-default);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.1s;
+}
+.c3TickSelected {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #fff;
+}
+.c3ItemApp {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  min-width: 40px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.c3ItemTitle {
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  flex: 1;
+}
+.c3SelectedSummary {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(22, 163, 74, 0.06);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+  border-radius: var(--radius-md);
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+}
+.c3PostNote {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Review step ────────────────────────────────────────────────── */
+.reviewGrid { display: flex; flex-direction: column; gap: var(--space-3); }
+.reviewSection {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.reviewSectionHead {
+  padding: 8px var(--space-4);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+  font: var(--text-label-md);
+  color: var(--color-text-secondary);
+}
+.reviewRow {
+  display: flex;
+  gap: var(--space-3);
+  padding: 8px var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+}
+.reviewRow:last-child { border-bottom: none; }
+.reviewKey {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  width: 160px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.reviewVal {
+  font: var(--text-body-sm);
+  color: var(--color-text-primary);
+  flex: 1;
+}
+.reviewValEmpty {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.reviewBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font: var(--text-label-sm);
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--color-success);
+}
+.reviewBadgeNo {
+  background: rgba(161, 161, 170, 0.15);
+  color: var(--color-text-muted);
+}
+
+/* ── Navigation bar ─────────────────────────────────────────────── */
+.navBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-2);
+}
+.navLeft { display: flex; align-items: center; gap: var(--space-3); }
+.navRight { display: flex; align-items: center; gap: var(--space-3); }
+.stepCounter {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Error banner ───────────────────────────────────────────────── */
+.errorBanner {
+  padding: var(--space-3) var(--space-4);
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: var(--radius-md);
+  font: var(--text-body-sm);
+  color: var(--color-danger);
+  margin-bottom: var(--space-4);
+}
+
+/* ── Channel select with custom options ─────────────────────────── */
+.channelOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.channelChip {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-default);
+  font: var(--text-label-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.channelChip:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+.channelChipActive {
+  background: #18181b;
+  border-color: #18181b;
+  color: #fff;
+}
+
+/* ── SLA tier visual ────────────────────────────────────────────── */
+.slaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 600px) {
+  .wizardShell { padding: var(--space-5) var(--space-4); }
+  .stepProgress { gap: 0; }
+  .stepLabel { display: none; }
+  .fieldRow, .fieldRow2, .slaGrid { grid-template-columns: 1fr; }
+}

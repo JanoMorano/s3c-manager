@@ -22,6 +22,8 @@ const SC_COLUMNS = `
     sc.value_proposition,
     sc.service_features,
     sc.business_purpose,
+    sc.business_summary,
+    sc.consumer_value,
     sc.unit_of_measure,
     sc.charging_basis,
     sc.rate_note,
@@ -48,12 +50,21 @@ const SC_COLUMNS = `
     sc.support_availability_raw,
     sc.service_cost_raw,
     sc.additional_information_raw,
+    sc.target_audience_summary,
+    sc.requestable,
+    sc.lifecycle_state,
+    sc.request_channel_type,
+    sc.request_channel_url,
+    sc.approval_required,
+    sc.fulfillment_lead_time_text,
     sc.service_features_raw,
     sc.ext_tools_raw,
     sc.legacy_ssl_mapping_raw,
     sc.budget_activity_code,
     sc.other_info_raw,
     sc.pricing_note_raw,
+    sc.review_owner_user_id,
+    sc.next_review_due_at,
     sc.graph_x,
     sc.graph_y,
     sc.options_json AS options,
@@ -213,6 +224,8 @@ async function findAllDirect({
     domain,
     search,
     ownerName,
+    lifecycleState,
+    requestable,
     sort = 'title',
     order = 'ASC',
 } = {}) {
@@ -220,6 +233,7 @@ async function findAllDirect({
     const statusValues = splitCsv(status);
     const serviceTypeValues = splitCsv(serviceType);
     const domainValues = splitCsv(domain);
+    const lifecycleValues = splitCsv(lifecycleState);
     const sortColMap = {
         service_id: 'service_id',
         title: 'title',
@@ -275,6 +289,14 @@ async function findAllDirect({
               AND sra.valid_to IS NULL
         )`);
     }
+    if (lifecycleValues.length) {
+        filters.push(`sc.lifecycle_state = ANY(${bind(lifecycleValues)}::varchar[])`);
+    }
+    if (requestable === true || requestable === 'true') {
+        filters.push(`sc.requestable = TRUE`);
+    } else if (requestable === false || requestable === 'false') {
+        filters.push(`sc.requestable = FALSE`);
+    }
 
     const whereClause = filters.join(' AND ');
     const countResult = await getPool().query(`
@@ -306,6 +328,8 @@ async function findAllDirect({
             COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
             COALESCE(sl.name, sc.service_line_code) AS service_line_name,
             COALESCE(gsg.name, sc.global_service_group_code) AS global_service_group_name,
+            sc.lifecycle_state,
+            sc.requestable,
             sc.graph_x,
             sc.graph_y,
             sc.updated_at,
@@ -553,12 +577,14 @@ async function create(data, performedBy) {
             service_type_code, service_status_code, catalogue_version,
             global_service_group_code, service_line_code, organizational_element_code,
             short_description, description,
-            value_proposition, service_features,
+            value_proposition, service_features, business_summary,
             business_purpose, scope_text,
             operational_notes_raw, support_locations_raw, request_process_raw,
             support_availability_raw, service_cost_raw, additional_information_raw,
+            target_audience_summary, requestable, lifecycle_state, request_channel_type,
+            request_channel_url, approval_required, fulfillment_lead_time_text,
             service_features_raw, ext_tools_raw, legacy_ssl_mapping_raw,
-            budget_activity_code, other_info_raw, pricing_note_raw,
+            budget_activity_code, other_info_raw, pricing_note_raw, review_owner_user_id, next_review_due_at,
             unit_of_measure, charging_basis, rate_note, ordering_note,
             exclusions, service_area_raw, security_classification_code,
             cp_service_type_raw, is_available_status_ambiguous, is_stub,
@@ -570,15 +596,17 @@ async function create(data, performedBy) {
             source_local_id, source_sp_id, source_etag,
             prerequisites_json, dependencies_json,
             created_at_source, modified_at_source,
+            consumer_value,
             created_by, updated_by
         ) VALUES (
             $1, $2, $3, $4, $5, $6,
             $7, $8, $9, $10, $11,
-            $12, $13, $14, $15, $16, $17, $18, $19, $20,
-            $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-            $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-            $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-            $51, $52, $53, $54, $55, $56, $57, $58, $59
+            $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+            $22, $23, $24, $25, $26, $27, $28, $29, $30, $31,
+            $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,
+            $42, $43, $44, $45, $46, $47, $48, $49, $50, $51,
+            $52, $53, $54, $55, $56, $57, $58, $59, $60, $61,
+            $62, $63, $64, $65, $66, $67, $68, $69, $70
         )
     `, [
         data.service_id,
@@ -594,6 +622,7 @@ async function create(data, performedBy) {
         data.description || data.detailed_description || null,
         data.value_proposition || null,
         data.service_features || null,
+        data.business_summary || null,
         data.business_purpose || null,
         data.scope_text || null,
         data.operational_notes_raw || null,
@@ -602,12 +631,21 @@ async function create(data, performedBy) {
         data.support_availability_raw || null,
         data.service_cost_raw || null,
         data.additional_information_raw || null,
+        data.target_audience_summary || null,
+        data.requestable == null ? null : !!data.requestable,
+        data.lifecycle_state || null,
+        data.request_channel_type || null,
+        data.request_channel_url || null,
+        data.approval_required == null ? null : !!data.approval_required,
+        data.fulfillment_lead_time_text || null,
         data.service_features_raw || null,
         data.ext_tools_raw || null,
         data.legacy_ssl_mapping_raw || null,
         data.budget_activity_code || null,
         data.other_info_raw || null,
         data.pricing_note_raw || null,
+        data.review_owner_user_id == null ? null : parseInteger(data.review_owner_user_id),
+        sanitizeDate(data.next_review_due_at),
         data.unit_of_measure || null,
         data.charging_basis || null,
         data.rate_note || null,
@@ -638,6 +676,7 @@ async function create(data, performedBy) {
         serializeJson(data.dependencies_json) || null,
         sanitizeDate(data.created_at_source),
         sanitizeDate(data.modified_at_source),
+        data.consumer_value || null,
         performedBy,
         performedBy,
     ]);
@@ -673,7 +712,7 @@ async function update(serviceId, data, performedBy) {
 
     const allowedFields = new Set([
         'title', 'portfolio_group', 'portfolio_group_code', 'service_type', 'service_status',
-        'catalogue_version', 'value_proposition', 'service_features', 'summary',
+        'catalogue_version', 'value_proposition', 'service_features', 'business_summary', 'summary',
         'short_description', 'detailed_description', 'description', 'unit_of_measure',
         'charging_basis', 'rate_note', 'ordering_note', 'exclusions', 'service_area',
         'service_area_raw', 'security_classification', 'customer_type', 'source_url',
@@ -687,13 +726,16 @@ async function update(serviceId, data, performedBy) {
         'budget_activity_code', 'other_info_raw', 'pricing_note_raw',
         'global_service_group_code', 'service_line_code', 'organizational_element_code',
         'sla_restoration_text', 'sla_delivery_text', 'created_at_source', 'modified_at_source',
+        'target_audience_summary', 'requestable', 'lifecycle_state', 'request_channel_type',
+        'request_channel_url', 'approval_required', 'fulfillment_lead_time_text',
+        'review_owner_user_id', 'next_review_due_at', 'consumer_value',
     ]);
 
     const jsonFields = new Set(['customer_type', 'options', 'notes', 'training_refs', 'prerequisites_json', 'dependencies_json']);
-    const integerFields = new Set(['sla_restoration', 'sla_delivery', 'source_sp_id']);
+    const integerFields = new Set(['sla_restoration', 'sla_delivery', 'source_sp_id', 'review_owner_user_id']);
     const decimalFields = new Set(['sla_availability']);
-    const dateFields = new Set(['created_at_source', 'modified_at_source']);
-    const booleanFields = new Set(['is_available_status_ambiguous']);
+    const dateFields = new Set(['created_at_source', 'modified_at_source', 'next_review_due_at']);
+    const booleanFields = new Set(['is_available_status_ambiguous', 'requestable', 'approval_required']);
 
     const values = [performedBy];
     const setClauses = ['updated_at = CURRENT_TIMESTAMP', 'updated_by = $1'];
@@ -779,4 +821,5 @@ module.exports = {
     serviceIdExists,
     setDomains,
     setRole,
+    getCatalogId,
 };

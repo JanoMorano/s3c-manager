@@ -5,7 +5,7 @@ final `app + postgres` runtime.
 
 Contents:
 
-- `schema/00_bootstrap.sql` through `schema/14_spiral_versioning.sql`
+- `schema/00_bootstrap.sql` through `schema/15_itil_catalogue_phase1.sql`
 - `data/test/test_seeds.sql`
 - `data/c3/c3_entities.sql`
 - `data/c3/c3_taxonomy.sql`

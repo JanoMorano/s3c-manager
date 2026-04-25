@@ -57,6 +57,7 @@ services:
       INIT_WITH_C3_CAPABILITY_MAP_SEED: ${INIT_WITH_C3_CAPABILITY_MAP_SEED:-false}
       JWT_SECRET: ${JWT_SECRET:-}
       JWT_SECRET_FILE: ${JWT_SECRET_FILE:-}
+      INSTALL_SETUP_TOKEN: ${INSTALL_SETUP_TOKEN:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3000,http://localhost:4000}
       AUTH_SSO_ENABLED: ${AUTH_SSO_ENABLED:-false}
       AUTH_SSO_SHARED_SECRET: ${AUTH_SSO_SHARED_SECRET:-}
@@ -81,7 +82,6 @@ services:
         condition: service_healthy
     volumes:
       - sc-uploads:/app/uploads
-      - ./shared:/app/shared:ro
     networks:
       - sc-net
     healthcheck:

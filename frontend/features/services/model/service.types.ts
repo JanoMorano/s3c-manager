@@ -11,6 +11,8 @@ export interface ServiceListItem {
   short_description: string | null;
   service_type: string | null;
   service_status: string | null;
+  lifecycle_state: string | null;
+  requestable: boolean | null;
   unit_of_measure: string | null;
   charging_basis: string | null;
   available_on: string | null;     // comma-separated domain codes: "CLOUD,PRISM,NEXUS"
@@ -135,6 +137,109 @@ export interface ServiceDetail {
   // JSON fields
   customer_type: unknown | null;
   options: unknown | null;
+  business_summary: string | null;
+  consumer_value: string | null;
+  requestable: boolean | null;
+  lifecycle_state: string | null;
+  target_audience_summary: string | null;
+  request_channel_type: string | null;
+  request_channel_url: string | null;
+  approval_required: boolean | null;
+  fulfillment_lead_time_text: string | null;
+  review_owner_user_id: number | null;
+  next_review_due_at: string | null;
+  offerings: ServiceOffering[];
+  primary_offering: ServiceOffering | null;
+  support_model: ServiceSupportModel[];
+  audience_policies: ServiceAudiencePolicy[];
+  operational_links: ServiceOperationalLink[];
+  business_view: ServiceBusinessView;
+  technical_view: ServiceTechnicalView;
+}
+
+export interface ServiceOffering {
+  id: number;
+  service_id: number;
+  offering_code: string;
+  title: string;
+  description: string | null;
+  is_default: boolean;
+  requestable: boolean;
+  approval_required: boolean | null;
+  request_channel_type: string | null;
+  request_channel_url: string | null;
+  lead_time_text: string | null;
+  support_tier_code: string | null;
+  status: string;
+  display_order: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceSupportModel {
+  id: number;
+  service_id: number;
+  offering_id: number | null;
+  support_owner_name: string | null;
+  resolver_group: string | null;
+  support_hours_code: string | null;
+  support_channel: string | null;
+  escalation_path: string | null;
+  maintenance_window: string | null;
+  review_cadence: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceAudiencePolicy {
+  id: number;
+  service_id: number;
+  offering_id: number | null;
+  audience_type: string | null;
+  business_unit: string | null;
+  region_code: string | null;
+  eligibility_rule: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceOperationalLink {
+  id: number;
+  service_id: number;
+  offering_id: number | null;
+  link_type: string | null;
+  title: string;
+  url: string;
+  sort_order: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceBusinessView {
+  business_summary: string | null;
+  consumer_value: string | null;
+  requestable: boolean | null;
+  lifecycle_state: string | null;
+  target_audience_summary: string | null;
+  request_channel_type: string | null;
+  request_channel_url: string | null;
+  approval_required: boolean | null;
+  fulfillment_lead_time_text: string | null;
+  primary_offering: ServiceOffering | null;
+  support_model: ServiceSupportModel[];
+  audience_policies: ServiceAudiencePolicy[];
+  operational_links: ServiceOperationalLink[];
+}
+
+export interface ServiceTechnicalView {
+  service_type: string | null;
+  service_status: string | null;
+  completeness_score: number | null;
+  relation_count: number;
+  flavour_count: number;
+  has_c3_mapping: boolean;
+  has_primary_offering: boolean;
 }
 
 // ── Flavour (embedded in GET /api/v1/services/:id, or GET /api/v1/flavours?serviceId=) ─────
@@ -484,6 +589,7 @@ export interface DashboardSummary {
   draft_services: number;
   deprecated_services: number;
   retired_services: number;
+  requestable_services: number;
   total_relations: number;
   total_flavours: number;
 }
@@ -507,5 +613,6 @@ export interface DashboardResponse {
     total_count: number;
     mapped_count: number;
   }>;
+  by_lifecycle: Array<{ lifecycle_state: string; count: number }>;
   _cached: boolean;
 }

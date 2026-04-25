@@ -3,11 +3,23 @@ const express = require('express');
 const repo    = require('../db/services.repo');
 const flRepo  = require('../db/flavours.repo');
 const relRepo = require('../db/relations.repo');
+const offeringsRepo = require('../db/offerings.repo');
+const supportModelRepo = require('../db/support-model.repo');
+const audienceRepo = require('../db/audience.repo');
+const operationalLinksRepo = require('../db/operational-links.repo');
 const audit   = require('../db/audit.repo');
 const { requireAuth } = require('../middleware/auth');
 const { canEdit, canAdmin } = require('../middleware/rbac');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
-const { validateCreate, validateUpdate } = require('../services/validation');
+const {
+    validateCreate,
+    validateUpdate,
+    validateOffering,
+    validateSupportModel,
+    validateAudiencePolicy,
+    validateOperationalLink,
+    validateLifecycleOperationalReadiness,
+} = require('../services/validation');
 const {
     getServiceReadiness,
 } = require('../services/readiness');
@@ -69,6 +81,16 @@ const _CAMEL_TO_SNAKE = {
     c3SyncStatus:           'c3_sync_status',
     c3MappingSpId:          'c3_mapping_sp_id',
     c3MappingEtag:          'c3_mapping_etag',
+    businessSummary:        'business_summary',
+    requestable:            'requestable',
+    lifecycleState:         'lifecycle_state',
+    targetAudienceSummary:  'target_audience_summary',
+    requestChannelType:     'request_channel_type',
+    requestChannelUrl:      'request_channel_url',
+    approvalRequired:       'approval_required',
+    fulfillmentLeadTimeText:'fulfillment_lead_time_text',
+    reviewOwnerUserId:      'review_owner_user_id',
+    nextReviewDueAt:        'next_review_due_at',
 };
 
 /**
@@ -82,6 +104,7 @@ function _normalizeBody(body) {
     // Clone so we never mutate req.body
     const out = { ...body };
     for (const [camel, snake] of Object.entries(_CAMEL_TO_SNAKE)) {
+        if (camel === snake) continue;
         if (camel in out) {
             // snake_case wins if the original body already supplied it
             if (!(snake in body)) out[snake] = out[camel];
@@ -102,6 +125,107 @@ function _csvEscapeCell(value) {
     return `"${normalized}"`;
 }
 
+function _normalizeOfferingBody(body) {
+    const normalized = _normalizeBody(body);
+    return {
+        ...normalized,
+        offering_code: normalized.offering_code ?? normalized.offeringCode ?? null,
+        is_default: normalized.is_default ?? normalized.isDefault,
+        approval_required: normalized.approval_required ?? normalized.approvalRequired,
+        request_channel_type: normalized.request_channel_type ?? normalized.requestChannelType ?? null,
+        request_channel_url: normalized.request_channel_url ?? normalized.requestChannelUrl ?? null,
+        lead_time_text: normalized.lead_time_text ?? normalized.leadTimeText ?? null,
+        support_tier_code: normalized.support_tier_code ?? normalized.supportTierCode ?? null,
+        display_order: normalized.display_order ?? normalized.displayOrder ?? null,
+    };
+}
+
+function _normalizeSupportModelItem(item) {
+    return {
+        offering_id: item.offering_id ?? item.offeringId ?? null,
+        support_owner_name: item.support_owner_name ?? item.supportOwnerName ?? null,
+        resolver_group: item.resolver_group ?? item.resolverGroup ?? null,
+        support_hours_code: item.support_hours_code ?? item.supportHoursCode ?? null,
+        support_channel: item.support_channel ?? item.supportChannel ?? null,
+        escalation_path: item.escalation_path ?? item.escalationPath ?? null,
+        maintenance_window: item.maintenance_window ?? item.maintenanceWindow ?? null,
+        review_cadence: item.review_cadence ?? item.reviewCadence ?? null,
+    };
+}
+
+function _normalizeAudienceItem(item) {
+    return {
+        offering_id: item.offering_id ?? item.offeringId ?? null,
+        audience_type: item.audience_type ?? item.audienceType ?? null,
+        business_unit: item.business_unit ?? item.businessUnit ?? null,
+        region_code: item.region_code ?? item.regionCode ?? null,
+        eligibility_rule: item.eligibility_rule ?? item.eligibilityRule ?? null,
+        notes: item.notes ?? null,
+    };
+}
+
+function _normalizeOperationalLinkBody(body) {
+    return {
+        offering_id: body.offering_id ?? body.offeringId ?? null,
+        link_type: body.link_type ?? body.linkType ?? null,
+        title: body.title ?? null,
+        url: body.url ?? null,
+        sort_order: body.sort_order ?? body.sortOrder ?? null,
+    };
+}
+
+function _normalizeCollectionBody(body, itemNormalizer) {
+    const rawItems = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.items)
+            ? body.items
+            : (body && typeof body === 'object' && Object.keys(body).length > 0 ? [body] : []);
+    return rawItems.map((item) => itemNormalizer(item || {}));
+}
+
+function _dbErrorStatus(err) {
+    if (err?.code === '23505') return 409;
+    if (err?.code === '23503' || err?.code === '23514') return 422;
+    return 500;
+}
+
+function _dbErrorPayload(err, fallbackMessage) {
+    if (err?.code === '23505') return { error: 'Záznam porušuje unikátní omezení', detail: err.detail || fallbackMessage };
+    if (err?.code === '23503') return { error: 'Neplatná reference na navázaný záznam', detail: err.detail || fallbackMessage };
+    if (err?.code === '23514') return { error: 'Záznam porušuje databázové validační omezení', detail: err.detail || fallbackMessage };
+    return { error: fallbackMessage };
+}
+
+async function _resolveCatalogIdOr404(serviceId, res) {
+    const catalogId = await repo.getCatalogId(serviceId);
+    if (!catalogId) {
+        res.status(404).json({ error: 'Služba nenalezena' });
+        return null;
+    }
+    return catalogId;
+}
+
+async function _validateOfferingOwnership(catalogId, offeringId) {
+    if (offeringId == null || offeringId === '') return true;
+    const offering = await offeringsRepo.findById(parseInt(offeringId, 10), catalogId);
+    return !!offering;
+}
+
+async function _validateLiveReadiness(catalogId, existing, body) {
+    const merged = { ...existing, ...body };
+    if (merged.lifecycle_state !== 'live') return [];
+
+    const [offerings, supportModels] = await Promise.all([
+        offeringsRepo.listByService(catalogId),
+        supportModelRepo.listByService(catalogId),
+    ]);
+
+    return validateLifecycleOperationalReadiness(merged, {
+        offeringCount: offerings.length,
+        supportModelCount: supportModels.length,
+    });
+}
+
 // ─── GET /services ────────────────────────────────────────────────────────────
 router.get('/', async (req, res, next) => {
     try {
@@ -110,6 +234,8 @@ router.get('/', async (req, res, next) => {
         const serviceType = Array.isArray(req.query.service_type) ? req.query.service_type.join(',') : req.query.service_type;
         const portfolioGroup = req.query.portfolio_group || req.query.portfolioGroup || undefined;
         const domain = req.query.domain || undefined;
+        const lifecycleState = req.query.lifecycle_state || undefined;
+        const requestable = req.query.requestable ?? undefined;
         const result = await repo.findAllDirect({
             page:        Math.max(1, parseInt(page)),
             limit:       Math.min(200, Math.max(1, parseInt(limit))),
@@ -121,6 +247,8 @@ router.get('/', async (req, res, next) => {
             sort,
             order,
             ownerName:   owner || undefined,
+            lifecycleState,
+            requestable,
         });
         res.set('X-Total-Count', result.total)
            .set('X-Page', result.page)
@@ -140,6 +268,8 @@ router.get('/export/csv', async (req, res, next) => {
         const sort = req.query.sort;
         const order = req.query.order;
         const owner = req.query.owner;
+        const lifecycleState = req.query.lifecycle_state || undefined;
+        const requestable = req.query.requestable ?? undefined;
 
         const result = await repo.findAllDirect({
             page: 1,
@@ -152,6 +282,8 @@ router.get('/export/csv', async (req, res, next) => {
             sort,
             order,
             ownerName: owner || undefined,
+            lifecycleState,
+            requestable,
         });
 
         const rows = [
@@ -186,11 +318,347 @@ router.get('/:id', async (req, res, next) => {
         const svc = await repo.findByServiceId(serviceId);
         if (!svc) return res.status(404).json({ error: 'Služba nenalezena' });
 
+        const catalogId = svc.id;
+        const offerings = await offeringsRepo.listByService(catalogId);
+        const supportModel = await supportModelRepo.listByService(catalogId);
+        const audiencePolicies = await audienceRepo.listByService(catalogId);
+        const operationalLinks = await operationalLinksRepo.listByService(catalogId);
         const flavours = await flRepo.findByService(serviceId);
         const relations = await relRepo.findByService(serviceId);
-        const score    = serviceScore(svc, flavours);
+        const score = serviceScore(svc, flavours);
+        const primaryOffering = offerings.find((item) => item.is_default) || offerings[0] || null;
 
-        res.json({ ...svc, completeness_score: score, flavours, relations });
+        const businessView = {
+            business_summary: svc.business_summary ?? svc.summary ?? null,
+            consumer_value: svc.consumer_value ?? null,
+            requestable: svc.requestable,
+            lifecycle_state: svc.lifecycle_state,
+            target_audience_summary: svc.target_audience_summary,
+            request_channel_type: svc.request_channel_type,
+            request_channel_url: svc.request_channel_url,
+            approval_required: svc.approval_required,
+            fulfillment_lead_time_text: svc.fulfillment_lead_time_text,
+            primary_offering: primaryOffering,
+            support_model: supportModel,
+            audience_policies: audiencePolicies,
+            operational_links: operationalLinks,
+        };
+
+        const technicalView = {
+            service_type: svc.service_type,
+            service_status: svc.service_status,
+            completeness_score: score,
+            relation_count: svc.relation_count,
+            flavour_count: svc.flavour_count,
+            has_c3_mapping: Boolean(svc.c3_uuid),
+            has_primary_offering: Boolean(primaryOffering),
+        };
+
+        res.json({
+            ...svc,
+            completeness_score: score,
+            flavours,
+            relations,
+            offerings,
+            primary_offering: primaryOffering,
+            support_model: supportModel,
+            audience_policies: audiencePolicies,
+            operational_links: operationalLinks,
+            business_view: businessView,
+            technical_view: technicalView,
+        });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /services/:id/offerings ─────────────────────────────────────────────
+router.get('/:id/offerings', async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const items = await offeringsRepo.listByService(catalogId);
+        res.json({ items });
+    } catch (err) { next(err); }
+});
+
+// ─── POST /services/:id/offerings ────────────────────────────────────────────
+router.post('/:id/offerings', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const body = _normalizeOfferingBody(req.body || {});
+        const errors = validateOffering(body, { isCreate: true });
+        if (errors.length) return res.status(422).json({ errors });
+
+        try {
+            const item = await offeringsRepo.create(catalogId, body);
+            await audit.log?.({
+                tableName: 'ServiceOffering',
+                recordId: item.id,
+                recordLabel: `${serviceId}:${item.offering_code}`,
+                action: 'INSERT',
+                newValues: body,
+                performedBy: req.user.username,
+                clientIp: req.ip,
+            });
+            res.status(201).json(item);
+        } catch (err) {
+            return res.status(_dbErrorStatus(err)).json(_dbErrorPayload(err, 'Offering se nepodařilo vytvořit'));
+        }
+    } catch (err) { next(err); }
+});
+
+// ─── PUT /services/:id/offerings/:offeringId ─────────────────────────────────
+router.put('/:id/offerings/:offeringId', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const offeringId = parseInt(req.params.offeringId, 10);
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const existing = await offeringsRepo.findById(offeringId, catalogId);
+        if (!existing) return res.status(404).json({ error: 'Offering nenalezen' });
+
+        const body = _normalizeOfferingBody(req.body || {});
+        const errors = validateOffering(body, { isCreate: false, existing });
+        if (errors.length) return res.status(422).json({ errors });
+
+        try {
+            const item = await offeringsRepo.update(offeringId, catalogId, body);
+            await audit.log?.({
+                tableName: 'ServiceOffering',
+                recordId: offeringId,
+                recordLabel: `${serviceId}:${existing.offering_code}`,
+                action: 'UPDATE',
+                newValues: body,
+                performedBy: req.user.username,
+                clientIp: req.ip,
+            });
+            res.json(item);
+        } catch (err) {
+            return res.status(_dbErrorStatus(err)).json(_dbErrorPayload(err, 'Offering se nepodařilo upravit'));
+        }
+    } catch (err) { next(err); }
+});
+
+// ─── DELETE /services/:id/offerings/:offeringId ──────────────────────────────
+router.delete('/:id/offerings/:offeringId', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const offeringId = parseInt(req.params.offeringId, 10);
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const existing = await offeringsRepo.findById(offeringId, catalogId);
+        if (!existing) return res.status(404).json({ error: 'Offering nenalezen' });
+
+        const removed = await offeringsRepo.remove(offeringId, catalogId);
+        if (!removed) return res.status(404).json({ error: 'Offering nenalezen' });
+
+        await audit.log?.({
+            tableName: 'ServiceOffering',
+            recordId: offeringId,
+            recordLabel: `${serviceId}:${existing.offering_code}`,
+            action: 'DELETE',
+            performedBy: req.user.username,
+            clientIp: req.ip,
+        });
+        res.json({ message: `Offering '${existing.offering_code}' smazán` });
+    } catch (err) { next(err); }
+});
+
+// ─── GET /services/:id/support-model ─────────────────────────────────────────
+router.get('/:id/support-model', async (req, res, next) => {
+    try {
+        const catalogId = await _resolveCatalogIdOr404(req.params.id, res);
+        if (!catalogId) return;
+        const items = await supportModelRepo.listByService(catalogId);
+        res.json({ items });
+    } catch (err) { next(err); }
+});
+
+// ─── PUT /services/:id/support-model ─────────────────────────────────────────
+router.put('/:id/support-model', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const items = _normalizeCollectionBody(req.body, _normalizeSupportModelItem);
+        const errors = validateSupportModel(items);
+        for (let index = 0; index < items.length; index += 1) {
+            if (!(await _validateOfferingOwnership(catalogId, items[index].offering_id))) {
+                errors.push({ field: `items[${index}].offering_id`, message: 'Offering nepatří k vybrané službě' });
+            }
+        }
+        if (errors.length) return res.status(422).json({ errors });
+
+        try {
+            const saved = await supportModelRepo.replaceForService(catalogId, items);
+            await audit.log?.({
+                tableName: 'ServiceSupportModel',
+                recordId: null,
+                recordLabel: serviceId,
+                action: 'UPDATE',
+                newValues: { items },
+                performedBy: req.user.username,
+                clientIp: req.ip,
+            });
+            res.json({ items: saved });
+        } catch (err) {
+            return res.status(_dbErrorStatus(err)).json(_dbErrorPayload(err, 'Support model se nepodařilo uložit'));
+        }
+    } catch (err) { next(err); }
+});
+
+// ─── GET /services/:id/audience ──────────────────────────────────────────────
+router.get('/:id/audience', async (req, res, next) => {
+    try {
+        const catalogId = await _resolveCatalogIdOr404(req.params.id, res);
+        if (!catalogId) return;
+        const items = await audienceRepo.listByService(catalogId);
+        res.json({ items });
+    } catch (err) { next(err); }
+});
+
+// ─── PUT /services/:id/audience ──────────────────────────────────────────────
+router.put('/:id/audience', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const items = _normalizeCollectionBody(req.body, _normalizeAudienceItem);
+        const errors = validateAudiencePolicy(items);
+        for (let index = 0; index < items.length; index += 1) {
+            if (!(await _validateOfferingOwnership(catalogId, items[index].offering_id))) {
+                errors.push({ field: `items[${index}].offering_id`, message: 'Offering nepatří k vybrané službě' });
+            }
+        }
+        if (errors.length) return res.status(422).json({ errors });
+
+        try {
+            const saved = await audienceRepo.replaceForService(catalogId, items);
+            await audit.log?.({
+                tableName: 'ServiceAudiencePolicy',
+                recordId: null,
+                recordLabel: serviceId,
+                action: 'UPDATE',
+                newValues: { items },
+                performedBy: req.user.username,
+                clientIp: req.ip,
+            });
+            res.json({ items: saved });
+        } catch (err) {
+            return res.status(_dbErrorStatus(err)).json(_dbErrorPayload(err, 'Audience policy se nepodařilo uložit'));
+        }
+    } catch (err) { next(err); }
+});
+
+// ─── GET /services/:id/operational-links ─────────────────────────────────────
+router.get('/:id/operational-links', async (req, res, next) => {
+    try {
+        const catalogId = await _resolveCatalogIdOr404(req.params.id, res);
+        if (!catalogId) return;
+        const items = await operationalLinksRepo.listByService(catalogId);
+        res.json({ items });
+    } catch (err) { next(err); }
+});
+
+// ─── POST /services/:id/operational-links ────────────────────────────────────
+router.post('/:id/operational-links', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const body = _normalizeOperationalLinkBody(req.body || {});
+        const errors = validateOperationalLink(body, { isCreate: true });
+        if (!(await _validateOfferingOwnership(catalogId, body.offering_id))) {
+            errors.push({ field: 'offering_id', message: 'Offering nepatří k vybrané službě' });
+        }
+        if (errors.length) return res.status(422).json({ errors });
+
+        try {
+            const item = await operationalLinksRepo.create(catalogId, body);
+            await audit.log?.({
+                tableName: 'ServiceOperationalLink',
+                recordId: item.id,
+                recordLabel: serviceId,
+                action: 'INSERT',
+                newValues: body,
+                performedBy: req.user.username,
+                clientIp: req.ip,
+            });
+            res.status(201).json(item);
+        } catch (err) {
+            return res.status(_dbErrorStatus(err)).json(_dbErrorPayload(err, 'Operational link se nepodařilo vytvořit'));
+        }
+    } catch (err) { next(err); }
+});
+
+// ─── PUT /services/:id/operational-links/:linkId ─────────────────────────────
+router.put('/:id/operational-links/:linkId', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const linkId = parseInt(req.params.linkId, 10);
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const existing = await operationalLinksRepo.findById(linkId, catalogId);
+        if (!existing) return res.status(404).json({ error: 'Operational link nenalezen' });
+
+        const body = _normalizeOperationalLinkBody(req.body || {});
+        const errors = validateOperationalLink(body, { isCreate: false });
+        if (!(await _validateOfferingOwnership(catalogId, body.offering_id))) {
+            errors.push({ field: 'offering_id', message: 'Offering nepatří k vybrané službě' });
+        }
+        if (errors.length) return res.status(422).json({ errors });
+
+        try {
+            const item = await operationalLinksRepo.update(linkId, catalogId, body);
+            await audit.log?.({
+                tableName: 'ServiceOperationalLink',
+                recordId: linkId,
+                recordLabel: serviceId,
+                action: 'UPDATE',
+                newValues: body,
+                performedBy: req.user.username,
+                clientIp: req.ip,
+            });
+            res.json(item);
+        } catch (err) {
+            return res.status(_dbErrorStatus(err)).json(_dbErrorPayload(err, 'Operational link se nepodařilo upravit'));
+        }
+    } catch (err) { next(err); }
+});
+
+// ─── DELETE /services/:id/operational-links/:linkId ──────────────────────────
+router.delete('/:id/operational-links/:linkId', canEdit, async (req, res, next) => {
+    try {
+        const serviceId = req.params.id;
+        const linkId = parseInt(req.params.linkId, 10);
+        const catalogId = await _resolveCatalogIdOr404(serviceId, res);
+        if (!catalogId) return;
+
+        const existing = await operationalLinksRepo.findById(linkId, catalogId);
+        if (!existing) return res.status(404).json({ error: 'Operational link nenalezen' });
+
+        const removed = await operationalLinksRepo.remove(linkId, catalogId);
+        if (!removed) return res.status(404).json({ error: 'Operational link nenalezen' });
+
+        await audit.log?.({
+            tableName: 'ServiceOperationalLink',
+            recordId: linkId,
+            recordLabel: serviceId,
+            action: 'DELETE',
+            performedBy: req.user.username,
+            clientIp: req.ip,
+        });
+        res.json({ message: `Operational link ${linkId} smazán` });
     } catch (err) { next(err); }
 });
 
@@ -789,7 +1257,10 @@ router.put('/:id', canEdit, async (req, res, next) => {
         if (!existing) return res.status(404).json({ error: 'Služba nenalezena' });
 
         const body   = _normalizeBody(req.body);
-        const errors = validateUpdate(body);
+        const errors = validateUpdate(body, existing);
+        if (!errors.length) {
+            errors.push(...await _validateLiveReadiness(existing.id, existing, body));
+        }
         if (errors.length) return res.status(422).json({ errors });
 
         const requestedStatus = body.service_status ?? body.service_status_code ?? null;

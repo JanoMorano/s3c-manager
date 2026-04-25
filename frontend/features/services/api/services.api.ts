@@ -20,6 +20,10 @@ export function authHeaders(): Record<string, string> {
 import type {
   ServiceListResponse,
   ServiceDetail,
+  ServiceOffering,
+  ServiceSupportModel,
+  ServiceAudiencePolicy,
+  ServiceOperationalLink,
   SlaResponse,
   GraphResponse,
 } from '../model/service.types';
@@ -69,6 +73,8 @@ export interface ListParams {
   type?: string;
   portfolio?: string;
   domain?: string;
+  lifecycle?: string;    // comma-separated lifecycle states
+  requestable?: boolean;
   page?: number;
   limit?: number;
   sort?: SortField;
@@ -77,15 +83,17 @@ export interface ListParams {
 
 export function buildListUrl(params: ListParams = {}): string {
   const q = new URLSearchParams();
-  if (params.search)    q.set('search',    params.search);
-  if (params.status)    q.set('status',    params.status);
-  if (params.type)      q.set('service_type',    params.type);
-  if (params.portfolio) q.set('portfolio_group', params.portfolio);
-  if (params.domain)    q.set('domain',    params.domain);
-  if (params.page)      q.set('page',      String(params.page));
-  if (params.limit)     q.set('limit',     String(params.limit));
-  if (params.sort)      q.set('sort',      params.sort);
-  if (params.order)     q.set('order',     params.order);
+  if (params.search)               q.set('search',          params.search);
+  if (params.status)               q.set('status',          params.status);
+  if (params.type)                 q.set('service_type',    params.type);
+  if (params.portfolio)            q.set('portfolio_group', params.portfolio);
+  if (params.domain)               q.set('domain',          params.domain);
+  if (params.lifecycle)            q.set('lifecycle_state', params.lifecycle);
+  if (params.requestable != null)  q.set('requestable',     String(params.requestable));
+  if (params.page)                 q.set('page',            String(params.page));
+  if (params.limit)                q.set('limit',           String(params.limit));
+  if (params.sort)                 q.set('sort',            params.sort);
+  if (params.order)                q.set('order',           params.order);
   const qs = q.toString();
   return `${BASE}/services${qs ? `?${qs}` : ''}`;
 }
@@ -101,6 +109,18 @@ export const fetchServices = (params?: ListParams) =>
 // ── Service detail ───────────────────────────────────────────────────────────
 export const fetchService = (id: string) =>
   apiFetch<ServiceDetail>(`${BASE}/services/${id}`);
+
+export const fetchServiceOfferings = (id: string) =>
+  apiFetch<{ items: ServiceOffering[] }>(`${BASE}/services/${id}/offerings`);
+
+export const fetchServiceSupportModel = (id: string) =>
+  apiFetch<{ items: ServiceSupportModel[] }>(`${BASE}/services/${id}/support-model`);
+
+export const fetchServiceAudience = (id: string) =>
+  apiFetch<{ items: ServiceAudiencePolicy[] }>(`${BASE}/services/${id}/audience`);
+
+export const fetchServiceOperationalLinks = (id: string) =>
+  apiFetch<{ items: ServiceOperationalLink[] }>(`${BASE}/services/${id}/operational-links`);
 
 export const fetchServiceSla = (id: string) =>
   apiFetch<SlaResponse>(`${BASE}/services/${id}/sla`);

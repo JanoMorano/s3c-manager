@@ -12,6 +12,28 @@ import type { ServiceListItem } from '../model/service.types';
 import type { SortField, SortOrder } from '../api/services.api';
 import styles from './ServiceListRow.module.css';
 
+const LIFECYCLE_DOT_COLOR: Record<string, string> = {
+  draft:        '#a1a1aa',
+  under_review: '#3b82f6',
+  approved:     '#10b981',
+  live:         '#059669',
+  deprecated:   '#f59e0b',
+  retired:      '#ef4444',
+};
+
+function LifecycleDot({ state }: { state: string }) {
+  const color = LIFECYCLE_DOT_COLOR[state] ?? '#a1a1aa';
+  const label = state.replace('_', ' ');
+  return (
+    <span
+      className={styles.lifecycleDot}
+      style={{ background: color }}
+      title={`Lifecycle: ${label}`}
+      aria-label={`Lifecycle: ${label}`}
+    />
+  );
+}
+
 interface ServiceListRowProps {
   service: ServiceListItem;
   density?: 'compact' | 'comfortable';
@@ -55,9 +77,12 @@ export function ServiceListRow({ service, density = 'comfortable', selected }: S
         <AvailabilityBadge pct={service.sla_availability} />
       </div>
 
-      {/* Col 6: Status */}
+      {/* Col 6: Status + Lifecycle */}
       <div className={styles.colStatus}>
         <StatusPill status={service.service_status ?? 'draft'} size="sm" />
+        {service.lifecycle_state && (
+          <LifecycleDot state={service.lifecycle_state} />
+        )}
       </div>
 
       {/* Col 7: Owner */}

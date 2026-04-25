@@ -14,6 +14,10 @@ import type {
   ServiceHistoryEntry,
   ServiceRoleAssignment,
   ServiceReadiness,
+  ServiceOffering,
+  ServiceSupportModel,
+  ServiceAudiencePolicy,
+  ServiceOperationalLink,
 } from '../model/service.types';
 
 // ── Services list ────────────────────────────────────────────────────────────
@@ -29,6 +33,38 @@ export function useServices(params: ListParams = {}) {
 export function useService(id: string | null) {
   return useSWR<ServiceDetail>(
     id ? `/api/v1/services/${id}` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
+export function useServiceOfferings(id: string | null) {
+  return useSWR<{ items: ServiceOffering[] }>(
+    id ? `/api/v1/services/${id}/offerings` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
+export function useServiceSupportModel(id: string | null) {
+  return useSWR<{ items: ServiceSupportModel[] }>(
+    id ? `/api/v1/services/${id}/support-model` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
+export function useServiceAudience(id: string | null) {
+  return useSWR<{ items: ServiceAudiencePolicy[] }>(
+    id ? `/api/v1/services/${id}/audience` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
+export function useServiceOperationalLinks(id: string | null) {
+  return useSWR<{ items: ServiceOperationalLink[] }>(
+    id ? `/api/v1/services/${id}/operational-links` : null,
     apiFetch,
     { revalidateOnFocus: false }
   );

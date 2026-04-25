@@ -113,6 +113,8 @@ run_psql "pg C3 — taxonomy, entities, links, builder, completeness" /pgdb/sche
 run_psql "pg exports+retention — canonical routes, manifests, archive/export views" /pgdb/schema/12_exports_retention.sql
 run_psql "pg install system — state machine, migrations, modules, release metadata" /pgdb/schema/13_install_system.sql
 run_psql "pg spiral versioning — fmn_spiral columns, Spiral_7 seed" /pgdb/schema/14_spiral_versioning.sql
+run_psql "pg ITIL catalogue phase 1 — offerings, support, audience, operational links" /pgdb/schema/15_itil_catalogue_phase1.sql
+run_psql "pg consumer_value additive column" /pgdb/schema/16_consumer_value.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

@@ -1,5 +1,11 @@
 import { apiFetch, authHeaders } from './services.api';
-import type { ServiceDetail } from '../model/service.types';
+import type {
+  ServiceAudiencePolicy,
+  ServiceDetail,
+  ServiceOffering,
+  ServiceOperationalLink,
+  ServiceSupportModel,
+} from '../model/service.types';
 
 const BASE = '/api/v1';
 
@@ -37,6 +43,15 @@ export interface ServiceUpdateBody {
   exclusions?: string;
   service_area?: string;
   customer_type?: string | null;
+  business_summary?: string | null;
+  requestable?: boolean | null;
+  lifecycle_state?: string | null;
+  target_audience_summary?: string | null;
+  request_channel_type?: string | null;
+  request_channel_url?: string | null;
+  approval_required?: boolean | null;
+  fulfillment_lead_time_text?: string | null;
+  consumer_value?: string | null;
 }
 
 export async function updateService(id: string, body: ServiceUpdateBody): Promise<ServiceDetail> {
@@ -165,6 +180,151 @@ export async function updateFlavour(id: number, body: FlavourBody): Promise<Flav
 export async function deleteFlavour(id: number): Promise<void> {
   const res = await fetch(`${BASE}/flavours/${id}`, { method: 'DELETE', headers: authHeaders() });
   if (!res.ok) { const t = await res.text(); throw new Error(`DELETE /flavours/${id} ${res.status}: ${t}`); }
+}
+
+// ── Service Offerings CRUD ───────────────────────────────────────────────────
+export interface ServiceOfferingBody {
+  offering_code?: string;
+  title?: string;
+  description?: string | null;
+  is_default?: boolean;
+  requestable?: boolean;
+  approval_required?: boolean | null;
+  request_channel_type?: string | null;
+  request_channel_url?: string | null;
+  lead_time_text?: string | null;
+  support_tier_code?: string | null;
+  status?: string;
+  display_order?: number | null;
+}
+
+export const fetchServiceOfferingsEditor = async (serviceId: string): Promise<ServiceOffering[]> => {
+  const response = await apiFetch<{ items: ServiceOffering[] }>(`${BASE}/services/${serviceId}/offerings`);
+  return response.items ?? [];
+};
+
+export async function createOffering(serviceId: string, body: ServiceOfferingBody): Promise<ServiceOffering> {
+  const res = await fetch(`${BASE}/services/${serviceId}/offerings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`POST /services/${serviceId}/offerings ${res.status}: ${t}`); }
+  return res.json();
+}
+
+export async function updateOffering(serviceId: string, offeringId: number, body: ServiceOfferingBody): Promise<ServiceOffering> {
+  const res = await fetch(`${BASE}/services/${serviceId}/offerings/${offeringId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`PUT /services/${serviceId}/offerings/${offeringId} ${res.status}: ${t}`); }
+  return res.json();
+}
+
+export async function deleteOffering(serviceId: string, offeringId: number): Promise<void> {
+  const res = await fetch(`${BASE}/services/${serviceId}/offerings/${offeringId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`DELETE /services/${serviceId}/offerings/${offeringId} ${res.status}: ${t}`); }
+}
+
+// ── Support Model replace ────────────────────────────────────────────────────
+export interface ServiceSupportModelBody {
+  offering_id?: number | null;
+  support_owner_name?: string | null;
+  resolver_group?: string | null;
+  support_hours_code?: string | null;
+  support_channel?: string | null;
+  escalation_path?: string | null;
+  maintenance_window?: string | null;
+  review_cadence?: string | null;
+}
+
+export const fetchServiceSupportModelEditor = async (serviceId: string): Promise<ServiceSupportModel[]> => {
+  const response = await apiFetch<{ items: ServiceSupportModel[] }>(`${BASE}/services/${serviceId}/support-model`);
+  return response.items ?? [];
+};
+
+export async function replaceSupportModel(serviceId: string, items: ServiceSupportModelBody[]): Promise<ServiceSupportModel[]> {
+  const res = await fetch(`${BASE}/services/${serviceId}/support-model`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`PUT /services/${serviceId}/support-model ${res.status}: ${t}`); }
+  const data = await res.json() as { items?: ServiceSupportModel[] };
+  return data.items ?? [];
+}
+
+// ── Audience Policy replace ──────────────────────────────────────────────────
+export interface ServiceAudiencePolicyBody {
+  offering_id?: number | null;
+  audience_type?: string | null;
+  business_unit?: string | null;
+  region_code?: string | null;
+  eligibility_rule?: string | null;
+  notes?: string | null;
+}
+
+export const fetchServiceAudienceEditor = async (serviceId: string): Promise<ServiceAudiencePolicy[]> => {
+  const response = await apiFetch<{ items: ServiceAudiencePolicy[] }>(`${BASE}/services/${serviceId}/audience`);
+  return response.items ?? [];
+};
+
+export async function replaceAudiencePolicies(serviceId: string, items: ServiceAudiencePolicyBody[]): Promise<ServiceAudiencePolicy[]> {
+  const res = await fetch(`${BASE}/services/${serviceId}/audience`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`PUT /services/${serviceId}/audience ${res.status}: ${t}`); }
+  const data = await res.json() as { items?: ServiceAudiencePolicy[] };
+  return data.items ?? [];
+}
+
+// ── Operational Links CRUD ───────────────────────────────────────────────────
+export interface ServiceOperationalLinkBody {
+  offering_id?: number | null;
+  link_type?: string | null;
+  title?: string;
+  url?: string;
+  sort_order?: number | null;
+}
+
+export const fetchServiceOperationalLinksEditor = async (serviceId: string): Promise<ServiceOperationalLink[]> => {
+  const response = await apiFetch<{ items: ServiceOperationalLink[] }>(`${BASE}/services/${serviceId}/operational-links`);
+  return response.items ?? [];
+};
+
+export async function createOperationalLink(serviceId: string, body: ServiceOperationalLinkBody): Promise<ServiceOperationalLink> {
+  const res = await fetch(`${BASE}/services/${serviceId}/operational-links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`POST /services/${serviceId}/operational-links ${res.status}: ${t}`); }
+  return res.json();
+}
+
+export async function updateOperationalLink(serviceId: string, linkId: number, body: ServiceOperationalLinkBody): Promise<ServiceOperationalLink> {
+  const res = await fetch(`${BASE}/services/${serviceId}/operational-links/${linkId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`PUT /services/${serviceId}/operational-links/${linkId} ${res.status}: ${t}`); }
+  return res.json();
+}
+
+export async function deleteOperationalLink(serviceId: string, linkId: number): Promise<void> {
+  const res = await fetch(`${BASE}/services/${serviceId}/operational-links/${linkId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`DELETE /services/${serviceId}/operational-links/${linkId} ${res.status}: ${t}`); }
 }
 
 // ── Relations CRUD ────────────────────────────────────────────────────────────

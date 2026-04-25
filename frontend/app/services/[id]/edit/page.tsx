@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { use, useEffect, useState, useCallback, useMemo } from 'react';
+import { use, useEffect, useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,12 +13,24 @@ import { useService, useServices, usePortfolioGroups, useServiceTypes, useServic
 import {
   updateService, updateDomains, updateRole,
   fetchServiceFlavours, createFlavour, updateFlavour, deleteFlavour,
+  fetchServiceOfferingsEditor, createOffering, updateOffering, deleteOffering,
+  fetchServiceSupportModelEditor, replaceSupportModel,
+  fetchServiceAudienceEditor, replaceAudiencePolicies,
+  fetchServiceOperationalLinksEditor, createOperationalLink, updateOperationalLink, deleteOperationalLink,
   createRelation, deleteRelation, updateRelation,
   type FlavourRecord, type FlavourBody, type RelationPatch,
+  type ServiceOfferingBody, type ServiceSupportModelBody, type ServiceAudiencePolicyBody, type ServiceOperationalLinkBody,
 } from '@/features/services/api/editor.api';
 import { authHeaders } from '@/features/services/api/services.api';
 import { useServiceSla } from '@/features/services/hooks/useServices';
-import type { SlaRecord, ServiceC3Mapping } from '@/features/services/model/service.types';
+import type {
+  SlaRecord,
+  ServiceAudiencePolicy,
+  ServiceC3Mapping,
+  ServiceOffering,
+  ServiceOperationalLink,
+  ServiceSupportModel,
+} from '@/features/services/model/service.types';
 import { StatusPill } from '@/features/services/components/StatusPill';
 import { Button }     from '@/design-system/controls/Button';
 import { TextInput }  from '@/design-system/controls/TextInput';
@@ -55,6 +67,15 @@ const schema = z.object({
   ordering_note:          z.string().optional(),
   retired_note:           z.string().optional(),
   customer_type:          z.string().optional(),
+  business_summary:       z.string().optional(),
+  consumer_value:         z.string().optional(),
+  requestable:            z.boolean().optional(),
+  lifecycle_state:        z.string().optional(),
+  target_audience_summary:z.string().optional(),
+  request_channel_type:   z.string().optional(),
+  request_channel_url:    z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  approval_required:      z.boolean().optional(),
+  fulfillment_lead_time_text: z.string().optional(),
   // Item 13: notes_json
   notes_json:             z.string().optional(),
   sla_availability:       z.coerce.number().min(0).max(100).optional().nullable(),
@@ -75,8 +96,24 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const STATUS_OPTIONS    = ['active','retired','deprecated','draft'];
-const RELATION_TYPES    = ['prerequisite','underlying','replaces','depends_on','related_to'];
+const LIFECYCLE_OPTIONS = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
+
+// Phase 7: mirrors backend LIFECYCLE_TRANSITIONS in validation.js
+// Phase 8: standard operational link types
+const OPERATIONAL_LINK_TYPES = ['knowledge', 'incidents', 'changes', 'docs', 'review', 'monitoring', 'support', 'other'];
+
+// Phase 7: mirrors backend LIFECYCLE_TRANSITIONS in validation.js
+const LIFECYCLE_TRANSITION_MAP: Record<string, string[]> = {
+  draft:        ['under_review'],
+  under_review: ['draft', 'approved'],
+  approved:     ['under_review', 'live'],
+  live:         ['deprecated'],
+  deprecated:   ['live', 'retired'],
+  retired:      ['deprecated'],
+};
+const RELATION_TYPES    = ['prerequisite','underlying','replaces','depends_on','related_to','provided_by'];
 const FLAVOUR_STATUSES  = ['available','active','retired'];
+const OFFERING_STATUSES = ['draft', 'active', 'retired'];
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -122,6 +159,7 @@ export default function ServiceEditorPage({ params }: Props) {
   const [saving,    setSaving]    = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved,     setSaved]     = useState(false);
+  const [phase4Saved, setPhase4Saved] = useState<string | null>(null);
 
   // ── SLA records (Item 17) ─────────────────────────────────────────────────
   const { data: slaData, mutate: mutateSla } = useServiceSla(id);
@@ -189,6 +227,32 @@ export default function ServiceEditorPage({ params }: Props) {
   const [flavourForm,   setFlavourForm]   = useState<FlavourBody>({});
   const [showFlavourAdd, setShowFlavourAdd] = useState(false);
 
+  // ── Offerings state ──────────────────────────────────────────────────────
+  const [offerings, setOfferings] = useState<ServiceOffering[]>([]);
+  const [offeringBusy, setOfferingBusy] = useState(false);
+  const [offeringError, setOfferingError] = useState<string | null>(null);
+  const [editOfferingId, setEditOfferingId] = useState<number | null>(null);
+  const [showOfferingAdd, setShowOfferingAdd] = useState(false);
+  const [offeringForm, setOfferingForm] = useState<ServiceOfferingBody>({});
+
+  // ── Support model state ──────────────────────────────────────────────────
+  const [supportModels, setSupportModels] = useState<ServiceSupportModelBody[]>([]);
+  const [supportBusy, setSupportBusy] = useState(false);
+  const [supportError, setSupportError] = useState<string | null>(null);
+
+  // ── Audience state ───────────────────────────────────────────────────────
+  const [audiencePolicies, setAudiencePolicies] = useState<ServiceAudiencePolicyBody[]>([]);
+  const [audienceBusy, setAudienceBusy] = useState(false);
+  const [audienceError, setAudienceError] = useState<string | null>(null);
+
+  // ── Operational links state ──────────────────────────────────────────────
+  const [operationalLinks, setOperationalLinks] = useState<ServiceOperationalLink[]>([]);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [editLinkId, setEditLinkId] = useState<number | null>(null);
+  const [showLinkAdd, setShowLinkAdd] = useState(false);
+  const [linkForm, setLinkForm] = useState<ServiceOperationalLinkBody>({});
+
   const loadFlavours = useCallback(async () => {
     try {
       setFlavours(await fetchServiceFlavours(id));
@@ -197,6 +261,35 @@ export default function ServiceEditorPage({ params }: Props) {
   }, [id, mutateReadiness]);
 
   useEffect(() => { loadFlavours(); }, [loadFlavours]);
+
+  const loadOfferings = useCallback(async () => {
+    try {
+      setOfferings(await fetchServiceOfferingsEditor(id));
+    } catch { /* ignore */ }
+  }, [id]);
+
+  const loadSupportModels = useCallback(async () => {
+    try {
+      setSupportModels(await fetchServiceSupportModelEditor(id));
+    } catch { /* ignore */ }
+  }, [id]);
+
+  const loadAudiencePolicies = useCallback(async () => {
+    try {
+      setAudiencePolicies(await fetchServiceAudienceEditor(id));
+    } catch { /* ignore */ }
+  }, [id]);
+
+  const loadOperationalLinks = useCallback(async () => {
+    try {
+      setOperationalLinks(await fetchServiceOperationalLinksEditor(id));
+    } catch { /* ignore */ }
+  }, [id]);
+
+  useEffect(() => { loadOfferings(); }, [loadOfferings]);
+  useEffect(() => { loadSupportModels(); }, [loadSupportModels]);
+  useEffect(() => { loadAudiencePolicies(); }, [loadAudiencePolicies]);
+  useEffect(() => { loadOperationalLinks(); }, [loadOperationalLinks]);
 
   const handleFlavourSave = async () => {
     setFlavourBusy(true); setFlavourError(null);
@@ -219,6 +312,120 @@ export default function ServiceEditorPage({ params }: Props) {
     try { await deleteFlavour(fid); await loadFlavours(); }
     catch (e: unknown) { setFlavourError(e instanceof Error ? e.message : 'Delete failed'); }
     finally { setFlavourBusy(false); }
+  };
+
+  const handleOfferingSave = async () => {
+    setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
+    try {
+      if (editOfferingId != null) {
+        await updateOffering(id, editOfferingId, offeringForm);
+      } else {
+        await createOffering(id, offeringForm);
+      }
+      setEditOfferingId(null);
+      setOfferingForm({});
+      setShowOfferingAdd(false);
+      await loadOfferings();
+      await mutate();
+      setPhase4Saved('Offerings saved');
+    } catch (e: unknown) {
+      setOfferingError(e instanceof Error ? e.message : 'Offering save failed');
+    } finally {
+      setOfferingBusy(false);
+    }
+  };
+
+  const handleOfferingDelete = async (offeringId: number) => {
+    if (!confirm('Delete this service offering?')) return;
+    setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
+    try {
+      await deleteOffering(id, offeringId);
+      await loadOfferings();
+      await mutate();
+      setPhase4Saved('Offering deleted');
+    } catch (e: unknown) {
+      setOfferingError(e instanceof Error ? e.message : 'Offering delete failed');
+    } finally {
+      setOfferingBusy(false);
+    }
+  };
+
+  const handleSupportSave = async () => {
+    setSupportBusy(true); setSupportError(null); setPhase4Saved(null);
+    try {
+      const filtered = supportModels.filter(item =>
+        item.offering_id != null ||
+        item.support_owner_name ||
+        item.resolver_group ||
+        item.support_hours_code ||
+        item.support_channel ||
+        item.escalation_path ||
+        item.maintenance_window ||
+        item.review_cadence
+      );
+      setSupportModels(await replaceSupportModel(id, filtered));
+      setPhase4Saved('Support model saved');
+      await mutate();
+    } catch (e: unknown) {
+      setSupportError(e instanceof Error ? e.message : 'Support model save failed');
+    } finally {
+      setSupportBusy(false);
+    }
+  };
+
+  const handleAudienceSave = async () => {
+    setAudienceBusy(true); setAudienceError(null); setPhase4Saved(null);
+    try {
+      const filtered = audiencePolicies.filter(item =>
+        item.offering_id != null ||
+        item.audience_type ||
+        item.business_unit ||
+        item.region_code ||
+        item.eligibility_rule ||
+        item.notes
+      );
+      setAudiencePolicies(await replaceAudiencePolicies(id, filtered));
+      setPhase4Saved('Audience policies saved');
+      await mutate();
+    } catch (e: unknown) {
+      setAudienceError(e instanceof Error ? e.message : 'Audience save failed');
+    } finally {
+      setAudienceBusy(false);
+    }
+  };
+
+  const handleLinkSave = async () => {
+    setLinkBusy(true); setLinkError(null); setPhase4Saved(null);
+    try {
+      if (editLinkId != null) {
+        await updateOperationalLink(id, editLinkId, linkForm);
+      } else {
+        await createOperationalLink(id, linkForm);
+      }
+      setEditLinkId(null);
+      setLinkForm({});
+      setShowLinkAdd(false);
+      await loadOperationalLinks();
+      setPhase4Saved('Operational links saved');
+    } catch (e: unknown) {
+      setLinkError(e instanceof Error ? e.message : 'Operational link save failed');
+    } finally {
+      setLinkBusy(false);
+    }
+  };
+
+  const handleLinkDelete = async (linkId: number) => {
+    if (!confirm('Delete this operational link?')) return;
+    setLinkBusy(true); setLinkError(null); setPhase4Saved(null);
+    try {
+      await deleteOperationalLink(id, linkId);
+      await loadOperationalLinks();
+      setPhase4Saved('Operational link deleted');
+    } catch (e: unknown) {
+      setLinkError(e instanceof Error ? e.message : 'Operational link delete failed');
+    } finally {
+      setLinkBusy(false);
+    }
   };
 
   // ── Relations state ──────────────────────────────────────────────────────
@@ -376,6 +583,15 @@ export default function ServiceEditorPage({ params }: Props) {
       source_url:              svc.source_url      ?? '',
       unit_of_measure:         svc.unit_of_measure ?? '',
       charging_basis:          svc.charging_basis  ?? '',
+      business_summary:        svc.business_summary ?? '',
+      consumer_value:          svc.consumer_value ?? '',
+      requestable:             svc.requestable ?? false,
+      lifecycle_state:         svc.lifecycle_state ?? '',
+      target_audience_summary: svc.target_audience_summary ?? '',
+      request_channel_type:    svc.request_channel_type ?? '',
+      request_channel_url:     svc.request_channel_url ?? '',
+      approval_required:       svc.approval_required ?? false,
+      fulfillment_lead_time_text: svc.fulfillment_lead_time_text ?? '',
       customer_type:           Array.isArray(svc.customer_type) ? (svc.customer_type as string[]).join(', ') : '',
       notes_json:              svc.notes != null ? JSON.stringify(svc.notes, null, 2) : '',
       sla_availability:        svc.sla_availability,
@@ -392,8 +608,11 @@ export default function ServiceEditorPage({ params }: Props) {
     });
   }, [svc, activeRoleMap, isDirty, reset]);
 
-  const watchedDomains = watch('domains') ?? [];
-  const dirtyCount     = Object.keys(dirtyFields).length;
+  const watchedDomains      = watch('domains') ?? [];
+  const watchedRequestable  = watch('requestable');
+  const watchedChannelType  = watch('request_channel_type');
+  const watchedChannelUrl   = watch('request_channel_url');
+  const dirtyCount          = Object.keys(dirtyFields).length;
 
   const onSubmit = async (data: FormData) => {
     setSaving(true); setSaveError(null); setSaved(false);
@@ -428,6 +647,15 @@ export default function ServiceEditorPage({ params }: Props) {
         customer_type:           data.customer_type
           ? JSON.stringify(data.customer_type.split(',').map((s: string) => s.trim()).filter(Boolean))
           : null,
+        business_summary:        data.business_summary || null,
+        consumer_value:          data.consumer_value || null,
+        requestable:             data.requestable ?? false,
+        lifecycle_state:         data.lifecycle_state || null,
+        target_audience_summary: data.target_audience_summary || null,
+        request_channel_type:    data.request_channel_type || null,
+        request_channel_url:     data.request_channel_url || null,
+        approval_required:       data.approval_required ?? false,
+        fulfillment_lead_time_text: data.fulfillment_lead_time_text || null,
         notes_json:              data.notes_json,
         sla_availability:        data.sla_availability,
         sla_restoration:         data.sla_restoration,
@@ -519,6 +747,87 @@ export default function ServiceEditorPage({ params }: Props) {
             <Field label="Scope">
               <textarea {...register('scope_text')} rows={3} className={styles.textarea} placeholder="Describe the scope of this service…" />
             </Field>
+          </EditorSection>
+
+          <EditorSection id="catalogue-access" title="2b. Catalogue Access & Request Model">
+            <Field label="Business Summary">
+              <textarea
+                {...register('business_summary')}
+                rows={3}
+                className={styles.textarea}
+                placeholder="Short business-facing summary shown at the top of the service detail."
+              />
+            </Field>
+            <Field label="Consumer Value" hint="What value does this service deliver to its consumers? Shown prominently in the business view.">
+              <textarea
+                {...register('consumer_value')}
+                rows={2}
+                className={styles.textarea}
+                placeholder="e.g. Enables teams to self-serve X without waiting for Y…"
+              />
+            </Field>
+            <div className={styles.fieldRow}>
+              <Field label="Lifecycle State">
+                <select {...register('lifecycle_state')} className={styles.input}>
+                  <option value="">— select —</option>
+                  {LIFECYCLE_OPTIONS.map((state) => {
+                    const current = svc?.lifecycle_state ?? null;
+                    const allowed = LIFECYCLE_TRANSITION_MAP[current ?? ''] ?? LIFECYCLE_OPTIONS;
+                    const isCurrentState = state === current;
+                    const isAllowed = isCurrentState || !current || allowed.includes(state);
+                    return (
+                      <option key={state} value={state} disabled={!isAllowed}>
+                        {state}{isCurrentState ? ' (current)' : (!isAllowed ? ' ✗' : '')}
+                      </option>
+                    );
+                  })}
+                </select>
+                {svc?.lifecycle_state && (
+                  <span className={styles.hint}>
+                    Current: <strong>{svc.lifecycle_state}</strong> · Allowed next: {(LIFECYCLE_TRANSITION_MAP[svc.lifecycle_state] ?? []).join(', ') || '—'}
+                  </span>
+                )}
+              </Field>
+              <Field label="Request Channel Type">
+                <input {...register('request_channel_type')} className={styles.input} placeholder="portal, form, email, marketplace…" />
+              </Field>
+              <Field label="Request Channel URL" error={errors.request_channel_url?.message}>
+                <input {...register('request_channel_url')} className={fieldClass(errors.request_channel_url)} placeholder="https://…" />
+              </Field>
+            </div>
+            <div className={styles.fieldRow}>
+              <Field label="Target Audience Summary">
+                <input {...register('target_audience_summary')} className={styles.input} placeholder="Internal staff, project teams, suppliers…" />
+              </Field>
+              <Field label="Fulfillment Lead Time">
+                <input {...register('fulfillment_lead_time_text')} className={styles.input} placeholder="e.g. 3 business days" />
+              </Field>
+            </div>
+            <div className={styles.toggleRow}>
+              <label className={styles.domainCheck}>
+                <input type="checkbox" {...register('requestable')} />
+                <span>Requestable</span>
+              </label>
+              <label className={styles.domainCheck}>
+                <input type="checkbox" {...register('approval_required')} />
+                <span>Approval required</span>
+              </label>
+            </div>
+            {watchedRequestable && !watchedChannelType && !watchedChannelUrl && (
+              <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                <span className={styles.crossFieldAlertIcon}>⚠</span>
+                This service is marked <strong>Requestable</strong> but has no Request Channel Type or URL. Consumers won&apos;t know how to order it.
+              </div>
+            )}
+            {watchedRequestable && supportModels.length === 0 && (
+              <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                <span className={styles.crossFieldAlertIcon}>⚠</span>
+                This service is requestable but has no <strong>Support Model</strong>. Consumers won&apos;t know who to contact for help. Add one in section 7c below.
+              </div>
+            )}
+            <p className={styles.hint}>
+              These fields power the business-facing Overview and Request &amp; Support views introduced in Phase 3.
+            </p>
           </EditorSection>
 
           {/* §3 Classification */}
@@ -850,6 +1159,179 @@ export default function ServiceEditorPage({ params }: Props) {
             )}
           </EditorSection>
 
+          <EditorSection id="offerings" title="6b. Service Offerings">
+            {offeringError && <div className={styles.errorBanner}>{offeringError}</div>}
+            {offerings.length > 0 ? (
+              <div className={styles.flavourList}>
+                {offerings.map((offering) => (
+                  editOfferingId === offering.id ? (
+                    <div key={offering.id} className={styles.phase4Card}>
+                      <div className={styles.fieldRow}>
+                        <Field label="Offering Code">
+                          <input className={styles.input} value={offeringForm.offering_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, offering_code: e.target.value }))} />
+                        </Field>
+                        <Field label="Title">
+                          <input className={styles.input} value={offeringForm.title ?? ''} onChange={e => setOfferingForm(p => ({ ...p, title: e.target.value }))} />
+                        </Field>
+                        <Field label="Status">
+                          <select className={styles.input} value={offeringForm.status ?? ''} onChange={e => setOfferingForm(p => ({ ...p, status: e.target.value }))}>
+                            <option value="">— select —</option>
+                            {OFFERING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                          </select>
+                        </Field>
+                      </div>
+                      <Field label="Description">
+                        <textarea className={styles.textarea} rows={3} value={offeringForm.description ?? ''} onChange={e => setOfferingForm(p => ({ ...p, description: e.target.value || null }))} />
+                      </Field>
+                      <div className={styles.fieldRow}>
+                        <Field label="Request Channel Type">
+                          <input className={styles.input} value={offeringForm.request_channel_type ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_type: e.target.value || null }))} />
+                        </Field>
+                        <Field label="Request Channel URL">
+                          <input className={styles.input} value={offeringForm.request_channel_url ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_url: e.target.value || null }))} />
+                        </Field>
+                        <Field label="Lead Time">
+                          <input className={styles.input} value={offeringForm.lead_time_text ?? ''} onChange={e => setOfferingForm(p => ({ ...p, lead_time_text: e.target.value || null }))} />
+                        </Field>
+                      </div>
+                      <div className={styles.fieldRow}>
+                        <Field label="Support Tier">
+                          <input className={styles.input} value={offeringForm.support_tier_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, support_tier_code: e.target.value || null }))} />
+                        </Field>
+                        <Field label="Display Order">
+                          <input className={styles.input} type="number" value={offeringForm.display_order ?? ''} onChange={e => setOfferingForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
+                        </Field>
+                      </div>
+                      <div className={styles.toggleRow}>
+                        <label className={styles.domainCheck}>
+                          <input type="checkbox" checked={offeringForm.is_default ?? false} onChange={e => setOfferingForm(p => ({ ...p, is_default: e.target.checked }))} />
+                          <span>Default offering</span>
+                        </label>
+                        <label className={styles.domainCheck}>
+                          <input type="checkbox" checked={offeringForm.requestable ?? false} onChange={e => setOfferingForm(p => ({ ...p, requestable: e.target.checked }))} />
+                          <span>Requestable</span>
+                        </label>
+                        <label className={styles.domainCheck}>
+                          <input type="checkbox" checked={offeringForm.approval_required ?? false} onChange={e => setOfferingForm(p => ({ ...p, approval_required: e.target.checked }))} />
+                          <span>Approval required</span>
+                        </label>
+                      </div>
+                      {offeringForm.requestable && !offeringForm.request_channel_type && !offeringForm.request_channel_url && (
+                        <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                          <span className={styles.crossFieldAlertIcon}>⚠</span>
+                          Requestable offerings need a Request Channel Type or URL so consumers know how to order this service.
+                        </div>
+                      )}
+                      <div className={styles.flavourEditActions}>
+                        <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>Save</button>
+                        <button type="button" className={styles.btnGhost} onClick={() => { setEditOfferingId(null); setOfferingForm({}); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={offering.id} className={styles.phase4Row}>
+                      <div className={styles.phase4Summary}>
+                        <strong>{offering.title}</strong>
+                        <span className={styles.phase4Meta}>
+                          {offering.offering_code} · {offering.status} · {offering.requestable ? 'requestable' : 'not requestable'}
+                        </span>
+                        {offering.description && <span className={styles.phase4Hint}>{offering.description}</span>}
+                      </div>
+                      {offering.is_default && <span className={styles.relBadgeGreen}>default</span>}
+                      <button type="button" className={styles.btnSmall} onClick={() => {
+                        setEditOfferingId(offering.id);
+                        setOfferingForm({
+                          offering_code: offering.offering_code,
+                          title: offering.title,
+                          description: offering.description,
+                          is_default: offering.is_default,
+                          requestable: offering.requestable,
+                          approval_required: offering.approval_required,
+                          request_channel_type: offering.request_channel_type,
+                          request_channel_url: offering.request_channel_url,
+                          lead_time_text: offering.lead_time_text,
+                          support_tier_code: offering.support_tier_code,
+                          status: offering.status,
+                          display_order: offering.display_order,
+                        });
+                      }}>Edit</button>
+                      <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleOfferingDelete(offering.id)} disabled={offeringBusy}>Delete</button>
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : (
+              <p className={styles.hint}>No service offerings defined yet.</p>
+            )}
+
+            {showOfferingAdd && editOfferingId == null ? (
+              <div className={styles.phase4Card}>
+                <div className={styles.fieldRow}>
+                  <Field label="Offering Code">
+                    <input className={styles.input} value={offeringForm.offering_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, offering_code: e.target.value }))} />
+                  </Field>
+                  <Field label="Title">
+                    <input className={styles.input} value={offeringForm.title ?? ''} onChange={e => setOfferingForm(p => ({ ...p, title: e.target.value }))} />
+                  </Field>
+                  <Field label="Status">
+                    <select className={styles.input} value={offeringForm.status ?? 'draft'} onChange={e => setOfferingForm(p => ({ ...p, status: e.target.value }))}>
+                      {OFFERING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Description">
+                  <textarea className={styles.textarea} rows={3} value={offeringForm.description ?? ''} onChange={e => setOfferingForm(p => ({ ...p, description: e.target.value || null }))} />
+                </Field>
+                <div className={styles.fieldRow}>
+                  <Field label="Request Channel Type">
+                    <input className={styles.input} value={offeringForm.request_channel_type ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_type: e.target.value || null }))} />
+                  </Field>
+                  <Field label="Request Channel URL">
+                    <input className={styles.input} value={offeringForm.request_channel_url ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_url: e.target.value || null }))} />
+                  </Field>
+                  <Field label="Lead Time">
+                    <input className={styles.input} value={offeringForm.lead_time_text ?? ''} onChange={e => setOfferingForm(p => ({ ...p, lead_time_text: e.target.value || null }))} />
+                  </Field>
+                </div>
+                <div className={styles.fieldRow}>
+                  <Field label="Support Tier">
+                    <input className={styles.input} value={offeringForm.support_tier_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, support_tier_code: e.target.value || null }))} />
+                  </Field>
+                  <Field label="Display Order">
+                    <input className={styles.input} type="number" value={offeringForm.display_order ?? ''} onChange={e => setOfferingForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
+                  </Field>
+                </div>
+                <div className={styles.toggleRow}>
+                  <label className={styles.domainCheck}>
+                    <input type="checkbox" checked={offeringForm.is_default ?? false} onChange={e => setOfferingForm(p => ({ ...p, is_default: e.target.checked }))} />
+                    <span>Default offering</span>
+                  </label>
+                  <label className={styles.domainCheck}>
+                    <input type="checkbox" checked={offeringForm.requestable ?? false} onChange={e => setOfferingForm(p => ({ ...p, requestable: e.target.checked }))} />
+                    <span>Requestable</span>
+                  </label>
+                  <label className={styles.domainCheck}>
+                    <input type="checkbox" checked={offeringForm.approval_required ?? false} onChange={e => setOfferingForm(p => ({ ...p, approval_required: e.target.checked }))} />
+                    <span>Approval required</span>
+                  </label>
+                </div>
+                {offeringForm.requestable && !offeringForm.request_channel_type && !offeringForm.request_channel_url && (
+                  <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                    <span className={styles.crossFieldAlertIcon}>⚠</span>
+                    Requestable offerings need a Request Channel Type or URL so consumers know how to order this service.
+                  </div>
+                )}
+                <div className={styles.flavourEditActions}>
+                  <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>Add offering</button>
+                  <button type="button" className={styles.btnGhost} onClick={() => { setShowOfferingAdd(false); setOfferingForm({}); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className={styles.btnSecondary} onClick={() => { setShowOfferingAdd(true); setEditOfferingId(null); setOfferingForm({ status: 'draft', requestable: false, approval_required: false, is_default: false }); }} style={{ marginTop: 'var(--space-3)' }}>
+                + Add service offering
+              </button>
+            )}
+          </EditorSection>
+
           {/* §7 Relationships — managed add/delete */}
           <EditorSection id="relationships" title="7. Relationships">
             {relError && <div className={styles.errorBanner}>{relError}</div>}
@@ -1087,6 +1569,243 @@ export default function ServiceEditorPage({ params }: Props) {
             </p>
           </EditorSection>
 
+          <EditorSection id="support-model" title="7c. Support Model">
+            {supportError && <div className={styles.errorBanner}>{supportError}</div>}
+            <p className={styles.hint}>
+              Structured support metadata used by the business-facing service detail.
+            </p>
+            <div className={styles.phase4Stack}>
+              {supportModels.map((item, index) => (
+                <div key={`support-${index}`} className={styles.phase4Card}>
+                  <div className={styles.fieldRow}>
+                    <Field label="Offering">
+                      <select className={styles.input} value={item.offering_id ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'offering_id', e.target.value ? Number(e.target.value) : null)}>
+                        <option value="">— service level —</option>
+                        {offerings.map((offering) => (
+                          <option key={offering.id} value={offering.id}>{offering.title} ({offering.offering_code})</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Support Owner">
+                      <input className={styles.input} value={item.support_owner_name ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'support_owner_name', e.target.value || null)} />
+                    </Field>
+                    <Field label="Resolver Group">
+                      <input className={styles.input} value={item.resolver_group ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'resolver_group', e.target.value || null)} />
+                    </Field>
+                  </div>
+                  <div className={styles.fieldRow}>
+                    <Field label="Support Hours">
+                      <input className={styles.input} value={item.support_hours_code ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'support_hours_code', e.target.value || null)} />
+                    </Field>
+                    <Field label="Support Channel">
+                      <input className={styles.input} value={item.support_channel ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'support_channel', e.target.value || null)} />
+                    </Field>
+                    <Field label="Review Cadence">
+                      <input className={styles.input} value={item.review_cadence ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'review_cadence', e.target.value || null)} />
+                    </Field>
+                  </div>
+                  <div className={styles.fieldRow}>
+                    <Field label="Escalation Path">
+                      <textarea className={styles.textarea} rows={2} value={item.escalation_path ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'escalation_path', e.target.value || null)} />
+                    </Field>
+                    <Field label="Maintenance Window">
+                      <textarea className={styles.textarea} rows={2} value={item.maintenance_window ?? ''} onChange={e => updateSupportDraft(setSupportModels, index, 'maintenance_window', e.target.value || null)} />
+                    </Field>
+                  </div>
+                  <div className={styles.flavourEditActions}>
+                    <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setSupportModels((items) => items.filter((_, currentIndex) => currentIndex !== index))}>
+                      Remove row
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {supportModels.length === 0 && (
+                <>
+                  <p className={styles.hint}>No structured support rows yet.</p>
+                  {watchedRequestable && (
+                    <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                      <span className={styles.crossFieldAlertIcon}>⚠</span>
+                      Service is requestable — a support model is required so consumers know who to contact.
+                    </div>
+                  )}
+                </>
+              )}
+              {supportModels.length > 0 && supportModels.some(m => !m.support_owner_name && !m.resolver_group) && (
+                <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                  <span className={styles.crossFieldAlertIcon}>⚠</span>
+                  Some support rows are missing both Support Owner and Resolver Group. At least one identifier is recommended.
+                </div>
+              )}
+            </div>
+            <div className={styles.flavourEditActions}>
+              <button type="button" className={styles.btnSecondary} onClick={() => setSupportModels((items) => [...items, emptySupportModel()])}>
+                + Add support row
+              </button>
+              <button type="button" className={styles.btnPrimary} onClick={handleSupportSave} disabled={supportBusy}>
+                {supportBusy ? 'Saving…' : 'Save support model'}
+              </button>
+            </div>
+          </EditorSection>
+
+          <EditorSection id="audience" title="7d. Audience Policies">
+            {audienceError && <div className={styles.errorBanner}>{audienceError}</div>}
+            <p className={styles.hint}>
+              Audience segmentation used for requestability and catalogue targeting.
+            </p>
+            <div className={styles.phase4Stack}>
+              {audiencePolicies.map((item, index) => (
+                <div key={`audience-${index}`} className={styles.phase4Card}>
+                  <div className={styles.fieldRow}>
+                    <Field label="Offering">
+                      <select className={styles.input} value={item.offering_id ?? ''} onChange={e => updateAudienceDraft(setAudiencePolicies, index, 'offering_id', e.target.value ? Number(e.target.value) : null)}>
+                        <option value="">— service level —</option>
+                        {offerings.map((offering) => (
+                          <option key={offering.id} value={offering.id}>{offering.title} ({offering.offering_code})</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Audience Type">
+                      <input className={styles.input} value={item.audience_type ?? ''} onChange={e => updateAudienceDraft(setAudiencePolicies, index, 'audience_type', e.target.value || null)} />
+                    </Field>
+                    <Field label="Business Unit">
+                      <input className={styles.input} value={item.business_unit ?? ''} onChange={e => updateAudienceDraft(setAudiencePolicies, index, 'business_unit', e.target.value || null)} />
+                    </Field>
+                  </div>
+                  <div className={styles.fieldRow}>
+                    <Field label="Region">
+                      <input className={styles.input} value={item.region_code ?? ''} onChange={e => updateAudienceDraft(setAudiencePolicies, index, 'region_code', e.target.value || null)} />
+                    </Field>
+                  </div>
+                  <Field label="Eligibility Rule">
+                    <textarea className={styles.textarea} rows={2} value={item.eligibility_rule ?? ''} onChange={e => updateAudienceDraft(setAudiencePolicies, index, 'eligibility_rule', e.target.value || null)} />
+                  </Field>
+                  <Field label="Notes">
+                    <textarea className={styles.textarea} rows={2} value={item.notes ?? ''} onChange={e => updateAudienceDraft(setAudiencePolicies, index, 'notes', e.target.value || null)} />
+                  </Field>
+                  <div className={styles.flavourEditActions}>
+                    <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => setAudiencePolicies((items) => items.filter((_, currentIndex) => currentIndex !== index))}>
+                      Remove row
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {audiencePolicies.length === 0 && <p className={styles.hint}>No structured audience policies yet.</p>}
+            </div>
+            <div className={styles.flavourEditActions}>
+              <button type="button" className={styles.btnSecondary} onClick={() => setAudiencePolicies((items) => [...items, emptyAudiencePolicy()])}>
+                + Add audience row
+              </button>
+              <button type="button" className={styles.btnPrimary} onClick={handleAudienceSave} disabled={audienceBusy}>
+                {audienceBusy ? 'Saving…' : 'Save audience policies'}
+              </button>
+            </div>
+          </EditorSection>
+
+          <EditorSection id="operational-links" title="7e. Operational Links">
+            {linkError && <div className={styles.errorBanner}>{linkError}</div>}
+            {operationalLinks.length > 0 ? (
+              <div className={styles.phase4Stack}>
+                {operationalLinks.map((link) => (
+                  editLinkId === link.id ? (
+                    <div key={link.id} className={styles.phase4Card}>
+                      <div className={styles.fieldRow}>
+                        <Field label="Offering">
+                          <select className={styles.input} value={linkForm.offering_id ?? ''} onChange={e => setLinkForm((current) => ({ ...current, offering_id: e.target.value ? Number(e.target.value) : null }))}>
+                            <option value="">— service level —</option>
+                            {offerings.map((offering) => (
+                              <option key={offering.id} value={offering.id}>{offering.title} ({offering.offering_code})</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Link Type">
+                          <select className={styles.input} value={linkForm.link_type ?? ''} onChange={e => setLinkForm((current) => ({ ...current, link_type: e.target.value || null }))}>
+                            <option value="">— select type —</option>
+                            {OPERATIONAL_LINK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Sort Order">
+                          <input className={styles.input} type="number" value={linkForm.sort_order ?? ''} onChange={e => setLinkForm((current) => ({ ...current, sort_order: e.target.value ? Number(e.target.value) : null }))} />
+                        </Field>
+                      </div>
+                      <div className={styles.fieldRow}>
+                        <Field label="Title">
+                          <input className={styles.input} value={linkForm.title ?? ''} onChange={e => setLinkForm((current) => ({ ...current, title: e.target.value }))} />
+                        </Field>
+                        <Field label="URL">
+                          <input className={styles.input} value={linkForm.url ?? ''} onChange={e => setLinkForm((current) => ({ ...current, url: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <div className={styles.flavourEditActions}>
+                        <button type="button" className={styles.btnPrimary} onClick={handleLinkSave} disabled={linkBusy}>Save</button>
+                        <button type="button" className={styles.btnGhost} onClick={() => { setEditLinkId(null); setLinkForm({}); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={link.id} className={styles.phase4Row}>
+                      <div className={styles.phase4Summary}>
+                        <strong>{link.title}</strong>
+                        <a href={link.url} target="_blank" rel="noreferrer" className={styles.link}>{link.url}</a>
+                        <span className={styles.phase4Meta}>
+                          {link.link_type ?? 'link'}{link.sort_order != null ? ` · order ${link.sort_order}` : ''}
+                        </span>
+                      </div>
+                      <button type="button" className={styles.btnSmall} onClick={() => {
+                        setEditLinkId(link.id);
+                        setLinkForm({
+                          offering_id: link.offering_id,
+                          link_type: link.link_type,
+                          title: link.title,
+                          url: link.url,
+                          sort_order: link.sort_order,
+                        });
+                      }}>Edit</button>
+                      <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleLinkDelete(link.id)} disabled={linkBusy}>Delete</button>
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : (
+              <p className={styles.hint}>No operational links defined yet.</p>
+            )}
+
+            {showLinkAdd && editLinkId == null ? (
+              <div className={styles.phase4Card}>
+                <div className={styles.fieldRow}>
+                  <Field label="Offering">
+                    <select className={styles.input} value={linkForm.offering_id ?? ''} onChange={e => setLinkForm((current) => ({ ...current, offering_id: e.target.value ? Number(e.target.value) : null }))}>
+                      <option value="">— service level —</option>
+                      {offerings.map((offering) => (
+                        <option key={offering.id} value={offering.id}>{offering.title} ({offering.offering_code})</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Link Type">
+                    <input className={styles.input} value={linkForm.link_type ?? ''} onChange={e => setLinkForm((current) => ({ ...current, link_type: e.target.value || null }))} />
+                  </Field>
+                  <Field label="Sort Order">
+                    <input className={styles.input} type="number" value={linkForm.sort_order ?? ''} onChange={e => setLinkForm((current) => ({ ...current, sort_order: e.target.value ? Number(e.target.value) : null }))} />
+                  </Field>
+                </div>
+                <div className={styles.fieldRow}>
+                  <Field label="Title">
+                    <input className={styles.input} value={linkForm.title ?? ''} onChange={e => setLinkForm((current) => ({ ...current, title: e.target.value }))} />
+                  </Field>
+                  <Field label="URL">
+                    <input className={styles.input} value={linkForm.url ?? ''} onChange={e => setLinkForm((current) => ({ ...current, url: e.target.value }))} />
+                  </Field>
+                </div>
+                <div className={styles.flavourEditActions}>
+                  <button type="button" className={styles.btnPrimary} onClick={handleLinkSave} disabled={linkBusy}>Add link</button>
+                  <button type="button" className={styles.btnGhost} onClick={() => { setShowLinkAdd(false); setLinkForm({}); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className={styles.btnSecondary} onClick={() => { setShowLinkAdd(true); setEditLinkId(null); setLinkForm({}); }}>
+                + Add operational link
+              </button>
+            )}
+          </EditorSection>
+
           {/* §8 Governance */}
           <EditorSection id="governance" title="8. Governance">
             <Field label="Retired / End-of-life Note">
@@ -1211,6 +1930,7 @@ export default function ServiceEditorPage({ params }: Props) {
             <div className={styles.railTitle}>Save Status</div>
             {saving   && <div className={styles.saving}>Saving…</div>}
             {saved    && !saving && <div className={styles.savedOk}>✓ Saved</div>}
+            {phase4Saved && !saving && <div className={styles.savedOk}>✓ {phase4Saved}</div>}
             {saveError && <div className={styles.railError}>{saveError}</div>}
             {isDirty && <div className={styles.dirtyNote}>{dirtyCount} field(s) changed</div>}
 
@@ -1229,13 +1949,24 @@ export default function ServiceEditorPage({ params }: Props) {
           <div className={styles.railCard}>
             <div className={styles.railTitle}>Sections</div>
             <nav className={styles.sectionNav}>
-              {['identity','description','classification','ownership','availability','flavours','relationships','c3mapping','governance','technical']
+              {['identity','description','catalogue-access','classification','ownership','availability','flavours','offerings','relationships','c3mapping','support-model','audience','operational-links','governance','technical','raw-fields']
                 .map((s, i) => (
                   <a key={s} href={`#${s}`} className={styles.sectionNavItem}>
-                    {i + 1}. {s === 'c3mapping' ? 'C3 Taxonomy' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    {i + 1}. {SECTION_LABELS[s] ?? s}
                   </a>
                 ))}
             </nav>
+          </div>
+
+          <div className={styles.railCard}>
+            <div className={styles.railTitle}>Op. Readiness</div>
+            <OperationalReadinessPanel
+              requestable={watchedRequestable}
+              channelType={watchedChannelType}
+              channelUrl={watchedChannelUrl}
+              supportModelCount={supportModels.length}
+              offeringsCount={offerings.length}
+            />
           </div>
 
           <div className={styles.railCard}>
@@ -1256,6 +1987,44 @@ export default function ServiceEditorPage({ params }: Props) {
   );
 }
 
+// ── Operational Readiness panel (Phase 6) ────────────────────────────────────
+function OperationalReadinessPanel({
+  requestable,
+  channelType,
+  channelUrl,
+  supportModelCount,
+  offeringsCount,
+}: {
+  requestable: boolean | undefined;
+  channelType: string | undefined;
+  channelUrl: string | undefined;
+  supportModelCount: number;
+  offeringsCount: number;
+}) {
+  const checks: { label: string; ok: boolean }[] = [
+    { label: 'Offerings defined',  ok: offeringsCount > 0 },
+    { label: 'Support model',      ok: supportModelCount > 0 },
+    { label: 'Request channel',    ok: !requestable || !!(channelType?.trim() || channelUrl?.trim()) },
+  ];
+  const allOk = checks.every(c => c.ok);
+
+  return (
+    <div>
+      {checks.map(c => (
+        <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <span style={{ fontSize: 11, color: c.ok ? 'var(--color-success)' : 'var(--color-warning)' }}>
+            {c.ok ? '✓' : '⚠'}
+          </span>
+          <span style={{ font: 'var(--text-label-sm)', color: c.ok ? 'var(--color-text-secondary)' : 'var(--color-warning)' }}>
+            {c.label}
+          </span>
+        </div>
+      ))}
+      {allOk && <div style={{ font: 'var(--text-body-sm)', color: 'var(--color-success)', marginTop: 4 }}>All checks pass</div>}
+    </div>
+  );
+}
+
 // ── Local helpers ─────────────────────────────────────────────────────────────
 function EditorSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -1266,10 +2035,11 @@ function EditorSection({ id, title, children }: { id: string; title: string; chi
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className={styles.field}>
       <label className={styles.label}>{label}</label>
+      {hint && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>{hint}</span>}
       {children}
       {error && <span className={styles.fieldError}>{error}</span>}
     </div>
@@ -1278,4 +2048,65 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 
 function fieldClass(error?: { message?: string }) {
   return error ? `${styles.input} ${styles.inputError}` : styles.input;
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  identity: 'Basic Identity',
+  description: 'Description',
+  'catalogue-access': 'Catalogue Access',
+  classification: 'Classification',
+  ownership: 'Ownership',
+  availability: 'Availability',
+  flavours: 'Pricing Variants',
+  offerings: 'Service Offerings',
+  relationships: 'Relationships',
+  c3mapping: 'C3 Taxonomy',
+  'support-model': 'Support Model',
+  audience: 'Audience Policies',
+  'operational-links': 'Operational Links',
+  governance: 'Governance',
+  technical: 'Technical',
+  'raw-fields': 'Raw Fields',
+};
+
+function emptySupportModel(): ServiceSupportModelBody {
+  return {
+    offering_id: null,
+    support_owner_name: null,
+    resolver_group: null,
+    support_hours_code: null,
+    support_channel: null,
+    escalation_path: null,
+    maintenance_window: null,
+    review_cadence: null,
+  };
+}
+
+function emptyAudiencePolicy(): ServiceAudiencePolicyBody {
+  return {
+    offering_id: null,
+    audience_type: null,
+    business_unit: null,
+    region_code: null,
+    eligibility_rule: null,
+    notes: null,
+  };
+}
+
+function updateSupportDraft<K extends keyof ServiceSupportModelBody>(
+  setter: Dispatch<SetStateAction<ServiceSupportModelBody[]>>,
+  index: number,
+  key: K,
+  value: ServiceSupportModelBody[K],
+) {
+  setter((items) => items.map((item, currentIndex) => currentIndex === index ? { ...item, [key]: value } : item));
+}
+
+function updateAudienceDraft<K extends keyof ServiceAudiencePolicyBody>(
+  setter: Dispatch<SetStateAction<ServiceAudiencePolicyBody[]>>,
+  index: number,
+  key: K,
+  value: ServiceAudiencePolicyBody[K],
+) {
+  setter((items) => items.map((item, currentIndex) => currentIndex === index ? { ...item, [key]: value } : item));
 }

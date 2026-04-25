@@ -17,7 +17,18 @@ import type { SortField, SortOrder } from '@/features/services/api/services.api'
 import { COUNT_LABELS, formatCountLabel } from '../../lib/counts';
 import styles from '../../catalogue.module.css';
 
-const STATUS_OPTIONS  = ['active', 'retired', 'deprecated', 'draft'];
+const STATUS_OPTIONS    = ['active', 'retired', 'deprecated', 'draft'];
+const LIFECYCLE_OPTIONS = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
+
+const LIFECYCLE_LABEL: Record<string, string> = {
+  draft: 'Draft', under_review: 'Under Review', approved: 'Approved',
+  live: 'Live', deprecated: 'Deprecated', retired: 'Retired',
+};
+
+const LIFECYCLE_DOT: Record<string, string> = {
+  draft: '#a1a1aa', under_review: '#3b82f6', approved: '#10b981',
+  live: '#059669', deprecated: '#f59e0b', retired: '#ef4444',
+};
 
 // ── Inner component (needs Suspense boundary for useSearchParams) ─────────────
 function CatalogueInner() {
@@ -28,11 +39,13 @@ function CatalogueInner() {
   const getSearchParam = (key: string) => searchParams?.get(key) ?? null;
 
   // Read all filter state from URL params
-  const search    = getSearchParam('search')   ?? '';
-  const statuses  = getSearchParam('status')   ? getSearchParam('status')!.split(',') : [];
-  const domains   = getSearchParam('domain')   ? getSearchParam('domain')!.split(',') : [];
-  const portfolio = getSearchParam('portfolio') ?? '';
-  const type      = getSearchParam('type')      ?? '';
+  const search     = getSearchParam('search')    ?? '';
+  const statuses   = getSearchParam('status')    ? getSearchParam('status')!.split(',') : [];
+  const domains    = getSearchParam('domain')    ? getSearchParam('domain')!.split(',') : [];
+  const portfolio  = getSearchParam('portfolio') ?? '';
+  const type       = getSearchParam('type')      ?? '';
+  const lifecycles = getSearchParam('lifecycle') ? getSearchParam('lifecycle')!.split(',') : [];
+  const requestableParam = getSearchParam('requestable'); // 'true' | 'false' | null
   const density   = (getSearchParam('density') ?? 'comfortable') as 'comfortable' | 'compact';
   const sort      = (getSearchParam('sort')    ?? 'service_id') as SortField;
   const order     = (getSearchParam('order')   ?? 'ASC') as SortOrder;
@@ -86,11 +99,13 @@ function CatalogueInner() {
 
   // Build filter params for hook
   const params = {
-    search:    search || undefined,
-    status:    statuses.length  ? statuses.join(',')  : undefined,
-    domain:    domains.length   ? domains.join(',')   : undefined,
-    portfolio: portfolio || undefined,
-    type:      type || undefined,
+    search:      search || undefined,
+    status:      statuses.length   ? statuses.join(',')   : undefined,
+    domain:      domains.length    ? domains.join(',')    : undefined,
+    portfolio:   portfolio || undefined,
+    type:        type || undefined,
+    lifecycle:   lifecycles.length ? lifecycles.join(',') : undefined,
+    requestable: requestableParam === 'true' ? true : requestableParam === 'false' ? false : undefined,
     page,
     limit,
     sort,
@@ -98,7 +113,7 @@ function CatalogueInner() {
   };
 
   const { data, isLoading, error } = useServices(params);
-  const hasFilters = !!(statuses.length || domains.length || portfolio || type || search);
+  const hasFilters = !!(statuses.length || domains.length || portfolio || type || search || lifecycles.length || requestableParam != null);
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / limit));
 
   const exportFilteredCsv = useCallback(async () => {
@@ -158,6 +173,44 @@ function CatalogueInner() {
             placeholder="All types"
             options={serviceTypes?.map(t => ({ value: t.code, label: `${t.code} — ${t.name}` })) ?? []}
           />
+        </FilterGroup>
+
+        <FilterGroup label="Lifecycle">
+          {LIFECYCLE_OPTIONS.map(lc => (
+            <div key={lc} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: LIFECYCLE_DOT[lc], display: 'inline-block', flexShrink: 0 }} />
+              <Checkbox
+                label={LIFECYCLE_LABEL[lc]}
+                checked={lifecycles.includes(lc)}
+                onChange={() => toggleMulti(lc, lifecycles, 'lifecycle')}
+              />
+            </div>
+          ))}
+        </FilterGroup>
+
+        <FilterGroup label="Requestable">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {(['true', 'false'] as const).map(val => (
+              <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="requestable_filter"
+                  checked={requestableParam === val}
+                  onChange={() => pushParams({ requestable: val, page: undefined })}
+                  style={{ cursor: 'pointer' }}
+                />
+                {val === 'true' ? 'Requestable only' : 'Non-requestable only'}
+              </label>
+            ))}
+            {requestableParam != null && (
+              <button
+                style={{ fontSize: 11, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, marginTop: 2 }}
+                onClick={() => pushParams({ requestable: undefined, page: undefined })}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </FilterGroup>
 
         <FilterGroup label="Domains">

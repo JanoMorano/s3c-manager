@@ -8,7 +8,7 @@ export type ServiceStatus    = 'active' | 'planned' | 'retired' | 'deprecated' |
 export type ServiceType      = 'CF' | 'CFS' | 'ES' | 'SS' | 'MS' | 'AS';
 export type AvailabilityLevel = 'high' | 'medium' | 'low';
 export type Domain = 'NEXUS' | 'VERTEX' | 'ORBIT' | 'PULSE' | 'RELAY' | 'CLOUD' | 'GRID' | 'PRISM' | 'HELIX' | 'ZENITH' | 'APEX' | 'VORTEX' | 'MATRIX';
-export type RelationType = 'prerequisite' | 'underlying' | 'replaces' | 'depends_on' | 'related_to' | 'child_of' | 'parent_of';
+export type RelationType = 'prerequisite' | 'underlying' | 'replaces' | 'depends_on' | 'related_to' | 'provided_by' | 'child_of' | 'parent_of';
 
 export interface PersonRef {
   id?: string;

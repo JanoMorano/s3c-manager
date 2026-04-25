@@ -14,10 +14,114 @@ const VALID_REL_TYPES = [
     'depends_on', 'prerequisite', 'underlying',
     'requires_account', 'uses', 'provides', 'replaces',
     'integrates_with', 'related_to', 'part_of', 'replaced_by',
+    'provided_by',
     'child_of',
 ];
 
 const SERVICE_ID_REGEX = /^[A-Za-z0-9\-_\.]{2,50}$/;
+
+// ── Phase 7: Lifecycle governance ────────────────────────────────────────────
+
+const LIFECYCLE_STATES = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
+
+/**
+ * Allowed forward and backward transitions.
+ * null/'' means "no current lifecycle" → any state is permitted.
+ */
+const LIFECYCLE_TRANSITIONS = {
+    draft:        ['under_review'],
+    under_review: ['draft', 'approved'],
+    approved:     ['under_review', 'live'],
+    live:         ['deprecated'],
+    deprecated:   ['live', 'retired'],
+    retired:      ['deprecated'],
+};
+
+function validateLifecycleTransition(from, to) {
+    if (!to) return [];
+    if (!LIFECYCLE_STATES.includes(to)) {
+        return [{ field: 'lifecycle_state', message: `Neplatný lifecycle stav: '${to}'. Povolené hodnoty: ${LIFECYCLE_STATES.join(', ')}` }];
+    }
+    // No current state → any target is allowed (first assignment)
+    if (!from || from === to) return [];
+    const allowed = LIFECYCLE_TRANSITIONS[from];
+    if (!allowed) return []; // unknown from state — permissive
+    if (!allowed.includes(to)) {
+        return [{
+            field: 'lifecycle_state',
+            message: `Nelze přejít ze stavu '${from}' do '${to}'. Povolené přechody: ${allowed.join(', ')}`,
+        }];
+    }
+    return [];
+}
+
+/**
+ * Gate: service cannot go live unless minimum operational data is present.
+ */
+function validateLifecycleReadiness(merged) {
+    const errors = [];
+    if (merged.lifecycle_state === 'live') {
+        if (merged.requestable === true && !hasRequestChannel(merged)) {
+            errors.push({
+                field: 'lifecycle_state',
+                message: 'Přechod do stavu live není možný: služba je requestable, ale nemá nakonfigurovaný request channel.',
+            });
+        }
+    }
+    return errors;
+}
+
+function validateLifecycleOperationalReadiness(merged, context = {}) {
+    const errors = [];
+    if (merged.lifecycle_state !== 'live') return errors;
+
+    const offeringCount = Number(context.offeringCount ?? 0);
+    const supportModelCount = Number(context.supportModelCount ?? 0);
+
+    if (merged.requestable === true && offeringCount <= 0) {
+        errors.push({
+            field: 'lifecycle_state',
+            message: 'Přechod do stavu live není možný: requestable služba musí mít alespoň jeden offering.',
+        });
+    }
+
+    if (merged.requestable === true && supportModelCount <= 0) {
+        errors.push({
+            field: 'lifecycle_state',
+            message: 'Přechod do stavu live není možný: requestable služba musí mít nakonfigurovaný support model.',
+        });
+    }
+
+    return errors;
+}
+
+function hasRequestChannel(data) {
+    return !!(
+        (typeof data.request_channel_type === 'string' && data.request_channel_type.trim()) ||
+        (typeof data.request_channel_url === 'string' && data.request_channel_url.trim())
+    );
+}
+
+function validateRequestability(data) {
+    const errors = [];
+    if (data.requestable === true && !hasRequestChannel(data)) {
+        errors.push({
+            field: 'requestable',
+            message: 'Requestable služba musí mít request_channel_type nebo request_channel_url',
+        });
+    }
+    return errors;
+}
+
+function isValidUrl(value) {
+    if (value == null || value === '') return true;
+    try {
+        const url = new URL(String(value));
+        return ['http:', 'https:'].includes(url.protocol);
+    } catch {
+        return false;
+    }
+}
 
 /**
  * Validation for CREATE (all required fields)
@@ -37,6 +141,10 @@ function validateCreate(data) {
     if (data.detailed_description && data.detailed_description.length > 500000)  errors.push({ field: 'description',        message: 'Popis příliš dlouhý' }); // compat alias
     if (data.unit_of_measure    && data.unit_of_measure.length > 200)   errors.push({ field: 'unit_of_measure',  message: 'Jednotka max. 200 znaků' });
     if (data.portfolio_group_code && data.portfolio_group_code.length > 100)     errors.push({ field: 'portfolio_group_code', message: 'Portfolio group max. 100 znaků' });
+    if (data.request_channel_url && !isValidUrl(data.request_channel_url))
+        errors.push({ field: 'request_channel_url', message: 'Request channel URL musí být validní http/https URL' });
+
+    errors.push(...validateRequestability(data));
 
     return errors;
 }
@@ -44,8 +152,9 @@ function validateCreate(data) {
 /**
  * Validation for UPDATE (only provided fields)
  */
-function validateUpdate(data) {
+function validateUpdate(data, existing = {}) {
     const errors = [];
+    const merged = { ...existing, ...data };
 
     if (data.title          !== undefined && (!data.title || data.title.trim().length < 2))
         errors.push({ field: 'title',        message: 'Název je povinný (min. 2 znaky)' });
@@ -53,7 +162,89 @@ function validateUpdate(data) {
         errors.push({ field: 'service_type', message: `ServiceType musí být: ${VALID_TYPES.join(', ')}` });
     if (data.service_status !== undefined && !VALID_STATUSES.includes(data.service_status))
         errors.push({ field: 'service_status', message: `Status musí být: ${VALID_STATUSES.join(', ')}` });
+    if (data.request_channel_url !== undefined && data.request_channel_url !== null && data.request_channel_url !== '' && !isValidUrl(data.request_channel_url))
+        errors.push({ field: 'request_channel_url', message: 'Request channel URL musí být validní http/https URL' });
 
+    errors.push(...validateRequestability(merged));
+
+    // Phase 7: lifecycle transition + readiness gate
+    if (data.lifecycle_state !== undefined) {
+        errors.push(...validateLifecycleTransition(existing.lifecycle_state ?? null, data.lifecycle_state));
+        if (!errors.some(e => e.field === 'lifecycle_state')) {
+            errors.push(...validateLifecycleReadiness(merged));
+        }
+    }
+
+    return errors;
+}
+
+function validateOffering(data, { isCreate = true, existing = {} } = {}) {
+    const errors = [];
+    const merged = { ...existing, ...data };
+
+    if (isCreate && (!data.offering_code || !String(data.offering_code).trim())) {
+        errors.push({ field: 'offering_code', message: 'Offering code je povinný' });
+    }
+    if (isCreate && (!data.title || !String(data.title).trim())) {
+        errors.push({ field: 'title', message: 'Název offeringu je povinný' });
+    }
+    if (data.offering_code !== undefined && !String(data.offering_code).trim()) {
+        errors.push({ field: 'offering_code', message: 'Offering code nesmí být prázdný' });
+    }
+    if (data.title !== undefined && !String(data.title).trim()) {
+        errors.push({ field: 'title', message: 'Název offeringu nesmí být prázdný' });
+    }
+    if (merged.request_channel_url && !isValidUrl(merged.request_channel_url)) {
+        errors.push({ field: 'request_channel_url', message: 'Request channel URL musí být validní http/https URL' });
+    }
+
+    errors.push(...validateRequestability(merged));
+    return errors;
+}
+
+function validateSupportModel(items) {
+    const errors = [];
+    if (!Array.isArray(items)) {
+        return [{ field: 'items', message: 'Support model payload musí být pole' }];
+    }
+
+    items.forEach((item, index) => {
+        if (item == null || typeof item !== 'object') {
+            errors.push({ field: `items[${index}]`, message: 'Support model item musí být objekt' });
+            return;
+        }
+    });
+    return errors;
+}
+
+function validateAudiencePolicy(items) {
+    const errors = [];
+    if (!Array.isArray(items)) {
+        return [{ field: 'items', message: 'Audience payload musí být pole' }];
+    }
+
+    items.forEach((item, index) => {
+        if (item == null || typeof item !== 'object') {
+            errors.push({ field: `items[${index}]`, message: 'Audience item musí být objekt' });
+        }
+    });
+    return errors;
+}
+
+function validateOperationalLink(data, { isCreate = true } = {}) {
+    const errors = [];
+    if (isCreate && (!data.title || !String(data.title).trim())) {
+        errors.push({ field: 'title', message: 'Název linku je povinný' });
+    }
+    if (isCreate && (!data.url || !String(data.url).trim())) {
+        errors.push({ field: 'url', message: 'URL linku je povinná' });
+    }
+    if (data.title !== undefined && !String(data.title).trim()) {
+        errors.push({ field: 'title', message: 'Název linku nesmí být prázdný' });
+    }
+    if (data.url !== undefined && !isValidUrl(data.url)) {
+        errors.push({ field: 'url', message: 'URL linku musí být validní http/https URL' });
+    }
     return errors;
 }
 
@@ -87,4 +278,20 @@ function validateRelation(data) {
     return errors;
 }
 
-module.exports = { validateCreate, validateUpdate, validateFlavour, validateRelation, VALID_TYPES, VALID_STATUSES };
+module.exports = {
+    validateCreate,
+    validateUpdate,
+    validateFlavour,
+    validateRelation,
+    validateOffering,
+    validateSupportModel,
+    validateAudiencePolicy,
+    validateOperationalLink,
+    validateLifecycleTransition,
+    validateLifecycleReadiness,
+    validateLifecycleOperationalReadiness,
+    LIFECYCLE_TRANSITIONS,
+    LIFECYCLE_STATES,
+    VALID_TYPES,
+    VALID_STATUSES,
+};

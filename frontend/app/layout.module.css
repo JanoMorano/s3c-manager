@@ -1,4 +1,9 @@
-/* §10 Accessibility — skip navigation link */
+/* ══════════════════════════════════════════════════════════════════════════
+   App Shell — Sidebar layout
+   Pattern: fixed left sidebar (220px) + scrollable right content column.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Skip link (accessibility) ───────────────────────────────────────────── */
 .skipLink {
   position: absolute;
   top: -100%;
@@ -13,173 +18,325 @@
 }
 .skipLink:focus-visible {
   top: var(--space-2);
-  outline: 2px solid #fff;
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
+/* ── Root shell ──────────────────────────────────────────────────────────── */
 .appShell {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
+  background: var(--color-bg-canvas);
 }
 
-/* ── Top nav bar ─────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR
+   ══════════════════════════════════════════════════════════════════════════ */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-surface);
+  border-right: 1px solid var(--color-border-default);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+/* Brand ─────────────────────────────────────────────────────────────────── */
+.sidebarBrand {
+  padding: 14px 12px 10px;
+  border-bottom: 1px solid var(--color-border-default);
+  flex-shrink: 0;
+}
+
+.sidebarBrandLink {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  padding: 4px 2px;
+}
+.sidebarBrandLink:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.sidebarBrandMark {
+  color: var(--color-action-primary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidebarBrandName {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nav body ──────────────────────────────────────────────────────────────── */
+.sidebarBody {
+  flex: 1;
+  padding: 8px 8px 0;
+  overflow-y: auto;
+}
+
+.sidebarNavList {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Section label */
+.sidebarNavSection {
+  padding: 14px 8px 4px;
+  font: var(--text-label-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+.sidebarNavSection:first-child {
+  padding-top: 6px;
+}
+
+/* Nav item */
+.sidebarNavItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font: var(--text-body-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+  line-height: 1;
+  margin-bottom: 1px;
+}
+.sidebarNavItem:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+.sidebarNavItemActive {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.sidebarNavItemActive .sidebarNavIcon {
+  opacity: 1;
+}
+
+.sidebarNavIcon {
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: opacity 0.1s;
+}
+.sidebarNavItem:hover .sidebarNavIcon {
+  opacity: 0.8;
+}
+
+/* Sidebar bottom — user ─────────────────────────────────────────────────── */
+.sidebarBottom {
+  padding: 10px 8px;
+  border-top: 1px solid var(--color-border-default);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RIGHT COLUMN
+   ══════════════════════════════════════════════════════════════════════════ */
+.pageColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Slim topbar ───────────────────────────────────────────────────────────── */
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  height: 44px;
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-default);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.topBarSpacer {
+  flex: 1;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* New service button */
+.topBarNewBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--color-action-primary);
+  color: #fff;
+  font: var(--text-label-md);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background 0.1s;
+}
+.topBarNewBtn:hover {
+  background: var(--color-action-primary-hover);
+}
+
+/* Page content ──────────────────────────────────────────────────────────── */
+.pageContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LEGACY — kept for backward compat with any component still importing
+   these class names from layout.module.css. Safe to remove later.
+   ══════════════════════════════════════════════════════════════════════════ */
+
 .topNav {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--space-5);
-  height: 48px;
-  background: var(--color-text-primary);
-  position: sticky;
-  top: 0;
-  z-index: 200;
+  height: 44px;
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-default);
   flex-shrink: 0;
 }
 
 .brand {
-  font: var(--text-title-sm);
-  color: #fff;
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
   text-decoration: none;
-  letter-spacing: 0.05em;
+  font-weight: 500;
   flex-shrink: 0;
 }
 
-/* spacer pushes right group to the right */
 .navSpacer { flex: 1; }
+.navLeft   { display: flex; align-items: center; gap: var(--space-1); }
+.navRight  { display: flex; align-items: center; gap: var(--space-1); }
 
-/* ── Left group (topic dropdowns) ────────────────────────────────────────── */
-.navLeft {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* ── Right group (flat links) ────────────────────────────────────────────── */
-.navRight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* ── Flat nav link (right group) ─────────────────────────────────────────── */
 .navLink {
   font: var(--text-label-md);
-  color: rgba(255,255,255,.75);
+  color: var(--color-text-secondary);
   text-decoration: none;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
-  transition: background .1s, color .1s;
+  transition: background 0.1s, color 0.1s;
   white-space: nowrap;
 }
-.navLink:hover { background: rgba(255,255,255,.1); color: #fff; }
-
-.navLinkActive {
-  background: rgba(255,255,255,.14);
-  color: #fff;
-}
+.navLink:hover { background: var(--color-bg-subtle); color: var(--color-text-primary); }
+.navLinkActive { background: var(--color-bg-subtle); color: var(--color-text-primary); font-weight: 500; }
 
 .navSearchForm {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 4px;
 }
 
 .navSearchInput {
-  width: 240px;
-  max-width: 30vw;
-  height: 32px;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 999px;
-  background: rgba(255,255,255,.08);
-  color: #fff;
-  padding: 0 12px;
+  width: 220px;
+  height: 30px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  padding: 0 10px;
   font: var(--text-label-md);
+  outline: none;
 }
-
-.navSearchInput::placeholder {
-  color: rgba(255,255,255,.6);
-}
-
 .navSearchInput:focus {
-  outline: 2px solid rgba(255,255,255,.22);
-  outline-offset: 0;
+  border-color: var(--color-focus-ring);
+  outline: 2px solid rgba(37,99,235,.12);
+  outline-offset: -1px;
 }
+.navSearchInput::placeholder { color: var(--color-text-muted); }
 
 .navSearchButton {
-  height: 32px;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 999px;
-  padding: 0 12px;
-  background: rgba(255,255,255,.1);
-  color: #fff;
+  height: 30px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
   font: var(--text-label-md);
   cursor: pointer;
-  white-space: nowrap;
 }
+.navSearchButton:hover { background: var(--color-bg-canvas); color: var(--color-text-primary); }
 
-.navSearchButton:hover {
-  background: rgba(255,255,255,.16);
-}
-
-/* ── Dropdown (left group) ───────────────────────────────────────────────── */
-.navDropdown {
-  position: relative;
-}
-
-.navDropdownTrigger {
+.navDropdown         { position: relative; }
+.navDropdownTrigger  {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font: var(--text-label-md);
-  color: rgba(255,255,255,.75);
+  color: var(--color-text-secondary);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   cursor: default;
   user-select: none;
-  transition: background .1s, color .1s;
+  transition: background 0.1s, color 0.1s;
   white-space: nowrap;
 }
-.navDropdown:hover .navDropdownTrigger {
-  background: rgba(255,255,255,.1);
-  color: #fff;
-}
-
-.navDropdownTriggerActive {
-  background: rgba(255,255,255,.14);
-  color: #fff;
-}
+.navDropdown:hover .navDropdownTrigger { background: var(--color-bg-subtle); color: var(--color-text-primary); }
+.navDropdownTriggerActive { background: var(--color-bg-subtle); color: var(--color-text-primary); font-weight: 500; }
 
 .navDropdownMenu {
   display: none;
   position: absolute;
-  top: 100%;          /* flush — no gap, so hover never drops */
+  top: 100%;
   left: 0;
   min-width: 200px;
-  background: #fff;
-  border: 1px solid rgba(0,0,0,.1);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  box-shadow: var(--shadow-medium);
   z-index: 300;
-  padding: var(--space-2) 0; /* extra top/bottom padding instead of margin gap */
+  padding: var(--space-1) 0;
 }
 .navDropdown:hover .navDropdownMenu { display: block; }
 
 .navDropdownItem {
   display: block;
   padding: var(--space-2) var(--space-4);
-  font: var(--text-label-md);
-  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
   text-decoration: none;
-  transition: background .1s;
+  transition: background 0.1s;
   white-space: nowrap;
 }
-.navDropdownItem:hover { background: var(--color-bg-subtle, #f4f5f7); }
-.navDropdownItemActive {
-  background: var(--color-bg-subtle, #f4f5f7);
-  font-weight: 700;
-}
+.navDropdownItem:hover { background: var(--color-bg-subtle); color: var(--color-text-primary); }
+.navDropdownItemActive { background: var(--color-bg-subtle); font-weight: 500; color: var(--color-text-primary); }
 
-/* ── Page content area ───────────────────────────────────────────────────── */
-.pageContent { flex: 1; display: flex; flex-direction: column; }
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sidebar      { width: 56px; }
+  .sidebarBrandName, .sidebarNavItem span:last-child, .sidebarNavSection { display: none; }
+  .sidebarNavItem { justify-content: center; padding: 8px; }
+  .sidebarNavIcon { opacity: 0.7; }
+}

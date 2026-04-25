@@ -32,7 +32,7 @@ router.get('/dashboard', async (req, res, next) => {
 
         const c3Enabled = await isModuleApiEnabled('C3_TAXONOMY');
 
-        const [stats, byType, byPortfolio, byDomain, byOwner, expensiveFlavours, c3Coverage] = await Promise.all([
+        const [stats, byType, byPortfolio, byDomain, byOwner, expensiveFlavours, c3Coverage, byLifecycle] = await Promise.all([
             getPool().query(`
                 SELECT
                     COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE) AS total_services,
@@ -40,6 +40,7 @@ router.get('/dashboard', async (req, res, next) => {
                     COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'draft') AS draft_services,
                     COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'deprecated') AS deprecated_services,
                     COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'retired') AS retired_services,
+                    COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND requestable = TRUE) AS requestable_services,
                     (SELECT COUNT(*) FROM data.service_relation WHERE is_deleted = FALSE) AS total_relations,
                     (SELECT COUNT(*) FROM data.service_flavour WHERE is_deleted = FALSE) AS total_flavours
                 FROM data.service_catalog
@@ -116,6 +117,15 @@ router.get('/dashboard', async (req, res, next) => {
                     ORDER BY COALESCE(ct.item_type, 'UNSPECIFIED')
                 `)
                 : Promise.resolve({ rows: [] }),
+            getPool().query(`
+                SELECT
+                    COALESCE(lifecycle_state, 'unset') AS lifecycle_state,
+                    COUNT(*)::integer AS count
+                FROM data.service_catalog
+                WHERE is_deleted = FALSE AND is_stub = FALSE
+                GROUP BY lifecycle_state
+                ORDER BY lifecycle_state
+            `),
         ]);
 
         const result = {
@@ -125,7 +135,8 @@ router.get('/dashboard', async (req, res, next) => {
             by_domain:      byDomain.rows,
             by_owner:       byOwner.rows,
             expensive_flavours: expensiveFlavours.rows,
-            c3_coverage:   c3Coverage.rows,
+            c3_coverage:    c3Coverage.rows,
+            by_lifecycle:   byLifecycle.rows,
             _cached:        false,
         };
 

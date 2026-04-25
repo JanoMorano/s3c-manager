@@ -33,6 +33,9 @@ shared/spiral7
 *.p12
 *.pfx
 
+# Improvement
+improvement/
+
 # Binary artefacts — use external storage (OCI registry, S3, etc.)
 *.tar
 *.tar.gz

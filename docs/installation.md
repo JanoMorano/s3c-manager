@@ -325,7 +325,66 @@ SQL file order:
 11_c3.sql                — C3 taxonomy module
 12_exports_retention.sql — export and retention scheduler
 13_install_system.sql    — install state machine and module registry
+14_spiral_versioning.sql — Spiral versioning on C3 entities
+15_itil_catalogue_phase1.sql — additive ITIL-ready catalogue Phase 1 schema
 ```
+
+---
+
+## Troubleshooting
+
+### "The setup token is missing or invalid"
+
+This error appears on the `/install` page when `INSTALL_SETUP_TOKEN` is set in
+`.env` but the wizard cannot read it — most commonly because the value is missing
+or the container was not restarted after the variable was added.
+
+**Fix:**
+
+1. Add the variable to `.env`:
+
+   ```env
+   INSTALL_SETUP_TOKEN=pick-any-secret-string
+   ```
+
+2. Recreate the app container so it picks up the new value (`restart` is not
+   enough — environment variables are only injected at container creation):
+
+   ```bash
+   docker compose up -d --force-recreate app
+   ```
+
+3. Open `http://localhost:8080/install` and enter the **same string** in the
+   setup token field.
+
+The token is only enforced while the system is in pre-`READY` state. Once the
+install wizard completes and the system transitions to `READY`, the token is no
+longer checked and can be removed from `.env`.
+
+If you intentionally omit `INSTALL_SETUP_TOKEN`, the install wizard is publicly
+writable until `READY` — acceptable for local or isolated deployments, but not
+recommended for anything network-accessible.
+
+---
+
+### Docker bind-mount error on macOS (`/Volumes/…`)
+
+```
+error while creating mount source path '/host_mnt/Volumes/…/shared': file exists
+```
+
+Docker Desktop cannot mount paths from secondary volumes (`/Volumes/<disk>/…`)
+unless the disk is explicitly allowed.
+
+**Fix:**
+
+1. Docker Desktop → **Settings → Resources → File Sharing**
+2. Click **+** and add the disk root, e.g. `/Volumes/MAC_DATA`
+3. Click **Apply & Restart**
+4. Run `docker compose up postgres` again
+
+Alternatively, switch to VirtioFS: Settings → General → Virtual file sharing
+implementation → VirtioFS, then Apply & Restart.
 
 ---
 
