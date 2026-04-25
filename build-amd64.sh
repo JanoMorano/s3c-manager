@@ -5,29 +5,46 @@
 # Post-migration architecture: ONE app container (Next.js + Express together)
 #                              + a separate postgres container (from Docker Hub)
 #
-# Output:
-#   - sc-images-amd64.tar      (sc-app + postgres:16-alpine)
-#   - sc-qnap-bundle.tar.gz    (Portainer stack + env example + image tar)
+# Version is read automatically from docker-compose.yml (APP_VERSION default).
+# Output filenames include the version and architecture, e.g.:
+#   - sc-images-amd64-1.0.2.tar
+#   - sc-qnap-bundle-amd64-1.0.2.tar.gz
 #
 # Usage:
 #   chmod +x build-amd64.sh
-#   ./build-amd64.sh                      # build with tag 'latest'
-#   ./build-amd64.sh --tag v1.0.2         # build + tag
-#   ./build-amd64.sh --tag v1.0.2 --release   # build + tag + GitHub release
+#   ./build-amd64.sh                      # auto-detects version from docker-compose.yml
+#   ./build-amd64.sh --tag v1.0.3         # override version tag
+#   ./build-amd64.sh --release            # build + create GitHub release
 #   ./build-amd64.sh --no-cache           # clean build without cache
 # ══════════════════════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# ── Auto-detect version from docker-compose.yml ───────────────────────────────
+# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.0.2}
+DETECTED_VERSION=""
+if [ -f "docker-compose.yml" ]; then
+  DETECTED_VERSION=$(grep -oP 'APP_VERSION:-\K[0-9]+\.[0-9]+\.[0-9]+' docker-compose.yml | head -1)
+fi
+if [ -z "$DETECTED_VERSION" ]; then
+  echo "⚠ Could not detect APP_VERSION from docker-compose.yml — falling back to 'latest'"
+  DETECTED_VERSION="latest"
+fi
+
 # ── Parameters ────────────────────────────────────────────────────────────────
-PLATFORM="linux/amd64"
+ARCH="amd64"
+PLATFORM="linux/${ARCH}"
 IMAGE_NAME="sc-app"
-IMAGE_TAG="${TAG:-latest}"
-OUTPUT_TAR="${OUTPUT:-sc-images-amd64.tar}"
+IMAGE_TAG="${TAG:-${DETECTED_VERSION}}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-alpine}"
-BUNDLE_TAR="${BUNDLE:-sc-qnap-bundle.tar.gz}"
 NO_CACHE=""
 DO_RELEASE=false
+# Output names are set after argument parsing so --tag can still override them
+OUTPUT_TAR_OVERRIDE=""
+BUNDLE_TAR_OVERRIDE=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -41,15 +58,15 @@ while [ "$#" -gt 0 ]; do
       ;;
     --tag)
       shift
-      IMAGE_TAG="${1:-latest}"
+      IMAGE_TAG="${1:-${DETECTED_VERSION}}"
       [ "$#" -gt 0 ] && shift || true
       ;;
     --output=*)
-      OUTPUT_TAR="${1#--output=}"
+      OUTPUT_TAR_OVERRIDE="${1#--output=}"
       shift
       ;;
     --bundle=*)
-      BUNDLE_TAR="${1#--bundle=}"
+      BUNDLE_TAR_OVERRIDE="${1#--bundle=}"
       shift
       ;;
     --release)
@@ -63,7 +80,11 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+# Derive versioned, arch-stamped filenames (can be overridden via --output / --bundle)
+OUTPUT_TAR="${OUTPUT_TAR_OVERRIDE:-sc-images-${ARCH}-${IMAGE_TAG}.tar}"
+BUNDLE_TAR="${BUNDLE_TAR_OVERRIDE:-sc-qnap-bundle-${ARCH}-${IMAGE_TAG}.tar.gz}"
+
+FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-${ARCH}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -96,7 +117,8 @@ fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "════════════════════════════════════════════════"
-echo "  Service Catalogue — AMD64 image build"
+echo "  Service Catalogue — ${ARCH^^} image build"
+echo "  Version   : $IMAGE_TAG  (from docker-compose.yml: $DETECTED_VERSION)"
 echo "  Platform  : $PLATFORM"
 echo "  Image     : $FULL_IMAGE"
 echo "  PostgreSQL: $POSTGRES_IMAGE"
@@ -162,8 +184,12 @@ BUNDLE_SIZE=$(du -sh "$BUNDLE_TAR" | cut -f1)
 
 # ── GitHub release (optional) ─────────────────────────────────────────────────
 if [ "$DO_RELEASE" = true ]; then
+  # Git tag uses the plain version (with optional leading v), e.g. v1.0.2
+  # The image tag has the arch suffix (sc-app:1.0.2-amd64) but the release tag does not.
   GIT_TAG="${IMAGE_TAG}"
-  # Strip leading 'v' for comparison only; keep original for the tag
+  # Prepend 'v' if not already present
+  [[ "$GIT_TAG" != v* ]] && GIT_TAG="v${GIT_TAG}"
+
   echo ""
   echo "▶ Creating git tag ${GIT_TAG}..."
   git tag -a "$GIT_TAG" -m "Release ${GIT_TAG}"
@@ -173,8 +199,8 @@ if [ "$DO_RELEASE" = true ]; then
   echo "▶ Creating GitHub release ${GIT_TAG}..."
   gh release create "$GIT_TAG" \
     "$BUNDLE_TAR" \
-    --title "Service Catalogue ${GIT_TAG}" \
-    --notes "## Deployment
+    --title "Service Catalogue ${GIT_TAG} (${ARCH})" \
+    --notes "## Deployment — ${ARCH^^}
 
 Upload \`${BUNDLE_TAR}\` to your server, then:
 
@@ -195,7 +221,13 @@ Load environment variables from \`.env.qnap\`.
 |------|-------------|
 | \`portainer-stack.yml\` | Portainer / Docker Compose stack definition |
 | \`.env.qnap\` | Environment template — fill in secrets before deploying |
-| \`${OUTPUT_TAR}\` | Docker images (sc-app + postgres:16-alpine) |
+| \`${OUTPUT_TAR}\` | Docker images (${FULL_IMAGE} + postgres:16-alpine, ${ARCH}) |
+
+## Image tag
+
+\`\`\`
+${FULL_IMAGE}
+\`\`\`
 "
   echo ""
   echo "✅ GitHub release created: $(gh release view "$GIT_TAG" --json url -q .url)"
