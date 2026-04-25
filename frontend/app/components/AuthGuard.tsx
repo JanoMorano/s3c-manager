@@ -54,20 +54,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     async function check() {
       // Check install status first; systems that are not READY go back to the wizard.
+      // Distinguish between a network/fetch error and an explicit non-READY response:
+      // only redirect to /install for explicit non-READY status, not on transient fetch failures.
       let installStatus = null;
+      let installFetchFailed = false;
       try {
         installStatus = await fetchInstallStatusSnapshot();
       } catch {
-        installStatus = null;
+        installFetchFailed = true;
       }
       if (cancelled) return;
 
-      if (!installStatus || installStatus.status !== 'READY') {
+      if (!installFetchFailed && (!installStatus || installStatus.status !== 'READY')) {
         router.replace(INSTALL_PATH);
         return;
       }
 
-      if (isC3ScopedPath(pathname) && !isModuleUiVisible(installStatus, 'C3_TAXONOMY')) {
+      if (!installFetchFailed && isC3ScopedPath(pathname) && !isModuleUiVisible(installStatus, 'C3_TAXONOMY')) {
         router.replace('/');
         return;
       }
