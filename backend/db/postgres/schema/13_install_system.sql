@@ -226,6 +226,8 @@ ON CONFLICT (migration_key) DO NOTHING;
 -- ---------------------------------------------------------------------------
 INSERT INTO release_metadata
     (release_version, schema_version, release_notes, applied_by, is_current)
-VALUES
-    ('1.0.0', '1.0.0', 'Initial release — Service Catalogue v2.1', 'init', TRUE)
-ON CONFLICT DO NOTHING;
+SELECT
+    '1.0.0', '1.0.0', 'Initial release — Service Catalogue v2.1', 'init', TRUE
+WHERE NOT EXISTS (
+    SELECT 1 FROM release_metadata
+);

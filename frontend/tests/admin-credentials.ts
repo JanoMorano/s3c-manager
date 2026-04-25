@@ -27,4 +27,6 @@ export async function loginWithConfiguredAdmin(page: Page, credentials: AdminCre
   await submitBtn.click();
 
   await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 });
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle').catch(() => {});
 }

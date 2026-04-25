@@ -47,6 +47,22 @@ function waitForApiResponse(page: Page, pathFragment: string, method: string) {
   });
 }
 
+async function advanceWizardToCreate(page: Page): Promise<void> {
+  for (let i = 0; i < 10; i += 1) {
+    const createButton = page.getByRole('button', { name: /vytvořit službu|create service/i });
+    if (await createButton.isVisible().catch(() => false)) {
+      await createButton.click();
+      return;
+    }
+
+    const nextButton = page.getByRole('button', { name: /další|next/i });
+    await expect(nextButton).toBeVisible({ timeout: 15_000 });
+    await nextButton.click();
+  }
+
+  throw new Error('Service wizard did not reach the review step in time.');
+}
+
 test('phase 4 editor manages request model, offerings, support, audience and links', async ({ page }) => {
   test.setTimeout(5 * 60 * 1000);
 
@@ -67,32 +83,9 @@ test('phase 4 editor manages request model, offerings, support, audience and lin
   await expect(page).toHaveURL(/\/management\/new-service/, { timeout: 15_000 });
 
   await fillField(page, /service id/i, serviceId);
-  await fillField(page, /^title \*$/i, serviceTitle);
-  await selectFirstNonEmpty(page, /service type/i);
-
-  const statusField = fieldByLabel(page, /status/i);
-  await statusField.selectOption('active').catch(async () => {
-    await selectFirstNonEmpty(page, /status/i);
-  });
-
-  await fillField(page, /short description/i, `Phase 4 editor smoke service ${suffix}.`);
-  await fillField(page, /detailed description/i, `Created to validate structured catalogue editing flows ${suffix}.`);
-  await fillField(page, /value proposition/i, 'Validates the structured catalogue editing model.');
-  await fillField(page, /business purpose/i, 'Covers request model, offerings, support, audience, and operational links.');
-  await fillField(page, /service features/i, 'Phase 4 editor sections and business-first detail verification.');
-  await fillField(page, /^service area$/i, 'Architecture');
-  await fillField(page, /^service owner$/i, 'Playwright Admin');
-  await fillField(page, /owner email/i, `phase4.${suffix}@example.test`);
-  await fillField(page, /service delivery manager/i, 'Flow Manager');
-  await fillField(page, /owner organization/i, 'QA Automation');
-  await fillField(page, /sla availability/i, '99.9');
-  await fillField(page, /sla restoration/i, '4');
-  await fillField(page, /sla delivery/i, '2');
-  await fillField(page, /service url/i, `https://example.test/services/${serviceId.toLowerCase()}`);
-  await fillField(page, /customer type/i, 'Internal');
-  await fillField(page, /ordering note/i, 'Provision through the phase 4 editor smoke flow.');
-  await page.locator('label', { hasText: /^NEXUS$/ }).locator('input[type="checkbox"]').check();
-  await page.getByRole('button', { name: /create service/i }).click();
+  await fillField(page, /název služby|^title \*$/i, serviceTitle);
+  await selectFirstNonEmpty(page, /typ služby|service type/i);
+  await advanceWizardToCreate(page);
   await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 20_000 });
 
   await fillField(page, /business summary/i, `Business-first summary ${suffix}`);

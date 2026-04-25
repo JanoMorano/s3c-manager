@@ -1,0 +1,164 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Service Catalogue home" [ref=e6]:
+        - /url: /
+        - img [ref=e8]
+        - generic [ref=e14]: Service Catalogue
+      - generic [ref=e16]:
+        - generic [ref=e17]: Service Catalogue
+        - link "Seznam služeb" [ref=e18]:
+          - /url: /services/list
+          - img [ref=e20]
+          - generic [ref=e24]: Seznam služeb
+        - link "Dashboard služeb" [ref=e25]:
+          - /url: /services/dashboard
+          - img [ref=e27]
+          - generic [ref=e32]: Dashboard služeb
+        - link "Graf služeb" [ref=e33]:
+          - /url: /services/graph
+          - img [ref=e35]
+          - generic [ref=e45]: Graf služeb
+        - generic [ref=e46]: Taxonomie C3
+        - link "Seznam C3" [ref=e47]:
+          - /url: /c3/list
+          - img [ref=e49]
+          - generic [ref=e53]: Seznam C3
+        - link "Dashboard C3" [ref=e54]:
+          - /url: /c3/dashboard
+          - img [ref=e56]
+          - generic [ref=e61]: Dashboard C3
+        - link "C3 Capability Map" [ref=e62]:
+          - /url: /c3/capability-map-spiral7
+          - img [ref=e64]
+          - generic [ref=e66]: C3 Capability Map
+        - link "C3 Business Processes" [ref=e67]:
+          - /url: /c3/list?item_type=BP
+          - img [ref=e69]
+          - generic [ref=e74]: C3 Business Processes
+        - link "C3 Business Roles" [ref=e75]:
+          - /url: /c3/list?item_type=BR
+          - img [ref=e77]
+          - generic [ref=e82]: C3 Business Roles
+        - link "C3 Capabilities" [ref=e83]:
+          - /url: /c3/list?item_type=CP
+          - img [ref=e85]
+          - generic [ref=e90]: C3 Capabilities
+        - generic [ref=e91]: Administrace
+        - link "Administrace" [ref=e92]:
+          - /url: /administration
+          - img [ref=e94]
+          - generic [ref=e97]: Administrace
+        - link "Správa obsahu" [ref=e98]:
+          - /url: /management
+          - img [ref=e100]
+          - generic [ref=e102]: Správa obsahu
+        - link "Import" [ref=e103]:
+          - /url: /import
+          - img [ref=e105]
+          - generic [ref=e108]: Import
+      - button "Jan Moravec" [ref=e111] [cursor=pointer]:
+        - generic [ref=e112]: J
+        - generic [ref=e113]: Jan Moravec
+        - generic [ref=e114]: ▾
+    - generic [ref=e115]:
+      - banner [ref=e116]:
+        - generic [ref=e117]:
+          - search "Hledat v aplikaci" [ref=e118]:
+            - searchbox "Hledat v aplikaci" [ref=e119]
+            - button "Hledat" [ref=e120] [cursor=pointer]
+          - link "Nová služba" [ref=e121]:
+            - /url: /management/new-service
+      - main [ref=e122]:
+        - generic [ref=e123]:
+          - navigation [ref=e124]:
+            - link "Administrace" [ref=e125]:
+              - /url: /administration
+            - generic [ref=e126]: /
+            - generic [ref=e127]: Správa uživatelů
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - heading "Správa uživatelů" [level=1] [ref=e130]
+              - paragraph [ref=e131]: Zakládání uživatelů, přiřazení rolí Uživatel / Správa obsahu / Administrátor a správa AD / SSO účtů.
+            - button "Nový uživatel" [ref=e132] [cursor=pointer]
+          - generic [ref=e133]:
+            - article [ref=e134]:
+              - generic [ref=e135]: Uživatel - RO
+              - generic [ref=e136]: Pouze pro čtení v katalogu
+            - article [ref=e137]:
+              - generic [ref=e138]: Správa obsahu - RW
+              - generic [ref=e139]: Čtení, zápis a přístup do Správy obsahu
+            - article [ref=e140]:
+              - generic [ref=e141]: Admin - vše
+              - generic [ref=e142]: Plný přístup včetně Administrace
+          - generic [ref=e143]:
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - generic [ref=e146]: Nový uživatel
+                - generic [ref=e147]: Přihlášení přes uživatelské jméno a heslo.
+              - generic [ref=e148]:
+                - button "Vytvořit uživatele" [ref=e149] [cursor=pointer]
+                - button "Zrušit" [ref=e150] [cursor=pointer]
+            - generic [ref=e151]:
+              - generic [ref=e152]:
+                - generic [ref=e153]: Uživatelské jméno
+                - textbox "Uživatelské jméno" [ref=e154]:
+                  - /placeholder: jnovak
+              - generic [ref=e155]:
+                - generic [ref=e156]: Zobrazované jméno
+                - textbox "Zobrazované jméno" [ref=e157]:
+                  - /placeholder: Jan Novák
+              - generic [ref=e158]:
+                - generic [ref=e159]: Role
+                - combobox "Role" [ref=e160]:
+                  - option "Uživatel - RO" [selected]
+                  - option "Správa obsahu - RW"
+                  - option "Admin - vše"
+              - generic [ref=e161]:
+                - generic [ref=e162]: Typ přihlášení
+                - combobox "Typ přihlášení" [ref=e163]:
+                  - option "Lokální přihlášení" [selected]
+                  - option "AD / SSO"
+              - generic [ref=e164]:
+                - generic [ref=e165]: E-mail
+                - textbox "E-mail" [ref=e166]:
+                  - /placeholder: jan.novak@firma.local
+              - generic [ref=e167]:
+                - generic [ref=e168]: Oddělení
+                - textbox "Oddělení" [ref=e169]:
+                  - /placeholder: Architektonická kancelář
+              - generic [ref=e170]:
+                - generic [ref=e171]: Jméno
+                - textbox "Jméno" [ref=e172]:
+                  - /placeholder: Jan
+              - generic [ref=e173]:
+                - generic [ref=e174]: Příjmení
+                - textbox "Příjmení" [ref=e175]:
+                  - /placeholder: Novák
+              - generic [ref=e176]:
+                - generic [ref=e177]: AD principal / trusted identita
+                - textbox "AD principal / trusted identita" [disabled] [ref=e178]:
+                  - /placeholder: Pro lokální účet nechte prázdné
+              - generic [ref=e179]:
+                - generic [ref=e180]: Heslo
+                - textbox "Heslo" [ref=e181]:
+                  - /placeholder: Minimálně 8 znaků
+              - generic [ref=e182]:
+                - generic [ref=e183]: Stav účtu
+                - generic [ref=e184]:
+                  - checkbox "Stav účtu Účet je aktivní" [checked] [ref=e185]
+                  - generic [ref=e186]: Účet je aktivní
+          - generic [ref=e187]:
+            - generic [ref=e188]:
+              - generic [ref=e189]:
+                - generic [ref=e190]: Uživatelé
+                - generic [ref=e191]: "AD/SSO login funguje jen pro účty typu `AD / SSO`, které v aplikaci existují a jsou aktivní."
+              - searchbox "Filtrovat podle username, role, e-mailu nebo AD identity" [active] [ref=e192]: e2eadminflow
+            - generic [ref=e193]: Žádné odpovídající záznamy.
+  - alert [ref=e194]
+```

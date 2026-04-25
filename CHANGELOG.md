@@ -9,25 +9,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+No entries yet.
+
+## [1.0.2] — 2026-04-25
+
 ### Added
-- Install wizard — 11-step first-run setup flow (`/install`)
-- Install state machine — 9 states from `NOT_INSTALLED` to `READY` with install locking
-- Module registry — `SERVICE_CATALOGUE_CORE` (mandatory) and `C3_TAXONOMY` (optional)
-- Schema migration baseline — 14 migrations tracked in `platform.schema_migrations`
-- Authentication failure logging — failed logins recorded in `platform.audit_log`
-- Admin Installation & Modules page — `/admin/installation` with installation state and repair flow
-- Docker Compose secrets model — documented pattern for file-based secrets
-- CSV import wizard — client-side parse preview and post-install import flow
-- System config endpoint — `POST /api/v1/install/config` stores values in `platform.app_config`
+- ITIL-Ready Service Catalogue — Lifecycle, Offerings & Service Onboarding
+- full ITIL catalogue capabilities: service lifecycle governance, service offerings, support model, requestability, consumer value, audience and eligibility, and operational links
+- guided New Service Wizard with inline ITIL hints and richer onboarding defaults
+- business-focused service detail tabs: `Overview`, `Offerings`, `Request & Eligibility`, `Support`, and `Governance`
+- backend validation and regression coverage for lifecycle readiness, offerings, support, audience, operational links, and dashboard statistics
+- WebKit browser fallback prepared for Playwright E2E on environments where Chromium is restricted
 
 ### Changed
-- `AppShell` — conditional layout: `/install` is fullscreen, everything else uses the standard shell
-- `AuthGuard` — installation state guard redirects to `/install` when status is `NOT_INSTALLED`
-- `docker-compose.yml` — added a documented top-level secrets example
+- UI foundation modernised with shadcn/ui components and Tailwind CSS tokens
+- service detail reorganised into a business-first experience while preserving governance depth
+- install/runtime defaults aligned to application version `1.0.2` and schema version `2.2.1`
+- Docker and Portainer examples updated for the `v1.0.2` release line
 
 ### Fixed
-- Install wizard step 2 — editable fields instead of a static info panel
-- Install wizard step 9 — real preview with record counts, columns, and warnings
+- `16_consumer_value.sql` now records a valid `schema_migrations` row
+- service create flow no longer fails on SQL placeholder mismatch
+- demo seed relation type `provided_by` is now consistently supported across DB references, validation, graph routes, and frontend types
+- install and authenticated smoke flows revalidated on a `READY` instance with demo data
 
 ## [1.0.0-beta.1] — 2026-04-10
 
@@ -66,6 +70,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Design tokens — CSS custom properties for color, spacing, radius, and typography
 - Dashboard — KPI tiles, distribution charts, and review due lists
 
-[Unreleased]: https://github.com/example/service-catalogue/compare/v1.0.0-beta.1...HEAD
+[Unreleased]: https://github.com/example/service-catalogue/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/example/service-catalogue/releases/tag/v1.0.2
 [1.0.0-beta.1]: https://github.com/example/service-catalogue/releases/tag/v1.0.0-beta.1
 [1.0.0]: https://github.com/example/service-catalogue/releases/tag/v1.0.0

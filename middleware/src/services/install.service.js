@@ -19,8 +19,8 @@ const bcrypt  = require('bcrypt');
 const { getPlatformPool } = require('../db/pool');
 const logger  = require('../utils/logger');
 
-const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.0.0';
-const INSTALL_SCHEMA_VERSION = process.env.SCHEMA_VERSION || '1.0.0';
+const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.0.2';
+const INSTALL_SCHEMA_VERSION = process.env.SCHEMA_VERSION || '2.2.1';
 const BCRYPT_ROUNDS = 12;
 
 // ---------------------------------------------------------------------------

@@ -1660,7 +1660,7 @@ export default function InstallPage() {
     <div className={styles.shell}>
       <div className={styles.header}>
         <span className={styles.headerLogo}>{t('home.title')}</span>
-        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.0.0'}</span>
+        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.0.2'}</span>
       </div>
 
       <div className={styles.main}>

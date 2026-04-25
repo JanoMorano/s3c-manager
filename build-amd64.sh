@@ -12,8 +12,8 @@
 # Usage:
 #   chmod +x build-amd64.sh
 #   ./build-amd64.sh                      # build with tag 'latest'
-#   ./build-amd64.sh --tag v1.0.0         # build + tag
-#   ./build-amd64.sh --tag v1.0.0 --release   # build + tag + GitHub release
+#   ./build-amd64.sh --tag v1.0.2         # build + tag
+#   ./build-amd64.sh --tag v1.0.2 --release   # build + tag + GitHub release
 #   ./build-amd64.sh --no-cache           # clean build without cache
 # ══════════════════════════════════════════════════════════════════════════════
 

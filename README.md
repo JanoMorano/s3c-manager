@@ -8,6 +8,12 @@ Enterprise service catalogue for service governance, dependency graphs, pricing/
 
 > **Stack:** Next.js 15 · Node.js / Express · PostgreSQL 16 · Docker Compose
 
+## What's New in V1.0.2
+
+- ITIL-ready catalogue capabilities: lifecycle governance, service offerings, support model, requestability, consumer value, audience and eligibility, and operational links
+- guided New Service Wizard with inline ITIL hints and a business-first service detail with tabs for Overview, Offerings, Request & Eligibility, Support, and Governance
+- refreshed UI foundation with shadcn/ui primitives and Tailwind CSS tokens layered into the existing app shell
+
 ## What It Is
 
 Service Catalogue v2 provides:

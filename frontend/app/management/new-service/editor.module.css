@@ -93,6 +93,17 @@
 
 .textarea:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.25); }
 .fieldError { font: var(--text-label-sm); color: var(--color-danger); }
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .hint { font: var(--text-body-sm); color: var(--color-text-muted); }
 .link { color: var(--color-action-primary); text-decoration: none; }
 

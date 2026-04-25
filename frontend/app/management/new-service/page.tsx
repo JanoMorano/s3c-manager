@@ -234,6 +234,10 @@ function WizardField({ fieldKey, label, required, error, children }: WizardField
   const help = fieldKey ? HELP[fieldKey] : undefined;
   return (
     <div className={styles.fieldWrapper}>
+      <label className={styles.visuallyHidden}>
+        {label}
+        {required ? ' *' : ''}
+      </label>
       <div className={styles.fieldLabelRow}>
         <span className={styles.fieldLabel}>
           {label}

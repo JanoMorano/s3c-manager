@@ -64,13 +64,20 @@ async function selectOptionByLabel(root: Page | Locator, label: string | RegExp,
   await field.selectOption(candidate.value);
 }
 
-async function checkDomain(page: Page, domain: string): Promise<void> {
-  const checkbox = page
-    .locator('label', { hasText: new RegExp(`^${domain}$`) })
-    .locator('input[type="checkbox"]')
-    .first();
-  await expect(checkbox).toBeVisible({ timeout: 10_000 });
-  await checkbox.check();
+async function advanceWizardToCreate(page: Page): Promise<void> {
+  for (let i = 0; i < 10; i += 1) {
+    const createButton = page.getByRole('button', { name: /vytvořit službu|create service/i });
+    if (await createButton.isVisible().catch(() => false)) {
+      await createButton.click();
+      return;
+    }
+
+    const nextButton = page.getByRole('button', { name: /další|next/i });
+    await expect(nextButton).toBeVisible({ timeout: 15_000 });
+    await nextButton.click();
+  }
+
+  throw new Error('Service wizard did not reach the review step in time.');
 }
 
 test('max user flow: create service, enrich it, create C3 item, map it, and verify catalogue views', async ({ page }) => {
@@ -98,36 +105,9 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await expect(page).toHaveURL(/\/management\/new-service/, { timeout: 15_000 });
 
   await fillField(page, /service id/i, serviceId);
-  await fillField(page, /^title \*$/i, serviceTitle);
-  await selectFirstNonEmpty(page, /service type/i);
-
-  const statusField = fieldByLabel(page, /status/i);
-  await statusField.selectOption('active').catch(async () => {
-    await selectFirstNonEmpty(page, /status/i);
-  });
-
-  await fillField(page, /short description/i, `Smoke-tested catalogue service ${suffix}.`);
-  await fillField(page, /detailed description/i, `This service was created by the maximal headed E2E scenario ${suffix}.`);
-  await fillField(page, /value proposition/i, 'Validates the full service management flow end-to-end.');
-  await fillField(page, /business purpose/i, 'Covers create, update, ownership, domains, relationship and C3 mapping.');
-  await fillField(page, /service features/i, 'UI creation, catalogue listing, detail rendering, mapping and readiness.');
-  await fillField(page, /^service area$/i, 'Architecture');
-  await fillField(page, /^service owner$/i, 'Playwright Admin');
-  await fillField(page, /owner email/i, `playwright.${suffix}@example.test`);
-  await fillField(page, /service delivery manager/i, 'Flow Manager');
-  await fillField(page, /owner organization/i, 'QA Automation');
-  await fillField(page, /sla availability/i, '99.9');
-  await fillField(page, /sla restoration/i, '4');
-  await fillField(page, /sla delivery/i, '5');
-  await fillField(page, /service url/i, `https://example.test/services/${serviceId.toLowerCase()}`);
-  await fillField(page, /customer type/i, 'Internal, External');
-  await fillField(page, /ordering note/i, 'Provision via headed E2E smoke flow.');
-  await fillField(page, /notes \(json\)/i, JSON.stringify({ scenario: 'max-user-flow', suffix }, null, 2));
-
-  await checkDomain(page, 'NEXUS');
-  await checkDomain(page, 'ORBIT');
-
-  await page.getByRole('button', { name: /create service/i }).click();
+  await fillField(page, /název služby|^title \*$/i, serviceTitle);
+  await selectFirstNonEmpty(page, /typ služby|service type/i);
+  await advanceWizardToCreate(page);
   await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 20_000 });
   await expect(page.getByText(serviceTitle, { exact: true })).toBeVisible({ timeout: 10_000 });
 
@@ -207,6 +187,8 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
 
   await page.goto(`/services/${serviceId}`);
   await expect(page.getByRole('heading', { name: serviceTitle })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Business view')).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: /governance/i }).click();
   await expect(page.getByRole('heading', { name: /relationships/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: /pricing variants/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: /c3 taxonomy mapping/i })).toBeVisible({ timeout: 15_000 });
@@ -218,6 +200,7 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await page.goto('/services/list');
   const serviceSearch = page.getByRole('searchbox', { name: /search services/i });
   await serviceSearch.fill(serviceId);
+  await expect(page).toHaveURL(new RegExp(`/services/list\\?[^#]*search=${serviceId}`), { timeout: 15_000 });
   await expect(page.getByText(serviceTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
 
   await page.goto('/c3/list');
