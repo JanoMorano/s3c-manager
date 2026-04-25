@@ -27,7 +27,7 @@ cd "$SCRIPT_DIR"
 # Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.0.2}
 DETECTED_VERSION=""
 if [ -f "docker-compose.yml" ]; then
-  DETECTED_VERSION=$(grep -oP 'APP_VERSION:-\K[0-9]+\.[0-9]+\.[0-9]+' docker-compose.yml | head -1)
+  DETECTED_VERSION=$(grep 'APP_VERSION:-' docker-compose.yml | sed 's/.*APP_VERSION:-\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/' | head -1)
 fi
 if [ -z "$DETECTED_VERSION" ]; then
   echo "⚠ Could not detect APP_VERSION from docker-compose.yml — falling back to 'latest'"
@@ -81,8 +81,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 # Derive versioned, arch-stamped filenames (can be overridden via --output / --bundle)
-OUTPUT_TAR="${OUTPUT_TAR_OVERRIDE:-sc-images-${ARCH}-${IMAGE_TAG}.tar}"
-BUNDLE_TAR="${BUNDLE_TAR_OVERRIDE:-sc-qnap-bundle-${ARCH}-${IMAGE_TAG}.tar.gz}"
+OUTPUT_TAR="${OUTPUT_TAR_OVERRIDE:-s3c-manager.v${IMAGE_TAG}.tar}"
+BUNDLE_TAR="${BUNDLE_TAR_OVERRIDE:-s3c-manager.v${IMAGE_TAG}.tar.gz}"
 
 FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-${ARCH}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -117,7 +117,7 @@ fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "════════════════════════════════════════════════"
-echo "  Service Catalogue — ${ARCH^^} image build"
+echo "  Service Catalogue — $(echo "$ARCH" | tr '[:lower:]' '[:upper:]') image build"
 echo "  Version   : $IMAGE_TAG  (from docker-compose.yml: $DETECTED_VERSION)"
 echo "  Platform  : $PLATFORM"
 echo "  Image     : $FULL_IMAGE"
