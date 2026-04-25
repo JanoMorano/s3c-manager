@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Service Catalogue — Instalační průvodce</title>
+<style>
+/* ── Design tokens ─────────────────────────────────────────── */
+:root {
+  --color-bg-canvas:           #f9f9f9;
+  --color-bg-surface:          #ffffff;
+  --color-bg-surface-raised:   #ffffff;
+  --color-bg-subtle:           #f4f4f5;
+  --color-border-default:      #e4e4e7;
+  --color-border-strong:       #d4d4d8;
+  --color-text-primary:        #18181b;
+  --color-text-secondary:      #52525b;
+  --color-text-muted:          #a1a1aa;
+  --color-action-primary:      #18181b;
+  --color-action-primary-hover:#000000;
+  --color-action-secondary:    #f4f4f5;
+  --color-focus-ring:          #2563eb;
+  --color-success:             #16a34a;
+  --color-warning:             #d97706;
+  --color-danger:              #dc2626;
+  --color-info:                #2563eb;
+  --space-1:  4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 40px; --space-8: 48px;
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 10px; --radius-pill: 999px;
+  --shadow-low: 0 1px 2px 0 rgba(0,0,0,.06);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font: 400 13px/1.55 var(--font-sans); color: var(--color-text-primary); background: var(--color-bg-canvas); -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; }
+a { color: inherit; text-decoration: none; }
+
+/* ── Shell ─────────────────────────────────────────────────── */
+.shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+.header {
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-4) var(--space-6);
+  display: flex; align-items: center; gap: var(--space-4);
+}
+.header-logo { font-size: 15px; font-weight: 700; color: var(--color-action-primary); letter-spacing: -.02em; }
+.header-sub  { font-size: 12px; color: var(--color-text-muted); }
+
+.main {
+  flex: 1; display: flex; max-width: 1100px; width: 100%;
+  margin: 0 auto; padding: var(--space-6) var(--space-5); gap: var(--space-6);
+}
+
+/* ── Stepper ───────────────────────────────────────────────── */
+.stepper { width: 220px; flex-shrink: 0; }
+.stepper-title {
+  font-size: 11px; font-weight: 500; color: var(--color-text-muted);
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: var(--space-4);
+}
+.step-list {
+  list-style: none; display: flex; flex-direction: column;
+  gap: 0; position: relative;
+}
+.step-list::before {
+  content: ''; position: absolute; left: 14px; top: 0; bottom: 0;
+  width: 2px; background: var(--color-border-default); z-index: 0;
+}
+.step-item {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-2) 0; position: relative; z-index: 1;
+}
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-bg-surface);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: var(--color-text-muted); flex-shrink: 0;
+}
+.step-item.active   .step-dot { border-color: var(--color-action-primary); background: var(--color-action-primary); color: #fff; font-weight: 700; }
+.step-item.done     .step-dot { border-color: var(--color-success); background: var(--color-success); color: #fff; }
+.step-label { font-size: 12px; color: var(--color-text-muted); padding-top: 5px; line-height: 1.3; }
+.step-item.active   .step-label { color: var(--color-text-primary); font-weight: 600; }
+.step-item.done     .step-label { color: var(--color-success); }
+
+/* ── Content panel ─────────────────────────────────────────── */
+.content { flex: 1; min-width: 0; }
+.panel {
+  background: var(--color-bg-surface); border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-low);
+}
+.panel-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: var(--space-2); }
+.panel-subtitle { font-size: 12px; color: var(--color-text-muted); margin-bottom: var(--space-6); line-height: 1.6; }
+
+/* ── Alerts ─────────────────────────────────────────────────── */
+.alert { padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); font-size: 12px; margin-bottom: var(--space-4); line-height: 1.5; }
+.alert-info    { background: #deebff; border: 1px solid #4c9aff; color: #0747a6; }
+.alert-warning { background: #fff0b3; border: 1px solid #f6c142; color: #974f0c; }
+.alert-success { background: #e3fcef; border: 1px solid #79f2c0; color: #006644; }
+.alert-error   { background: #ffebe6; border: 1px solid #ff7452; color: #bf2600; }
+
+/* ── Check items ───────────────────────────────────────────── */
+.check-list { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
+.check-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas); border: 1px solid var(--color-border-default); font-size: 12px;
+}
+.check-item.ok   { border-color: var(--color-success); background: #e3fcef; }
+.check-item.fail { border-color: var(--color-danger);  background: #ffebe6; }
+.check-icon  { font-size: 14px; flex-shrink: 0; }
+.check-label { color: var(--color-text-primary); flex: 1; }
+.check-detail{ font-size: 11px; color: var(--color-text-muted); }
+
+/* ── Form fields ────────────────────────────────────────────── */
+.field-group { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-5); }
+.field-row   { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.field       { display: flex; flex-direction: column; gap: var(--space-1); }
+.label       { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
+.required    { color: var(--color-danger); margin-left: 2px; }
+.input {
+  font-size: 12px; border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+  background: var(--color-bg-canvas); color: var(--color-text-primary); width: 100%;
+}
+.input:focus { outline: none; border-color: var(--color-action-primary); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.field-hint  { font-size: 11px; color: var(--color-text-muted); }
+
+/* ── Module cards ───────────────────────────────────────────── */
+.module-grid { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
+.module-card {
+  display: flex; align-items: flex-start; gap: var(--space-4);
+  padding: var(--space-4); border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default); background: var(--color-bg-surface);
+}
+.module-card.mandatory { border-color: var(--color-action-primary); background: #f0f4ff; }
+.module-card.selected  { border-color: var(--color-success); background: #f0fff8; }
+.module-toggle input   { width: 18px; height: 18px; accent-color: var(--color-action-primary); }
+.module-info { flex: 1; }
+.module-title { font-size: 12px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.module-desc  { font-size: 12px; color: var(--color-text-muted); line-height: 1.5; }
+.module-badge { font-size: 11px; background: var(--color-action-primary); color: #fff; border-radius: var(--radius-pill); padding: 2px 8px; }
+
+/* ── Progress ───────────────────────────────────────────────── */
+.progress-wrap { margin-bottom: var(--space-4); }
+.progress-bar  { height: 6px; background: var(--color-border-default); border-radius: var(--radius-pill); overflow: hidden; margin-bottom: var(--space-2); }
+.progress-fill { height: 100%; background: var(--color-action-primary); border-radius: var(--radius-pill); transition: width .4s ease; }
+.progress-label{ font-size: 12px; color: var(--color-text-muted); text-align: center; }
+.exec-log { margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); line-height: 1.8; }
+
+/* ── Summary ────────────────────────────────────────────────── */
+.summary-status { text-align: center; padding: var(--space-6) 0; margin-bottom: var(--space-5); }
+.summary-icon  { font-size: 48px; margin-bottom: var(--space-3); }
+.summary-title { font-size: 18px; font-weight: 500; margin-bottom: var(--space-2); }
+.summary-desc  { font-size: 12px; color: var(--color-text-muted); }
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-5); }
+.meta-item { padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--color-bg-canvas); border: 1px solid var(--color-border-default); }
+.meta-label{ font-size: 11px; font-weight: 500; color: var(--color-text-muted); margin-bottom: 2px; }
+.meta-value{ font-size: 12px; color: var(--color-text-primary); font-weight: 600; }
+
+/* ── Security note ──────────────────────────────────────────── */
+.security-note {
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm);
+  background: #fff0b3; border: 1px solid #f6c142; font-size: 12px; color: #5e4300;
+  line-height: 1.5; margin-bottom: var(--space-4);
+}
+
+/* ── Actions ────────────────────────────────────────────────── */
+.actions {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--color-border-default);
+}
+.btn-row { display: flex; gap: 12px; align-items: center; }
+.btn-primary {
+  font-size: 12px; font-weight: 500; background: var(--color-action-primary); color: #fff;
+  border: none; border-radius: var(--radius-sm); padding: 9px 20px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-secondary {
+  font-size: 12px; font-weight: 500; background: transparent;
+  color: var(--color-text-secondary); border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm); padding: 8px 16px; cursor: pointer; transition: all .15s;
+}
+.btn-secondary:hover { border-color: var(--color-border-strong); background: var(--color-bg-canvas); }
+.btn-danger { font-size: 12px; font-weight: 500; background: var(--color-danger); color: #fff; border: none; border-radius: var(--radius-sm); padding: 9px 20px; cursor: pointer; }
+
+/* ── Mode badge ─────────────────────────────────────────────── */
+.mode-badge {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px;
+  border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; margin-bottom: var(--space-5);
+}
+.mode-badge.fresh { background: #e3fcef; color: #006644; }
+
+/* ── Step tabs (demo navigation) ───────────────────────────── */
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Package list ───────────────────────────────────────────── */
+.package-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--space-5); }
+.package-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--color-border-default); font-size: 12px; }
+.package-item.mandatory { border-color: var(--color-border-strong); background: var(--color-bg-canvas); }
+.package-item.optional  { background: #deebff; border-color: #4c9aff; }
+.package-icon  { font-size: 16px; flex-shrink: 0; }
+.package-title { flex: 1; font-weight: 500; color: var(--color-text-primary); }
+.package-badge { font-size: 10px; border-radius: var(--radius-pill); padding: 2px 8px; }
+.package-badge.mandatory { background: var(--color-border-default); color: var(--color-text-muted); }
+.package-badge.optional  { background: #deebff; color: #0052cc; }
+.package-badge.rec       { background: #e3fcef; color: #006644; }
+.package-desc { font-size: 11px; color: var(--color-text-muted); padding: 0 14px 6px 46px; }
+
+/* ── Upload zone ─────────────────────────────────────────────── */
+.upload-zone { border: 2px dashed var(--color-border-strong); border-radius: var(--radius-md); padding: 36px 20px; text-align: center; cursor: pointer; margin-bottom: var(--space-5); }
+.upload-icon  { font-size: 28px; margin-bottom: 10px; }
+.upload-title { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+.upload-hint  { font-size: 11px; color: var(--color-text-muted); }
+
+/* ── Demo nav helper ──────────────────────────────────────────── */
+.demo-nav {
+  position: fixed; bottom: 16px; right: 16px; background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-md);
+  padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  font-size: 11px; color: var(--color-text-muted); display: flex; gap: 8px; align-items: center; z-index: 100;
+}
+.demo-nav strong { color: var(--color-text-primary); }
+.demo-nav-btn { background: var(--color-bg-canvas); border: 1px solid var(--color-border-default); border-radius: var(--radius-sm); padding: 4px 10px; cursor: pointer; font-size: 11px; }
+.demo-nav-btn:hover { background: var(--color-bg-subtle); }
+.demo-links { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 100; }
+.demo-link { background: var(--color-bg-surface); border: 1px solid var(--color-border-default); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; text-decoration: none; }
+.demo-link:hover { background: var(--color-bg-subtle); }
+.demo-link.current { background: var(--color-action-primary); color: #fff; border-color: var(--color-action-primary); }
+</style>
+</head>
+<body>
+<!-- Demo navigation links -->
+<div class="demo-links">
+  <span class="demo-link current">📦 Instalace</span>
+  <a href="02-catalogue.html" class="demo-link">📋 Katalog</a>
+  <a href="03-new-service.html" class="demo-link">➕ Nová služba</a>
+</div>
+
+<div class="shell">
+  <!-- Header -->
+  <div class="header">
+    <span class="header-logo">Service Catalogue</span>
+    <span class="header-sub">Průvodce instalací · v1.0.2</span>
+  </div>
+
+  <!-- Main layout -->
+  <div class="main">
+    <!-- Left stepper -->
+    <nav class="stepper">
+      <div class="stepper-title">Průvodce instalací</div>
+      <ul class="step-list" id="step-list">
+        <li class="step-item active" data-step="0"><span class="step-dot">1</span><span class="step-label">Vítejte</span></li>
+        <li class="step-item"        data-step="1"><span class="step-dot">2</span><span class="step-label">Konfigurace systému</span></li>
+        <li class="step-item"        data-step="2"><span class="step-dot">3</span><span class="step-label">Secrets</span></li>
+        <li class="step-item"        data-step="3"><span class="step-dot">4</span><span class="step-label">Admin účet</span></li>
+        <li class="step-item"        data-step="4"><span class="step-dot">5</span><span class="step-label">Konektivita</span></li>
+        <li class="step-item"        data-step="5"><span class="step-dot">6</span><span class="step-label">Moduly</span></li>
+        <li class="step-item"        data-step="6"><span class="step-dot">7</span><span class="step-label">Data packages</span></li>
+        <li class="step-item"        data-step="7"><span class="step-dot">8</span><span class="step-label">Import souborů</span></li>
+        <li class="step-item"        data-step="8"><span class="step-dot">9</span><span class="step-label">Náhled importu</span></li>
+        <li class="step-item"        data-step="9"><span class="step-dot">10</span><span class="step-label">Instalace</span></li>
+        <li class="step-item"        data-step="10"><span class="step-dot">11</span><span class="step-label">Výsledek</span></li>
+      </ul>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+      <div class="panel">
+
+        <!-- ── Step 0: Welcome ─────────────────────────────── -->
+        <div class="step-panel active" id="step-0">
+          <h1 class="panel-title">Vítejte v Service Catalogue</h1>
+          <p class="panel-subtitle">Průvodce vás provede prvotní instalací. Systém byl detekován jako nová instalace.</p>
+
+          <div class="mode-badge fresh">🆕 Nová instalace</div>
+
+          <div class="check-list">
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Verze aplikace</span><span class="check-detail">v1.0.2</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Schema verze</span><span class="check-detail">16</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Databáze</span><span class="check-detail">NOT_INSTALLED</span></div>
+          </div>
+
+          <div class="field-group">
+            <div class="field">
+              <label class="label">Setup Token (volitelný)</label>
+              <input class="input" type="password" placeholder="Zadejte setup token, pokud byl nastaven…" />
+              <span class="field-hint">Pouze pokud byl INSTALL_SETUP_TOKEN nastaven v prostředí.</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <div></div>
+            <button class="btn-primary" onclick="goToStep(1)">Začít instalaci →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 1: Config ─────────────────────────────── -->
+        <div class="step-panel" id="step-1">
+          <h1 class="panel-title">Konfigurace systému</h1>
+          <p class="panel-subtitle">Nastavte základní parametry aplikace. Tato konfigurace bude uložena do databáze.</p>
+
+          <div class="field-group">
+            <div class="field-row">
+              <div class="field">
+                <label class="label">Název aplikace</label>
+                <input class="input" value="Service Catalogue" />
+              </div>
+              <div class="field">
+                <label class="label">Base URL</label>
+                <input class="input" placeholder="https://sc.company.cz" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="label">Časová zóna</label>
+                <input class="input" value="Europe/Prague" />
+              </div>
+              <div class="field">
+                <label class="label">Storage path</label>
+                <input class="input" value="/app/uploads" />
+              </div>
+            </div>
+            <div class="field" style="flex-direction:row;align-items:center;gap:8px;">
+              <input type="checkbox" id="https" style="width:15px;height:15px;accent-color:#18181b;" />
+              <label class="label" for="https" style="cursor:pointer;">HTTPS mode</label>
+            </div>
+          </div>
+
+          <div class="check-list">
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">DATABASE_URL</span><span class="check-detail">env nastaven</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">JWT_SECRET</span><span class="check-detail">secret nastaven</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Verze aplikace</span><span class="check-detail">v1.0.2</span></div>
+          </div>
+
+          <div class="security-note">🔒 Secrets (hesla, JWT klíče) se nikdy neukládají do databáze. Jsou čteny výhradně z prostředí při startu kontejneru.</div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(0)">← Zpět</button>
+            <div class="btn-row">
+              <button class="btn-secondary" onclick="goToStep(2)">Přeskočit</button>
+              <button class="btn-primary" onclick="goToStep(2)">Uložit</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 2: Secrets ──────────────────────────────── -->
+        <div class="step-panel" id="step-2">
+          <h1 class="panel-title">Validace secrets</h1>
+          <p class="panel-subtitle">Všechny kritické secrets jsou ověřeny při startu aplikace a nikdy nejsou ukládány do databáze.</p>
+
+          <div class="alert alert-info">Secrets jsou čteny pouze z prostředí (Docker ENV, secret mount). Průvodce je zobrazuje jen pro ověření přítomnosti.</div>
+
+          <div class="check-list">
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">JWT_SECRET přítomen</span><span class="check-detail">ověřeno při startu</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">DATABASE_URL přítomna</span><span class="check-detail">ověřeno při startu</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Mimo zdrojový kód</span><span class="check-detail">compose env / secret mount</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">V lozích nejsou plain-text secrets</span><span class="check-detail">žádné secrets v lozích</span></div>
+          </div>
+
+          <div class="security-note">⚠ Hesla nikdy nezadávejte přímo do kódu nebo docker-compose.yml. Použijte .env soubor nebo Docker secrets.</div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(1)">← Zpět</button>
+            <button class="btn-primary" onclick="goToStep(3)">Pokračovat →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 3: Admin ──────────────────────────────── -->
+        <div class="step-panel" id="step-3">
+          <h1 class="panel-title">Administrátorský účet</h1>
+          <p class="panel-subtitle">Vytvořte první administrátorský účet. Tento účet bude mít plná práva k systému.</p>
+
+          <div class="security-note">🔐 Heslo musí mít min. 10 znaků, velké písmeno, malé písmeno, číslo a speciální znak.</div>
+
+          <div class="field-group">
+            <div class="field-row">
+              <div class="field">
+                <label class="label">Uživatelské jméno <span class="required">*</span></label>
+                <input class="input" placeholder="admin" />
+              </div>
+              <div class="field">
+                <label class="label">Zobrazované jméno <span class="required">*</span></label>
+                <input class="input" placeholder="System Administrator" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">E-mail <span class="required">*</span></label>
+              <input class="input" type="email" placeholder="admin@company.cz" />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="label">Heslo <span class="required">*</span></label>
+                <input class="input" type="password" />
+              </div>
+              <div class="field">
+                <label class="label">Potvrzení hesla <span class="required">*</span></label>
+                <input class="input" type="password" />
+              </div>
+            </div>
+            <div class="field" style="flex-direction:row;align-items:center;gap:8px;">
+              <input type="checkbox" checked id="pwchange" style="width:15px;height:15px;accent-color:#18181b;" />
+              <label class="label" for="pwchange" style="cursor:pointer;">Vynutit změnu hesla při prvním přihlášení</label>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(2)">← Zpět</button>
+            <button class="btn-primary" onclick="goToStep(4)">Vytvořit účet →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 4: Connectivity ──────────────────────── -->
+        <div class="step-panel" id="step-4">
+          <h1 class="panel-title">Konektivita</h1>
+          <p class="panel-subtitle">Ověřte, že aplikace může komunikovat s databází a zapisovat do ní.</p>
+
+          <div class="check-list">
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Databáze dosažitelná</span><span class="check-detail">PostgreSQL 16.2</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Přístup pro zápis</span><span class="check-detail">INSERT test prošel</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Platform schema</span><span class="check-detail">schema platform existuje</span></div>
+          </div>
+
+          <div class="alert alert-success">Všechny kontroly prošly. Databáze je připravena k instalaci.</div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(3)">← Zpět</button>
+            <div class="btn-row">
+              <button class="btn-secondary">Spustit kontrolu znovu</button>
+              <button class="btn-primary" onclick="goToStep(5)">Pokračovat →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 5: Modules ─────────────────────────────── -->
+        <div class="step-panel" id="step-5">
+          <h1 class="panel-title">Moduly</h1>
+          <p class="panel-subtitle">Vyberte, které moduly chcete aktivovat. Základní katalog je vždy povinný.</p>
+
+          <div class="module-grid">
+            <div class="module-card mandatory">
+              <div class="module-toggle"><input type="checkbox" checked disabled /></div>
+              <div class="module-info">
+                <div class="module-title">Service Catalogue Core <span class="module-badge">Povinný</span></div>
+                <div class="module-desc">Základní katalog služeb — správa životního cyklu, offerings, support model, requestability a governance.</div>
+              </div>
+            </div>
+            <div class="module-card selected" id="c3-card" onclick="toggleC3()" style="cursor:pointer;">
+              <div class="module-toggle"><input type="checkbox" id="c3-check" checked onchange="toggleC3()" /></div>
+              <div class="module-info">
+                <div class="module-title">C3 Taxonomy</div>
+                <div class="module-desc">Rozšiřuje katalog o mapování na Business Capabilities, Aplikace, Datové objekty a Technology Interactions. Umožňuje vizualizaci závislostí.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(4)">← Zpět</button>
+            <button class="btn-primary" onclick="goToStep(6)">Pokračovat →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 6: Data Plan ───────────────────────────── -->
+        <div class="step-panel" id="step-6">
+          <h1 class="panel-title">Data packages</h1>
+          <p class="panel-subtitle">Zvolte, jaká data chcete nainstalovat. Povinné balíčky zajistí správné fungování systému.</p>
+
+          <div class="package-list">
+            <div class="package-item mandatory">
+              <span class="package-icon">🗄️</span>
+              <span class="package-title">Core installation</span>
+              <span class="package-badge mandatory">Povinný</span>
+            </div>
+            <div class="package-desc">Schéma databáze, migrace, platformové tabulky.</div>
+
+            <div class="package-item mandatory">
+              <span class="package-icon">📋</span>
+              <span class="package-title">Reference seed — Service Catalogue</span>
+              <span class="package-badge mandatory">Povinný</span>
+            </div>
+            <div class="package-desc">Číselníky: typy služeb, SLA tiers, support hours, request channels, lifecycle states.</div>
+
+            <div class="package-item mandatory">
+              <span class="package-icon">🧩</span>
+              <span class="package-title">Reference seed — C3 Taxonomy</span>
+              <span class="package-badge mandatory">Povinný pro C3</span>
+            </div>
+
+            <div class="package-item optional" style="cursor:default;">
+              <span class="package-icon">📦</span>
+              <span class="package-title">Business data — Service Catalogue</span>
+              <span class="package-badge optional">Volitelný</span>
+            </div>
+            <div class="package-desc">Vlastní CSV/XLSX import v kroku 8.</div>
+
+            <div class="package-item optional" id="demo-pkg" onclick="toggleDemo()" style="cursor:pointer;">
+              <input type="checkbox" id="demo-check" checked onclick="event.stopPropagation();" style="width:15px;height:15px;accent-color:#18181b;" />
+              <span class="package-icon">🧪</span>
+              <span class="package-title">Demo data</span>
+              <span class="package-badge rec">Doporučeno</span>
+            </div>
+            <div class="package-desc">Ukázkové služby pro rychlý start a testování UI.</div>
+          </div>
+
+          <div class="alert alert-info">Povinné balíčky se vždy nainstalují automaticky. Demo data jsou doporučena pro první instalaci.</div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(5)">← Zpět</button>
+            <button class="btn-primary" onclick="goToStep(7)">Pokračovat →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 7: Upload ─────────────────────────────── -->
+        <div class="step-panel" id="step-7">
+          <h1 class="panel-title">Import souborů</h1>
+          <p class="panel-subtitle">Nahrajte vlastní data ve formátu CSV, XLSX nebo JSON. Tento krok je volitelný.</p>
+
+          <div class="upload-zone">
+            <div class="upload-icon">📤</div>
+            <div class="upload-title">Přetáhněte soubory sem nebo klikněte pro výběr</div>
+            <div class="upload-hint">Podporované formáty: .csv, .xlsx, .json · Každý soubor = jedna dávka importu</div>
+          </div>
+
+          <div class="alert alert-warning">Každý soubor tvoří samostatnou importní dávku. Chybné řádky v dávce nezastaví import celého souboru.</div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(6)">← Zpět</button>
+            <div class="btn-row">
+              <button class="btn-secondary" onclick="goToStep(8)">Přeskočit import →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 8: Preview ─────────────────────────────── -->
+        <div class="step-panel" id="step-8">
+          <h1 class="panel-title">Náhled importu</h1>
+          <p class="panel-subtitle">Import byl přeskočen. Vlastní data lze importovat kdykoli po instalaci přes sekci Administration.</p>
+
+          <div class="alert alert-info">Žádné soubory nebyly nahrány. Systém nainstaluje pouze povinná a vybraná reference data.</div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(7)">← Zpět</button>
+            <button class="btn-primary" onclick="goToStep(9)">Pokračovat →</button>
+          </div>
+        </div>
+
+        <!-- ── Step 9: Execute ─────────────────────────────── -->
+        <div class="step-panel" id="step-9">
+          <h1 class="panel-title">Spustit instalaci</h1>
+          <p class="panel-subtitle">Zkontrolujte přehled a spusťte instalaci. Tento krok nelze vzít zpět.</p>
+
+          <div class="check-list">
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Service Catalogue Core</span><span class="check-detail">bude aktivován</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">C3 Taxonomy</span><span class="check-detail">bude aktivován</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Admin účet</span><span class="check-detail">připraven</span></div>
+            <div class="check-item ok"><span class="check-icon">✓</span><span class="check-label">Metadata release</span><span class="check-detail">v1.0.2</span></div>
+          </div>
+
+          <div class="progress-wrap" id="exec-progress" style="display:none;">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+            <div class="progress-label" id="progress-label">0%</div>
+            <div class="exec-log" id="exec-log"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn-secondary" onclick="goToStep(8)" id="back-btn-exec">← Zpět</button>
+            <button class="btn-primary" id="exec-btn" onclick="startExecution()">🚀 Spustit instalaci</button>
+          </div>
+        </div>
+
+        <!-- ── Step 10: Summary ─────────────────────────────── -->
+        <div class="step-panel" id="step-10">
+          <div class="summary-status">
+            <div class="summary-icon">✅</div>
+            <div class="summary-title">Instalace úspěšně dokončena</div>
+            <div class="summary-desc">Service Catalogue je připraven k použití. Přihlaste se pomocí vytvořeného admin účtu.</div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">READY</div></div>
+            <div class="meta-item"><div class="meta-label">Verze aplikace</div><div class="meta-value">1.0.2</div></div>
+            <div class="meta-item"><div class="meta-label">Schema verze</div><div class="meta-value">16</div></div>
+            <div class="meta-item"><div class="meta-label">Aktivní moduly</div><div class="meta-value">SERVICE_CATALOGUE, C3_TAXONOMY</div></div>
+          </div>
+
+          <div class="alert alert-warning">Uložte zálohu databáze před každou aktualizací. Migrace jsou jednosměrné a nelze je automaticky vrátit.</div>
+
+          <div class="actions">
+            <div></div>
+            <a href="02-catalogue.html" class="btn-primary">Přejít na přihlášení →</a>
+          </div>
+        </div>
+
+      </div><!-- /.panel -->
+    </div><!-- /.content -->
+  </div><!-- /.main -->
+</div><!-- /.shell -->
+
+<!-- Demo bottom nav -->
+<div class="demo-nav">
+  <span>Krok <strong id="step-indicator">1</strong> / 11</span>
+  <button class="demo-nav-btn" onclick="prevStep()">← Předchozí</button>
+  <button class="demo-nav-btn" onclick="nextStep()">Další →</button>
+</div>
+
+<script>
+let current = 0;
+const total = 11;
+
+function goToStep(n) {
+  const old = document.getElementById('step-' + current);
+  const next = document.getElementById('step-' + n);
+  if (!old || !next) return;
+  old.classList.remove('active');
+  next.classList.add('active');
+
+  // Update stepper dots
+  const items = document.querySelectorAll('.step-item');
+  items.forEach((item, i) => {
+    item.classList.remove('active', 'done');
+    if (i < n) item.classList.add('done');
+    if (i === n) item.classList.add('active');
+  });
+
+  // Update done dots to show ✓
+  items.forEach((item, i) => {
+    const dot = item.querySelector('.step-dot');
+    if (i < n) dot.textContent = '✓';
+    else dot.textContent = i + 1;
+  });
+
+  current = n;
+  document.getElementById('step-indicator').textContent = n + 1;
+}
+
+function nextStep() { if (current < total - 1) goToStep(current + 1); }
+function prevStep() { if (current > 0) goToStep(current - 1); }
+
+function toggleC3() {
+  const card  = document.getElementById('c3-card');
+  const check = document.getElementById('c3-check');
+  check.checked = !check.checked;
+  card.classList.toggle('selected', check.checked);
+}
+
+function toggleDemo() {
+  const check = document.getElementById('demo-check');
+  check.checked = !check.checked;
+}
+
+function startExecution() {
+  document.getElementById('exec-btn').disabled = true;
+  document.getElementById('back-btn-exec').disabled = true;
+  document.getElementById('exec-progress').style.display = 'block';
+
+  const steps = [
+    [10, '→ Spouštím instalaci…'],
+    [25, '→ Aktivuji Service Catalogue Core…'],
+    [45, '→ Aktivuji C3 Taxonomy modul…'],
+    [60, '→ Zapisuji release metadata…'],
+    [75, '→ Spouštím schéma migrace (16 migrací)…'],
+    [88, '→ Seeduji demo data (24 služeb)…'],
+    [95, '→ Načítám výsledný report…'],
+    [100, '→ ✓ Instalace dokončena'],
+  ];
+
+  let i = 0;
+  const run = () => {
+    if (i >= steps.length) { setTimeout(() => goToStep(10), 600); return; }
+    const [pct, msg] = steps[i++];
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = pct + '%';
+    const log = document.getElementById('exec-log');
+    log.innerHTML += '<div>' + msg + '</div>';
+    setTimeout(run, 500);
+  };
+  setTimeout(run, 200);
+}
+</script>
+</body>
+</html>

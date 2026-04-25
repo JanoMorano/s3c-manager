@@ -1,5 +1,15 @@
 # Demo Guide
 
+## Static Preview (no install required)
+
+Before running the application, you can explore it through three self-contained HTML demo pages. Open them directly in a browser — no server, no Docker, no credentials needed.
+
+| File | Description |
+|---|---|
+| [demo/01-install.html](demo/01-install.html) | Installation wizard — 11 interactive steps with live progress, connectivity checks, module selection, and execution log |
+| [demo/02-catalogue.html](demo/02-catalogue.html) | Service catalogue — filter rail, lifecycle badges, requestability, KPI dashboard, full service detail with all 6 tabs |
+| [demo/03-new-service.html](demo/03-new-service.html) | New service wizard — 8-step onboarding with ITIL field hints, C3 mapping, and live review summary |
+
 The fastest way to understand the application is to run it with demo data.
 
 ## Demo Mode

@@ -150,6 +150,18 @@ Minimum required variables:
 
 See the full list in [docs/installation.md](docs/installation.md).
 
+## Interactive Demo (no install required)
+
+Three self-contained HTML pages that show exactly what the application looks like before you run it. Open them directly in a browser — no server needed.
+
+| Page | What it shows |
+|---|---|
+| [demo/01-install.html](demo/01-install.html) | 11-step installation wizard with live stepper, connectivity checks, module selection, and execution log |
+| [demo/02-catalogue.html](demo/02-catalogue.html) | Service catalogue list with filters, lifecycle/requestability badges, KPI dashboard, and a full service detail slide-over with 6 tabs (Overview, Offerings, Request, Support, Ops, Governance) |
+| [demo/03-new-service.html](demo/03-new-service.html) | 8-step service onboarding wizard — Service ID, Business Summary, Consumer Value, Requestability, C3 mapping, and final review |
+
+All three pages are linked to each other via navigation in the top-right corner.
+
 ## Documentation
 
 - [User Guide](docs/user-guide.md)
