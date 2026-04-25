@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Import design tokens — single source of truth */
 @import '../design-system/tokens/tokens.css';
 

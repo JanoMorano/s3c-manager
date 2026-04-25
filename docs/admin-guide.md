@@ -2,9 +2,9 @@
 
 ## Document Purpose
 
-This guide describes the operation, configuration, and administration of the current PostgreSQL-based Service Catalogue runtime. It is intended for:
+This guide describes the operation, configuration, and administration of the Service Catalogue runtime. It is intended for:
 
-- `admin`
+- `admin` users managing the system
 - `editor` users handling content management
 - deployment and operations administrators
 
@@ -12,21 +12,10 @@ This guide describes the operation, configuration, and administration of the cur
 
 The canonical deployment uses two containers:
 
-- `app`
-- `postgres`
+- `app` — Next.js frontend, Express middleware, init and seed logic, retention scheduler
+- `postgres` — `platform` schema (system), `data` schema (business data)
 
-`app` contains:
-
-- the Next.js frontend
-- the Express middleware
-- init and seed logic
-- the retention scheduler
-
-`postgres` contains:
-
-- the `platform` schema
-- the `data` schema
-- persistent system and business data
+---
 
 ## Main Administrative Areas
 
@@ -38,11 +27,11 @@ Route:
 /administration
 ```
 
-The main administration area contains:
+Contains:
 
 - `User Management`
 - `Group Management`
-- `Web`
+- `Web` (SSO settings)
 - `Installation & Modules`
 - `Catalogue Column Edit`
 - `C3 Column Edit`
@@ -59,11 +48,13 @@ Route:
 /management
 ```
 
-This area is aimed primarily at the `editor` role and provides:
+Available to `editor` and `admin`. Provides:
 
-- `New Service`
+- `New Service` — launches the Service Onboarding Wizard
 - `New C3 Capability`
 - `Import CSV/JSON/XLSX`
+
+---
 
 ## Roles and Permissions
 
@@ -71,20 +62,172 @@ This area is aimed primarily at the `editor` role and provides:
 - `editor` — can edit services, C3 entities, capabilities, and imports
 - `admin` — manages users, groups, web/SSO settings, references, installation workflows, and audit
 
-Notes for C3 editors:
+---
 
-- the capability editor and C3 entity editors are available to both `editor` and `admin`
-- system-level and reference-data interventions remain `admin` responsibilities
+## Service Catalogue Administration
+
+### Service Onboarding Wizard
+
+Route:
+
+```text
+/management/new-service
+```
+
+The wizard guides editors through structured service creation in 7–8 steps depending on whether C3 module is enabled:
+
+1. **Identity** — service_id, title, type, status, lifecycle state
+2. **Description** — short_description, business_summary, consumer_value
+3. **Access** — requestable flag, request_channel_url, approval_required, fulfillment_lead_time, target_audience
+4. **Classification** — portfolio_group, network domains, service lines
+5. **Ownership** — service_owner (email), review_owner, next_review_due_at
+6. **SLA** — availability percentage, RTO, RPO, support_hours, support_tier, support_channel
+7. **C3 Mapping** — C3 taxonomy UUID selection (only visible when C3 module is installed)
+8. **Review** — full summary before submission
+
+Every field includes an inline ITIL hint and a `?` tooltip with a detailed explanation. Placeholders are shown in blue italic to guide editors on expected format.
+
+After the wizard completes, the editor is redirected to the full service editor for offerings and support model.
+
+### Service Editor
+
+Route:
+
+```text
+/services/{service_id}/edit
+```
+
+The editor organises fields in sections. Since ITIL phases 1–8, these sections include:
+
+**Identity & Lifecycle**
+- service_id, title, type, status
+- `lifecycle_state` — draft / under_review / approved / live / deprecated / retired
+- Lifecycle transitions are validated — a service cannot move to `live` without meeting minimum completeness requirements
+
+**Business Description**
+- short_description, business_summary
+- `consumer_value` — plain-language benefit statement shown prominently to service consumers
+
+**Requestability & Audience**
+- `requestable` toggle — when enabled, request_channel_url is required
+- request_channel_url, approval_required, fulfillment_lead_time_text
+- target_audience, eligibility_rules
+
+**Service Offerings**
+Each service can have multiple offerings. Per offering:
+- offering_code, title, description
+- requestable, approval_required, lead_time_text
+- target_audience, support_tier, billing_model, price_reference
+- is_default flag, status
+
+The default offering is surfaced in the service list and detail header.
+
+**Support Model**
+- support_owner_name / support_owner_email
+- resolver_group, support_hours, support_channel
+- escalation_path, maintenance_window, service_review_cadence
+
+**SLA**
+- sla_availability, sla_rto, sla_rpo, sla_restoration_text, sla_delivery_text
+- scope_text, operational_notes_raw
+
+**Ownership**
+- service_owner, review_owner, next_review_due_at
+
+**Operational Links**
+Structured URL references for:
+- knowledge articles
+- incident dashboard
+- change calendar
+- support documentation
+- service review records
+
+**Relations & Domains**
+- network domain availability
+- service-to-service relations (dependency, integration, replacement)
+
+**C3 Mappings** (when C3 module is enabled)
+- primary C3 capability
+- additional mappings
+- PACE categories
+- readiness and validation warnings
+
+**Validation & Completeness**
+- completeness score
+- readiness checks
+
+### Lifecycle Governance
+
+Lifecycle states and their meaning:
+
+| State | Meaning | Transition rules |
+|---|---|---|
+| `draft` | Being prepared | Initial state, open to any edit |
+| `under_review` | Under review | Requires title, owner, type |
+| `approved` | Approved | Requires business_summary, lifecycle |
+| `live` | Active | Requires completeness minimum; sets publish date |
+| `deprecated` | Scheduled for retirement | Requires replacement service or justification |
+| `retired` | No longer available | Terminal state; consumer banner shown |
+
+Transition validation blocks advancement — the API rejects invalid transitions and returns a descriptive error. The editor surfaces these as inline validation messages.
+
+Deprecated and retired services show a prominent banner on the detail page warning consumers.
+
+### Services Dashboard
+
+Route:
+
+```text
+/services/dashboard
+```
+
+Since ITIL phase additions, the dashboard includes:
+
+- **Lifecycle KPIs** — count of services in each lifecycle state
+- **Requestable count** — how many services are flagged as requestable
+- Status distribution, type distribution, governance completeness
+- Services with missing consumer_value or support model
+- Services approaching review date
+
+---
+
+## C3 Administration
+
+### Capability List and Editor
+
+List: `/c3/list`  
+Editor: `/c3/{uuid}/edit`
+
+Capability detail and editing use a standardised section layout with validation blocks.
+
+### C3 Entity Editors
+
+Dedicated editors exist for:
+
+- `Applications` — `/admin/c3-application/{code}`
+- `Data Objects` — `/admin/c3-data-objects/{code}`
+- `Services` — `/admin/c3-services/{code}`
+- `Technology Interactions` — `/admin/c3-technology-interactions/{code}`
+
+### Capability Builder
+
+Route: `/admin/c3-capability-builder`
+
+Used for:
+
+- editing the final capability map
+- changing the capability map page title
+- managing Spiral 6 and Spiral 7 baseline branches
+
+Public maps: `/c3/capability-map-spiral6`, `/c3/capability-map-spiral7`
+
+---
 
 ## Installation and Modules
 
 ### Installation & Modules
 
-Route:
-
-```text
-/admin/installation
-```
+Route: `/admin/installation`
 
 Typical uses:
 
@@ -94,11 +237,8 @@ Typical uses:
 - restore demo data
 - activate modules and review module state
 - coordinate backups and restores during maintenance windows
-- rehearse restores before upgrades or `./deploy.sh rebuild-db`
 
-Operations runbook:
-
-- [docs/operations.md](operations.md)
+Operations runbook: [docs/operations.md](operations.md)
 
 ### First-Run Installation
 
@@ -108,29 +248,11 @@ When `APP_RUN_DB_INIT=true`, the init script runs:
 /app/init/init-db-postgres.sh
 ```
 
-It always creates the core schema and conditionally applies seed data based on flags.
-It does not create a reusable default admin account.
+It always creates the core schema and conditionally applies seed data based on flags. Does not create a reusable default admin account.
 
-If `INSTALL_SETUP_TOKEN` is set, pre-READY install write routes require the
-`x-install-setup-token` header. This affects:
-
-- `/api/v1/install/start`
-- `/api/v1/install/bootstrap-admin`
-- `/api/v1/install/config`
-- `/api/v1/install/modules`
-- `/api/v1/install/execute`
-- `/api/v1/install/reset`
-- `/api/v1/install/check-db`
-
-`/api/v1/install/status` remains public so the wizard can detect install mode.
-
-If the install flow seeds demo data, it uses the resolved request locale from
-the wizard (`preferred_lang` when authenticated, otherwise `sc_locale`, then
-`Accept-Language`, then `cs`).
+If `INSTALL_SETUP_TOKEN` is set, pre-READY install write routes require the `x-install-setup-token` header.
 
 ### Seed Flags
-
-Current seed behavior is controlled by:
 
 - `APP_RUN_DB_INIT`
 - `INIT_WITH_TEST_SEEDS`
@@ -141,88 +263,55 @@ Current seed behavior is controlled by:
 
 Practical combinations:
 
-- clean schema without C3 data:
-  - `APP_RUN_DB_INIT=true`
-  - all `INIT_WITH_* = false`
-- baseline C3 initialization:
-  - enable the required `INIT_WITH_C3_*` flags
-- demo data for onboarding:
-  - `INIT_WITH_TEST_SEEDS=true`
+- clean schema without C3: `APP_RUN_DB_INIT=true`, all `INIT_WITH_* = false`
+- full C3 baseline: enable the required `INIT_WITH_C3_*` flags
+- demo data: `INIT_WITH_TEST_SEEDS=true`
 
-### Where Seed Files Must Exist
+### Schema Migrations
 
-The canonical seed root is:
+ITIL phase migrations are applied automatically on startup in order:
 
-```text
-shared/c3/
-```
+- `15_itil_catalogue_phase1.sql` — adds service_offerings, support_model, audience_policy, operational_links, lifecycle fields, requestability fields
+- `16_consumer_value.sql` — adds consumer_value column to services
 
-Typical files:
+See [upgrade.md](upgrade.md) for the full migration workflow.
 
-- `c3-taxonomy-seed.json`
-- `c3-taxonomy-xlsx-import-seed.json`
-- `c3-services-seed.json`
-- `c3-applications-seed.json`
-- `c3-data-objects-seed.json`
-- `c3-technology-interactions-seed.json`
-- `capability-map-spiral6.json`
-- `capability-map-spiral7.json`
-
-If a seed flag is enabled and the corresponding file is missing, init fails in a controlled way.
+---
 
 ## Users, Groups, and SSO
 
 ### User Management
 
-Route:
-
-```text
-/administration/users
-```
+Route: `/administration/users`
 
 Administrators manage:
 
-- local accounts
-- AD/SSO-backed accounts
+- local accounts and AD/SSO-backed accounts
 - role assignments
-- account activity and basic profile data
+- account activity and profile data
 - user language preference (`cs` / `en`)
 
 Language preference behavior:
 
-- the canonical user locale is stored in `preferred_lang`
-- the web UI also keeps a locale cookie `sc_locale`
-- when a signed-in user changes language on `/user-info`, both the DB preference
-  and the cookie are refreshed
-- legacy values such as `cz` or `cze` are normalized to `cs`
+- canonical user locale stored in `preferred_lang`
+- web UI keeps locale cookie `sc_locale`
+- when a signed-in user changes language on `/user-info`, both DB preference and cookie are refreshed
+- legacy values (`cz`, `cze`) are normalised to `cs`
 
 ### Group Management
 
-Route:
+Route: `/admin/groups`
 
-```text
-/admin/groups
-```
-
-Groups provide more granular permissions across both catalogue and C3 areas.
+Groups provide more granular permissions across catalogue and C3 areas.
 
 ### Web / SSO
 
-Route:
+Route: `/administration/web`
 
-```text
-/administration/web
-```
-
-Managed runtime parameters:
+Managed parameters:
 
 - trusted-header SSO
-- principal header mapping
-- display name
-- email
-- given name
-- surname
-- department
+- principal header mapping (display name, email, given name, surname, department)
 
 Relevant environment variables:
 
@@ -238,246 +327,63 @@ Relevant environment variables:
 
 Operational notes:
 
-- the backend trusts SSO identity headers only when the trusted proxy header is
-  present and its shared secret matches
-- legacy aliases `AUTH_SSO_TRUSTED_PROXY_HEADER` and
-  `AUTH_SSO_TRUSTED_PROXY_SHARED_SECRET` are still accepted
+- the backend trusts SSO identity headers only when the trusted proxy header is present and its shared secret matches
 - browser auth uses `HttpOnly` cookies for access and refresh tokens
-- the frontend keeps only a small user snapshot in `sessionStorage`; JWTs are
-  not persisted in browser storage
+- the frontend keeps only a small user snapshot in `sessionStorage`; JWTs are not persisted in browser storage
 
-## Service Catalogue Administration
-
-### Services
-
-Primary business editor:
-
-```text
-/services/{service_id}/edit
-```
-
-Editors or administrators maintain:
-
-- identification
-- lifecycle
-- ownership
-- domains
-- flavours
-- SLA
-- relations
-- C3 mappings
-- validation and completeness score
-
-### Graphs
-
-Operational graph views:
-
-- `/services/graph`
-- `/services/{service_id}/graph`
-
-Both support:
-
-- `Connector type`
-- `Line style`
-- PDF export
-
-## C3 Administration
-
-### Capability List and Editor
-
-List:
-
-```text
-/c3/list
-```
-
-Capability editor:
-
-```text
-/c3/{uuid}/edit
-```
-
-Capability detail and editing use a unified section layout with validation blocks.
-
-### C3 Entity Editors
-
-Dedicated editors exist for:
-
-- `Applications`
-- `Data Objects`
-- `Services`
-- `Technology Interactions`
-
-Admin routes:
-
-```text
-/admin/c3-application/{code}
-/admin/c3-data-objects/{code}
-/admin/c3-services/{code}
-/admin/c3-technology-interactions/{code}
-```
-
-These editors use the same full-page layout as the capability editor.
-
-### Capability Builder
-
-Route:
-
-```text
-/admin/c3-capability-builder
-```
-
-Used for:
-
-- editing the final capability map
-- changing the capability map page title
-- managing Spiral 6 and Spiral 7 baseline branches
-
-Public maps:
-
-```text
-/c3/capability-map-spiral6
-/c3/capability-map-spiral7
-```
-
-## Dashboards and Control Views
-
-### Services Dashboard
-
-Route:
-
-```text
-/services/dashboard
-```
-
-Used for:
-
-- catalogue KPI overview
-- governance monitoring
-- identifying incomplete services
-
-### C3 Dashboard
-
-Route:
-
-```text
-/c3/dashboard
-```
-
-Current blocks:
-
-- `Status Breakdown`
-- `Needs Mapping`
-- `Most Mapped Items`
-- `Coverage by Application`
-- `Sync Status`
-- `Capability Map Health`
-- `Import & Sync Drift`
-- `Link Health`
-- `Review / Validation`
-
-Operational meaning:
-
-- `Capability Map Health` shows builder node coverage against service mappings
-- `Import & Sync Drift` shows the latest import and mapping lag
-- `Link Health` shows the amount of capability links into C3 entities
-- `Review / Validation` shows missing metadata and review-state gaps
+---
 
 ## Imports and Audit
 
 ### Import Upload
 
-Route:
-
-```text
-/import/upload
-```
+Route: `/import/upload`
 
 Supported import groups:
 
-- Service Catalogue
-- C3 Taxonomy
+- Service Catalogue — CSV, JSON
+- C3 Taxonomy — CSV, JSON, XLSX
 - FMN Spirals
 
-Supported formats depend on target:
-
-- `CSV`
-- `JSON`
-- `XLSX`
-
-The flow uses:
-
-- dry-run
-- sync
-- commit
-- issue reporting
+Flow: dry-run → sync → commit → issue reporting
 
 ### Import Audit
 
-Routes:
+Routes: `/import`, `/admin/import`
 
-```text
-/import
-/admin/import
-```
+Used for batch history, warning/error issue logs, and troubleshooting specific runs.
 
-Used for:
-
-- batch history
-- warning/error issue logs
-- import troubleshooting
-- detail views for specific runs
+---
 
 ## References and Lookup Data
 
 ### Catalogue Column Edit
 
-Route:
+Route: `/admin/catalogue-ref`
 
-```text
-/admin/catalogue-ref
-```
-
-Used for:
-
-- service types
-- service status
-- relation types
-- portfolio groups
-- service lines
-- other catalogue reference tables
+Manages: service types, service status codes, relation types, portfolio groups, service lines, and other catalogue reference tables.
 
 ### C3 Column Edit
 
-Route:
+Route: `/admin/c3-ref`
 
-```text
-/admin/c3-ref
-```
+Manages: C3 mapping types, capability domains, and other C3 reference values.
 
-Used for:
-
-- C3 mapping types
-- capability domains
-- other C3 reference values
+---
 
 ## Runtime Environment Variables
 
-Most important runtime variables:
+Key runtime variables:
 
 - `DATABASE_URL`
-- `DB_HOST`
-- `DB_PORT`
-- `DB_NAME`
-- `DB_USER`
-- `DB_PASSWORD`
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - `JWT_SECRET`
 - `CORS_ORIGINS`
 - `ENABLE_RETENTION_SCHEDULER`
-- `RETENTION_RUNNER_NAME`
-- `RETENTION_RUNNER_KIND`
-- `RETENTION_PURGE_INTERVAL_SECONDS`
-- `RETENTION_HEARTBEAT_TTL_SECONDS`
+- `RETENTION_RUNNER_NAME`, `RETENTION_RUNNER_KIND`
+- `RETENTION_PURGE_INTERVAL_SECONDS`, `RETENTION_HEARTBEAT_TTL_SECONDS`
+
+---
 
 ## QNAP / Portainer Notes
 
@@ -487,19 +393,11 @@ QNAP deployment uses:
 - `.env.qnap`
 - the bundle created by `build-amd64.sh`
 
-Important variables:
+Important variables: `QNAP_DATA_DIR`, `QNAP_NETWORK_NAME`, `APP_STATIC_IP`, `POSTGRES_STATIC_IP`, `QNAP_DNS`
 
-- `QNAP_DATA_DIR`
-- `QNAP_NETWORK_NAME`
-- `APP_STATIC_IP`
-- `POSTGRES_STATIC_IP`
-- `QNAP_DNS`
+If `POSTGRES_PASSWORD` differs from the password used when the volume was first created, PostgreSQL rejects the login. Fix: reuse the original password, change it inside the DB, or remove the volume and run a clean init.
 
-If `POSTGRES_PASSWORD` differs from the password used when the volume was created for the first time, PostgreSQL rejects the login. In that case:
-
-- reuse the original password
-- or change the password inside the database
-- or remove the volume and run a clean init
+---
 
 ## Recommended Operational Checks
 
@@ -513,51 +411,42 @@ After deployment verify:
 
 Basic checklist:
 
-1. `app` and `postgres` are healthy
+1. `app` and `postgres` containers are healthy
 2. login works
 3. `/services/list` returns data
-4. `/c3/list` returns data
-5. Spiral 6 and Spiral 7 capability maps load
-6. the import upload page matches the user role
-7. the administration menu is visible only to authorized roles
+4. lifecycle and requestable filters return expected results
+5. `/c3/list` returns data (when C3 module is enabled)
+6. Spiral 6 and Spiral 7 capability maps load
+7. import upload page matches the user role
+8. administration menu is visible only to authorised roles
+9. New Service wizard loads at `/management/new-service`
+
+---
 
 ## Common Problems
 
+### Service Cannot Transition to `live`
+
+Cause: minimum completeness requirements are not met.
+
+Fix: open the service editor, check the Validation & Completeness section, fill all required fields, then retry the lifecycle transition.
+
 ### C3 Seed Files Not Found
 
-Symptom:
+Symptom: init reports a missing file in `shared/c3`
 
-- init reports a missing file in `shared/c3`
-
-Fix:
-
-- add the required seed files
-- or disable the corresponding `INIT_WITH_*` flag
+Fix: add the required seed files or disable the corresponding `INIT_WITH_*` flag.
 
 ### Password Authentication Failed for User `postgres`
 
-Cause:
+Cause: existing PostgreSQL volume was created with a different password.
 
-- the existing PostgreSQL volume was created with a different password than the current environment
-
-Fix:
-
-- reuse the original password
-- or change the password inside the database
-- or remove the volume and redeploy cleanly
+Fix: reuse the original password, change it inside the database, or remove the volume and redeploy cleanly.
 
 ### C3 Editor Opens but Save Fails
 
-Current behavior:
-
-- the C3 entity update API now uses `canEdit`
-- therefore both `editor` and `admin` can save changes
+Current behavior: the C3 entity update API uses `canEdit`, so both `editor` and `admin` can save. Verify the user role if save fails.
 
 ### Capability Map or Dashboard Is Empty
 
-Check:
-
-- seed flags
-- presence of files in `shared/c3`
-- `C3 Capability Builder` state
-- import runs and seed status
+Check: seed flags, presence of files in `shared/c3`, C3 Capability Builder state, and import runs.

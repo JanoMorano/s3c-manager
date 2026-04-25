@@ -42,17 +42,49 @@ FROM platform.schema_migrations
 ORDER BY applied_at;
 ```
 
+### Applied Migrations
+
+| File | Description |
+|---|---|
+| `01` – `13` | Core schema, references, C3 taxonomy, graphs |
+| `15_itil_catalogue_phase1.sql` | ITIL phase 1–8 — adds `service_offerings`, `service_support_model`, `service_audience_policy`, `service_operational_links`, `service_review`; adds lifecycle, requestability, support, and audience fields to `services` |
+| `16_consumer_value.sql` | Adds `consumer_value` column to `services` |
+
+### What Migration 15 Adds
+
+`15_itil_catalogue_phase1.sql` extends the service catalogue with:
+
+**New tables:**
+
+- `data.service_offerings` — requestable service variants (offering_code, title, requestable, approval_required, lead_time_text, target_audience, support_tier, billing_model, price_reference, is_default, status)
+- `data.service_support_model` — support ownership (support_owner, resolver_group, support_hours, support_channel, escalation_path, maintenance_window, service_review_cadence)
+- `data.service_audience_policy` — audience and eligibility (audience_type, eligibility_rules, region_scope, security_classification)
+- `data.service_operational_links` — operational reference links (link_type, title, url)
+- `data.service_review` — review records (review_owner, review_date, attestation_status, notes)
+
+**New columns on `data.services`:**
+
+- `lifecycle_state` — ITIL lifecycle (draft / under_review / approved / live / deprecated / retired)
+- `business_summary`, `consumer_value` — business-facing description fields
+- `requestable`, `request_channel_url`, `request_channel_type`, `approval_required`
+- `fulfillment_lead_time_text`
+- `target_audience_summary`, `eligibility_rules`
+- `support_tier`, `support_hours`, `support_channel`
+- `review_owner`, `next_review_due_at`
+
+**Backward compatibility:** all new columns are nullable with sensible defaults; no existing column is removed or renamed; existing API endpoints continue to work.
+
 ### Adding a New Migration
 
-1. Create a SQL file with the next number, for example `14_new_feature.sql`
-2. Add it to `init-db-postgres.sh`
+1. Create a SQL file with the next number, for example `17_new_feature.sql`
+2. Add it to `init/init-db-postgres.sh`
 3. Insert a record into `platform.schema_migrations` from the migration or seed layer
 
 ---
 
 ## Rollback
 
-Service Catalogue v2 does **not** support automatic rollback. Schema migrations are one-way.
+Service Catalogue does **not** support automatic rollback. Schema migrations are one-way.
 
 Before every upgrade:
 
@@ -60,7 +92,7 @@ Before every upgrade:
 # Backup
 ./scripts/backup-postgres.sh backups/backup_pre_upgrade.dump
 
-# Manual rollback, if necessary
+# Manual rollback if necessary
 ./scripts/restore-postgres.sh backups/backup_pre_upgrade.dump
 ```
 
@@ -90,4 +122,8 @@ curl http://localhost:8080/api/v1/install/summary | jq .app_version
 
 # Health check
 curl http://localhost:8080/api/health/ready
+
+# Verify ITIL migrations applied
+psql -c "SELECT migration_name, status FROM platform.schema_migrations ORDER BY applied_at" 
+# Should include 15_itil_catalogue_phase1 and 16_consumer_value with status = 'applied'
 ```
