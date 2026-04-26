@@ -156,9 +156,9 @@ Three self-contained HTML pages that show exactly what the application looks lik
 
 | Page | What it shows |
 |---|---|
-| [demo/01-install.html](demo/01-install.html) | 11-step installation wizard with live stepper, connectivity checks, module selection, and execution log |
-| [demo/02-catalogue.html](demo/02-catalogue.html) | Service catalogue list with filters, lifecycle/requestability badges, KPI dashboard, and a full service detail slide-over with 6 tabs (Overview, Offerings, Request, Support, Ops, Governance) |
-| [demo/03-new-service.html](demo/03-new-service.html) | 8-step service onboarding wizard — Service ID, Business Summary, Consumer Value, Requestability, C3 mapping, and final review |
+| [demo/01-install.html](https://janomorano.github.io/s3c-manager/demo/01-install.html) | 11-step installation wizard with live stepper, connectivity checks, module selection, and execution log |
+| [demo/02-catalogue.html](https://janomorano.github.io/s3c-manager/demo/02-catalogue.html) | Service catalogue list with filters, lifecycle/requestability badges, KPI dashboard, and a full service detail slide-over with 6 tabs (Overview, Offerings, Request, Support, Ops, Governance) |
+| [demo/03-new-service.html](https://janomorano.github.io/s3c-manager/demo/03-new-service.html) | 8-step service onboarding wizard — Service ID, Business Summary, Consumer Value, Requestability, C3 mapping, and final review |
 
 All three pages are linked to each other via navigation in the top-right corner.
 
