@@ -150,17 +150,19 @@ Minimum required variables:
 
 See the full list in [docs/installation.md](docs/installation.md).
 
-## Interactive Demo (no install required)
+## v1.1 Preview Screenshots
 
-Three self-contained HTML pages that show exactly what the application looks like before you run it. Open them directly in a browser — no server needed.
+The `screenshots/v1.1-en` folder contains English screenshots from the current v1.1 application. They show the real UI after the capability cockpit redesign, including the installer, service onboarding, operations cockpit, service graph, and dependency flow view.
 
-| Page | What it shows |
+| Screenshot | What it shows |
 |---|---|
-| [demo/01-install.html](https://janomorano.github.io/s3c-manager/demo/01-install.html) | 11-step installation wizard with live stepper, connectivity checks, module selection, and execution log |
-| [demo/02-catalogue.html](https://janomorano.github.io/s3c-manager/demo/02-catalogue.html) | Service catalogue list with filters, lifecycle/requestability badges, KPI dashboard, and a full service detail slide-over with 6 tabs (Overview, Offerings, Request, Support, Ops, Governance) |
-| [demo/03-new-service.html](https://janomorano.github.io/s3c-manager/demo/03-new-service.html) | 8-step service onboarding wizard — Service ID, Business Summary, Consumer Value, Requestability, C3 mapping, and final review |
+| [00-install.png](screenshots/v1.1-en/00-install.png) | First-run installer with setup steps, local deployment configuration, module readiness, and execution feedback before the application is marked ready. |
+| [01-new-service.png](screenshots/v1.1-en/01-new-service.png) | New Service onboarding flow for creating a business service, including service identity, ownership, requestability, consumer value, C3 mapping, and review-oriented fields. |
+| [02-operations.png](screenshots/v1.1-en/02-operations.png) | Operations cockpit for service governance: KPI cards, readiness signals, decision queues, evidence lists, lifecycle cleanup, pricing patrol, and owner-oriented actions. |
+| [03-service-graph.png](screenshots/v1.1-en/03-service-graph.png) | Service graph view showing service relationships, dependency context, graph controls, and visual navigation across linked services. |
+| [04-service-dep.png](screenshots/v1.1-en/04-service-dep.png) | Dependency Flow view showing how consumer needs, business services, enabling services, C3 capabilities, and FMN requirements connect end-to-end. |
 
-All three pages are linked to each other via navigation in the top-right corner.
+These screenshots are static preview assets. To interact with the product, run the application locally with Docker Compose and open `http://localhost:8080`.
 
 ## Documentation
 
