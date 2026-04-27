@@ -7,8 +7,8 @@
 #
 # Version is read automatically from docker-compose.yml (APP_VERSION default).
 # Output filenames include the version and architecture, e.g.:
-#   - sc-images-amd64-1.0.2.tar
-#   - sc-qnap-bundle-amd64-1.0.2.tar.gz
+#   - sc-images-amd64-1.1.0.tar
+#   - sc-qnap-bundle-amd64-1.1.0.tar.gz
 #
 # Usage:
 #   chmod +x build-amd64.sh
@@ -24,7 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── Auto-detect version from docker-compose.yml ───────────────────────────────
-# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.0.2}
+# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.1.0}
 DETECTED_VERSION=""
 if [ -f "docker-compose.yml" ]; then
   DETECTED_VERSION=$(grep 'APP_VERSION:-' docker-compose.yml | sed 's/.*APP_VERSION:-\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/' | head -1)
@@ -184,8 +184,8 @@ BUNDLE_SIZE=$(du -sh "$BUNDLE_TAR" | cut -f1)
 
 # ── GitHub release (optional) ─────────────────────────────────────────────────
 if [ "$DO_RELEASE" = true ]; then
-  # Git tag uses the plain version (with optional leading v), e.g. v1.0.2
-  # The image tag has the arch suffix (sc-app:1.0.2-amd64) but the release tag does not.
+  # Git tag uses the plain version (with optional leading v), e.g. v1.1.0
+  # The image tag has the arch suffix (sc-app:1.1.0-amd64) but the release tag does not.
   GIT_TAG="${IMAGE_TAG}"
   # Prepend 'v' if not already present
   [[ "$GIT_TAG" != v* ]] && GIT_TAG="v${GIT_TAG}"

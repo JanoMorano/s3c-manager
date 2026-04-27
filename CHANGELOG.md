@@ -9,6 +9,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [1.1.0] — 2026-04-27
+
 ### Added
 - Generic evidence document/source records in capability coverage payloads and the capability `Documents` tab.
 - Local-account Playwright E2E covering service mapping preview → save → capability dashboard confirmation.
@@ -83,7 +87,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Design tokens — CSS custom properties for color, spacing, radius, and typography
 - Dashboard — KPI tiles, distribution charts, and review due lists
 
-[Unreleased]: https://github.com/example/service-catalogue/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/example/service-catalogue/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/example/service-catalogue/releases/tag/v1.1.0
 [1.0.2]: https://github.com/example/service-catalogue/releases/tag/v1.0.2
 [1.0.0-beta.1]: https://github.com/example/service-catalogue/releases/tag/v1.0.0-beta.1
 [1.0.0]: https://github.com/example/service-catalogue/releases/tag/v1.0.0

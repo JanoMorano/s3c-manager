@@ -8,11 +8,11 @@ Enterprise service catalogue for service governance, dependency graphs, pricing/
 
 > **Stack:** Next.js 15 · Node.js / Express · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.0.2
+## What's New in V1.1.0
 
-- ITIL-ready catalogue capabilities: lifecycle governance, service offerings, support model, requestability, consumer value, audience and eligibility, and operational links
-- guided New Service Wizard with inline ITIL hints and a business-first service detail with tabs for Overview, Offerings, Request & Eligibility, Support, and Governance
-- refreshed UI foundation with shadcn/ui primitives and Tailwind CSS tokens layered into the existing app shell
+- capability-driven decision cockpit for Catalogue, Operations, C3, Capabilities, Spirals, and FMN Air C2
+- generic Level-3 capability coverage, overlap, gap, duplicate coverage, and consolidation evidence views
+- real NATO/C3 import smoke, local-account regression tests, light/dark tokens, and `cs` / `en` / `sk` / `de` i18n support
 
 ## What It Is
 

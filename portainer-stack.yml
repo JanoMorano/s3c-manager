@@ -14,13 +14,13 @@
 #   Either JWT_SECRET or JWT_SECRET_FILE
 #
 # Optional:
-#   SC_APP_TAG          — Docker image tag to deploy  (default: v1.0.2)
+#   SC_APP_TAG          — Docker image tag to deploy  (default: v1.1.0)
 #   APP_PORT            — host port for the web UI    (default: 8080)
 # ══════════════════════════════════════════════════════════════════════════════
 
 services:
   app:
-    image: sc-app:${SC_APP_TAG:-v1.0.2}
+    image: sc-app:${SC_APP_TAG:-v1.1.0}
     container_name: sc-app
     restart: unless-stopped
     ports:
@@ -81,7 +81,7 @@ services:
       retries: 3
       start_period: 60s
     labels:
-      com.service-catalogue.version: "${SC_APP_TAG:-v1.0.2}"
+      com.service-catalogue.version: "${SC_APP_TAG:-v1.1.0}"
       com.service-catalogue.component: "app"
 
   postgres:
