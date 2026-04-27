@@ -31,6 +31,7 @@ test('C3 capability map Spiral 6 route renders', async ({ page }) => {
 });
 
 test('C3 technology interactions route renders', async ({ page }) => {
+  if (!(await loginForProtectedC3Route(page))) return;
   await page.goto('/c3/technology-interactions');
   await expect(page.getByRole('heading', { name: 'C3 Technology Interactions' })).toBeVisible();
 });

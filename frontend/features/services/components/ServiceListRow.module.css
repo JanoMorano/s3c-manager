@@ -3,28 +3,37 @@
 .row {
   display: grid;
   grid-template-columns:
-    140px          /* ID + Type */
-    1fr            /* Title */
-    140px          /* Portfolio */
-    80px           /* Domains */
-    90px           /* Availability */
-    100px          /* Status */
-    140px;         /* Owner */
+    128px
+    minmax(260px, 1.3fr)
+    130px
+    86px
+    94px
+    104px
+    132px
+    140px;
   align-items: center;
   gap: 0 var(--space-4);
-  padding: 0 var(--space-4);
+  margin: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   text-decoration: none;
   color: inherit;
-  border-bottom: 1px solid var(--color-border-default);
-  transition: background 0.1s;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+  transition: background 0.1s, border-color 0.1s, transform 0.1s;
 }
 
-.row:hover { background: #f8f9fb; }
-.selected  { background: #deebff; }
+.row:hover {
+  background: color-mix(in srgb, var(--color-info) 3%, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--color-info) 35%, var(--color-border-default));
+  transform: translateY(-1px);
+}
+.selected  { background: color-mix(in srgb, var(--color-info) 10%, transparent); }
 
 /* Density */
-.comfortable { min-height: 60px; }
-.compact     { min-height: 36px; }
+.comfortable { min-height: 74px; }
+.compact     { min-height: 48px; padding-block: var(--space-2); }
 
 /* Header */
 .header {
@@ -37,6 +46,8 @@
   top: 0;
   z-index: 1;
   border-bottom: 2px solid var(--color-border-strong);
+  box-shadow: none;
+  margin-top: 0;
 }
 
 .headerButton {
@@ -85,6 +96,22 @@
   white-space: nowrap;
 }
 
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.requestableChip {
+  flex-shrink: 0;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
+  color: var(--color-info);
+  font: var(--text-label-sm);
+}
+
 .desc {
   display: block;
   font: var(--text-body-sm);
@@ -118,7 +145,30 @@
 .colDomains  { }
 .colAvail    { }
 .colStatus   { display: flex; align-items: center; gap: var(--space-2); }
+.colSignals  {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
 .colOwner    { overflow: hidden; }
+
+.colSignals span,
+.colSignals strong {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+  white-space: nowrap;
+}
+
+.colSignals strong {
+  color: var(--color-warning);
+  font-weight: 500;
+}
 
 /* Lifecycle dot — small colored circle next to status pill */
 .lifecycleDot {
@@ -127,4 +177,27 @@
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+@media (max-width: 1200px) {
+  .row {
+    grid-template-columns: 112px minmax(220px, 1fr) 110px 80px 96px;
+  }
+
+  .colPortfolio,
+  .colSignals,
+  .colOwner {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .header {
+    display: none;
+  }
 }

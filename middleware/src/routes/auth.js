@@ -162,6 +162,24 @@ async function getSsoRuntimeConfig() {
     };
 }
 
+/**
+ * GET /api/v1/auth/modes
+ * Public, read-only authentication mode discovery for the login page.
+ * It intentionally does not process identity headers; SSO is attempted only
+ * after an administrator enables it in Admin → Web / ADFS settings.
+ */
+router.get('/modes', async (req, res, next) => {
+    try {
+        const runtimeConfig = await getSsoRuntimeConfig();
+        res.json({
+            local: true,
+            sso: runtimeConfig.enabled,
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
 function deriveIdentityCandidates(principal) {
     const raw = normalizeIdentity(principal);
     const noDomain = raw.includes('\\') ? raw.split('\\').pop() : raw;
@@ -204,6 +222,7 @@ async function loadUserById(userId) {
             external_principal,
             preferred_lang,
             preferred_theme,
+            COALESCE(preferred_persona, 'service_owner') AS preferred_persona,
             given_name,
             surname,
             phone,
@@ -580,6 +599,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
             external_principal: user.external_principal ?? null,
             preferred_lang: normalizeLocale(user.preferred_lang),
             preferred_theme: user.preferred_theme ?? 'dark',
+            preferred_persona: user.preferred_persona ?? 'service_owner',
             given_name: user.given_name ?? null,
             surname: user.surname ?? null,
             phone: user.phone ?? null,
@@ -591,6 +611,36 @@ router.get('/me', requireAuth, async (req, res, next) => {
     } catch (err) {
         next(err);
     }
+});
+
+const VALID_PERSONAS = new Set(['consumer', 'service_owner', 'capability_manager', 'admin']);
+
+router.get('/me/persona', requireAuth, async (req, res, next) => {
+    try {
+        const result = await getPlatformPool().query(`
+            SELECT COALESCE(preferred_persona, 'service_owner') AS preferred_persona
+            FROM platform.users
+            WHERE id = $1
+        `, [req.user.id]);
+        const persona = result.rows[0]?.preferred_persona ?? 'service_owner';
+        res.json({ persona });
+    } catch (err) { next(err); }
+});
+
+router.put('/me/persona', requireAuth, async (req, res, next) => {
+    try {
+        const persona = String(req.body?.persona ?? '').trim();
+        if (!VALID_PERSONAS.has(persona)) {
+            return res.status(400).json({ error: 'Invalid persona' });
+        }
+        await getPlatformPool().query(`
+            UPDATE platform.users
+            SET preferred_persona = $2,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+        `, [req.user.id, persona]);
+        res.json({ persona });
+    } catch (err) { next(err); }
 });
 
 /**

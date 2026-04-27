@@ -27,6 +27,16 @@ export async function loginWithConfiguredAdmin(page: Page, credentials: AdminCre
   await submitBtn.click();
 
   await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 });
+  await page.context().addCookies([
+    {
+      name: 'sc_locale',
+      value: 'en',
+      url: page.url().startsWith('http') ? new URL(page.url()).origin : 'http://localhost:8080',
+    },
+  ]);
+  await page.request.put('/api/v1/auth/preferences', {
+    data: { preferred_lang: 'en' },
+  }).catch(() => undefined);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForLoadState('networkidle').catch(() => {});
 }

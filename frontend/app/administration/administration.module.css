@@ -64,7 +64,7 @@
 }
 .card:hover {
   border-color: var(--color-action-primary);
-  box-shadow: 0 2px 12px rgba(0,101,255,.1);
+  box-shadow: var(--shadow-low);
 }
 
 .cardIcon  { font-size: 28px; line-height: 1; }

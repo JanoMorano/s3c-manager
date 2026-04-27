@@ -6,11 +6,13 @@ import { t as translate, type Locale, type MessageKey, type TranslationParams } 
 
 export interface I18nContextValue {
   locale: Locale;
+  setLocale: (locale: Locale) => void;
   t: (key: MessageKey | string, params?: TranslationParams) => string;
 }
 
 const defaultContext: I18nContextValue = {
   locale: DEFAULT_LOCALE,
+  setLocale: () => undefined,
   t: (key) => key,
 };
 

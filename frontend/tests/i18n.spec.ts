@@ -1,9 +1,35 @@
 import { expect, test } from '@playwright/test';
+import path from 'node:path';
 import csMessages from '../../shared/i18n/messages/cs.json';
 import enMessages from '../../shared/i18n/messages/en.json';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
+const requireFromTest = require;
+const dotenv = requireFromTest('../../middleware/node_modules/dotenv');
+const jwt = requireFromTest('../../middleware/node_modules/jsonwebtoken');
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 type Locale = 'cs' | 'en';
+
+function signedAccessToken(locale: Locale) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is required for authenticated i18n browser tests.');
+  const snapshot = authenticatedSnapshot(locale);
+  return jwt.sign(
+    {
+      sub: snapshot.id,
+      username: snapshot.username,
+      role: snapshot.role,
+      display_name: snapshot.display_name,
+      preferred_lang: snapshot.preferred_lang,
+    },
+    secret,
+    {
+      expiresIn: '30m',
+      issuer: 'service-catalogue',
+      audience: 'service-catalogue-ui',
+    },
+  );
+}
 
 function readyInstallStatus(locale: Locale = 'cs') {
   return {
@@ -51,7 +77,7 @@ async function prepareLocale(page, locale: Locale, options: { ready?: boolean; a
     cookies.push(
       {
         name: 'sc_access_token',
-        value: 'test-access-token',
+        value: signedAccessToken(locale),
         url: BASE_URL,
       },
       {

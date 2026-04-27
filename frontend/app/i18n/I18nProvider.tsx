@@ -52,7 +52,7 @@ export default function I18nProvider({
   }, [locale]);
 
   return (
-    <I18nContext.Provider value={{ locale, t: (key, params) => translate(locale, key, params) }}>
+    <I18nContext.Provider value={{ locale, setLocale, t: (key, params) => translate(locale, key, params) }}>
       {children}
     </I18nContext.Provider>
   );

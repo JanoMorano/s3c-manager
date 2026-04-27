@@ -6,6 +6,7 @@
 
 import { use, useEffect, useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from '@/app/components/AppLink';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,6 +37,7 @@ import { Button }     from '@/design-system/controls/Button';
 import { TextInput }  from '@/design-system/controls/TextInput';
 import { Select }     from '@/design-system/controls/Select';
 import { Checkbox }   from '@/design-system/controls/Checkbox';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './editor.module.css';
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
@@ -117,8 +119,32 @@ const OFFERING_STATUSES = ['draft', 'active', 'retired'];
 
 interface Props { params: Promise<{ id: string }> }
 
+interface PreviewMappingResponse {
+  read_only: boolean;
+  coverage_delta_per_lvl3: Array<{
+    capability_title: string;
+    capability_slug: string | null;
+    spiral_code: string;
+    before_coverage_percent: number;
+    after_coverage_percent: number;
+    newly_covered_count: number;
+  }>;
+  newly_covered_requirements: Array<{ code: string; title: string; kind: string }>;
+  potential_duplicate_coverage: Array<{ service_id: string; title: string }>;
+  affected_spirals: string[];
+  classification: string;
+}
+
+interface Level3CapabilityOption {
+  uuid: string;
+  page_id: string;
+  title: string;
+  parent?: { title?: string | null } | null;
+}
+
 export default function ServiceEditorPage({ params }: Props) {
   const { id } = use(params);
+  const t = useT();
   const router  = useRouter();
   const { data: svc, mutate } = useService(id);
   const { data: portfolioGroups } = usePortfolioGroups();
@@ -488,6 +514,10 @@ export default function ServiceEditorPage({ params }: Props) {
   const [c3Error,      setC3Error]      = useState<string | null>(null);
   const [showC3Add,    setShowC3Add]    = useState(false);
   const [c3Form,       setC3Form]       = useState({ c3_uuid: '', mapping_type_code: 'supports', is_primary: false, mapping_note: '' });
+  const [c3Preview,    setC3Preview]    = useState<PreviewMappingResponse | null>(null);
+  const [c3PreviewBusy, setC3PreviewBusy] = useState(false);
+  const [c3PreviewError, setC3PreviewError] = useState<string | null>(null);
+  const [level3Capabilities, setLevel3Capabilities] = useState<Level3CapabilityOption[]>([]);
 
   const loadC3Mappings = useCallback(async () => {
     try {
@@ -498,8 +528,60 @@ export default function ServiceEditorPage({ params }: Props) {
 
   useEffect(() => { loadC3Mappings(); }, [loadC3Mappings]);
 
+  useEffect(() => {
+    if (!showC3Add || level3Capabilities.length > 0) return;
+    let cancelled = false;
+    fetch('/api/v1/capabilities/lvl3', { credentials: 'include', headers: authHeaders() })
+      .then((response) => response.ok ? response.json() : [])
+      .then((payload) => {
+        if (!cancelled) setLevel3Capabilities(Array.isArray(payload) ? payload : []);
+      })
+      .catch(() => {
+        if (!cancelled) setLevel3Capabilities([]);
+      });
+    return () => { cancelled = true; };
+  }, [level3Capabilities.length, showC3Add]);
+
+
+  useEffect(() => {
+    if (!showC3Add || !c3Form.c3_uuid) {
+      setC3Preview(null);
+      setC3PreviewError(null);
+      setC3PreviewBusy(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setC3PreviewBusy(true);
+      setC3PreviewError(null);
+      try {
+        const response = await fetch(`/api/v1/services/${id}/preview-mapping`, {
+          method: 'POST',
+          credentials: 'include',
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ capability_uuid: c3Form.c3_uuid, mapping_type_code: c3Form.mapping_type_code }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error((payload as { error?: string }).error ?? `HTTP ${response.status}`);
+        setC3Preview(payload as PreviewMappingResponse);
+      } catch (error: unknown) {
+        if (!controller.signal.aborted) {
+          setC3Preview(null);
+          setC3PreviewError(error instanceof Error ? error.message : t('service_editor.c3.preview.failed'));
+        }
+      } finally {
+        if (!controller.signal.aborted) setC3PreviewBusy(false);
+      }
+    }, 350);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [c3Form.c3_uuid, c3Form.mapping_type_code, id, showC3Add]);
+
   const handleC3Add = async () => {
-    if (!c3Form.c3_uuid.trim()) { setC3Error('C3 UUID is required'); return; }
+    if (!c3Form.c3_uuid.trim()) { setC3Error(t('service_editor.c3.error_required')); return; }
     setC3Busy(true); setC3Error(null);
     try {
       const r = await fetch(`/api/v1/taxonomy/mapping/${id}`, {
@@ -509,15 +591,17 @@ export default function ServiceEditorPage({ params }: Props) {
       });
       if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error ?? `HTTP ${r.status}`); }
       setC3Form({ c3_uuid: '', mapping_type_code: 'supports', is_primary: false, mapping_note: '' });
+      setC3Preview(null);
+      setC3PreviewError(null);
       setShowC3Add(false);
       await loadC3Mappings();
       await mutateReadiness();
-    } catch (e: unknown) { setC3Error(e instanceof Error ? e.message : 'Failed'); }
+    } catch (e: unknown) { setC3Error(e instanceof Error ? e.message : t('common.failed')); }
     finally { setC3Busy(false); }
   };
 
   const handleC3Delete = async (mappingId: number) => {
-    if (!confirm('Remove this C3 taxonomy mapping?')) return;
+    if (!confirm(t('service_editor.c3.confirm_remove'))) return;
     setC3Busy(true); setC3Error(null);
     try {
       const r = await fetch(`/api/v1/taxonomy/mapping/${id}/${mappingId}`, { method: 'DELETE', headers: authHeaders() });
@@ -527,7 +611,7 @@ export default function ServiceEditorPage({ params }: Props) {
       }
       await loadC3Mappings();
       await mutateReadiness();
-    } catch (e: unknown) { setC3Error(e instanceof Error ? e.message : 'Delete failed'); }
+    } catch (e: unknown) { setC3Error(e instanceof Error ? e.message : t('service_editor.c3.delete_failed')); }
     finally { setC3Busy(false); }
   };
 
@@ -688,7 +772,7 @@ export default function ServiceEditorPage({ params }: Props) {
     }
   };
 
-  if (!svc) return <div className={styles.state}>Loading…</div>;
+  if (!svc) return <div className={styles.state}>{t('common.loading')}</div>;
 
   return (
     <form className={styles.shell} onSubmit={handleSubmit(onSubmit)}>
@@ -1459,24 +1543,24 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §7b C3 Taxonomy Mappings */}
-          <EditorSection id="c3mapping" title="7b. C3 Taxonomy Mappings">
+          <EditorSection id="c3mapping" title={t('service_editor.c3.section_title')}>
             {c3Error && <div className={styles.errorBanner}>{c3Error}</div>}
             {readiness && (
               <div className={styles.readinessCard}>
                 <div className={styles.readinessHeader}>
-                  <span className={styles.readinessTitle}>Publish Readiness</span>
+                  <span className={styles.readinessTitle}>{t('service_editor.c3.readiness.title')}</span>
                   <span className={readiness.is_publishable ? styles.readinessOk : styles.readinessBlocked}>
-                    {readiness.is_publishable ? 'Ready' : 'Blocked'}
+                    {readiness.is_publishable ? t('service_editor.c3.readiness.ready') : t('service_editor.c3.readiness.blocked')}
                   </span>
                 </div>
                 <div className={styles.readinessMeta}>
-                  <span>Primary mapping: {readiness.primary_mapping_count}</span>
-                  <span>Capability status: {readiness.primary_c3_completeness_status}</span>
-                  <span>Active flavours: {readiness.active_flavour_count}</span>
+                  <span>{t('service_editor.c3.readiness.primary_mapping')}: {readiness.primary_mapping_count}</span>
+                  <span>{t('service_editor.c3.readiness.capability_status')}: {readiness.primary_c3_completeness_status}</span>
+                  <span>{t('service_editor.c3.readiness.active_flavours')}: {readiness.active_flavour_count}</span>
                 </div>
                 {readiness.blockers.length > 0 && (
                   <div className={styles.readinessBlock}>
-                    <strong>Blokery</strong>
+                    <strong>{t('service_editor.c3.readiness.blockers')}</strong>
                     <ul className={styles.readinessList}>
                       {readiness.blockers.map((item) => (
                         <li key={item}>{item}</li>
@@ -1486,7 +1570,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 )}
                 {readiness.warnings.length > 0 && (
                   <div className={styles.readinessWarn}>
-                    <strong>Upozornění</strong>
+                    <strong>{t('service_editor.c3.readiness.warnings')}</strong>
                     <ul className={styles.readinessList}>
                       {readiness.warnings.map((item) => (
                         <li key={item}>{item}</li>
@@ -1514,58 +1598,94 @@ export default function ServiceEditorPage({ params }: Props) {
                         </a>
                       );
                     })()}
-                    {m.is_primary && <span className={styles.relBadgeGreen}>primary</span>}
+                    {m.is_primary && <span className={styles.relBadgeGreen}>{t('service_editor.c3.primary_badge')}</span>}
                     {m.mapping_note && <span className={styles.hint}>{m.mapping_note}</span>}
                     <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`}
-                      onClick={() => handleC3Delete(m.id)} disabled={c3Busy} style={{ marginLeft: 'auto' }}>Remove</button>
+                      onClick={() => handleC3Delete(m.id)} disabled={c3Busy} style={{ marginLeft: 'auto' }}>{t('common.remove')}</button>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className={styles.hint}>No C3 taxonomy mappings assigned.</p>
+              <p className={styles.hint}>{t('service_editor.c3.empty')}</p>
             )}
 
             {showC3Add ? (
               <div className={styles.relAddForm}>
-                <Field label="C3 UUID">
+                <Field label={t('service_editor.c3.capability')}>
                   <select className={styles.input} value={c3Form.c3_uuid ?? ''}
                     onChange={e => setC3Form(p => ({ ...p, c3_uuid: e.target.value }))}>
-                    <option value="">— select C3 capability —</option>
-                    {(c3Items ?? []).map(c => (
-                      <option key={c.uuid} value={c.uuid}>
-                        {c.application ? `${c.application} — ${c.title ?? c.uuid}` : (c.title ?? c.uuid)}
+                    <option value="">{t('service_editor.c3.select_level3')}</option>
+                    {level3Capabilities.map(capability => (
+                      <option key={capability.uuid} value={capability.uuid}>
+                        {capability.page_id} — {capability.title}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Mapping Type">
+                <Field label={t('service_editor.c3.mapping_type')}>
                   <select className={styles.input} value={c3Form.mapping_type_code}
                     onChange={e => setC3Form(p => ({ ...p, mapping_type_code: e.target.value }))}>
                     {['supports','enables','fully_fulfills','partially_fulfills'].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </Field>
-                <Field label="Primary mapping">
+                <div className={styles.previewPanel}>
+                  <div className={styles.previewHeader}>
+                    <span>{t('service_editor.c3.preview.title')}</span>
+                    {c3PreviewBusy && <small>{t('service_editor.c3.preview.calculating')}</small>}
+                    {c3Preview && <small>{c3Preview.classification.replace(/_/g, ' ')}</small>}
+                  </div>
+                  {c3PreviewError && <p className={styles.previewError}>{c3PreviewError}</p>}
+                  {!c3PreviewError && !c3Preview && !c3PreviewBusy && <p className={styles.hint}>{t('service_editor.c3.preview.empty')}</p>}
+                  {c3Preview && (
+                    <div className={styles.previewBody}>
+                      <div className={styles.previewDeltaGrid}>
+                        {c3Preview.coverage_delta_per_lvl3.map((delta) => (
+                          <div key={`${delta.spiral_code}-${delta.capability_title}`} className={styles.previewDeltaCard}>
+                            <strong>{delta.spiral_code}</strong>
+                            <span>{delta.before_coverage_percent}% → {delta.after_coverage_percent}%</span>
+                            <em>{t('service_editor.c3.preview.requirement_delta', { count: delta.newly_covered_count })}</em>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={styles.previewMeta}>
+                        <span>{t('service_editor.c3.preview.affected_spirals')}: {c3Preview.affected_spirals.join(', ') || t('common.none')}</span>
+                        <span>{t('service_editor.c3.preview.potential_duplicates')}: {c3Preview.potential_duplicate_coverage.length}</span>
+                      </div>
+                      {c3Preview.newly_covered_requirements.length > 0 && (
+                        <details className={styles.previewDetails}>
+                          <summary>{t('service_editor.c3.preview.new_requirements', { count: c3Preview.newly_covered_requirements.length })}</summary>
+                          <ul>
+                            {c3Preview.newly_covered_requirements.slice(0, 8).map((requirement) => (
+                              <li key={`${requirement.kind}-${requirement.code}`}>{requirement.code} — {requirement.title}</li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Field label={t('service_editor.c3.primary_mapping')}>
                   <input type="checkbox" checked={c3Form.is_primary}
                     onChange={e => setC3Form(p => ({ ...p, is_primary: e.target.checked }))} />
                 </Field>
-                <Field label="Mapping Note">
-                  <textarea className={styles.textarea} rows={2} placeholder="Optional note about this mapping"
+                <Field label={t('service_editor.c3.mapping_note')}>
+                  <textarea className={styles.textarea} rows={2} placeholder={t('service_editor.c3.mapping_note_placeholder')}
                     value={c3Form.mapping_note}
                     onChange={e => setC3Form(p => ({ ...p, mapping_note: e.target.value }))} />
                 </Field>
                 <div className={styles.flavourEditActions}>
-                  <button type="button" className={styles.btnPrimary} onClick={handleC3Add} disabled={c3Busy}>Add mapping</button>
-                  <button type="button" className={styles.btnGhost} onClick={() => setShowC3Add(false)}>Cancel</button>
+                  <button type="button" className={styles.btnPrimary} onClick={handleC3Add} disabled={c3Busy}>{t('service_editor.c3.add_mapping')}</button>
+                  <button type="button" className={styles.btnGhost} onClick={() => setShowC3Add(false)}>{t('common.cancel')}</button>
                 </div>
               </div>
             ) : (
               <button type="button" className={styles.btnSecondary} onClick={() => setShowC3Add(true)}
                 style={{ marginTop: 'var(--space-3)' }}>
-                + Assign C3 taxonomy
+                {t('service_editor.c3.assign_taxonomy')}
               </button>
             )}
             <p className={styles.hint} style={{ marginTop: 'var(--space-3)' }}>
-              Browse available C3 entries at <a href="/c3/list" className={styles.link}>Taxonomy Catalogue →</a>
+              {t('service_editor.c3.catalogue_hint')} <Link href="/c3/list" className={styles.link}>{t('service_editor.c3.catalogue_link')} →</Link>
             </p>
           </EditorSection>
 
@@ -1856,7 +1976,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 className={styles.input}
                 placeholder="e.g. Internal, External, Partner (comma-separated)"
               />
-              <span className={styles.hint}>Customer segments this service targets. Comma-separated values, e.g. "Internal, External".</span>
+              <span className={styles.hint}>Customer segments this service targets. Comma-separated values, e.g. &quot;Internal, External&quot;.</span>
             </Field>
             {/* Item 13: notes_json editable */}
             <Field label="Notes (JSON)">
@@ -1892,7 +2012,7 @@ export default function ServiceEditorPage({ params }: Props) {
                     {rawFields.map(rf => (
                       <div key={rf.id} style={{
                         background: 'var(--color-bg-canvas)',
-                        border: '1px solid var(--color-border-subtle, #ebecf0)',
+                        border: '1px solid var(--color-border-default)',
                         borderRadius: 'var(--radius-sm)',
                         padding: '10px 14px',
                       }}>

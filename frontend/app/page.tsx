@@ -12,7 +12,7 @@ export default function HomePage() {
   const cards = c3Visible
     ? [
         {
-          href: '/services/dashboard',
+          href: '/catalogue',
           title: t('home.card.service_catalogue.title'),
           desc: t('home.card.service_catalogue.desc'),
           icon: '🧭',
@@ -29,10 +29,16 @@ export default function HomePage() {
           desc: t('home.card.c3_dashboard.desc'),
           icon: '🗺',
         },
+        {
+          href: C3_ROUTES.fmnAirC2,
+          title: 'FMN Air C2 Coverage',
+          desc: 'Vyhodnocení pokrytí aplikací proti FMN Spiral 5 Air požadavkům.',
+          icon: '✈️',
+        },
       ]
     : [
         {
-          href: '/services/dashboard',
+          href: '/catalogue',
           title: t('home.card.service_catalogue.title'),
           desc: t('home.card.service_catalogue.desc'),
           icon: '🧭',

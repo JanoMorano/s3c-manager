@@ -1,0 +1,117 @@
+.shell {
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-bg-canvas);
+  min-height: 100vh;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.pageTitle {
+  font: var(--text-title-lg);
+  color: var(--color-text-primary);
+}
+
+.pageLead {
+  margin-top: var(--space-1);
+  font: var(--text-body-md);
+  color: var(--color-text-secondary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.cardTitle {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row strong {
+  display: block;
+  font: var(--text-body-sm);
+}
+
+.row small {
+  display: block;
+  margin-top: 2px;
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+.score {
+  display: flex;
+  min-width: 96px;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-label-md);
+  color: var(--color-text-secondary);
+}
+
+.pricingSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.state,
+.stateError {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.state {
+  color: var(--color-text-muted);
+}
+
+.stateError {
+  color: var(--color-danger);
+}
+
+@media (max-width: 900px) {
+  .grid,
+  .pricingSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+  }
+}

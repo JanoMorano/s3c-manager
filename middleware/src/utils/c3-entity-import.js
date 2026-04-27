@@ -134,6 +134,7 @@ function parseDelimitedRecords(text) {
 const C3_ENTITY_IMPORT_TARGETS = {
     'c3-application': {
         label: 'C3 Application',
+        entityKind: 'application',
         table: 'data.c3_application',
         listView: 'data.v_c3applicationlist',
         adminPath: '/c3/applications',
@@ -157,6 +158,7 @@ const C3_ENTITY_IMPORT_TARGETS = {
     },
     'c3-data-objects': {
         label: 'C3 Data Objects',
+        entityKind: 'data_object',
         table: 'data.c3_data_object',
         listView: 'data.v_c3dataobjectlist',
         adminPath: '/c3/data-objects',
@@ -177,6 +179,7 @@ const C3_ENTITY_IMPORT_TARGETS = {
     },
     'c3-services': {
         label: 'C3 Services',
+        entityKind: 'c3_service',
         table: 'data.c3_service',
         listView: 'data.v_c3servicelist',
         adminPath: '/c3/services',
@@ -200,6 +203,7 @@ const C3_ENTITY_IMPORT_TARGETS = {
     },
     'c3-technology-interactions': {
         label: 'C3 Technology Interactions',
+        entityKind: 'technology_interaction',
         table: 'data.c3_technology_interaction',
         listView: 'data.v_c3technologyinteractionlist',
         adminPath: '/c3/technology-interactions',
@@ -362,11 +366,18 @@ async function syncTechnologyInteractionLinks(technologyInteractionId, record) {
     const issues = [];
     if (!technologyInteractionId) return issues;
 
-    await getPool().query(`
-        DELETE FROM data.c3_technology_interaction_service_link WHERE technology_interaction_id = $1;
-        DELETE FROM data.c3_technology_interaction_application_link WHERE technology_interaction_id = $1;
-        DELETE FROM data.c3_technology_interaction_data_object_link WHERE technology_interaction_id = $1;
-    `, [technologyInteractionId]);
+    await getPool().query(
+        'DELETE FROM data.c3_technology_interaction_service_link WHERE technology_interaction_id = $1',
+        [technologyInteractionId]
+    );
+    await getPool().query(
+        'DELETE FROM data.c3_technology_interaction_application_link WHERE technology_interaction_id = $1',
+        [technologyInteractionId]
+    );
+    await getPool().query(
+        'DELETE FROM data.c3_technology_interaction_data_object_link WHERE technology_interaction_id = $1',
+        [technologyInteractionId]
+    );
 
     const syncRefs = async ({ refs, table, codeColumn, linkTable, linkIdColumn, sourceSlot, issueCode, fieldName, unresolvedMessage }) => {
         for (const refValue of refs) {
@@ -461,6 +472,7 @@ async function importC3EntityRows(targetKey, rawRows, { spiralCode = null } = {}
     let updated = 0;
     let failed = 0;
     const issues = [];
+    const membershipRecords = [];
 
     for (const [index, rawRow] of rawRows.entries()) {
         const rowNumber = index + 2;
@@ -482,6 +494,7 @@ async function importC3EntityRows(targetKey, rawRows, { spiralCode = null } = {}
             const existingRows = resultRows(existing);
             const fieldValues = config.fields.map((field) => record[field.key] ?? null);
             let entityId = existingRows[0]?.id ?? null;
+            const wasUpdate = existingRows.length > 0;
             if (existingRows.length > 0) {
                 // UPDATE: updatable fields + raw_json + [fmn_spiral] + WHERE uuid
                 const updateValues = config.fields
@@ -507,6 +520,17 @@ async function importC3EntityRows(targetKey, rawRows, { spiralCode = null } = {}
                 linkIssues.forEach((issue) => {
                     issues.push({ row_number: rowNumber, ...issue });
                     warnCount += 1;
+                });
+            }
+            if (withSpiralCode && config.entityKind) {
+                membershipRecords.push({
+                    entityKind: config.entityKind,
+                    entityUuid: record.uuid,
+                    spiralCode,
+                    statusInSpiral: wasUpdate ? 'updated' : 'new',
+                    ssOverallStatus: record.ss_overall_status ?? null,
+                    ssBaselineStatus: record.ss_baseline_status ?? null,
+                    itemStatus: record.item_status ?? null,
                 });
             }
             okCount += 1;
@@ -536,6 +560,7 @@ async function importC3EntityRows(targetKey, rawRows, { spiralCode = null } = {}
         failed,
         rowsParsed: rawRows.length,
         issues,
+        membership_records: membershipRecords,
     };
 }
 

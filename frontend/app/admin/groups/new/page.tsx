@@ -82,7 +82,7 @@ export default function NewGroupPage() {
             placeholder="it_operations"
             required
           />
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
             Slug, automaticky generovaný z Name. Nelze změnit po uložení.
           </span>
         </div>

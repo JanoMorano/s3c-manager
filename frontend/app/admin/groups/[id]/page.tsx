@@ -394,7 +394,7 @@ function PermSection({ section, checkedPerms, onToggle, onSelectAll, onDeselectA
           <button className={styles.selectAllBtn} onClick={() => onSelectAll(scope, permission, resources)}>
             Select All
           </button>
-          <span style={{ color: '#d1d5db' }}>|</span>
+          <span style={{ color: 'var(--color-border-default)' }}>|</span>
           <button className={styles.selectAllBtn} onClick={() => onDeselectAll(scope, permission, resources)}>
             Deselect All
           </button>

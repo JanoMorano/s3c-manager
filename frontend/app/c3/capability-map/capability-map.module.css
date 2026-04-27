@@ -1,17 +1,17 @@
 .page {
   min-height: 100vh;
-  background: #f0f2f6;
-  color: #182230;
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
   padding: 12px;
 }
 
 .tooltip {
   position: fixed;
   z-index: 1000;
-  background: #1a2533;
-  color: #fff;
+  background: var(--color-text-primary);
+  color: var(--color-bg-surface);
   padding: 6px 10px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   font-size: 0.72rem;
   pointer-events: none;
   max-width: 280px;
@@ -24,7 +24,7 @@
   z-index: 50;
   background: rgba(240, 242, 246, 0.95);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid #d0d8e8;
+  border-bottom: 1px solid var(--color-border-default);
   padding: 6px 12px;
   display: flex;
   align-items: center;
@@ -35,7 +35,7 @@
 }
 
 .infoBar strong {
-  color: #1565c0;
+  color: var(--color-info);
 }
 
 .legend {
@@ -44,7 +44,7 @@
   flex-wrap: wrap;
   align-items: center;
   font-size: 0.72rem;
-  color: #5a6a82;
+  color: var(--color-text-secondary);
 }
 
 .legendItem {
@@ -56,7 +56,7 @@
 .legendDot {
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: inline-block;
 }
 
@@ -67,9 +67,9 @@
 .barButtonPrimary {
   margin-left: auto;
   padding: 4px 12px;
-  border-radius: 7px;
-  background: #1565c0;
-  color: #fff;
+  border-radius: var(--radius-md);
+  background: var(--color-info);
+  color: var(--color-bg-surface);
   border: none;
   cursor: pointer;
   font-size: 0.78rem;
@@ -77,36 +77,36 @@
 
 .barButton {
   padding: 4px 10px;
-  border-radius: 7px;
-  border: 1px solid #d0d8e8;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
   cursor: pointer;
   font-size: 0.78rem;
-  background: #fff;
+  background: var(--color-bg-surface);
   color: inherit;
 }
 
 .gearButton {
   padding: 4px 8px;
-  border-radius: 7px;
-  border: 1px solid #cdd;
-  background: #f8f8f8;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-subtle);
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .gearButton:hover {
-  background: #e8e8e8;
-  color: #1565c0;
+  background: var(--color-bg-subtle);
+  color: var(--color-info);
 }
 
 .gearButtonMissing {
-  color: #b77700;
+  color: var(--color-warning);
 }
 
 .gearButtonReady {
-  color: #1b8f52;
+  color: var(--color-success);
 }
 
 .poster {
@@ -139,7 +139,7 @@
 .domainMeta {
   font-size: 0.6rem;
   font-weight: 400;
-  color: #5a6a82;
+  color: var(--color-text-secondary);
 }
 
 .l2Row {
@@ -165,7 +165,7 @@
   padding: 2px 5px;
   border-radius: 4px;
   white-space: nowrap;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-default);
   text-decoration: none;
 }
 
@@ -180,7 +180,7 @@
   display: inline-flex;
   align-items: center;
   padding: 3px 7px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   font-size: 0.65rem;
   cursor: pointer;
   border: 1px solid transparent;
@@ -193,7 +193,7 @@
 
 .node:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-low);
   z-index: 2;
   position: relative;
 }
@@ -215,7 +215,7 @@
 .loadingState,
 .emptyState {
   text-align: center;
-  color: #5a6a82;
+  color: var(--color-text-secondary);
   padding: 40px;
 }
 
@@ -230,24 +230,24 @@
 }
 
 .settingsBox {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
   padding: 24px 28px;
   min-width: 380px;
   max-width: 480px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-medium);
 }
 
 .settingsBox h3 {
   margin: 0 0 16px;
   font-size: 1rem;
-  color: #1a2533;
+  color: var(--color-text-primary);
 }
 
 .settingsLabel {
   display: block;
   font-size: 0.82rem;
-  color: #555;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
@@ -255,7 +255,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 7px 10px;
-  border: 1px solid #cdd;
+  border: 1px solid var(--color-border-default);
   border-radius: 6px;
   font-size: 0.85rem;
   margin-bottom: 14px;
@@ -263,12 +263,12 @@
 
 .settingsInput:focus {
   outline: none;
-  border-color: #1565c0;
+  border-color: var(--color-info);
 }
 
 .settingsHint {
   font-size: 0.76rem;
-  color: #888;
+  color: var(--color-text-muted);
   margin: -10px 0 14px;
   line-height: 1.4;
 }
@@ -283,28 +283,28 @@
 .settingsSaveBtn,
 .settingsCancelBtn {
   padding: 6px 18px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
   font-size: 0.84rem;
 }
 
 .settingsSaveBtn {
-  background: #1565c0;
-  color: #fff;
+  background: var(--color-info);
+  color: var(--color-bg-surface);
 }
 
 .settingsSaveBtn:hover {
-  background: #0d47a1;
+  background: var(--color-info);
 }
 
 .settingsCancelBtn {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
 }
 
 .settingsCancelBtn:hover {
-  background: #e0e0e0;
+  background: var(--color-border-default);
 }
 
 .infoDialog {
@@ -313,12 +313,12 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 2000;
-  background: #fff;
-  border-radius: 14px;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
   padding: 18px 22px;
   min-width: 320px;
   max-width: 480px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-medium);
 }
 
 .infoHeader {
@@ -334,13 +334,13 @@
 
 .infoMeta {
   font-size: 0.7rem;
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 .closeIconButton {
   cursor: pointer;
   font-size: 1.2rem;
-  color: #999;
+  color: var(--color-text-muted);
   background: none;
   border: none;
   line-height: 1;
@@ -358,7 +358,7 @@
 }
 
 .infoC3Link {
-  color: #0f5db8;
+  color: var(--color-info);
   font-size: 0.78rem;
   font-weight: 700;
   text-decoration: none;
@@ -366,18 +366,18 @@
 
 .infoC3Meta {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .infoSummary {
   font-size: 0.8rem;
-  color: #555;
+  color: var(--color-text-secondary);
   margin-bottom: 12px;
 }
 
 .infoMappedList {
   font-size: 0.76rem;
-  color: #333;
+  color: var(--color-text-primary);
   margin-bottom: 10px;
   max-height: 100px;
   overflow: auto;
@@ -397,27 +397,27 @@
 .infoSecondaryBtn,
 .infoActionLink {
   padding: 7px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.8rem;
 }
 
 .infoPrimaryBtn {
   flex: 1;
   border: none;
-  color: #fff;
+  color: var(--color-bg-surface);
   cursor: pointer;
 }
 
 .infoPrimaryBtn:disabled {
-  background: #aab4c0 !important;
-  color: #eef2f6;
+  background: var(--color-border-strong) !important;
+  color: var(--color-bg-subtle);
   cursor: not-allowed;
 }
 
 .infoSecondaryBtn {
-  border: 1px solid #ddd;
-  background: #fff;
-  color: #333;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 
@@ -425,8 +425,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
   text-decoration: none;
   font-weight: 700;
 }

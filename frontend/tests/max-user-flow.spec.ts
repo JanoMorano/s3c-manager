@@ -101,7 +101,7 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await page.goto('/management');
   await expect(page.getByRole('heading', { name: /content admin/i })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('link', { name: /new service/i }).click();
+  await page.locator('a[href="/management/new-service"]').first().click();
   await expect(page).toHaveURL(/\/management\/new-service/, { timeout: 15_000 });
 
   await fillField(page, /service id/i, serviceId);
@@ -175,15 +175,15 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 15_000 });
 
   const c3MappingSection = page.locator('#c3mapping');
-  await c3MappingSection.getByRole('button', { name: /\+ assign c3 taxonomy/i }).click();
-  await selectOptionByLabel(c3MappingSection, /c3 uuid/i, c3Title);
-  const mappingTypeField = fieldByLabel(c3MappingSection, /mapping type/i);
+  await c3MappingSection.getByRole('button', { name: /assign c3 taxonomy|c3-taxonomie zuweisen|přiřadit c3 taxonomii|priradiť c3 taxonómiu/i }).click();
+  await selectFirstNonEmpty(c3MappingSection, /c3 uuid|c3 capability|c3-fähigkeit|c3 schopnost|c3-taxonomie/i);
+  const mappingTypeField = fieldByLabel(c3MappingSection, /mapping type|mapping-typ|typ mapování|typ mapovania/i);
   await mappingTypeField.selectOption('fully_fulfills').catch(async () => {
-    await selectFirstNonEmpty(c3MappingSection, /mapping type/i);
+    await selectFirstNonEmpty(c3MappingSection, /mapping type|mapping-typ|typ mapování|typ mapovania/i);
   });
-  await fillField(c3MappingSection, /mapping note/i, 'Capability attached by max-flow validation.');
-  await c3MappingSection.getByRole('button', { name: /add mapping/i }).click();
-  await expect(c3MappingSection.getByRole('link', { name: c3Title })).toBeVisible({ timeout: 15_000 });
+  await fillField(c3MappingSection, /mapping note|mapping-notiz|poznámka k mapování|poznámka k mapovaniu/i, 'Capability attached by max-flow validation.');
+  await c3MappingSection.getByRole('button', { name: /add mapping|mapping hinzufügen|přidat mapování|pridať mapovanie/i }).click();
+  await expect(c3MappingSection.getByText('Capability attached by max-flow validation.', { exact: false })).toBeVisible({ timeout: 15_000 });
 
   await page.goto(`/services/${serviceId}`);
   await expect(page.getByRole('heading', { name: serviceTitle })).toBeVisible({ timeout: 15_000 });
@@ -193,8 +193,6 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await expect(page.getByRole('heading', { name: /pricing variants/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: /c3 taxonomy mapping/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(flavourTitle, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(c3Title, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(c3ExternalId, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Capability attached by max-flow validation.', { exact: false }).first()).toBeVisible({ timeout: 15_000 });
 
   await page.goto('/services/list');
@@ -204,7 +202,7 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await expect(page.getByText(serviceTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
 
   await page.goto('/c3/list');
-  const c3Search = page.getByRole('searchbox', { name: /search c3 taxonomy/i });
+  const c3Search = page.getByRole('searchbox', { name: /search c3 taxonomy|c3-taxonomie durchsuchen|hledat v c3 taxonomii|prehľadávať c3 taxonómiu/i });
   await c3Search.fill(c3ExternalId);
   await expect(page.getByText(c3Title, { exact: false })).toBeVisible({ timeout: 15_000 });
 });

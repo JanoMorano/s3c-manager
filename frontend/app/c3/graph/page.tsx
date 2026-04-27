@@ -29,11 +29,11 @@ const NODE_KIND_LABEL: Record<C3RelationGraphNode['node_kind'], string> = {
 };
 
 const NODE_KIND_COLOR: Record<C3RelationGraphNode['node_kind'], string> = {
-  c3_capability: '#0052cc',
-  c3_tin: '#4c9aff',
-  c3_application: '#36b37e',
-  c3_data_object: '#ff8b00',
-  c3_service: '#6554c0',
+  c3_capability: 'var(--color-info)',
+  c3_tin: 'var(--color-info)',
+  c3_application: 'var(--color-success)',
+  c3_data_object: 'var(--color-warning)',
+  c3_service: 'var(--color-domain-relay)',
 };
 
 const DOMAIN_TO_ITEM_TYPE: Record<string, string> = {
@@ -244,7 +244,7 @@ export default function PublicC3GraphPage() {
                 type="button"
                 className={`${styles.domainFilterChip} ${effectiveDomain === domain.code ? styles.domainFilterChipActive : ''}`}
                 style={effectiveDomain === domain.code
-                  ? { background: domain.heading_color, borderColor: domain.heading_color, color: '#fff' }
+                  ? { background: domain.heading_color, borderColor: domain.heading_color, color: 'var(--color-bg-surface)' }
                   : { background: domain.background_color, color: domain.heading_color, borderColor: domain.background_color }}
                 onClick={() => {
                   setSelectedDomain(domain.code);
@@ -315,7 +315,7 @@ export default function PublicC3GraphPage() {
             <button
               type="button"
               className={styles.typeBtn}
-              style={edgeType === 'straight' ? { background: 'var(--color-action-primary)', color: '#fff', borderColor: 'var(--color-action-primary)' } : {}}
+              style={edgeType === 'straight' ? { background: 'var(--color-action-primary)', color: 'var(--color-bg-surface)', borderColor: 'var(--color-action-primary)' } : {}}
               onClick={() => setEdgeType('straight')}
             >
               Přímé
@@ -323,7 +323,7 @@ export default function PublicC3GraphPage() {
             <button
               type="button"
               className={styles.typeBtn}
-              style={edgeType === 'smoothstep' ? { background: 'var(--color-action-primary)', color: '#fff', borderColor: 'var(--color-action-primary)' } : {}}
+              style={edgeType === 'smoothstep' ? { background: 'var(--color-action-primary)', color: 'var(--color-bg-surface)', borderColor: 'var(--color-action-primary)' } : {}}
               onClick={() => setEdgeType('smoothstep')}
             >
               Zaoblené

@@ -92,7 +92,8 @@ async function requireAuth(req, res, next) {
                 is_active,
                 auth_provider,
                 preferred_lang,
-                preferred_theme
+                preferred_theme,
+                COALESCE(preferred_persona, 'service_owner') AS preferred_persona
             FROM platform.users
             WHERE id = $1
         `, [payload.sub]);

@@ -616,3 +616,78 @@ export interface DashboardResponse {
   by_lifecycle: Array<{ lifecycle_state: string; count: number }>;
   _cached: boolean;
 }
+
+export interface CompletenessItem {
+  id: number;
+  service_id: string;
+  title: string;
+  service_type: string | null;
+  service_status: string | null;
+  portfolio_group: string | null;
+  summary: string | null;
+  completeness_score: number | null;
+  sla_availability: number | null;
+  updated_at: string;
+  has_c3_mapping: number | boolean;
+  flavour_count: number;
+}
+
+export interface DashboardHeadlineKpi {
+  key: 'services_count' | 'publishable_readiness_percent' | 'top_framework_coverage_percent';
+  label: string;
+  value: number;
+  unit: 'count' | 'percent';
+  hint: string;
+}
+
+export interface DashboardHeadlineResponse {
+  kpis: DashboardHeadlineKpi[];
+  _cached: boolean;
+}
+
+export interface DashboardInboxItem {
+  id: string;
+  type: 'service_review' | 'c3_mapping_gap' | 'pricing_gap';
+  title: string;
+  description: string;
+  href: string;
+  severity: 'info' | 'warning' | 'danger';
+  created_at: string | null;
+}
+
+export interface DashboardInboxResponse {
+  items: DashboardInboxItem[];
+}
+
+export interface OperationsResponse {
+  summary: DashboardSummary;
+  sections: {
+    incomplete_metadata: CompletenessItem[];
+    missing_owners: Array<Pick<CompletenessItem, 'service_id' | 'title' | 'service_status' | 'updated_at'>>;
+    top_completeness: CompletenessItem[];
+    deprecated_retired: CompletenessItem[];
+    pricing_patrol: {
+      total_services: number;
+      with_pricing: number;
+      coverage_percent: number;
+      missing: CompletenessItem[];
+    };
+    c3_mapping_gap: Array<{
+      item_type: string;
+      total_count: number;
+      mapped_count: number;
+      gap_count: number;
+    }>;
+  };
+}
+
+export interface ServiceFrameworkCoverage {
+  framework_code: string;
+  title: string;
+  capability_slug: string | null;
+  spiral_code: string | null;
+  coverage_percent: number;
+  core_total: number;
+  core_covered: number;
+  missing_core: Array<{ code: string; title: string; kind: string }>;
+}

@@ -82,7 +82,7 @@ deployments.
 
 The UI and API share the same canonical locale model:
 
-- supported locales: `cs`, `en`
+- supported locales: `cs`, `en`, `sk`, `de`
 - no locale prefixes in routes
 - locale resolution order:
   1. authenticated user `preferred_lang`
@@ -90,7 +90,7 @@ The UI and API share the same canonical locale model:
   3. browser `Accept-Language`
   4. fallback `cs`
 
-Legacy values such as `cz`, `cze`, and `cs-CZ` are normalized to `cs`.
+Legacy values such as `cz`, `cze`, and `cs-CZ` are normalized to `cs`; `svk` normalizes to `sk`, and `ger` / `deu` normalize to `de`.
 
 During first install there is no authenticated user yet, so the wizard locale
 comes from the `sc_locale` cookie or the browser header. If demo data seeding is

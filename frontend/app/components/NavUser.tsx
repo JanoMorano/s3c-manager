@@ -7,12 +7,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
-import { useT } from '@/app/i18n/useI18n';
-import { AUTH_STATE_EVENT, clearAuthSession, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
+import { useI18n } from '@/app/i18n/useI18n';
+import { AUTH_STATE_EVENT, clearAuthSession, restoreAuthSession } from '@/features/auth/authStore';
 import styles from './NavUser.module.css';
 
 // ── Avatar colour derived from username (deterministic) ──────────────────────
-const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
+const PALETTE = ['var(--color-info)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)', 'var(--color-domain-relay)', 'var(--color-domain-zenith)', 'var(--color-domain-pulse)'];
 function pickColor(name: string): string {
   let h = 0;
   for (const c of name) h = ((h * 31) + c.charCodeAt(0)) & 0x7fffffff;
@@ -21,7 +21,7 @@ function pickColor(name: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function NavUser() {
-  const t = useT();
+  const { t } = useI18n();
   const router   = useRouter();
   const wrapRef  = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);

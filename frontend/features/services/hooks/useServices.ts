@@ -10,6 +10,11 @@ import type {
   GraphOverviewResponse,
   C3RelationGraphResponse,
   DashboardResponse,
+  DashboardHeadlineResponse,
+  DashboardInboxResponse,
+  OperationsResponse,
+  CompletenessItem,
+  ServiceFrameworkCoverage,
   ServiceScoreResponse,
   ServiceHistoryEntry,
   ServiceRoleAssignment,
@@ -96,6 +101,14 @@ export function useServiceReadiness(id: string | null) {
   );
 }
 
+export function useServiceFrameworks(id: string | null) {
+  return useSWR<ServiceFrameworkCoverage[]>(
+    id ? `/api/v1/services/${id}/frameworks` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
 export function useGraphOverview(options: { compact?: boolean; includeC3?: boolean } = {}) {
   return useSWR<GraphOverviewResponse>(
     buildGraphOverviewUrl(options),
@@ -156,21 +169,29 @@ export function useDashboard() {
   });
 }
 
-// ── Completeness / audit list ─────────────────────────────────────────────────
-export interface CompletenessItem {
-  id: number;
-  service_id: string;
-  title: string;
-  service_type: string | null;
-  service_status: string | null;
-  portfolio_group: string | null;
-  summary: string | null;
-  completeness_score: number | null;
-  sla_availability: number | null;
-  updated_at: string;
-  has_c3_mapping: number;
-  flavour_count: number;
+export function useDashboardHeadline() {
+  return useSWR<DashboardHeadlineResponse>('/api/v1/stats/dashboard-headline', apiFetch, {
+    refreshInterval: 60_000,
+    revalidateOnFocus: false,
+  });
 }
+
+export function useDashboardInbox() {
+  return useSWR<DashboardInboxResponse>('/api/v1/dashboard/inbox', apiFetch, {
+    refreshInterval: 60_000,
+    revalidateOnFocus: false,
+  });
+}
+
+export function useOperationsDashboard() {
+  return useSWR<OperationsResponse>('/api/v1/stats/operations', apiFetch, {
+    refreshInterval: 120_000,
+    revalidateOnFocus: false,
+  });
+}
+
+// ── Completeness / audit list ─────────────────────────────────────────────────
+export type { CompletenessItem };
 
 export function useCompleteness() {
   return useSWR<CompletenessItem[]>('/api/v1/stats/completeness', apiFetch, {

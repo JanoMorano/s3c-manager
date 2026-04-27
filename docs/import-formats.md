@@ -1,6 +1,6 @@
 # Import Formats
 
-Service Catalogue v2 supports three import formats: CSV, JSON, and XLSX.
+Service Catalogue v2 supports four import formats: CSV, JSON, XLSX, and ArchiMate XML.
 
 Example payloads are available in:
 
@@ -151,6 +151,54 @@ The import engine accepts both snake_case and camelCase variants:
 Repository file:
 
 - `testdata/examples/relations-minimal.json`
+
+---
+
+## ArchiMate XML Import
+
+### Accepted Content Types
+
+- `application/xml`
+- `text/xml`
+
+### Endpoints
+
+```text
+POST /api/v1/taxonomy/c3/<target>/xml-archimate
+Authorization: Bearer <token>
+Content-Type: application/xml
+```
+
+Dry-run endpoint:
+
+```text
+POST /api/v1/taxonomy/c3/<target>/xml-archimate?dry_run=true
+```
+
+### Supported Targets
+
+| XML source | Target key | C3 item type |
+|---|---|---|
+| `BusinessProcess` | `business-processes` | `BP` |
+| `BusinessRole` | `business-roles` | `BR` |
+| `TechnologyService` | `coi-services` | `CI` |
+| `TechnologyService` | `communications-services` | `CO` |
+| `TechnologyService` | `core-services` | `CR` |
+| `ApplicationService` | `user-applications` | `UA` |
+
+### Field Mapping
+
+| ArchiMate XML | C3 taxonomy field |
+|---|---|
+| `element@identifier` / `propid-40` | `uuid` |
+| `name xml:lang="en"` | `title` |
+| `documentation xml:lang="en"` | `description` |
+| `propid-45` | `references_raw`; final URL segment becomes `external_id` |
+| `propid-50` | `source_external_id` |
+| `propid-25` | `provenance_raw` |
+| `propid-30` | `data_qualifier` |
+
+Unknown `propertyDefinitionRef` values are returned as warnings and do not block the import.
 
 ### Minimal C3 Taxonomy JSON
 

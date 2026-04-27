@@ -130,7 +130,7 @@ function CellEdit({
     return (
       <input
         type="color"
-        value={String(value ?? '#888888')}
+        value={String(value ?? 'var(--color-text-muted)')}
         onChange={e => onChange(e.target.value)}
         style={{ width: 40, height: 28, padding: 2 }}
       />

@@ -21,6 +21,11 @@
   --color-action-primary-hover: #000000;
   --color-action-secondary:     #f4f4f5;
   --color-focus-ring:           #2563eb;  /* blue focus ring */
+  --color-sidebar-bg:           #051b34;
+  --color-sidebar-text:         #f8fafc;
+  --color-sidebar-muted:        #b8c7dc;
+  --color-sidebar-active:       #0f5bd7;
+  --color-sidebar-active-text:  #ffffff;
 
   /* ── Semantic ─────────────────────────────────────────────────────────── */
   --color-success: #16a34a;
@@ -91,4 +96,59 @@
   --text-label-md:  500 12px/1.30 var(--font-sans);
   --text-label-sm:  500 11px/1.30 var(--font-sans);
   --text-mono-sm:   400 11px/1.45 var(--font-mono);
+}
+
+:root[data-theme="dark"] {
+  --color-bg-canvas:           #09090b;
+  --color-bg-surface:          #18181b;
+  --color-bg-surface-raised:   #1f1f23;
+  --color-bg-subtle:           #27272a;
+  --color-border-default:      #3f3f46;
+  --color-border-strong:       #52525b;
+  --color-text-primary:        #fafafa;
+  --color-text-secondary:      #d4d4d8;
+  --color-text-muted:          #a1a1aa;
+
+  --color-action-primary:       #fafafa;
+  --color-action-primary-hover: #ffffff;
+  --color-action-secondary:     #27272a;
+  --color-focus-ring:           #60a5fa;
+  --color-sidebar-bg:           #020b17;
+  --color-sidebar-text:         #f8fafc;
+  --color-sidebar-muted:        #9fb1ca;
+  --color-sidebar-active:       #1d4ed8;
+  --color-sidebar-active-text:  #ffffff;
+
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger:  #f87171;
+  --color-info:    #60a5fa;
+
+  --color-status-active:      #22c55e;
+  --color-status-planned:     #60a5fa;
+  --color-status-retired:     #a1a1aa;
+  --color-status-deprecated:  #f59e0b;
+  --color-status-draft:       #a1a1aa;
+
+  --color-availability-high:   #22c55e;
+  --color-availability-medium: #f59e0b;
+  --color-availability-low:    #f87171;
+
+  --color-domain-relay:   #a78bfa;
+  --color-domain-cloud:   #60a5fa;
+  --color-domain-grid:    #22d3ee;
+  --color-domain-prism:   #22c55e;
+  --color-domain-helix:   #f87171;
+  --color-domain-nexus:   #fafafa;
+  --color-domain-vertex:  #d4d4d8;
+  --color-domain-orbit:   #a1a1aa;
+  --color-domain-pulse:   #a78bfa;
+  --color-domain-zenith:  #22d3ee;
+  --color-domain-apex:    #34d399;
+  --color-domain-vortex:  #f59e0b;
+  --color-domain-matrix:  #fb923c;
+  --color-domain-default: #71717a;
+
+  --shadow-low:    0 1px 2px 0 rgba(0,0,0,.45);
+  --shadow-medium: 0 8px 24px rgba(0,0,0,.35);
 }

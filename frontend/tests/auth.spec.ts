@@ -60,7 +60,10 @@ test('persists preferred language across refresh', async ({ page }) => {
   await page.reload();
   const freshMeResponse = await freshMeResponsePromise;
   expect(freshMeResponse.ok()).toBeTruthy();
-  const freshMeResponseBody = await freshMeResponse.json() as { preferred_lang?: string };
+  const freshMeResponseBody = await page.evaluate(async () => {
+    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+    return await response.json() as { preferred_lang?: string };
+  });
   expect(freshMeResponseBody.preferred_lang).toBe('en');
   await expect(page.getByRole('heading', { name: 'User Info' })).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('select[name="preferred_lang"]')).toHaveValue('en');
@@ -131,15 +134,15 @@ test('must-change-password screen does not request owned services before the pas
   });
 
   await page.goto('/login');
-  await expect(page.getByRole('button', { name: /přihlásit se/i })).toBeEnabled({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: /přihlásit se|sign in/i })).toBeEnabled({ timeout: 10_000 });
   await page.locator('input').nth(0).fill(credentials.username);
   await page.locator('input').nth(1).fill(credentials.password);
-  await page.getByRole('button', { name: /přihlásit se/i }).click();
+  await page.getByRole('button', { name: /přihlásit se|sign in/i }).click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 });
 
   ownerRequests.length = 0;
   await page.goto('/user-info?must_change_password=1&next=%2F');
-  await expect(page.getByText(/první přihlášení vyžaduje změnu hesla/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/první přihlášení vyžaduje změnu hesla|first sign-in requires a password change/i)).toBeVisible({ timeout: 10_000 });
   await page.waitForTimeout(1000);
   await expect(page.getByText(/Services I Own/i)).toHaveCount(0);
 

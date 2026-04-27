@@ -8,6 +8,7 @@ const { requireAuth } = require('../middleware/auth');
 const { canAdmin, canEdit } = require('../middleware/rbac');
 const { requireModuleApiEnabled } = require('../middleware/module-gates');
 const { logTaxonomyMappingChange } = require('../db/audit.repo');
+const { recordMembershipBatch } = require('../db/spiral-membership.repo');
 const { parseCsvFilter, parseTextFilter, parseIntFilter } = require('../utils/query-filters');
 const {
     C3_ENTITY_IMPORT_TARGETS,
@@ -21,6 +22,7 @@ const {
 } = require('../utils/c3-entity-import');
 const { ensureCapabilityBuilderSeeded } = require('../utils/c3-capability-builder-seed');
 const { parseSimpleXlsxBuffer } = require('../utils/simple-xlsx');
+const { parseArchimateXml, isArchimateParserError } = require('../parsers/archimate');
 const {
     syncCapabilityDerivedLinksForAll,
     syncCapabilityDerivedLinksForCapability,
@@ -31,6 +33,7 @@ const {
 } = require('../services/readiness');
 const config = require('../config');
 const { tReq } = require('../utils/i18n');
+const { _private: capabilityCoverageEngine } = require('./capabilities');
 
 const router = express.Router();
 const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', (req) => tReq(req, 'taxonomy.errors.module_inactive'));
@@ -41,6 +44,13 @@ const CAPABILITY_MAP_TITLE_KEY = 'c3.capability_map.title';
 const CAPABILITY_MAP_TITLE_KEY_SPIRAL6 = 'c3.capability_map.title.spiral6';
 const DEFAULT_CAPABILITY_MAP_TITLE = 'C3 Taxonomy Catalogue — Baseline 7';
 const DEFAULT_CAPABILITY_MAP_TITLE_SPIRAL6 = 'C3 Taxonomy Catalogue — Baseline 6';
+const AIR_C2_LEGACY_SLUG = 'cap-bmc-air-bmc';
+const AIR_C2_LEGACY_SLUG_FALLBACKS = [
+    AIR_C2_LEGACY_SLUG,
+    'cap-battlespace-management-air-battlespace-management',
+];
+const AIR_C2_LEGACY_SPIRAL = 'Spiral_5';
+const AIR_C2_SUCCESSOR_ENDPOINT = `/api/v1/capabilities/by-slug/${AIR_C2_LEGACY_SLUG}/coverage?spiral=${AIR_C2_LEGACY_SPIRAL}`;
 const C3_TAXONOMY_IMPORT_TARGETS = {
     capabilities: { label: 'C3 Capabilities', itemType: 'CP', sheetName: 'Capabilities' },
     'business-processes': { label: 'C3 Business Processes', itemType: 'BP', sheetName: 'Business Processes' },
@@ -131,6 +141,103 @@ async function selectOne(pool, text, params = []) {
     return rows[0] ?? null;
 }
 
+function legacyRequirementFromGeneric(requirement) {
+    return {
+        code: requirement.code,
+        uuid: requirement.uuid ?? null,
+        title: requirement.title,
+        entity_kind: requirement.kind,
+        role: requirement.role ?? 'core',
+        source: 'generic_coverage_engine',
+        source_documents: (requirement.evidence ?? []).map((item) => item.document_id ?? item.source).filter(Boolean),
+        item_status: null,
+        service_instructions: null,
+        note: 'Derived from generic capability coverage engine and imported C3/spiral membership evidence.',
+        is_resolved: Boolean(requirement.uuid),
+        covered_by: requirement.covered_by ?? [],
+        evidence: requirement.evidence ?? [],
+    };
+}
+
+function serviceMatchesSearch(service, serviceSearch) {
+    const query = String(serviceSearch ?? '').trim().toLowerCase();
+    if (!query) return true;
+    return [service.service_id, service.title]
+        .some((value) => String(value ?? '').toLowerCase().includes(query));
+}
+
+function buildLegacyFmnAirC2PayloadFromCoverage(coverage, serviceSearch = '') {
+    const requirements = (coverage.requirements ?? []).map(legacyRequirementFromGeneric);
+    const resolvedRequirements = requirements.filter((item) => item.uuid);
+    const coreRequirements = resolvedRequirements.filter((item) => item.role === 'core');
+    const visibleServices = (coverage.services ?? []).filter((service) => serviceMatchesSearch(service, serviceSearch));
+    const visibleServiceIds = new Set(visibleServices.map((service) => service.service_id));
+
+    const services = visibleServices.map((service) => {
+        const coveredRequirements = resolvedRequirements.filter((requirement) => requirement.covered_by.includes(service.service_id));
+        const coveredCoreCount = coveredRequirements.filter((requirement) => requirement.role === 'core').length;
+        const missingCore = coreRequirements.filter((requirement) => !requirement.covered_by.includes(service.service_id));
+        return {
+            service_pk: null,
+            service_id: service.service_id,
+            title: service.title,
+            service_status_code: null,
+            coverage_percent: coreRequirements.length ? Math.round((coveredCoreCount / coreRequirements.length) * 100) : service.coverage_percent,
+            covered_count: coveredRequirements.length,
+            covered_core_count: coveredCoreCount,
+            total_core_count: coreRequirements.length,
+            total_requirement_count: resolvedRequirements.length,
+            total_c3_mapping_count: service.covered_count,
+            covered_requirements: coveredRequirements,
+            missing_core_requirements: missingCore,
+        };
+    });
+
+    const duplicateCoverage = resolvedRequirements
+        .map((requirement) => {
+            const serviceList = requirement.covered_by
+                .filter((serviceId) => visibleServiceIds.has(serviceId))
+                .map((serviceId) => {
+                    const service = visibleServices.find((item) => item.service_id === serviceId);
+                    return { service_id: serviceId, title: service?.title ?? serviceId };
+                });
+            return { requirement, services: serviceList };
+        })
+        .filter((item) => item.services.length > 1);
+
+    return {
+        framework: {
+            name: 'FMN Spiral 5 Air C2 coverage',
+            spiral: AIR_C2_LEGACY_SPIRAL,
+            domain: 'Air C2',
+            successor_endpoint: AIR_C2_SUCCESSOR_ENDPOINT,
+            source_documents: coverage.documents ?? [],
+            source_model_note: 'Legacy Air C2 view is now a compatibility adapter over the generic capability coverage engine. Evidence comes from imported C3 entities, spiral membership, and service catalogue mappings; no developer-local PDF path is used.',
+        },
+        summary: {
+            total_requirements: requirements.length,
+            resolved_requirements: resolvedRequirements.length,
+            core_requirements: coreRequirements.length,
+            unresolved_references: requirements.filter((item) => !item.is_resolved).length,
+            matching_services: services.length,
+            duplicate_requirement_count: duplicateCoverage.length,
+        },
+        requirements,
+        services,
+        duplicate_coverage: duplicateCoverage,
+    };
+}
+
+async function loadLegacyFmnAirC2Coverage(pool) {
+    let firstMiss = null;
+    for (const slug of AIR_C2_LEGACY_SLUG_FALLBACKS) {
+        const coverage = await capabilityCoverageEngine.loadCoveragePayload(pool, slug, AIR_C2_LEGACY_SPIRAL);
+        if (coverage.status === 200) return coverage;
+        if (!firstMiss) firstMiss = coverage;
+    }
+    return firstMiss ?? { status: 404, body: { error: 'Capability slug not found' } };
+}
+
 function normalizeOptionalInt(value) {
     if (value == null || value === '') return null;
     const parsed = Number.parseInt(String(value), 10);
@@ -212,6 +319,10 @@ function normalizeCodeParam(value) {
 
 function isXlsxParserError(err) {
     return String(err?.message ?? '').startsWith('XLSX parser:');
+}
+
+function isTruthyQuery(value) {
+    return ['1', 'true', 'yes'].includes(String(value ?? '').trim().toLowerCase());
 }
 
 function getImportTargetMeta(targetKey) {
@@ -296,11 +407,12 @@ function normalizeC3TaxonomyItem(raw, defaultItemType = null) {
     };
 }
 
-async function runC3TaxonomyImport(rawItems, { defaultItemType = null } = {}) {
+async function runC3TaxonomyImport(rawItems, { defaultItemType = null, spiralCode = null } = {}) {
     const pool = getPool();
     let inserted = 0;
     let updated = 0;
     let failed = 0;
+    const membershipRecords = [];
 
     for (const rawItem of rawItems) {
         try {
@@ -376,9 +488,10 @@ async function runC3TaxonomyImport(rawItems, { defaultItemType = null } = {}) {
                         item_type = $25,
                         parent_code = $26,
                         parent_uuid = $27,
+                        fmn_spiral = COALESCE($28, fmn_spiral),
                         synced_at = CURRENT_TIMESTAMP
                     WHERE uuid = $1
-                `, values);
+                `, [...values, spiralCode]);
                 updated += 1;
             } else {
                 await pool.query(`
@@ -390,7 +503,7 @@ async function runC3TaxonomyImport(rawItems, { defaultItemType = null } = {}) {
                         order_num, level_num, modification_date, revised,
                         abbreviation, synonym, script_raw, datasets_raw,
                         standards_raw, references_raw, provenance_raw,
-                        item_type, parent_code, parent_uuid
+                        item_type, parent_code, parent_uuid, fmn_spiral
                     ) VALUES (
                         $1, $2, $3, $4,
                         $5, $6,
@@ -399,10 +512,21 @@ async function runC3TaxonomyImport(rawItems, { defaultItemType = null } = {}) {
                         $14, $15, $16, $17,
                         $18, $19, $20, $21,
                         $22, $23, $24,
-                        $25, $26, $27
+                        $25, $26, $27, $28
                     )
-                `, values);
+                `, [...values, spiralCode]);
                 inserted += 1;
+            }
+            if (spiralCode && item.item_type === 'CP') {
+                membershipRecords.push({
+                    entityKind: 'capability',
+                    entityUuid: item.uuid,
+                    spiralCode,
+                    statusInSpiral: existing ? 'updated' : 'new',
+                    ssOverallStatus: item.ss_overall_status ?? null,
+                    ssBaselineStatus: item.ss_baseline_status ?? null,
+                    itemStatus: item.item_status ?? null,
+                });
             }
         } catch (_error) {
             failed += 1;
@@ -410,6 +534,7 @@ async function runC3TaxonomyImport(rawItems, { defaultItemType = null } = {}) {
     }
 
     await syncTaxonomyParentUuids();
+    await recordMembershipBatch(membershipRecords);
 
     await syncCapabilityDerivedLinksForAll();
     invalidateC3CacheKeys();
@@ -419,6 +544,7 @@ async function runC3TaxonomyImport(rawItems, { defaultItemType = null } = {}) {
         updated,
         failed,
         rowsParsed: rawItems.length,
+        membership_records: membershipRecords.length,
     };
 }
 
@@ -805,7 +931,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
 
     if (!record.page_id) {
         issues.push({
-            severity: 'error',
+            severity: 'warn',
             issue_code: 'MISSING_PAGE_ID',
             field_name: 'page_id',
             raw_value: null,
@@ -814,7 +940,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
     }
     if (!record.uuid) {
         issues.push({
-            severity: 'error',
+            severity: 'warn',
             issue_code: 'MISSING_UUID',
             field_name: 'uuid',
             raw_value: null,
@@ -858,7 +984,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
     }
     if (record.parent_id && record.parent_id === record.page_id) {
         issues.push({
-            severity: 'error',
+            severity: 'warn',
             issue_code: 'SELF_PARENT',
             field_name: 'parent_id',
             raw_value: record.parent_id,
@@ -885,7 +1011,7 @@ function buildCapabilityBuilderImportIssues(record, allowedDomainCodes, knownPag
     }
     if (record.parent_id && !knownPageIds.has(record.parent_id)) {
         issues.push({
-            severity: 'error',
+            severity: 'warn',
             issue_code: 'UNKNOWN_PARENT',
             field_name: 'parent_id',
             raw_value: record.parent_id,
@@ -941,8 +1067,11 @@ async function validateCapabilityBuilderImportRows(rawRows, translate = (key) =>
     };
 }
 
-async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', createdBy = null, translate = (key, params) => key } = {}) {
+async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', spiralCode = null, createdBy = null, translate = (key, params) => key } = {}) {
     const preview = await validateCapabilityBuilderImportRows(rawRows, translate);
+    const parentWarningRows = new Set(preview.issues
+        .filter((issue) => ['SELF_PARENT', 'UNKNOWN_PARENT'].includes(issue.issue_code))
+        .map((issue) => issue.row_number));
     const validRows = rawRows
         .map((rawRow, index) => ({
             row_number: index + 2,
@@ -962,7 +1091,10 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
     const runtimeIssues = [];
 
     for (const item of validRows) {
-        const row = item.record;
+        const row = {
+            ...item.record,
+            parent_id: parentWarningRows.has(item.row_number) ? null : item.record.parent_id,
+        };
         try {
             const existing = await selectOne(getPool(), `
                 SELECT id
@@ -972,15 +1104,15 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
                 LIMIT 1
             `, [row.uuid, row.page_id]);
 
-            const normalized = await validateCapabilityBuilderPayload({
-                page_id: row.page_id,
+            const normalized = {
+                pageId: row.page_id,
                 uuid: row.uuid,
                 title: row.title,
-                parent_id: row.parent_id,
+                parentId: row.parent_id,
                 level: row.level,
                 state: row.state,
-                domain_code: row.domain_code,
-            }, existing?.id ?? null, 'data.c3_capability_builder', 20);
+                domainCode: row.domain_code,
+            };
 
             if (existing?.id) {
                 await getPool().query(`
@@ -993,6 +1125,7 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
                         level = $6,
                         state = $7,
                         domain_code = $8,
+                        fmn_spiral = COALESCE($9, fmn_spiral),
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = $1
                 `, [
@@ -1004,6 +1137,7 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
                     normalized.level,
                     normalized.state,
                     normalized.domainCode,
+                    spiralCode,
                 ]);
                 updated += 1;
             } else {
@@ -1015,7 +1149,8 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
                         parent_id,
                         level,
                         state,
-                        domain_code
+                        domain_code,
+                        fmn_spiral
                     )
                     VALUES (
                         $1,
@@ -1024,7 +1159,8 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
                         $4,
                         $5,
                         $6,
-                        $7
+                        $7,
+                        $8
                     )
                 `, [
                     normalized.pageId,
@@ -1034,6 +1170,7 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
                     normalized.level,
                     normalized.state,
                     normalized.domainCode,
+                    spiralCode,
                 ]);
                 inserted += 1;
             }
@@ -1059,7 +1196,7 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
         sourceName,
         sourceKind,
         isDryRun: false,
-        spiralCode: null,
+        spiralCode,
         rowCount: rawRows.length,
         okCount: inserted + updated,
         warnCount: preview.warn_count,
@@ -1241,6 +1378,23 @@ router.get('/c3-technology-interactions/:code', async (req, res, next) => {
         const row = await getC3EntityDetailByCode(req, 'c3-technology-interactions', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_technology_interaction_not_found') });
         res.json(row);
+    } catch (err) { next(err); }
+});
+
+router.get('/c3/fmn-air-c2/coverage', requireAuth, async (req, res, next) => {
+    try {
+        res.setHeader('Deprecation', 'true');
+        res.setHeader('Sunset', 'Tue, 26 May 2026 00:00:00 GMT');
+        res.setHeader('Link', `<${AIR_C2_SUCCESSOR_ENDPOINT}>; rel="successor-version"`);
+        const serviceSearch = parseTextFilter(req.query.service, { maxLength: 120 });
+        const cacheKey = `c3_fmn_air_c2_coverage:${serviceSearch || 'all'}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return res.json(cached);
+        const coverage = await loadLegacyFmnAirC2Coverage(getPool());
+        if (coverage.status !== 200) return res.status(coverage.status).json(coverage.body);
+        const payload = buildLegacyFmnAirC2PayloadFromCoverage(coverage.body, serviceSearch);
+        cache.set(cacheKey, payload, config.cache.c3DashboardTtl);
+        res.json(payload);
     } catch (err) { next(err); }
 });
 
@@ -1914,7 +2068,8 @@ router.post('/c3/sync', canAdmin, async (req, res, next) => {
         if (!Array.isArray(items)) return res.status(400).json({ error: tReq(req, 'import.errors.items_array_required') });
         const defaultItemTypeKey = normalizeC3TaxonomyTargetKey(req.body?.target_key ?? req.query?.target_key);
         const defaultItemType = defaultItemTypeKey ? C3_TAXONOMY_IMPORT_TARGETS[defaultItemTypeKey].itemType : null;
-        const result = await runC3TaxonomyImport(items, { defaultItemType });
+        const spiralCode = req.body?.spiral_code ?? req.query?.spiral_code ?? null;
+        const result = await runC3TaxonomyImport(items, { defaultItemType, spiralCode });
         res.json({ message: tReq(req, 'taxonomy.messages.c3_taxonomy_synced'), ...result });
     } catch (err) { next(err); }
 });
@@ -1942,7 +2097,8 @@ router.post('/c3/csv', canAdmin, require('express').text({ type: ['text/csv', 't
         });
         const defaultItemTypeKey = normalizeC3TaxonomyTargetKey(req.query?.target_key);
         const defaultItemType = defaultItemTypeKey ? C3_TAXONOMY_IMPORT_TARGETS[defaultItemTypeKey].itemType : null;
-        const result = await runC3TaxonomyImport(rawItems, { defaultItemType });
+        const spiralCode = req.query?.spiral_code ?? null;
+        const result = await runC3TaxonomyImport(rawItems, { defaultItemType, spiralCode });
         res.json({ ok: true, source: 'csv', ...result });
     } catch (err) { next(err); }
 });
@@ -1974,7 +2130,8 @@ router.post(
                 return res.status(400).json({ error: tReq(req, 'taxonomy.errors.target_detection_failed') });
             }
 
-            const result = await runC3TaxonomyImport(workbook.rows, { defaultItemType: effectiveTarget.itemType });
+            const spiralCode = req.query?.spiral_code ?? null;
+            const result = await runC3TaxonomyImport(workbook.rows, { defaultItemType: effectiveTarget.itemType, spiralCode });
             res.json({
                 ok: true,
                 source: 'xlsx',
@@ -1990,6 +2147,55 @@ router.post(
             next(err);
         }
     }
+);
+
+router.post(
+    '/c3/:targetKey/xml-archimate',
+    canAdmin,
+    require('express').text({
+        type: ['application/xml', 'text/xml', 'application/octet-stream', 'text/plain'],
+        limit: '10mb',
+    }),
+    async (req, res, next) => {
+        try {
+            const targetKey = normalizeC3TaxonomyTargetKey(req.params.targetKey);
+            const target = targetKey ? C3_TAXONOMY_IMPORT_TARGETS[targetKey] : null;
+            if (!target) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.target_detection_failed') });
+
+            const xmlText = typeof req.body === 'string' ? req.body : String(req.body ?? '');
+            if (!xmlText.trim()) return res.status(400).json({ error: 'ArchiMate parser: XML body is required' });
+
+            const parsed = parseArchimateXml(xmlText, { targetKey });
+            if (isTruthyQuery(req.query?.dry_run)) {
+                return res.json({
+                    ok: true,
+                    source: 'xml-archimate',
+                    dry_run: true,
+                    target_key: targetKey,
+                    target_label: target.label,
+                    rowsParsed: parsed.row_count,
+                    issue_count: parsed.issues.length,
+                    issues: parsed.issues,
+                    preview: parsed.rows.slice(0, 20),
+                });
+            }
+
+            const spiralCode = req.query?.spiral_code ?? null;
+            const result = await runC3TaxonomyImport(parsed.rows, { defaultItemType: target.itemType, spiralCode });
+            return res.json({
+                ok: true,
+                source: 'xml-archimate',
+                target_key: targetKey,
+                target_label: target.label,
+                parser_issue_count: parsed.issues.length,
+                parser_issues: parsed.issues,
+                ...result,
+            });
+        } catch (err) {
+            if (isArchimateParserError(err)) return res.status(400).json({ error: err.message });
+            next(err);
+        }
+    },
 );
 
 router.post(
@@ -2034,6 +2240,7 @@ router.post(
             const result = await importCapabilityBuilderRows(items, {
                 sourceName: req.body?.source_name ?? null,
                 sourceKind: 'json',
+                spiralCode: req.body?.spiral_code ?? req.query?.spiral_code ?? null,
                 createdBy: req.user?.username ?? null,
                 translate: (key, params) => tReq(req, key, params),
             });
@@ -2200,6 +2407,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                     createdBy: req.user?.username ?? null,
                     notes: `${targetConfig.label} JSON import`,
                 });
+                await recordMembershipBatch(result.membership_records, { sourceRunId: runId });
                 await logC3EntityImportIssues(runId, result.issues);
                 res.json({
                     ok: true,
@@ -2271,6 +2479,7 @@ Object.entries(C3_ENTITY_IMPORT_TARGETS).forEach(([targetKey, targetConfig]) => 
                     createdBy: req.user?.username ?? null,
                     notes: `${targetConfig.label} CSV import`,
                 });
+                await recordMembershipBatch(result.membership_records, { sourceRunId: runId });
                 await logC3EntityImportIssues(runId, result.issues);
                 res.json({
                     ok: true,

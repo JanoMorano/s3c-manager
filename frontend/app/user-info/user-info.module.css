@@ -34,7 +34,7 @@
   height: 56px;
   border-radius: 50%;
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   font: var(--text-title-md);
   display: flex;
   align-items: center;
@@ -91,7 +91,7 @@
   letter-spacing: .04em;
 }
 
-.expired { color: var(--color-danger, #de350b); }
+.expired { color: var(--color-danger, var(--color-danger)); }
 
 .noToken {
   padding: var(--space-4) var(--space-5);
@@ -110,17 +110,17 @@
 
 .logoutBtn {
   font: var(--text-label-md);
-  color: var(--color-danger, #de350b);
+  color: var(--color-danger, var(--color-danger));
   background: transparent;
-  border: 1px solid var(--color-danger, #de350b);
+  border: 1px solid var(--color-danger, var(--color-danger));
   border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-4);
   cursor: pointer;
   transition: background .1s, color .1s;
 }
 .logoutBtn:hover {
-  background: var(--color-danger, #de350b);
-  color: #fff;
+  background: var(--color-danger, var(--color-danger));
+  color: var(--color-bg-surface);
 }
 
 /* ── Owned services section ────────────────────────────────────────────────── */
@@ -162,7 +162,7 @@
   font-size: .88em;
   background: var(--color-bg-subtle);
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .table {
@@ -203,16 +203,16 @@
 .statusPill {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 100px;
+  border-radius: var(--radius-pill);
   font: var(--text-label-sm);
   background: var(--color-bg-subtle);
   color: var(--color-text-muted);
   border: 1px solid var(--color-border-subtle);
 }
-.statusPill[data-status="active"]     { background: rgba(54,179,126,.12); color: #006644; border-color: rgba(54,179,126,.3); }
+.statusPill[data-status="active"]     { background: rgba(54,179,126,.12); color: var(--color-success); border-color: rgba(54,179,126,.3); }
 .statusPill[data-status="draft"]      { background: rgba(0,101,255,.08);  color: var(--color-action-primary); border-color: rgba(0,101,255,.2); }
-.statusPill[data-status="deprecated"] { background: rgba(255,139,0,.10);  color: #974900; border-color: rgba(255,139,0,.3); }
-.statusPill[data-status="retired"]    { background: rgba(101,84,192,.10); color: #403294; border-color: rgba(101,84,192,.3); }
+.statusPill[data-status="deprecated"] { background: rgba(255,139,0,.10);  color: var(--color-warning); border-color: rgba(255,139,0,.3); }
+.statusPill[data-status="retired"]    { background: rgba(101,84,192,.10); color: var(--color-domain-relay); border-color: rgba(101,84,192,.3); }
 
 /* ── Profile edit form ─────────────────────────────────────────────────────── */
 .profileForm {
@@ -262,11 +262,40 @@
 .input:focus { border-color: var(--color-action-primary); }
 .input:disabled { background: var(--color-bg-subtle); color: var(--color-text-muted); }
 
-.inputError { border-color: var(--color-danger, #de350b) !important; }
+.inputError { border-color: var(--color-danger, var(--color-danger)) !important; }
 
 .fieldError {
   font: var(--text-label-sm);
-  color: var(--color-danger, #de350b);
+  color: var(--color-danger, var(--color-danger));
+}
+
+.fieldHint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+.preferencePanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(160px, .7fr) minmax(180px, .8fr);
+  gap: var(--space-4);
+  align-items: end;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-action-primary) 8%);
+}
+
+.preferenceTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.preferenceDesc {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
 }
 
 /* ── Save / error feedback ──────────────────────────────────────────────────── */
@@ -280,7 +309,7 @@
 .btnPrimary {
   font: var(--text-label-md);
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   border: none;
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-5);
@@ -292,12 +321,12 @@
 
 .saveSuccess {
   font: var(--text-label-sm);
-  color: var(--color-status-success, #006644);
+  color: var(--color-status-success, var(--color-success));
 }
 
 .saveError {
   font: var(--text-label-sm);
-  color: var(--color-danger, #de350b);
+  color: var(--color-danger, var(--color-danger));
 }
 
 /* ── Avatar colour picker ───────────────────────────────────────────────────── */
@@ -373,7 +402,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--color-bg-surface);
   font-size: 1.6rem;
   font-weight: 700;
   display: flex;
@@ -381,4 +410,11 @@
   justify-content: center;
   flex-shrink: 0;
   transition: background .2s;
+}
+
+@media (max-width: 760px) {
+  .formGroup,
+  .preferencePanel {
+    grid-template-columns: 1fr;
+  }
 }

@@ -14,6 +14,8 @@ export function getLocaleBootstrapScript(): string {
     var base = trimmed.split('-')[0];
     if (base === 'cs' || base === 'cz' || base === 'cze') return 'cs';
     if (base === 'en') return 'en';
+    if (base === 'sk' || base === 'svk') return 'sk';
+    if (base === 'de' || base === 'ger' || base === 'deu') return 'de';
     return 'cs';
   }
 
@@ -52,5 +54,5 @@ export function readBootstrapLocale(): Locale | null {
   if (typeof window === 'undefined') return null;
 
   const locale = (window as Window & { __SC_BOOTSTRAP_LOCALE__?: string }).__SC_BOOTSTRAP_LOCALE__;
-  return locale === 'cs' || locale === 'en' ? locale : null;
+  return locale === 'cs' || locale === 'en' || locale === 'sk' || locale === 'de' ? locale : null;
 }

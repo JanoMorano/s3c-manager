@@ -34,7 +34,7 @@
 }
 .tabBtn[aria-pressed="true"] {
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   border-color: var(--color-action-primary);
 }
 
@@ -87,7 +87,7 @@
   transition: background 0.1s;
 }
 .filterBtnActive {
-  background: var(--color-bg-surface-active, #e8f0fe);
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
   border-color: var(--color-action-primary);
   color: var(--color-action-primary);
   font-weight: 600;
@@ -134,7 +134,7 @@
 .table td {
   padding: var(--space-2) var(--space-4);
   color: var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border-subtle, #f4f5f7);
+  border-bottom: 1px solid var(--color-border-subtle, var(--color-bg-subtle));
   vertical-align: middle;
 }
 
@@ -144,8 +144,8 @@
   cursor: pointer;
   transition: background 0.1s;
 }
-.batchRow:hover { background: var(--color-bg-canvas, #f4f5f7); }
-.batchRowSelected { background: #e8f0fe !important; }
+.batchRow:hover { background: var(--color-bg-canvas); }
+.batchRowSelected { background: color-mix(in srgb, var(--color-info) 10%, transparent) !important; }
 
 .numCell {
   text-align: right;
@@ -164,8 +164,8 @@
   display: inline-block;
   min-width: 28px;
   text-align: center;
-  background: #ffebe6;
-  color: #de350b;
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  color: var(--color-danger);
   border-radius: var(--radius-pill);
   padding: 1px 6px;
   font: var(--text-label-sm);
@@ -189,9 +189,9 @@
   font: var(--text-label-sm);
 }
 
-.badgeOk      { background: #e3fcef; color: #006644; }
-.badgeDanger  { background: #ffebe6; color: #de350b; }
-.badgeWarn    { background: #fffae6; color: #7a5f00; }
+.badgeOk      { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); }
+.badgeDanger  { background: color-mix(in srgb, var(--color-danger) 10%, transparent); color: var(--color-danger); }
+.badgeWarn    { background: var(--color-bg-surface)ae6; color: var(--color-warning); }
 .badgeNeutral { background: var(--color-bg-canvas); color: var(--color-text-muted); }
 
 /* ── Issue panel ─────────────────────────────────────────────────────────── */
@@ -280,8 +280,8 @@
   font: var(--text-mono-sm);
   font-size: 11px;
   background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-subtle, #ebecf0);
-  border-radius: 3px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
   padding: 1px 5px;
   color: var(--color-text-secondary);
 }
@@ -343,7 +343,7 @@
   font: var(--text-body-sm);
   color: var(--color-text-primary);
   background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-subtle, #ebecf0);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: 6px 10px;
   margin-top: 4px;

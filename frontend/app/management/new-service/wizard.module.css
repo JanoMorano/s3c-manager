@@ -93,12 +93,12 @@
 .stepDotActive {
   border-color: var(--color-action-primary);
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
 }
 .stepDotDone {
   border-color: var(--color-success);
   background: var(--color-success);
-  color: #fff;
+  color: var(--color-bg-surface);
   font-size: 11px;
 }
 
@@ -190,8 +190,8 @@
 }
 
 .tooltipContent {
-  background: #1e1e2e;
-  color: #e2e8f0;
+  background: var(--color-text-primary);
+  color: var(--color-border-default);
   font: var(--text-body-sm);
   line-height: 1.6;
   padding: 10px 13px;
@@ -200,7 +200,7 @@
   box-shadow: var(--shadow-medium);
   z-index: 9999;
 }
-.tooltipArrow { fill: #1e1e2e; }
+.tooltipArrow { fill: var(--color-text-primary); }
 
 /* ── Input styles ───────────────────────────────────────────────── */
 .input {
@@ -218,11 +218,11 @@
 .input:focus {
   outline: none;
   border-color: var(--color-focus-ring);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
 }
 /* Blue placeholder = example value hint */
 .input::placeholder {
-  color: #3b82f6;
+  color: var(--color-info);
   opacity: 0.55;
   font-style: italic;
 }
@@ -245,10 +245,10 @@
 .textarea:focus {
   outline: none;
   border-color: var(--color-focus-ring);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
 }
 .textarea::placeholder {
-  color: #3b82f6;
+  color: var(--color-info);
   opacity: 0.55;
   font-style: italic;
 }
@@ -308,7 +308,7 @@
 .toggleCheckmarkActive {
   background: var(--color-success);
   border-color: var(--color-success);
-  color: #fff;
+  color: var(--color-bg-surface);
 }
 
 /* ── Conditional request block ──────────────────────────────────── */
@@ -362,7 +362,7 @@
 .domainChipActive {
   background: var(--color-text-primary);
   border-color: var(--color-text-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
 }
 
 /* ── SLA inputs ─────────────────────────────────────────────────── */
@@ -419,7 +419,7 @@
 .c3Tick {
   width: 16px;
   height: 16px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--color-border-default);
   flex-shrink: 0;
   display: flex;
@@ -431,7 +431,7 @@
 .c3TickSelected {
   background: var(--color-success);
   border-color: var(--color-success);
-  color: #fff;
+  color: var(--color-bg-surface);
 }
 .c3ItemApp {
   font: var(--text-label-sm);
@@ -566,9 +566,9 @@
   background: var(--color-bg-subtle);
 }
 .channelChipActive {
-  background: #18181b;
-  border-color: #18181b;
-  color: #fff;
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: var(--color-bg-surface);
 }
 
 /* ── SLA tier visual ────────────────────────────────────────────── */

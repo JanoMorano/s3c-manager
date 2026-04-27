@@ -65,7 +65,7 @@
   color: var(--color-text-primary);
 }
 
-.req { color: var(--color-danger, #de350b); }
+.req { color: var(--color-danger, var(--color-danger)); }
 
 .hint {
   font: var(--text-body-sm);
@@ -77,7 +77,7 @@
 .textarea {
   font: var(--text-body-md);
   color: var(--color-text-primary);
-  background: var(--color-bg-input, #fff);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
@@ -91,7 +91,7 @@
 .textarea:focus {
   outline: none;
   border-color: var(--color-action-primary);
-  box-shadow: 0 0 0 2px rgba(0, 101, 255, .15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
 }
 
 .textarea { resize: vertical; }
@@ -99,7 +99,7 @@
 .errorMsg {
   background: rgba(222, 53, 11, .08);
   border: 1px solid rgba(222, 53, 11, .3);
-  color: var(--color-danger, #de350b);
+  color: var(--color-danger, var(--color-danger));
   border-radius: var(--radius-sm);
   padding: var(--space-3) var(--space-4);
   font: var(--text-body-sm);
@@ -125,7 +125,7 @@
 
 .submitBtn {
   font: var(--text-label-md);
-  color: #fff;
+  color: var(--color-bg-surface);
   background: var(--color-action-primary);
   border: none;
   border-radius: var(--radius-sm);

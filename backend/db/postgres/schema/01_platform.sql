@@ -73,6 +73,20 @@ CREATE TABLE IF NOT EXISTS audit_log (
     user_agent     VARCHAR(500) NULL
 );
 
+DO $$
+BEGIN
+    ALTER TABLE audit_log DROP CONSTRAINT IF EXISTS audit_log_action_check;
+    ALTER TABLE audit_log
+        ADD CONSTRAINT audit_log_action_check
+        CHECK (
+            action IN (
+                'INSERT','UPDATE','DELETE','SOFT_DELETE',
+                'RESTORE','SP_IMPORT','JSON_IMPORT','SCORE_RECALC',
+                'AUTH_FAILURE'
+            )
+        );
+END $$;
+
 CREATE INDEX IF NOT EXISTS ix_refresh_tokens_hash
     ON refresh_tokens(token_hash)
     WHERE revoked_at IS NULL;

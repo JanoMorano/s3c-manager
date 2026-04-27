@@ -75,7 +75,7 @@
   outline: none;
 }
 
-.input:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.25); }
+.input:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .inputError { border-color: var(--color-danger); }
 
 .textarea {
@@ -91,7 +91,7 @@
   outline: none;
 }
 
-.textarea:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.25); }
+.textarea:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .fieldError { font: var(--text-label-sm); color: var(--color-danger); }
 .visuallyHidden {
   position: absolute;
@@ -122,14 +122,14 @@
 }
 
 .domainCheck:has(input:checked) {
-  background: #deebff;
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
   border-color: var(--color-focus-ring);
   color: var(--color-action-primary);
 }
 
 .errorBanner {
   padding: var(--space-3);
-  background: #fff3f3;
+  background: var(--color-bg-surface)3f3;
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
   font: var(--text-body-sm);
@@ -138,11 +138,11 @@
 
 .successBanner {
   padding: var(--space-3);
-  background: #e3fcef;
-  border: 1px solid #57d9a3;
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  border: 1px solid var(--color-success);
   border-radius: var(--radius-sm);
   font: var(--text-body-sm);
-  color: #006644;
+  color: var(--color-success);
 }
 
 .rail {
@@ -169,14 +169,14 @@
 }
 
 .saving { font: var(--text-body-sm); color: var(--color-info); margin-bottom: var(--space-2); }
-.savedOk { font: var(--text-body-sm); color: #006644; margin-bottom: var(--space-2); }
+.savedOk { font: var(--text-body-sm); color: var(--color-success); margin-bottom: var(--space-2); }
 .railError { font: var(--text-body-sm); color: var(--color-danger); margin-bottom: var(--space-2); word-break: break-word; }
 .dirtyNote { font: var(--text-label-sm); color: var(--color-warning); margin-bottom: var(--space-3); }
 .sectionNav { display: flex; flex-direction: column; gap: var(--space-1); }
 .sectionNavItem { font: var(--text-body-sm); color: var(--color-action-primary); text-decoration: none; }
 .sectionNavItem:hover { text-decoration: underline; }
 .validationError { font: var(--text-label-sm); color: var(--color-danger); margin-bottom: var(--space-1); }
-.validOk { font: var(--text-body-sm); color: #006644; }
+.validOk { font: var(--text-body-sm); color: var(--color-success); }
 
 .lockedSection {
   border: 1px dashed var(--color-border-default);

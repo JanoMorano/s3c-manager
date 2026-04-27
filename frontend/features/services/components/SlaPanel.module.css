@@ -1,20 +1,20 @@
 /* SlaPanel — visual separation for SLA summary + detail */
 
 .panel {
-  border: 1px solid var(--border-subtle, #e2e8f0);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
 }
 
 .panelTitle {
   padding: var(--space-2, 8px) var(--space-3, 12px);
-  background: var(--surface-subtle, #f8fafc);
+  background: var(--color-bg-subtle);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 600;
-  color: var(--text-secondary, #64748b);
+  color: var(--color-text-secondary);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────── */
@@ -33,14 +33,14 @@
 
 .summaryLabel {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--text-secondary, #64748b);
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .summaryValue {
   font-size: var(--text-sm, 0.875rem);
   font-weight: 600;
-  color: var(--text-primary, #0f172a);
+  color: var(--color-text-primary);
 }
 
 .slaTextBlock {
@@ -52,13 +52,13 @@
 
 .slaText {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--text-secondary, #64748b);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 /* ── Detail ──────────────────────────────────────────────────────── */
 .detailBlock {
-  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  border-top: 1px solid var(--color-border-default);
   padding: var(--space-2, 8px) 0 0;
 }
 
@@ -66,7 +66,7 @@
   padding: var(--space-2, 8px) var(--space-3, 12px) var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--text-secondary, #64748b);
+  color: var(--color-text-secondary);
 }
 
 .table {
@@ -84,29 +84,29 @@
 }
 
 .tableHeader {
-  background: var(--surface-subtle, #f8fafc);
+  background: var(--color-bg-subtle);
   font-weight: 600;
-  color: var(--text-secondary, #64748b);
-  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border-default);
 }
 
 .tableRow {
-  border-top: 1px solid var(--border-subtle, #e2e8f0);
-  color: var(--text-primary, #0f172a);
+  border-top: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
 }
 
 .tableRow:hover {
-  background: var(--surface-hover, #f1f5f9);
+  background: var(--color-bg-subtle);
 }
 
 .noteCell {
-  color: var(--text-secondary, #64748b);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .srcTag {
-  color: var(--text-muted, #94a3b8);
+  color: var(--color-text-muted);
   font-style: italic;
 }

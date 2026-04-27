@@ -2,8 +2,8 @@
 /**
  * AppShell — conditional layout wrapper.
  *
- * /install  → fullscreen without navigation (install wizard owns its shell).
- * /login    → fullscreen without navigation.
+ * /install  → fullscreen without navigation or auth guard (install wizard owns its shell).
+ * /login    → fullscreen without navigation, but still guarded by install readiness.
  * other     → sidebar shell: left sidebar (brand + nav + user) + right column (topbar + page).
  */
 import { usePathname } from 'next/navigation';
@@ -30,9 +30,14 @@ function BrandMark() {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
 
-  // Fullscreen pages — no shell.
-  if (pathname.startsWith('/install') || pathname.startsWith('/login')) {
+  // Install wizard must always remain reachable, even before auth exists.
+  if (pathname.startsWith('/install')) {
     return <>{children}</>;
+  }
+
+  // Login has no app shell, but it still needs install readiness routing.
+  if (pathname.startsWith('/login')) {
+    return <AuthGuard>{children}</AuthGuard>;
   }
 
   return (
@@ -51,7 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className={styles.sidebarBrandMark}>
                 <BrandMark />
               </span>
-              <span className={styles.sidebarBrandName}>Service Catalogue</span>
+              <span className={styles.sidebarBrandName}>S3C Manager v1.1</span>
             </Link>
           </div>
 

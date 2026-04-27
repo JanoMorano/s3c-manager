@@ -2,9 +2,10 @@
 
 import Link from '@/app/components/AppLink';
 import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { useT } from '@/app/i18n/useI18n';
 import { useInstallStatus } from '@/features/install/installStatus';
-import { C3_ROUTES, isC3Route, buildC3TaxonomyListHref, C3_TAXONOMY_TYPE_OPTIONS } from '../lib/c3Routes';
+import { C3_ROUTES } from '../lib/c3Routes';
 import styles from '../layout.module.css';
 
 // ── Tiny inline SVG icons ──────────────────────────────────────────────────
@@ -57,16 +58,6 @@ function IconCog() {
     </svg>
   );
 }
-function IconUsers() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <circle cx="5.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.2" opacity=".7"/>
-      <path d="M1 13c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity=".7"/>
-      <path d="M10 7c1.5 0 3 .8 3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity=".5"/>
-      <circle cx="10.5" cy="4.5" r="2" stroke="currentColor" strokeWidth="1.2" opacity=".5"/>
-    </svg>
-  );
-}
 function IconUpload() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
@@ -107,9 +98,39 @@ function NavItem({ href, icon, label, active }: { href: string; icon: React.Reac
   );
 }
 
-// ── Section label ─────────────────────────────────────────────────────────
-function NavSection({ label }: { label: string }) {
-  return <div className={styles.sidebarNavSection}>{label}</div>;
+// ── Collapsible section ───────────────────────────────────────────────────
+function NavSection({
+  id,
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={styles.sidebarNavSectionGroup}>
+      <button
+        type="button"
+        className={styles.sidebarNavSectionButton}
+        aria-expanded={open}
+        aria-controls={`sidebar-section-${id}`}
+        onClick={onToggle}
+      >
+        <span>{label}</span>
+        <span className={styles.sidebarNavChevron} aria-hidden="true">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div id={`sidebar-section-${id}`} className={styles.sidebarNavSectionPanel}>
+          {children}
+        </div>
+      )}
+    </section>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -119,43 +140,83 @@ export default function SidebarNav() {
   const { c3Visible } = useInstallStatus();
 
   const isServiceList    = pathname === '/services/list' || pathname === '/services';
-  const isServiceDash    = pathname === '/services/dashboard';
+  const isCatalogue      = pathname === '/catalogue' || pathname === '/services/dashboard' || pathname === '/dashboard';
   const isServiceGraph   = pathname === '/services/graph' || /^\/services\/[^/]+\/graph$/.test(pathname);
-  const isC3             = isC3Route(pathname);
-  const isCapMap         = pathname.startsWith('/c3/');
+  const isDependencyFlow = pathname.startsWith('/services/dependency-flow');
+  const isConsolidation  = pathname.startsWith('/services/consolidation-matrix');
+  const isCapMap         = pathname === C3_ROUTES.capabilityMap || pathname === C3_ROUTES.capabilityMapSpiral6 || pathname === C3_ROUTES.capabilityMapSpiral7;
+  const isFmnAirC2       = pathname === C3_ROUTES.fmnAirC2;
+  const isOperations     = pathname.startsWith('/operations');
   const isAdmin          = pathname.startsWith('/administration');
   const isManagement     = pathname.startsWith('/management');
   const isImport         = pathname.startsWith('/import');
+  const activeSection = useMemo(() => {
+    if (isServiceList || isServiceGraph || isDependencyFlow || isConsolidation) return 'catalogue';
+    if (c3Visible && isFmnAirC2) return 'fmn';
+    if (c3Visible && (pathname === C3_ROUTES.list || pathname === C3_ROUTES.graph || isCapMap)) return 'c3';
+    if (isAdmin || isManagement || isImport) return 'admin';
+    return 'command';
+  }, [c3Visible, isAdmin, isCapMap, isConsolidation, isDependencyFlow, isFmnAirC2, isImport, isManagement, isServiceGraph, isServiceList, pathname]);
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['command', 'catalogue']));
+
+  useEffect(() => {
+    setOpenSections((current) => {
+      if (current.has(activeSection)) return current;
+      const next = new Set(current);
+      next.add(activeSection);
+      return next;
+    });
+  }, [activeSection]);
+
+  function toggleSection(id: string) {
+    setOpenSections((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className={styles.sidebarNavList}>
-      <NavSection label={t('nav.service_catalogue')} />
-      <NavItem href="/services/list"      icon={<IconList />}  label={t('nav.services_list')}      active={isServiceList} />
-      <NavItem href="/services/dashboard" icon={<IconGrid />}  label={t('nav.services_dashboard')} active={isServiceDash} />
-      <NavItem href="/services/graph"     icon={<IconGraph />} label={t('nav.services_graph')}     active={isServiceGraph} />
+      <NavSection id="command" label={t('nav.command_centre')} open={openSections.has('command')} onToggle={() => toggleSection('command')}>
+        <NavItem href="/catalogue" icon={<IconGrid />} label={t('nav.catalogue_dashboard')} active={isCatalogue} />
+        {c3Visible && (
+          <>
+            <NavItem href={C3_ROUTES.dashboard} icon={<IconGrid />} label={t('nav.c3_dashboard')} active={pathname === C3_ROUTES.dashboard} />
+            <NavItem href="/capabilities" icon={<IconMap />} label={t('nav.capability_manager')} active={pathname.startsWith('/capabilities')} />
+            <NavItem href="/spirals" icon={<IconStar />} label={t('nav.spiral_workspace')} active={pathname.startsWith('/spirals')} />
+          </>
+        )}
+        <NavItem href="/operations" icon={<IconCog />} label={t('nav.operations')} active={isOperations} />
+      </NavSection>
+
+      <NavSection id="catalogue" label={t('nav.service_catalogue')} open={openSections.has('catalogue')} onToggle={() => toggleSection('catalogue')}>
+        <NavItem href="/services/list" icon={<IconList />} label={t('nav.services_list')} active={isServiceList} />
+        <NavItem href="/services/graph" icon={<IconGraph />} label={t('nav.services_graph')} active={isServiceGraph} />
+        <NavItem href="/services/dependency-flow" icon={<IconGraph />} label={t('nav.dependency_flow')} active={isDependencyFlow} />
+        <NavItem href="/services/consolidation-matrix" icon={<IconTaxonomy />} label={t('nav.consolidation_matrix')} active={isConsolidation} />
+      </NavSection>
 
       {c3Visible && (
-        <>
-          <NavSection label={t('nav.c3_taxonomy')} />
-          <NavItem href={C3_ROUTES.list}      icon={<IconList />}     label={t('nav.c3_list')}      active={pathname === C3_ROUTES.list} />
-          <NavItem href={C3_ROUTES.dashboard} icon={<IconGrid />}     label={t('nav.c3_dashboard')} active={pathname === C3_ROUTES.dashboard} />
+        <NavSection id="c3" label={t('nav.c3_reference')} open={openSections.has('c3')} onToggle={() => toggleSection('c3')}>
+          <NavItem href={C3_ROUTES.list} icon={<IconList />} label={t('nav.c3_lists')} active={pathname === C3_ROUTES.list} />
+          <NavItem href={C3_ROUTES.graph} icon={<IconGraph />} label={t('nav.c3_relation_graph')} active={pathname === C3_ROUTES.graph} />
           <NavItem href={C3_ROUTES.capabilityMapSpiral7} icon={<IconMap />} label={t('nav.c3_capability_map')} active={isCapMap} />
-          {C3_TAXONOMY_TYPE_OPTIONS.slice(0, 3).map((opt) => (
-            <NavItem
-              key={opt.code}
-              href={buildC3TaxonomyListHref(opt.code)}
-              icon={<IconTaxonomy />}
-              label={opt.label}
-              active={pathname.includes(opt.code)}
-            />
-          ))}
-        </>
+        </NavSection>
       )}
 
-      <NavSection label={t('nav.administration')} />
-      <NavItem href="/administration" icon={<IconCog />}    label={t('nav.administration')} active={isAdmin} />
-      <NavItem href="/management"     icon={<IconStar />}   label={t('nav.content_admin')}  active={isManagement} />
-      <NavItem href="/import"         icon={<IconUpload />} label="Import"                   active={isImport} />
+      {c3Visible && (
+        <NavSection id="fmn" label={t('nav.fmn_spirals')} open={openSections.has('fmn')} onToggle={() => toggleSection('fmn')}>
+          <NavItem href={C3_ROUTES.fmnAirC2} icon={<IconStar />} label={t('nav.fmn_air_c2')} active={isFmnAirC2} />
+        </NavSection>
+      )}
+
+      <NavSection id="admin" label={t('nav.administration')} open={openSections.has('admin')} onToggle={() => toggleSection('admin')}>
+        <NavItem href="/administration" icon={<IconCog />}    label={t('nav.administration')} active={isAdmin} />
+        <NavItem href="/management"     icon={<IconStar />}   label={t('nav.content_admin')}  active={isManagement} />
+        <NavItem href="/import"         icon={<IconUpload />} label={t('nav.import')}          active={isImport} />
+      </NavSection>
     </div>
   );
 }

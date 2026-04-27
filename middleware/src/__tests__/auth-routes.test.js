@@ -180,6 +180,22 @@ describe('auth routes', () => {
         expect(queryMock).not.toHaveBeenCalled();
     });
 
+    test('GET /modes exposes local login and disabled SSO without touching identity headers', async () => {
+        const { getConfigValues } = require('../utils/platform-config');
+        getConfigValues.mockResolvedValueOnce({
+            ...baseRuntimeConfig,
+            'auth.sso.enabled': { config_value: 'false' },
+        });
+
+        const response = await request(buildApp())
+            .get('/api/v1/auth/modes')
+            .set('x-remote-user', 'DOMAIN\\jnovak');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ local: true, sso: false });
+        expect(queryMock).not.toHaveBeenCalled();
+    });
+
     test('GET /sso rejects when trusted proxy boundary secret is not configured', async () => {
         const config = require('../config');
         const previousSecret = config.auth.sso.trustedProxySharedSecret;

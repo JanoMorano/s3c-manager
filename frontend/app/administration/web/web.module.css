@@ -53,7 +53,7 @@
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-action-primary);
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   font: var(--text-label-md);
   cursor: pointer;
 }
@@ -130,7 +130,7 @@
 .input:focus {
   outline: none;
   border-color: var(--color-action-primary);
-  box-shadow: 0 0 0 2px rgba(0, 82, 204, .15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
 }
 
 .checkboxRow {
@@ -170,14 +170,14 @@
 .errorBox {
   background: rgba(222, 53, 11, .08);
   border: 1px solid rgba(222, 53, 11, .24);
-  color: var(--color-danger, #de350b);
+  color: var(--color-danger, var(--color-danger));
   font: var(--text-body-sm);
 }
 
 .successBox {
   background: rgba(31, 122, 70, .08);
   border: 1px solid rgba(31, 122, 70, .24);
-  color: var(--color-success, #1f7a46);
+  color: var(--color-success, var(--color-success));
   font: var(--text-body-sm);
 }
 

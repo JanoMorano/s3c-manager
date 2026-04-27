@@ -26,6 +26,18 @@ async function loginAsAdmin(page: Page) {
   await loginWithConfiguredAdmin(page, credentials);
 }
 
+async function openFirstC3ServiceEditor(page: Page) {
+  await page.goto('/c3/services');
+
+  const firstServiceLink = page.locator('table tbody a[href^="/c3/services/"]').first();
+  await expect(firstServiceLink).toBeVisible({ timeout: 15_000 });
+  const href = await firstServiceLink.getAttribute('href');
+  expect(href).toBeTruthy();
+
+  await page.goto(`${href}/edit`);
+  await expect(page).toHaveURL(/\/c3\/services\/.+\/edit/, { timeout: 10_000 });
+}
+
 test('services list renders after login', async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto('/c3/services');
@@ -35,16 +47,7 @@ test('services list renders after login', async ({ page }) => {
 
 test('clicking Edit on a service row navigates to full-page editor', async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto('/c3/services');
-
-  // Wait for at least one Edit button to appear in the list
-  const firstEditButton = page.getByRole('link', { name: 'Edit' }).first();
-  await expect(firstEditButton).toBeVisible({ timeout: 15_000 });
-
-  await firstEditButton.click();
-
-  // The full-page editor lives at /c3/services/{code}/edit
-  await expect(page).toHaveURL(/\/c3\/services\/.+\/edit/, { timeout: 10_000 });
+  await openFirstC3ServiceEditor(page);
 
   // Editor should show a form, not the inline row-edit panel
   // Verify the edit page has a Save / Uložit button
@@ -76,12 +79,7 @@ test('edit URL with ?exact=&edit=1 redirects to full-page editor', async ({ page
 
 test('C3 services edit page has functional form fields', async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto('/c3/services');
-
-  const firstEditButton = page.getByRole('link', { name: 'Edit' }).first();
-  await expect(firstEditButton).toBeVisible({ timeout: 15_000 });
-  await firstEditButton.click();
-  await expect(page).toHaveURL(/\/c3\/services\/.+\/edit/, { timeout: 10_000 });
+  await openFirstC3ServiceEditor(page);
 
   // At least one input field must be present
   const inputs = page.locator('input, textarea, select');

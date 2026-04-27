@@ -22,12 +22,15 @@ Service Catalogue is a catalogue of services and, optionally, C3 taxonomy data. 
 
 After login, the left sidebar exposes these sections:
 
-- `Service Catalogue` — list, dashboard, graph
-- `C3 Taxonomy` — list, dashboard, capability map, entity types (when C3 module is enabled)
-- `Administration` — system settings, users, import
-- `Content Admin` — new service wizard, imports
+- `Command Centre` — Catalogue, C3, Capability, Spiral, and Operations dashboards
+- `Service Catalogue` — all services, services graph, dependency flow, and consolidation matrix
+- `C3 Reference` — C3 lists, relation graph, and capability map reference views
+- `FMN Spirals` — FMN spiral workspaces such as FMN Air C2
+- `Administration` — system settings, users, import, content admin, and references
 
 If the C3 module was disabled during installation, all C3 groups disappear from the UI automatically.
+
+The quick user dropdown is deliberately small: it contains only **User Info** and **Log Out**. Language and persona preferences are managed on `/user-info` so user-driven settings live in one profile area instead of crowding the navigation.
 
 ---
 

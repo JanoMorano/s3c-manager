@@ -4,6 +4,7 @@ const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { getPool } = require('../db/pool');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
+const { listLevel3Capabilities } = require('../utils/capability-slug');
 
 const router = express.Router();
 
@@ -33,6 +34,87 @@ function normalizeRows(rows) {
 }
 
 router.use(requireAuth);
+
+router.get('/', async (req, res, next) => {
+    try {
+        const query = String(req.query.q ?? '').trim();
+        const type = String(req.query.type ?? 'any').trim();
+        const limit = parseLimit(req.query.limit, 10, 1, 20);
+        if (!query) {
+            return res.json({ query, type, groups: { services: [], capabilities: [], frameworks: [] }, total: 0 });
+        }
+        const likeValue = `%${query}%`;
+        const pool = getPool();
+        const [servicesResult, capabilities] = await Promise.all([
+            pool.query(`
+                SELECT
+                    sc.service_id AS source_key,
+                    sc.service_id AS code,
+                    sc.title,
+                    COALESCE(sc.short_description, sc.description, sc.value_proposition, sc.business_purpose) AS subtitle,
+                    CONCAT('/services/', sc.service_id) AS href,
+                    ARRAY['consumer','service_owner','capability_manager','admin']::text[] AS persona_visibility
+                FROM data.service_catalog sc
+                WHERE sc.is_deleted = FALSE
+                  AND sc.is_stub = FALSE
+                  AND (
+                      sc.service_id ILIKE $1
+                      OR sc.title ILIKE $1
+                      OR COALESCE(sc.short_description, '') ILIKE $1
+                      OR COALESCE(sc.description, '') ILIKE $1
+                  )
+                ORDER BY CASE WHEN sc.service_id = $2 THEN 0 WHEN sc.title = $2 THEN 1 ELSE 2 END, sc.title
+                LIMIT $3
+            `, [likeValue, query, limit]),
+            listLevel3Capabilities(pool),
+        ]);
+        const q = query.toLowerCase();
+        const capabilityRows = capabilities
+            .filter((capability) => [
+                capability.title,
+                capability.page_id,
+                capability.abbreviation,
+                capability.slug,
+                capability.parent?.title,
+            ].some((value) => String(value ?? '').toLowerCase().includes(q)))
+            .slice(0, limit)
+            .map((capability) => ({
+                source_key: capability.uuid,
+                code: capability.page_id,
+                title: capability.title,
+                subtitle: capability.parent?.title ?? 'Capability',
+                href: `/capabilities/${capability.slug}`,
+                score: capability.slug === q || capability.page_id?.toLowerCase() === q ? 100 : 60,
+                matched_fields: ['title', 'page_id', 'abbreviation', 'slug'],
+                persona_visibility: ['service_owner', 'capability_manager', 'admin'],
+            }));
+        const serviceRows = servicesResult.rows.map((row) => ({
+            ...row,
+            score: row.code?.toLowerCase() === q ? 100 : 70,
+            matched_fields: ['service_id', 'title', 'description'],
+        }));
+        const frameworkRows = capabilityRows
+            .filter((row) => row.code === 'CP-1004' || row.title.toLowerCase().includes('air'))
+            .map((row) => ({
+                ...row,
+                source_key: `framework:${row.code}`,
+                title: `${row.title} Framework`,
+                href: `${row.href}?spiral=Spiral_7`,
+                persona_visibility: ['capability_manager', 'admin'],
+            }));
+        const groups = {
+            services: serviceRows,
+            capabilities: capabilityRows,
+            frameworks: frameworkRows,
+        };
+        res.json({
+            query,
+            type,
+            groups,
+            total: Object.values(groups).reduce((sum, rows) => sum + rows.length, 0),
+        });
+    } catch (err) { next(err); }
+});
 
 router.get('/global', async (req, res, next) => {
     try {

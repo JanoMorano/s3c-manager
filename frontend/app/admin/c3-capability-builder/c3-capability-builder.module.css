@@ -58,7 +58,7 @@
 .actionPrimary {
   border-color: var(--color-action-primary);
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
 }
 
 .layout {
@@ -70,7 +70,7 @@
 
 .panel {
   border: 1px solid var(--color-border-default);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
   overflow: hidden;
 }
@@ -128,7 +128,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--color-border-default);
-  background: #fff;
+  background: var(--color-bg-surface);
   color: var(--color-text-default);
   font: var(--text-body-md);
 }
@@ -137,7 +137,7 @@
 .select:focus {
   outline: none;
   border-color: var(--color-action-primary);
-  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
 }
 
 .hint {
@@ -148,16 +148,16 @@
 .error {
   padding: 12px 14px;
   border-radius: 10px;
-  background: #fff2f2;
-  color: #a61b1b;
+  background: var(--color-bg-surface)2f2;
+  color: var(--color-danger);
   font: var(--text-body-sm);
 }
 
 .success {
   padding: 12px 14px;
   border-radius: 10px;
-  background: #edf9f0;
-  color: #17653a;
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
   font: var(--text-body-sm);
 }
 
@@ -171,7 +171,7 @@
   padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-border-default);
-  background: #fff;
+  background: var(--color-bg-surface);
   color: var(--color-text-default);
   cursor: pointer;
   font: var(--text-label-md);
@@ -180,12 +180,12 @@
 .buttonPrimary {
   background: var(--color-action-primary);
   border-color: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
 }
 
 .buttonDanger {
-  border-color: #e5b5b5;
-  color: #a61b1b;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .button:disabled {
@@ -201,7 +201,7 @@
 
 .paletteCard {
   border: 1px solid var(--color-border-default);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 12px;
 }
 
@@ -330,15 +330,15 @@
 .spiralButton:hover {
   border-color: var(--color-action-primary);
   color: var(--color-action-primary);
-  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
 }
 
 .spiralButtonActive {
   background: var(--color-action-primary);
   border-color: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.25);
+  box-shadow: var(--shadow-low);
 }
 
 @media (max-width: 1100px) {

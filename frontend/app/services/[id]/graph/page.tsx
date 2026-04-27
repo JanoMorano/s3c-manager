@@ -73,13 +73,13 @@ const NODE_KIND_ORDER: ServiceGraphV2Node['node_kind'][] = [
 ];
 
 const NODE_KIND_COLOR: Record<ServiceGraphV2Node['node_kind'], string> = {
-  service: '#0052cc',
-  flavour: '#f6c90e',
-  c3_capability: '#36b37e',
-  c3_tin: '#4c9aff',
-  c3_application: '#36b37e',
-  c3_data_object: '#ff8b00',
-  c3_service: '#6554c0',
+  service: 'var(--color-info)',
+  flavour: 'var(--color-warning)',
+  c3_capability: 'var(--color-success)',
+  c3_tin: 'var(--color-info)',
+  c3_application: 'var(--color-success)',
+  c3_data_object: 'var(--color-warning)',
+  c3_service: 'var(--color-domain-relay)',
 };
 
 function layoutNodes(
@@ -258,7 +258,7 @@ export default function GraphPage({ params }: Props) {
           strokeDasharray: dash,
         },
         labelStyle: { fontSize: 10, fill: visual.color, fontWeight: 600 },
-        labelBgStyle: { fill: '#fff', fillOpacity: 0.88 },
+        labelBgStyle: { fill: 'var(--color-bg-surface)', fillOpacity: 0.88 },
         data: { raw: edge },
       };
     });
@@ -452,7 +452,7 @@ export default function GraphPage({ params }: Props) {
             >
               <Background gap={24} size={1} />
               <Controls />
-              <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? '#6b778c'} />
+              <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'} />
             </ReactFlow>
           </div>
 

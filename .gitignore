@@ -18,6 +18,18 @@ claude/
 logs/
 output/
 _archive/
+improvement/
+
+# Internal planning/design docs
+docs/design/
+docs/plans/
+docs/capabilities/
+
+# Playwright/runtime test artifacts
+frontend/test-results/
+
+# NATO Data - NO COMMIT
+import-nato/
 
 # TIDEPEDIA - never commit
 shared/c3 

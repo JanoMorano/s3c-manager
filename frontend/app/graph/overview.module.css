@@ -60,10 +60,40 @@
 .title { font: var(--text-title-md); color: var(--color-text-primary); }
 .meta { font: var(--text-body-sm); color: var(--color-text-muted); }
 
+.graphTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+}
+
+.graphTab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font: var(--text-label-sm);
+}
+
+.graphTab:hover {
+  color: var(--color-text-primary);
+}
+
+.graphTabActive {
+  background: var(--color-action-primary);
+  color: var(--color-bg-surface);
+}
+
 .performanceBadge {
   font: var(--text-label-sm);
-  color: #7a5c00;
-  background: #fffae6;
+  color: var(--color-warning);
+  background: var(--color-bg-surface)ae6;
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-pill);
   padding: 2px 10px;
@@ -93,7 +123,7 @@
 .swimlaneNode {
   position: relative;
   border: 2px dashed;
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   pointer-events: none;
   box-sizing: border-box;
 }
@@ -120,7 +150,7 @@
   cursor: pointer;
 }
 
-.nodeSelected { box-shadow: 0 0 0 3px rgba(0,82,204,.25); }
+.nodeSelected { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .nodeId { font: var(--text-mono-sm); margin-bottom: 2px; }
 .nodeTitle { font: var(--text-label-md); color: var(--color-text-primary); margin-bottom: var(--space-1); }
 .nodeStatus { display: flex; justify-content: flex-start; }
@@ -129,9 +159,9 @@
   width: 110px;
   height: 110px;
   border-radius: 999px;
-  border: 2px solid #36b37e;
-  background: #f1fcf6;
-  color: #006644;
+  border: 2px solid var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -142,7 +172,7 @@
   box-shadow: var(--shadow-low);
 }
 
-.c3NodeSelected { box-shadow: 0 0 0 3px rgba(54,179,126,.25); }
+.c3NodeSelected { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .c3Type { font: var(--text-label-sm); font-weight: 800; margin-bottom: 4px; }
 .c3Title { font: var(--text-body-sm); line-height: 1.2; }
 
@@ -219,7 +249,7 @@
 }
 
 .domainFilterChipActive {
-  color: #fff;
+  color: var(--color-bg-surface);
   font-weight: 700;
 }
 
@@ -262,14 +292,14 @@
   border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-sm);
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   font: var(--text-label-md);
   cursor: pointer;
 }
 
 .saveButtonInline:disabled { opacity: .6; cursor: default; }
 .saveMsg { font: var(--text-body-sm); color: var(--color-text-muted); }
-.performanceNote { font: var(--text-body-sm); color: #7a5c00; }
+.performanceNote { font: var(--text-body-sm); color: var(--color-warning); }
 
 @media (max-width: 1180px) {
   .shell { grid-template-columns: 1fr; }

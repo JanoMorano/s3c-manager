@@ -36,12 +36,12 @@
   width: 100%;
   margin-bottom: var(--space-1);
 }
-.input:focus { outline: none; border-color: var(--color-action-primary); box-shadow: 0 0 0 2px rgba(0,82,204,.15); }
+.input:focus { outline: none; border-color: var(--color-action-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .btn {
   margin-top: var(--space-3);
   font: var(--text-label-md);
   background: var(--color-action-primary);
-  color: #fff;
+  color: var(--color-bg-surface);
   border: none;
   border-radius: var(--radius-sm);
   padding: 9px;
@@ -64,5 +64,5 @@
 }
 .errorMsg {
   color: var(--color-danger);
-  background: #ffebe6;
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }

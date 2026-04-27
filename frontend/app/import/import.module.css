@@ -53,7 +53,7 @@
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
-  background: #fbfcfe;
+  background: var(--color-bg-subtle);
 }
 
 .c3RunTitle {
@@ -161,8 +161,8 @@
   width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--color-border-default);
   padding: var(--space-3) var(--space-4); cursor: pointer; transition: background .1s;
 }
-.batchRow:hover { background: #f8f9fb; }
-.selected       { background: #deebff !important; }
+.batchRow:hover { background: var(--color-bg-subtle); }
+.selected       { background: color-mix(in srgb, var(--color-info) 10%, transparent) !important; }
 
 .batchTop    { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); }
 .batchBottom { display: flex; justify-content: space-between; font: var(--text-label-sm); color: var(--color-text-muted); }
@@ -170,9 +170,9 @@
 .batchSource { font: var(--text-label-sm); color: var(--color-text-secondary); }
 
 .batchBadge  { font: var(--text-label-sm); border-radius: var(--radius-pill); padding: 1px var(--space-2); margin-left: auto; }
-.badgeFailed { background: #fff3f3; color: var(--color-danger); border: 1px solid var(--color-danger); }
-.badgeWarn   { background: #fffae6; color: #7a5c00; border: 1px solid var(--color-warning); }
-.badgeOk     { background: #e3fcef; color: #006644; border: 1px solid #57d9a3; }
+.badgeFailed { background: var(--color-bg-surface)3f3; color: var(--color-danger); border: 1px solid var(--color-danger); }
+.badgeWarn   { background: var(--color-bg-surface)ae6; color: var(--color-warning); border: 1px solid var(--color-warning); }
+.badgeOk     { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); border: 1px solid var(--color-success); }
 
 /* Detail */
 .batchDetail   { overflow-y: auto; padding: var(--space-5); }
@@ -184,12 +184,12 @@
 .metaPill  { display: flex; flex-direction: column; align-items: center; background: var(--color-bg-surface); border: 1px solid var(--color-border-default); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); }
 .metaLabel { font: var(--text-label-sm); color: var(--color-text-muted); }
 .metaValue { font: var(--text-title-sm); color: var(--color-text-primary); }
-.meta_green { color: #006644; }
+.meta_green { color: var(--color-success); }
 .meta_red   { color: var(--color-danger); }
 .meta_blue  { color: var(--color-action-primary); }
 
 /* Errors */
-.errorSection      { background: #fff3f3; border: 1px solid var(--color-danger); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
+.errorSection      { background: var(--color-bg-surface)3f3; border: 1px solid var(--color-danger); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
 .errorSectionTitle { font: var(--text-label-md); color: var(--color-danger); margin-bottom: var(--space-2); }
 .errorRow          { font: var(--text-body-sm); color: var(--color-text-primary); padding: var(--space-1) 0; border-top: 1px solid rgba(222,53,11,.15); }
 
@@ -205,9 +205,9 @@
 .issueHeader { font: var(--text-label-sm); color: var(--color-text-muted); text-transform: uppercase; background: var(--color-bg-canvas); }
 .issueRow    { border-top: 1px solid var(--color-border-default); }
 .issueRow_mono { font: var(--text-mono-sm); color: var(--color-text-secondary); }
-.issueType   { font: var(--text-label-sm); background: #fff7d6; color: #974f0c; border-radius: var(--radius-pill); padding: 1px var(--space-2); white-space: nowrap; }
+.issueType   { font: var(--text-label-sm); background: var(--color-bg-surface)7d6; color: var(--color-warning); border-radius: var(--radius-pill); padding: 1px var(--space-2); white-space: nowrap; }
 
-.noIssues { padding: var(--space-4); text-align: center; color: #006644; font: var(--text-body-sm); }
+.noIssues { padding: var(--space-4); text-align: center; color: var(--color-success); font: var(--text-body-sm); }
 .state      { padding: var(--space-5) var(--space-4); color: var(--color-text-muted); font: var(--text-body-sm); }
 .stateError { padding: var(--space-5) var(--space-4); color: var(--color-danger); font: var(--text-body-sm); }
 
@@ -236,7 +236,7 @@
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
-  background: #fbfcfe;
+  background: var(--color-bg-subtle);
 }
 
 .parsedCardTitle {

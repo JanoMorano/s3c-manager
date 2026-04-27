@@ -11,7 +11,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from '@/app/components/AppLink';
-import { useT } from '@/app/i18n/useI18n';
+import { useI18n } from '@/app/i18n/useI18n';
 import useSWR from 'swr';
 import styles from './user-info.module.css';
 import { clearAuthSession, getAuthSnapshot, restoreAuthSession, setAuthSnapshotFromUser } from '@/features/auth/authStore';
@@ -19,11 +19,12 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { ServiceListResponse, ServiceListItem } from '@/features/services/model/service.types';
 import { useRouter } from 'next/navigation';
 import type { Locale } from '@/app/i18n/messages';
+import { usePersonaContext, type Persona } from '@/features/auth/PersonaContext';
 
 // ── Avatar colour palette ─────────────────────────────────────────────────────
 const PALETTE = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#64748b',
+  'var(--color-info)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)', 'var(--color-domain-relay)',
+  'var(--color-domain-zenith)', 'var(--color-domain-pulse)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-text-secondary)',
 ];
 
 function pickColorFromName(name: string): string {
@@ -52,7 +53,8 @@ interface MeResponse {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UserInfoPage() {
-  const t = useT();
+  const { t, setLocale } = useI18n();
+  const { persona, setPersona } = usePersonaContext();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -74,6 +76,9 @@ export default function UserInfoPage() {
   const [profileError,   setProfileError]   = useState<string | null>(null);
   const [langSaving, setLangSaving] = useState(false);
   const [langError, setLangError] = useState<string | null>(null);
+  const [personaSaving, setPersonaSaving] = useState(false);
+  const [personaSaved, setPersonaSaved] = useState(false);
+  const [personaError, setPersonaError] = useState<string | null>(null);
 
   // ── Password form state ───────────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -98,7 +103,7 @@ export default function UserInfoPage() {
       department:   me.department   ?? '',
       phone:        me.phone        ?? '',
       avatar_color: me.avatar_color ?? pickColorFromName(me.username),
-      preferred_lang: me.preferred_lang === 'en' ? 'en' : 'cs',
+      preferred_lang: (['cs', 'en', 'sk', 'de'].includes(me.preferred_lang ?? '') ? me.preferred_lang : 'cs') as Locale,
     });
   }, [me]);
 
@@ -183,8 +188,8 @@ export default function UserInfoPage() {
       let persistedLang: Locale = nextLang;
       try {
         const data = await res.json() as { preferred_lang?: string };
-        if (data.preferred_lang === 'en') {
-          persistedLang = 'en';
+        if (['cs', 'en', 'sk', 'de'].includes(data.preferred_lang ?? '')) {
+          persistedLang = data.preferred_lang as Locale;
         }
       } catch {
         // Keep optimistic locale when the response body is not JSON.
@@ -194,12 +199,28 @@ export default function UserInfoPage() {
         ...me,
         preferred_lang: persistedLang,
       });
+      setLocale(persistedLang);
       void mutateMe().catch(() => undefined);
     } catch (err) {
       setProfileForm(p => ({ ...p, preferred_lang: previousLang }));
       setLangError(err instanceof Error ? err.message : t('user_info.save_failed'));
     } finally {
       setLangSaving(false);
+    }
+  }
+
+  async function handlePersonaChange(nextPersona: Persona) {
+    setPersonaSaving(true);
+    setPersonaSaved(false);
+    setPersonaError(null);
+    try {
+      await setPersona(nextPersona);
+      setPersonaSaved(true);
+      setTimeout(() => setPersonaSaved(false), 2400);
+    } catch (err) {
+      setPersonaError(err instanceof Error ? err.message : t('user_info.save_failed'));
+    } finally {
+      setPersonaSaving(false);
     }
   }
 
@@ -249,7 +270,7 @@ export default function UserInfoPage() {
   }
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const avatarColor   = profileForm.avatar_color || (me ? pickColorFromName(me.username) : '#64748b');
+  const avatarColor   = profileForm.avatar_color || (me ? pickColorFromName(me.username) : 'var(--color-text-secondary)');
   const avatarInitial = (profileForm.given_name || me?.display_name || me?.username || '?')[0].toUpperCase();
 
   if (meError && !me) {
@@ -346,24 +367,46 @@ export default function UserInfoPage() {
               </div>
             </div>
 
-            <div className={styles.formGroup}>
+            <div className={styles.preferencePanel}>
+              <div>
+                <h2 className={styles.preferenceTitle}>{t('user_info.preferences_title')}</h2>
+                <p className={styles.preferenceDesc}>{t('user_info.preferences_desc')}</p>
+              </div>
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>{t('user_info.language_label')}</label>
                 <select
                   name="preferred_lang"
                   className={styles.input}
                   value={profileForm.preferred_lang}
-                  onChange={e => void handlePreferredLangChange((e.target.value === 'en' ? 'en' : 'cs') as Locale)}
+                  onChange={e => void handlePreferredLangChange(e.target.value as Locale)}
                   disabled={!me || langSaving}
                 >
                   <option value="cs">{t('user_info.language_cs')}</option>
                   <option value="en">{t('user_info.language_en')}</option>
+                  <option value="sk">{t('locale.sk')}</option>
+                  <option value="de">{t('locale.de')}</option>
                 </select>
               </div>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>{t('user_info.persona_label')}</label>
+                <select
+                  className={styles.input}
+                  value={persona}
+                  onChange={(event) => void handlePersonaChange(event.target.value as Persona)}
+                  disabled={!me || personaSaving}
+                >
+                  <option value="consumer">{t('persona.consumer')}</option>
+                  <option value="service_owner">{t('persona.service_owner')}</option>
+                  <option value="admin">{t('persona.admin')}</option>
+                </select>
+                <p className={styles.fieldHint}>{t('user_info.persona_desc')}</p>
+              </div>
             </div>
-            {langError && (
+            {(langError || personaError || personaSaved) && (
               <div className={styles.saveRow}>
-                <span className={styles.saveError}>{langError}</span>
+                {langError && <span className={styles.saveError}>{langError}</span>}
+                {personaError && <span className={styles.saveError}>{personaError}</span>}
+                {personaSaved && <span className={styles.saveSuccess}>✓ {t('user_info.preferences_saved')}</span>}
               </div>
             )}
 
