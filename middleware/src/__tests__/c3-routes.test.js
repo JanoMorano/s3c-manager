@@ -42,4 +42,8 @@ describe('canonical C3 route normalization', () => {
     test('keeps canonical route unchanged', () => {
         expect(normalizeLegacyC3Path(C3_ROUTES.dashboard)).toBe(C3_ROUTES.dashboard);
     });
+
+    test('exposes FMN Air C2 coverage route', () => {
+        expect(C3_ROUTES.fmnAirC2).toBe('/c3/fmn-air-c2');
+    });
 });

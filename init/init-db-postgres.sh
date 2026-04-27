@@ -115,6 +115,10 @@ run_psql "pg install system — state machine, migrations, modules, release meta
 run_psql "pg spiral versioning — fmn_spiral columns, Spiral_7 seed" /pgdb/schema/14_spiral_versioning.sql
 run_psql "pg ITIL catalogue phase 1 — offerings, support, audience, operational links" /pgdb/schema/15_itil_catalogue_phase1.sql
 run_psql "pg consumer_value additive column" /pgdb/schema/16_consumer_value.sql
+run_psql "pg spiral membership — entity to spiral coverage" /pgdb/schema/17_spiral_membership.sql
+run_psql "pg user persona — user-driven UX preference" /pgdb/schema/18_user_persona.sql
+run_psql "pg capability abbreviations — Level-3 slugs" /pgdb/schema/19_capability_abbreviations.sql
+run_psql "pg capability coverage — generic helper views" /pgdb/schema/20_capability_coverage_views.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

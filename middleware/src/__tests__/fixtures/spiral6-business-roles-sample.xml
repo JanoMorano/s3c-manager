@@ -1,0 +1,29 @@
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" identifier="id-model">
+  <name xml:lang="en">Business Roles Taxonomy</name>
+  <elements>
+    <element xsi:type="BusinessRole" identifier="id-53f66c2a-e187-4956-9038-e9ce9fa3e8f0">
+      <name xml:lang="en">Business Roles</name>
+      <documentation xml:lang="en">Business roles represent skills and responsibilities.</documentation>
+      <properties>
+        <property propertyDefinitionRef="propid-40">
+          <value>53f66c2a-e187-4956-9038-e9ce9fa3e8f0</value>
+        </property>
+        <property propertyDefinitionRef="propid-45">
+          <value>https://tide.act.nato.int/mediawiki/taxonomy/index.php/BR-1000</value>
+        </property>
+        <property propertyDefinitionRef="propid-50">
+          <value>53f66c2a-e187-4956-9038-e9ce9fa3e8f0</value>
+        </property>
+        <property propertyDefinitionRef="propid-25">
+          <value>HQ SACT</value>
+        </property>
+        <property propertyDefinitionRef="propid-30">
+          <value>Unmarked</value>
+        </property>
+        <property propertyDefinitionRef="propid-999">
+          <value>ignored but reported</value>
+        </property>
+      </properties>
+    </element>
+  </elements>
+</model>

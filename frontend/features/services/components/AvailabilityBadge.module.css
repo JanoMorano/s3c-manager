@@ -17,6 +17,6 @@
 .medium .dot { background: var(--color-availability-medium); }
 .low    .dot { background: var(--color-availability-low); }
 
-.high   { color: #006644; }
-.medium { color: #974f0c; }
-.low    { color: #bf2600; }
+.high   { color: var(--color-success); }
+.medium { color: var(--color-warning); }
+.low    { color: var(--color-danger); }

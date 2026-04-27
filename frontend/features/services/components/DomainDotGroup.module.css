@@ -33,20 +33,20 @@
 .default { background: var(--color-domain-default); }
 
 /* Extended domains */
-.zone1      { background: #0284c7; }
-.zone2      { background: #d97706; }
-.zone3      { background: #7c3aed; }
-.zone4      { background: #0e7490; }
-.zone4ns    { background: #1d4ed8; }
-.zone4gr    { background: #6b7280; }
-.zone4pk    { background: #db2777; }
-.zone5      { background: #b45309; }
-.zone6      { background: #06b6d4; }
-.zone7      { background: #4f46e5; }
-.zone7u     { background: #4ade80; }
-.zone7r     { background: #60a5fa; }
-.zone7s     { background: #f87171; }
-.zone8      { background: #818cf8; }
-.zone9      { background: #a3a3a3; }
-.all        { background: #10b981; }
-.hybrid     { background: #f59e0b; }
+.zone1      { background: var(--color-domain-cloud); }
+.zone2      { background: var(--color-warning); }
+.zone3      { background: var(--color-domain-relay); }
+.zone4      { background: var(--color-domain-zenith); }
+.zone4ns    { background: var(--color-info); }
+.zone4gr    { background: var(--color-text-secondary); }
+.zone4pk    { background: var(--color-domain-pulse); }
+.zone5      { background: var(--color-warning); }
+.zone6      { background: var(--color-domain-zenith); }
+.zone7      { background: var(--color-domain-relay); }
+.zone7u     { background: var(--color-success); }
+.zone7r     { background: var(--color-info); }
+.zone7s     { background: var(--color-danger); }
+.zone8      { background: var(--color-domain-relay); }
+.zone9      { background: var(--color-domain-default); }
+.all        { background: var(--color-success); }
+.hybrid     { background: var(--color-warning); }

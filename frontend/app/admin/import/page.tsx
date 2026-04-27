@@ -236,11 +236,11 @@ export default function ImportReviewPage() {
             </div>
             <div className={styles.kpiCard}>
               <div className={styles.kpiLabel}>OK řádků</div>
-              <div className={styles.kpiValue} style={{ color: '#006644' }}>{summary.total_ok ?? 0}</div>
+              <div className={styles.kpiValue} style={{ color: 'var(--color-success)' }}>{summary.total_ok ?? 0}</div>
             </div>
             <div className={styles.kpiCard}>
               <div className={styles.kpiLabel}>S chybou</div>
-              <div className={styles.kpiValue} style={{ color: '#de350b' }}>{summary.total_error ?? 0}</div>
+              <div className={styles.kpiValue} style={{ color: 'var(--color-danger)' }}>{summary.total_error ?? 0}</div>
             </div>
             <div className={styles.kpiCard}>
               <div className={styles.kpiLabel}>Posledni import</div>
@@ -292,7 +292,7 @@ export default function ImportReviewPage() {
                     <td>{b.imported_by}</td>
                     <td>{fmt(b.imported_at)}</td>
                     <td className={styles.numCell}>{b.row_count}</td>
-                    <td className={styles.numCell} style={{ color: '#006644' }}>{b.ok_count}</td>
+                    <td className={styles.numCell} style={{ color: 'var(--color-success)' }}>{b.ok_count}</td>
                     <td className={styles.numCell}>
                       {b.error_count > 0
                         ? <span className={styles.errorCount}>{b.error_count}</span>

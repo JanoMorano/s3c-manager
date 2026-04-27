@@ -41,21 +41,21 @@ const NODE_KIND_ORDER: C3RelationGraphNode['node_kind'][] = [
 ];
 
 const NODE_KIND_COLOR: Record<C3RelationGraphNode['node_kind'], string> = {
-  c3_capability: '#0052cc',
-  c3_tin: '#4c9aff',
-  c3_application: '#36b37e',
-  c3_data_object: '#ff8b00',
-  c3_service: '#6554c0',
+  c3_capability: 'var(--color-info)',
+  c3_tin: 'var(--color-info)',
+  c3_application: 'var(--color-success)',
+  c3_data_object: 'var(--color-warning)',
+  c3_service: 'var(--color-domain-relay)',
 };
 
 const EDGE_COLOR: Record<C3RelationGraphEdge['edge_kind'], string> = {
-  capability_application: '#36b37e',
-  capability_tin: '#4c9aff',
-  capability_data_object: '#ff8b00',
-  capability_c3_service: '#6554c0',
-  tin_application: '#79f2c0',
-  tin_data_object: '#ffbd5c',
-  tin_c3_service: '#998dd9',
+  capability_application: 'var(--color-success)',
+  capability_tin: 'var(--color-info)',
+  capability_data_object: 'var(--color-warning)',
+  capability_c3_service: 'var(--color-domain-relay)',
+  tin_application: 'var(--color-success)',
+  tin_data_object: 'var(--color-warning)',
+  tin_c3_service: 'var(--color-domain-relay)',
 };
 
 const COLUMN_X: Record<C3RelationGraphNode['node_kind'], number> = {
@@ -67,7 +67,7 @@ const COLUMN_X: Record<C3RelationGraphNode['node_kind'], number> = {
 };
 
 function RelationNodeCard({ data }: { data: Record<string, unknown> }) {
-  const color = String(data.color ?? '#6b778c');
+  const color = String(data.color ?? 'var(--color-text-secondary)');
   const label = String(data.label ?? '');
   const code = String(data.code ?? '');
   const kind = String(data.node_kind ?? 'c3_capability') as C3RelationGraphNode['node_kind'];
@@ -154,8 +154,8 @@ function buildLayout(
         strokeWidth: visual.width ?? (edge.edge_kind.startsWith('capability_') ? 2.2 : 1.6),
         strokeDasharray: dash,
       },
-      labelStyle: compactMode ? undefined : { fontSize: 10, fill: '#42526e', fontWeight: 600 },
-      labelBgStyle: compactMode ? undefined : { fill: '#fff', fillOpacity: 0.88 },
+      labelStyle: compactMode ? undefined : { fontSize: 10, fill: 'var(--color-text-secondary)', fontWeight: 600 },
+      labelBgStyle: compactMode ? undefined : { fill: 'var(--color-bg-surface)', fillOpacity: 0.88 },
       data: { raw: edge },
     };
   });
@@ -224,7 +224,7 @@ export function C3RelationFlowCanvas({
       <Background />
       <Controls />
       {!compactMode && (
-        <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'c3_capability') as C3RelationGraphNode['node_kind']] ?? '#6b778c'} />
+        <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'c3_capability') as C3RelationGraphNode['node_kind']] ?? 'var(--color-text-secondary)'} />
       )}
     </ReactFlow>
   );

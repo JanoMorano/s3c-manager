@@ -4,8 +4,12 @@ import { normalizeLegacyC3Path } from './app/lib/c3Routes';
 const PROTECTED_PATH_PREFIXES = [
   '/admin',
   '/administration',
+  '/catalogue',
+  '/capabilities',
   '/import',
   '/management',
+  '/operations',
+  '/spirals',
   '/services',
   '/user-info',
 ];
@@ -59,10 +63,14 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/administration/:path*',
+    '/catalogue/:path*',
+    '/capabilities/:path*',
     '/c3/:path*',
     '/c3-dashboard',
     '/import/:path*',
     '/management/:path*',
+    '/operations/:path*',
+    '/spirals/:path*',
     '/services/:path*',
     '/user-info',
   ],

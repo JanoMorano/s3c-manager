@@ -2,11 +2,15 @@
 
 const cs = require('./messages/cs.json');
 const en = require('./messages/en.json');
+const sk = require('./messages/sk.json');
+const de = require('./messages/de.json');
 const { DEFAULT_LOCALE, normalizeLocale } = require('./core');
 
 const CATALOGS = {
     cs,
     en,
+    sk,
+    de,
 };
 
 function getCatalog(locale) {

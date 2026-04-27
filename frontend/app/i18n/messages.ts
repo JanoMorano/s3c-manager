@@ -3,7 +3,7 @@ import { getCatalog as getSharedCatalog, translate as translateShared } from '..
 
 import type csCatalog from '../../../shared/i18n/messages/cs.json';
 
-export type Locale = 'cs' | 'en';
+export type Locale = 'cs' | 'en' | 'sk' | 'de';
 export type MessageCatalog = typeof csCatalog;
 export type MessageKey = keyof MessageCatalog;
 export type TranslationParams = Record<string, string | number | boolean | null | undefined>;

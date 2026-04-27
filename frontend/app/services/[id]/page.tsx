@@ -14,6 +14,7 @@ import { useSWRConfig } from 'swr';
 import { useInstallStatus } from '@/features/install/installStatus';
 import {
   useService, useServiceSla, useServiceScore, useServiceRoles, useServiceC3Mappings,
+  useServiceFrameworks,
   type ServiceC3Mapping,
 } from '@/features/services/hooks/useServices';
 import { StatusPill }        from '@/features/services/components/StatusPill';
@@ -23,6 +24,7 @@ import { MetadataItem, MetadataGrid } from '@/features/services/components/Metad
 import { SlaPanel }          from '@/features/services/components/SlaPanel';
 import { Surface } from '@/design-system/primitives';
 import { Button }  from '@/design-system/controls/Button';
+import { EmptyState, ProgressBar } from '@/design-system/controls';
 import type {
   ScoreBreakdownItem,
   ServiceAudiencePolicy,
@@ -30,13 +32,14 @@ import type {
   ServiceOperationalLink,
   ServiceRoleAssignment,
   ServiceSupportModel,
+  ServiceFrameworkCoverage,
 } from '@/features/services/model/service.types';
 import { authHeaders } from '@/features/services/api/services.api';
 import { safeHref } from '@/shared/utils/safeHref';
 import styles from './detail.module.css';
 
 interface Props { params: Promise<{ id: string }> }
-type DetailView = 'overview' | 'offerings' | 'request' | 'governance';
+type DetailView = 'overview' | 'offerings' | 'request' | 'coverage' | 'governance';
 
 export default function ServiceDetailPage({ params }: Props) {
   const { id } = use(params);
@@ -46,6 +49,7 @@ export default function ServiceDetailPage({ params }: Props) {
   const { data: scoreData } = useServiceScore(id);
   const { data: rolesData } = useServiceRoles(id);
   const { data: c3MappingsData } = useServiceC3Mappings(c3Visible ? id : null);
+  const { data: frameworksData } = useServiceFrameworks(id);
   const [scoreOpen,   setScoreOpen]   = useState(false);
   const [rolesOpen,   setRolesOpen]   = useState(false);
   const [extDataOpen, setExtDataOpen] = useState(false);
@@ -213,7 +217,7 @@ export default function ServiceDetailPage({ params }: Props) {
               {(consumerValue || svc.value_proposition || svc.business_purpose) && (
                 <Section title="Business Value">
                   {consumerValue && (
-                    <p className={styles.calloutQuote} style={{ borderLeftColor: '#3b82f6' }}>
+                    <p className={styles.calloutQuote} style={{ borderLeftColor: 'var(--color-info)' }}>
                       {consumerValue}
                     </p>
                   )}
@@ -269,6 +273,10 @@ export default function ServiceDetailPage({ params }: Props) {
                 </Section>
               )}
             </>
+          )}
+
+          {activeView === 'coverage' && (
+            <CoveragePanel frameworks={frameworksData ?? []} serviceId={id} />
           )}
 
           {activeView === 'offerings' && (
@@ -1317,8 +1325,48 @@ const DETAIL_VIEWS: Array<{ id: DetailView; label: string; hint: string }> = [
   { id: 'overview', label: 'Overview', hint: 'Value, scope, commitments' },
   { id: 'offerings', label: 'Offerings', hint: 'Catalogue packages and variants' },
   { id: 'request', label: 'Request & Support', hint: 'Eligibility, approvals, support path' },
+  { id: 'coverage', label: 'Coverage', hint: 'Framework requirements and gaps' },
   { id: 'governance', label: 'Governance', hint: 'Metadata, relationships, architecture' },
 ];
+
+function CoveragePanel({ frameworks, serviceId }: { frameworks: ServiceFrameworkCoverage[]; serviceId: string }) {
+  if (!frameworks.length) {
+    return (
+      <Section title="Coverage">
+        <EmptyState
+          title="No framework coverage mapped yet"
+          description="Add a Level-3 capability mapping to show FMN/C3 framework coverage, missing requirements, and capability dashboard links."
+          action={<Link href={`/services/${serviceId}/edit#c3`}>Add framework mapping</Link>}
+        />
+      </Section>
+    );
+  }
+  return (
+    <Section title="Coverage">
+      <div className={styles.coverageCards}>
+        {frameworks.map((framework) => (
+          <article key={framework.framework_code} className={styles.coverageCard}>
+            <div className={styles.coverageHeader}>
+              <div>
+                <div className={styles.coverageCode}>{framework.framework_code}</div>
+                <h3>{framework.title}</h3>
+              </div>
+              <strong>{framework.coverage_percent}%</strong>
+            </div>
+            <ProgressBar value={framework.coverage_percent} tone={framework.coverage_percent >= 80 ? 'success' : 'warning'} label={`${framework.title} coverage`} />
+            <p>{framework.core_covered}/{framework.core_total} core requirements covered for {framework.spiral_code ?? 'selected spiral'}.</p>
+            {framework.capability_slug && <Link href={`/capabilities/${framework.capability_slug}`}>Open capability dashboard →</Link>}
+            {framework.missing_core.length > 0 && (
+              <ul>
+                {framework.missing_core.slice(0, 5).map((item) => <li key={`${item.kind}-${item.code}`}>{item.code}: {item.title}</li>)}
+              </ul>
+            )}
+          </article>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
 function formatBool(value: boolean | null | undefined) {
   if (value == null) return '—';

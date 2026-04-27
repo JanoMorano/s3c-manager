@@ -26,8 +26,8 @@ const LIFECYCLE_LABEL: Record<string, string> = {
 };
 
 const LIFECYCLE_DOT: Record<string, string> = {
-  draft: '#a1a1aa', under_review: '#3b82f6', approved: '#10b981',
-  live: '#059669', deprecated: '#f59e0b', retired: '#ef4444',
+  draft: 'var(--color-text-muted)', under_review: 'var(--color-info)', approved: 'var(--color-success)',
+  live: 'var(--color-success)', deprecated: 'var(--color-warning)', retired: 'var(--color-danger)',
 };
 
 // ── Inner component (needs Suspense boundary for useSearchParams) ─────────────

@@ -42,7 +42,7 @@ type Target =
   | 'c3-taxonomy-information-products'
   | 'c3-taxonomy-user-applications';
 
-type Format = 'csv' | 'json' | 'xlsx';
+type Format = 'csv' | 'json' | 'xlsx' | 'xml';
 type TargetSection = 'service-catalogue' | 'c3-taxonomy' | 'fmn-spirals';
 
 const TARGET_OPTIONS: Array<{
@@ -56,6 +56,7 @@ const TARGET_OPTIONS: Array<{
   csvEndpoint?: (fileName: string, spiralCode: string | null) => string;
   jsonEndpoint?: (spiralCode: string | null) => string;
   xlsxEndpoint?: (fileName: string, spiralCode: string | null) => string;
+  xmlEndpoint?: (fileName: string, spiralCode: string | null, dryRun?: boolean) => string;
   hints: Partial<Record<Format, string>>;
 }> = [
   // ── Service Catalogue ──────────────────────────────────────────────────────
@@ -187,23 +188,25 @@ const TARGET_OPTIONS: Array<{
     value: 'c3-taxonomy-business-processes',
     label: 'C3 Business Processes',
     section: 'fmn-spirals',
-    supportedFormats: ['xlsx'],
-    supportsDryRun: false,
+    supportedFormats: ['xlsx', 'xml'],
+    supportsDryRun: true,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=business-processes&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 Business Processes.xlsx' },
+    xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/business-processes/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
+    hints: { xml: 'ArchiMate XML: 20221208_Business_Processes_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Business Processes.xlsx' },
   },
   {
     value: 'c3-taxonomy-business-roles',
     label: 'C3 Business Roles',
     section: 'fmn-spirals',
-    supportedFormats: ['xlsx'],
-    supportsDryRun: false,
+    supportedFormats: ['xlsx', 'xml'],
+    supportsDryRun: true,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=business-roles&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 Business Roles.xlsx' },
+    xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/business-roles/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
+    hints: { xml: 'ArchiMate XML: 20221208_Business_Roles_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Business Roles.xlsx' },
   },
   {
     value: 'c3-taxonomy-capabilities',
@@ -220,34 +223,37 @@ const TARGET_OPTIONS: Array<{
     value: 'c3-taxonomy-coi-services',
     label: 'C3 COI Services',
     section: 'fmn-spirals',
-    supportedFormats: ['xlsx'],
-    supportsDryRun: false,
+    supportedFormats: ['xlsx', 'xml'],
+    supportsDryRun: true,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=coi-services&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 COI Services.xlsx' },
+    xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/coi-services/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
+    hints: { xml: 'ArchiMate XML: 20221208_COI_Services_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 COI Services.xlsx' },
   },
   {
     value: 'c3-taxonomy-communications-services',
     label: 'C3 Communication Services',
     section: 'fmn-spirals',
-    supportedFormats: ['xlsx'],
-    supportsDryRun: false,
+    supportedFormats: ['xlsx', 'xml'],
+    supportsDryRun: true,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=communications-services&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 Communications Services.xlsx' },
+    xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/communications-services/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
+    hints: { xml: 'ArchiMate XML: 20221208_Communications_Services_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Communications Services.xlsx' },
   },
   {
     value: 'c3-taxonomy-core-services',
     label: 'C3 Core Services',
     section: 'fmn-spirals',
-    supportedFormats: ['xlsx'],
-    supportsDryRun: false,
+    supportedFormats: ['xlsx', 'xml'],
+    supportsDryRun: true,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=core-services&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 Core Services.xlsx' },
+    xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/core-services/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
+    hints: { xml: 'ArchiMate XML: 20221208_Core_Services_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Core Services.xlsx' },
   },
   {
     value: 'c3-taxonomy-information-products',
@@ -264,12 +270,13 @@ const TARGET_OPTIONS: Array<{
     value: 'c3-taxonomy-user-applications',
     label: 'C3 User Application',
     section: 'fmn-spirals',
-    supportedFormats: ['xlsx'],
-    supportsDryRun: false,
+    supportedFormats: ['xlsx', 'xml'],
+    supportsDryRun: true,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=user-applications&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 User Applications.xlsx' },
+    xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/user-applications/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
+    hints: { xml: 'ArchiMate XML: 20221208_User_Applications_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 User Applications.xlsx' },
   },
 ];
 
@@ -446,7 +453,9 @@ export default function ImportUploadPage() {
     ? ['.csv', '.txt']
     : format === 'json'
       ? ['.json']
-      : ['.xlsx'];
+      : format === 'xml'
+        ? ['.xml']
+        : ['.xlsx'];
 
   const validateFile = (f: File): string | null => {
     const name = f.name.toLowerCase();
@@ -456,6 +465,8 @@ export default function ImportUploadPage() {
       return 'Pouze .json soubory.';
     if (format === 'xlsx' && !name.endsWith('.xlsx'))
       return 'Pouze .xlsx soubory.';
+    if (format === 'xml' && !name.endsWith('.xml'))
+      return 'Pouze .xml soubory.';
     if (f.size > MAX_SIZE_BYTES)
       return `Soubor je příliš velký. Maximum je ${MAX_SIZE_MB} MB.`;
     return null;
@@ -532,6 +543,16 @@ export default function ImportUploadPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify(body),
+        });
+      } else if (format === 'xml') {
+        const text = await file.text();
+        const endpoint = targetConfig.xmlEndpoint?.(file.name, spiral, true);
+        if (!endpoint) throw new Error('Pro zvolený cíl není XML dry-run dostupný.');
+
+        res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/xml', ...authHeaders() },
+          body: text,
         });
       } else {
         const text = await file.text();
@@ -631,6 +652,24 @@ export default function ImportUploadPage() {
         if (targetConfig.redirectToImport) {
           setTimeout(() => router.push(data.batchId ? `/import?batchId=${data.batchId}` : '/import'), 1500);
         }
+
+      } else if (format === 'xml') {
+        const endpoint = targetConfig.xmlEndpoint?.(file.name, spiral, false);
+        if (!endpoint) throw new Error('Pro zvolený cíl není XML import dostupný.');
+
+        const text = await file.text();
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/xml', ...authHeaders() },
+          body: text,
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+          throw new Error(body.error ?? `HTTP ${res.status}`);
+        }
+        const data = await res.json() as ImportResult;
+        setResult(data);
+        setProgress(null);
 
       } else {
         const endpoint = targetConfig.xlsxEndpoint?.(file.name, spiral);
@@ -785,6 +824,15 @@ export default function ImportUploadPage() {
                 JSON
               </button>
             )}
+            {targetConfig.supportedFormats.includes('xml') && (
+              <button
+                type="button"
+                className={`${styles.toggleBtn} ${format === 'xml' ? styles.toggleBtnActive : ''}`}
+                onClick={() => handleFormatChange('xml')}
+              >
+                XML
+              </button>
+            )}
             {targetConfig.supportedFormats.includes('xlsx') && (
               <button
                 type="button"
@@ -818,7 +866,7 @@ export default function ImportUploadPage() {
           />
           {!file ? (
             <>
-              <div className={styles.dropIcon}>{format === 'json' ? '{ }' : format === 'xlsx' ? '📊' : '📄'}</div>
+              <div className={styles.dropIcon}>{format === 'json' ? '{ }' : format === 'xlsx' ? '📊' : format === 'xml' ? '<>' : '📄'}</div>
               <div className={styles.dropTitle}>Přetáhněte {format.toUpperCase()} soubor</div>
               <div className={styles.dropSubtitle}>nebo klikněte pro výběr — max {MAX_SIZE_MB} MB</div>
             </>
@@ -874,7 +922,7 @@ export default function ImportUploadPage() {
 
         {/* ── Akce ─────────────────────────────────────────────────────────── */}
         <div className={styles.actions}>
-          {targetConfig.supportsDryRun && (
+          {targetConfig.supportsDryRun && format !== 'xlsx' && (
             <button
               className={styles.secondaryBtn}
               disabled={!file || uploading || preflighting}

@@ -217,6 +217,31 @@ describe('taxonomy public c3 endpoints', () => {
         expect(response.body.error).toMatch(/zip entry count/i);
     });
 
+    test('POST /c3/:target/xml-archimate dry-run parses ArchiMate XML', async () => {
+        const xml = require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures/spiral6-business-roles-sample.xml'), 'utf8');
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app)
+            .post('/api/v1/taxonomy/c3/business-roles/xml-archimate?dry_run=true')
+            .set('Content-Type', 'application/xml')
+            .send(xml);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(expect.objectContaining({
+            ok: true,
+            source: 'xml-archimate',
+            dry_run: true,
+            target_key: 'business-roles',
+            rowsParsed: 1,
+        }));
+        expect(response.body.preview[0]).toEqual(expect.objectContaining({
+            title: 'Business Roles',
+            item_type: 'BR',
+        }));
+    });
+
     test('GET /c3-capability-builder/domains returns domains for authenticated users', async () => {
         const { __query } = require('../db/pool');
         __query.mockResolvedValueOnce({

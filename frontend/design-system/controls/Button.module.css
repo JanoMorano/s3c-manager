@@ -17,7 +17,7 @@
 }
 
 .btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(76, 154, 255, 0.35);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 25%, transparent);
 }
 
 .btn:disabled {
@@ -34,7 +34,7 @@
 /* ── Variants ── */
 .primary {
   background: var(--color-action-primary);
-  color: #ffffff;
+  color: var(--color-bg-surface);
   border: 1px solid transparent;
 }
 .primary:hover:not(:disabled) { background: var(--color-action-primary-hover); }
@@ -45,7 +45,7 @@
   color: var(--color-action-primary);
   border: 1px solid var(--color-action-primary);
 }
-.secondary:hover:not(:disabled) { background: #deebff; }
+.secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-info) 10%, transparent); }
 
 .ghost {
   background: transparent;
@@ -59,11 +59,11 @@
   color: var(--color-danger);
   border: 1px solid var(--color-danger);
 }
-.danger:hover:not(:disabled) { background: #fff3f3; }
+.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
 
 .dangerSolid {
   background: var(--color-danger);
-  color: #ffffff;
+  color: var(--color-bg-surface);
   border: 1px solid transparent;
 }
 .dangerSolid:hover:not(:disabled) { filter: brightness(0.9); }

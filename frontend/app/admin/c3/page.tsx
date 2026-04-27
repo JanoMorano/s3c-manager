@@ -11,7 +11,7 @@ import C3Breadcrumbs from '../../components/C3Breadcrumbs';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
 import { compareText, formatDate } from '@/app/i18n/format';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import {
   C3_ROUTES,
   C3_TAXONOMY_TYPE_OPTIONS,
@@ -25,14 +25,14 @@ import { COUNT_LABELS, formatFilteredCountLabel } from '../../lib/counts';
 const BASE = '/api/v1/taxonomy';
 
 const C3_TYPE_COLOR: Record<string, string> = {
-  BP: '#e65c00',
-  BR: '#c2185b',
-  CP: '#1b8f52',
-  CI: '#f57f17',
-  CO: '#37474f',
-  CR: '#283593',
-  IP: '#1565c0',
-  UA: '#7b1fa2',
+  BP: 'var(--color-warning)',
+  BR: 'var(--color-danger)',
+  CP: 'var(--color-success)',
+  CI: 'var(--color-warning)',
+  CO: 'var(--color-text-primary)',
+  CR: 'var(--color-domain-relay)',
+  IP: 'var(--color-info)',
+  UA: 'var(--color-domain-relay)',
 };
 
 interface C3Item {
@@ -154,6 +154,7 @@ function C3CatalogueInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
+  const t = useT();
   const search = searchParams?.get('search') ?? '';
   const exact = searchParams?.get('exact') ?? '';
   const itemTypeFilter = splitFilterValue(searchParams?.get('item_type') ?? null);
@@ -331,21 +332,21 @@ function C3CatalogueInner() {
   }, [taxonomyByCode, taxonomyByUniqueTitle]);
 
   async function handleDelete(uuid: string, title: string) {
-    if (!confirm(`Smazat C3 položku „${title}“?\nTato akce je nevratná.`)) return;
+    if (!confirm(t('c3.list.delete_confirm', { title }))) return;
     setOpErr(null);
     try {
       const res = await fetch(`${BASE}/c3/${encodeURIComponent(uuid)}`, { method: 'DELETE', headers: authHeaders() });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || `Mazání selhalo (${res.status})`);
+        throw new Error(text || t('c3.list.delete_failed_status', { status: res.status }));
       }
       revalidate();
     } catch (deleteError: unknown) {
-      setOpErr(deleteError instanceof Error ? deleteError.message : 'Chyba při mazání');
+      setOpErr(deleteError instanceof Error ? deleteError.message : t('c3.list.delete_failed'));
     }
   }
 
-  const pageTitle = itemTypeFilter.length === 1 ? (getC3TaxonomyTypeLabel(itemTypeFilter[0]) ?? 'All C3 List') : 'All C3 List';
+  const pageTitle = itemTypeFilter.length === 1 ? (getC3TaxonomyTypeLabel(itemTypeFilter[0]) ?? t('c3.list.all_title')) : t('c3.list.all_title');
 
   const renderParentCell = (item: C3Item): ReactNode => {
     if (item.parent_uuid) {
@@ -364,7 +365,7 @@ function C3CatalogueInner() {
 
   return (
     <div className={catStyles.shell}>
-      <aside className={catStyles.rail} aria-label="Filters">
+      <aside className={catStyles.rail} aria-label={t('c3.list.filters_aria')}>
         <div className={catStyles.railSection}>
           <div style={{ marginBottom: 8 }}>
             <C3Breadcrumbs />
@@ -373,19 +374,19 @@ function C3CatalogueInner() {
             href={C3_ROUTES.graph}
             style={{ display: 'block', marginBottom: 8, fontSize: '0.85em', color: 'var(--color-action-primary)', textDecoration: 'none' }}
           >
-            🔗 C3 relation graph →
+            {t('c3.list.open_graph')}
           </Link>
           <input
             className={catStyles.searchInput}
             type="search"
-            placeholder="Hledat v C3 taxonomy…"
+            placeholder={t('c3.list.search_placeholder')}
             value={search}
             onChange={(event) => pushParams({ search: event.target.value || undefined })}
-            aria-label="Search C3 taxonomy"
+            aria-label={t('c3.list.search_aria')}
           />
         </div>
 
-        <FilterGroup label="C3 taxonomy type">
+        <FilterGroup label={t('c3.list.filter.type')}>
           {C3_TAXONOMY_TYPE_OPTIONS.map((option) => (
             <label key={option.code} className={styles.filterCheckLabel}>
               <input
@@ -405,7 +406,7 @@ function C3CatalogueInner() {
         </FilterGroup>
 
         {statusOptions.length > 0 && (
-          <FilterGroup label="State">
+          <FilterGroup label={t('c3.list.filter.state')}>
             {statusOptions.map((status) => (
               <label key={status} className={styles.filterCheckLabel}>
                 <input
@@ -420,7 +421,7 @@ function C3CatalogueInner() {
         )}
 
         <div className={catStyles.railSection}>
-          <div className={catStyles.filterLabel}>Rychlé pohledy</div>
+          <div className={catStyles.filterLabel}>{t('c3.list.quick_views')}</div>
           <div className={styles.quickLinks}>
             {C3_TAXONOMY_TYPE_OPTIONS.map((option) => (
               <Link key={option.code} href={buildC3TaxonomyListHref(option.code)} className={styles.quickLink}>
@@ -431,7 +432,7 @@ function C3CatalogueInner() {
         </div>
 
         {parentOptions.length > 0 && (
-          <FilterGroup label="Parent capability">
+          <FilterGroup label={t('c3.list.filter.parent')}>
             {parentOptions.map((title) => (
               <label key={title} className={styles.filterCheckLabel}>
                 <input
@@ -452,36 +453,52 @@ function C3CatalogueInner() {
               className={styles.syncBtn}
               style={{ width: '100%' }}
             >
-              Zrušit filtry
+              {t('c3.list.clear_filters')}
             </button>
           </div>
         )}
       </aside>
 
       <main className={catStyles.content} aria-label="C3 taxonomy table">
+        <nav className={styles.typeTabs} aria-label="C3 list type switcher">
+          <Link href={C3_ROUTES.list} className={`${styles.typeTab} ${itemTypeFilter.length === 0 ? styles.typeTabActive : ''}`}>
+            All
+          </Link>
+          {C3_TAXONOMY_TYPE_OPTIONS.map((option) => (
+            <Link
+              key={option.code}
+              href={buildC3TaxonomyListHref(option.code)}
+              className={`${styles.typeTab} ${itemTypeFilter.length === 1 && itemTypeFilter[0] === option.code ? styles.typeTabActive : ''}`}
+            >
+              <span className={styles.typeTabCode}>{option.code}</span>
+              <span>{option.label.replace(/^C3\s+/, '')}</span>
+            </Link>
+          ))}
+        </nav>
+
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <h1>{pageTitle}</h1>
-            <p>Tabulkový přehled C3 taxonomy se všemi sloupci z taxonomy XLSX reportů a s prolinky na navázané prvky.</p>
+            <p>{t('c3.list.lead')}</p>
           </div>
         </div>
 
         <div className={catStyles.toolbar}>
           <span className={catStyles.resultCount}>
             {isLoading
-              ? 'Načítám…'
+              ? t('common.loading')
               : error
-                ? 'Chyba načítání'
+                ? t('c3.list.load_error')
                 : formatFilteredCountLabel(filteredRows.length, data?.length ?? 0, COUNT_LABELS.items)}
           </span>
         </div>
 
         {opErr && <div className={styles.errorMsg}>{opErr}</div>}
-        {isLoading && <div className={catStyles.state}>Načítám…</div>}
-        {error && <div className={catStyles.stateError}>Chyba: {error.message}</div>}
+        {isLoading && <div className={catStyles.state}>{t('common.loading')}</div>}
+        {error && <div className={catStyles.stateError}>{t('c3.list.error_prefix')}: {error.message}</div>}
 
         {!isLoading && !error && filteredRows.length === 0 && (
-          <div className={catStyles.state}>Žádné položky neodpovídají filtrům.</div>
+          <div className={catStyles.state}>{t('c3.list.empty')}</div>
         )}
 
         {!isLoading && !error && filteredRows.length > 0 && (
@@ -489,19 +506,19 @@ function C3CatalogueInner() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>{renderSortButton('external_id', 'Page', sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('external_id', t('c3.list.table.page'), sortKey, sortDirection, toggleSort)}</th>
                   {showUuidColumn && <th>{renderSortButton('uuid', 'UUID', sortKey, sortDirection, toggleSort)}</th>}
-                  <th>{renderSortButton('title', 'Title', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('description', 'Description', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('parent_title', 'Parent', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('datasets_raw', 'Dataset', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('source_external_id', 'External ID', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('data_source', 'Source', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('references_raw', 'Reference', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('order_num', 'Order', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('item_status', 'State', sortKey, sortDirection, toggleSort)}</th>
-                  <th>{renderSortButton('level_num', 'Level', sortKey, sortDirection, toggleSort)}</th>
-                  {showActionColumn && <th>Akce</th>}
+                  <th>{renderSortButton('title', t('c3.list.table.title'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('description', t('c3.list.table.description'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('parent_title', t('c3.list.table.parent'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('datasets_raw', t('c3.list.table.dataset'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('source_external_id', t('c3.list.table.external_id'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('data_source', t('c3.list.table.source'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('references_raw', t('c3.list.table.reference'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('order_num', t('c3.list.table.order'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('item_status', t('c3.list.table.state'), sortKey, sortDirection, toggleSort)}</th>
+                  <th>{renderSortButton('level_num', t('c3.list.table.level'), sortKey, sortDirection, toggleSort)}</th>
+                  {showActionColumn && <th>{t('common.actions')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -528,12 +545,12 @@ function C3CatalogueInner() {
                           {item.item_type && (
                             <span
                               className={styles.c3TypeBadge}
-                              style={{ borderColor: C3_TYPE_COLOR[item.item_type] ?? '#6b778c', color: C3_TYPE_COLOR[item.item_type] ?? '#6b778c' }}
+                              style={{ borderColor: C3_TYPE_COLOR[item.item_type] ?? 'var(--color-text-secondary)', color: C3_TYPE_COLOR[item.item_type] ?? 'var(--color-text-secondary)' }}
                             >
                               {item.item_type}
                             </span>
                           )}
-                          <span className={styles.c3MetaPill}>{item.mapping_count ?? 0} mapped</span>
+                          <span className={styles.c3MetaPill}>{t('c3.list.mapping_count', { count: item.mapping_count ?? 0 })}</span>
                           {item.modification_date && <span className={styles.cellMuted}>{formatDate(locale, item.modification_date, { dateStyle: 'medium' })}</span>}
                         </div>
                       </div>
@@ -562,7 +579,7 @@ function C3CatalogueInner() {
                               type="button"
                               className={`${styles.actionBtn} ${styles.deleteBtn}`}
                               onClick={() => handleDelete(item.uuid, item.title)}
-                              title="Smazat"
+                              title={t('common.delete')}
                             >
                               🗑
                             </button>
@@ -609,8 +626,9 @@ function renderSortButton(
 }
 
 export default function C3AdminPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-muted)' }}>Načítám…</div>}>
+    <Suspense fallback={<div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-muted)' }}>{t('common.loading')}</div>}>
       <C3CatalogueInner />
     </Suspense>
   );

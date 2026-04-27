@@ -153,7 +153,7 @@ function InlineEnumView() {
           </div>
           <div style={{
             padding: 'var(--space-3) var(--space-4)',
-            background: '#fffbe6',
+            background: 'var(--color-bg-surface)be6',
             borderBottom: '1px solid var(--color-border-default)',
             font: 'var(--text-body-sm)',
             color: 'var(--color-text-muted)',

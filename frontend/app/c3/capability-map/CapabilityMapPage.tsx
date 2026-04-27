@@ -476,11 +476,11 @@ export default function CapabilityMapPage({
         )}
         <div className={styles.legend}>
           <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: '#1565c0', opacity: 1 }} />
+            <span className={styles.legendDot} style={{ background: 'var(--color-info)', opacity: 1 }} />
             Mapováno v katalogu
           </span>
           <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: '#aaa', opacity: 0.35 }} />
+            <span className={styles.legendDot} style={{ background: 'var(--color-text-muted)', opacity: 0.35 }} />
             Není mapováno
           </span>
         </div>
@@ -586,9 +586,9 @@ export default function CapabilityMapPage({
                         href={buildParentListHref(group.l2.title)}
                         className={styles.l2Label}
                         style={{
-                          background: group.mapped ? `${domainView.domain.heading_color}22` : '#eee',
-                          color: group.mapped ? domainView.domain.heading_color : '#888',
-                          borderColor: group.mapped ? domainView.domain.background_color : '#ddd',
+                          background: group.mapped ? `${domainView.domain.heading_color}22` : 'var(--color-bg-subtle)',
+                          color: group.mapped ? domainView.domain.heading_color : 'var(--color-text-muted)',
+                          borderColor: group.mapped ? domainView.domain.background_color : 'var(--color-border-default)',
                         }}
                         onClick={(event) => event.stopPropagation()}
                       >
@@ -667,9 +667,9 @@ export default function CapabilityMapPage({
                   <strong>{infoMappedL4s.length}</strong> / {infoL4s.length} L4 položek namapováno v katalogu
                 </>
               ) : runtime?.isMapped(infoNode) ? (
-                <span style={{ color: 'green' }}>✓ Namapováno v katalogu</span>
+                <span style={{ color: 'var(--color-success)' }}>✓ Namapováno v katalogu</span>
               ) : (
-                <span style={{ color: '#888' }}>— Není namapováno</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>— Není namapováno</span>
               )}
             </div>
             {infoMappedL4s.length > 0 && (
@@ -744,9 +744,9 @@ function PosterNodeChip({
       type="button"
       className={`${styles.node} ${chip.mapped ? styles.nodeMapped : styles.nodeUnmapped}`}
       style={{
-        background: chip.mapped ? `${headingColor}22` : '#f0f0f0',
-        borderColor: chip.mapped ? backgroundColor : '#ddd',
-        color: chip.mapped ? headingColor : '#999',
+        background: chip.mapped ? `${headingColor}22` : 'var(--color-bg-subtle)',
+        borderColor: chip.mapped ? backgroundColor : 'var(--color-border-default)',
+        color: chip.mapped ? headingColor : 'var(--color-text-muted)',
         fontWeight: chip.isL2 ? 700 : undefined,
       }}
       onMouseEnter={(event) => onMouseEnter(event, `${chip.item.title}${chip.tooltip ? ` · ${chip.tooltip}` : ''}`)}

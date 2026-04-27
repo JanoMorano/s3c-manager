@@ -8,6 +8,7 @@
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from '@/app/components/AppLink';
 import {
   ReactFlow,
   Background,
@@ -45,12 +46,12 @@ interface C3Item {
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  BP: '#0052cc',
-  BR: '#00875a',
-  CI: '#6554c0',
-  CO: '#ff8b00',
-  CR: '#de350b',
-  UA: '#0065ff',
+  BP: 'var(--color-info)',
+  BR: 'var(--color-success)',
+  CI: 'var(--color-domain-relay)',
+  CO: 'var(--color-warning)',
+  CR: 'var(--color-danger)',
+  UA: 'var(--color-info)',
 };
 const TYPE_LABEL: Record<string, string> = {
   BP: 'Business Process',
@@ -68,21 +69,21 @@ const GAP_X = 24;
 const GAP_Y = 80;
 
 const RELATION_KIND_COLOR: Record<string, string> = {
-  c3_capability: '#0b5fff',
-  c3_tin: '#4c9aff',
-  c3_application: '#36b37e',
-  c3_data_object: '#ff8b00',
-  c3_service: '#6554c0',
+  c3_capability: 'var(--color-info)',
+  c3_tin: 'var(--color-info)',
+  c3_application: 'var(--color-success)',
+  c3_data_object: 'var(--color-warning)',
+  c3_service: 'var(--color-domain-relay)',
 };
 
 const RELATION_EDGE_COLOR: Record<string, string> = {
-  capability_application: '#36b37e',
-  capability_tin: '#4c9aff',
-  capability_data_object: '#ff8b00',
-  capability_c3_service: '#6554c0',
-  tin_application: '#79f2c0',
-  tin_data_object: '#ffbd5c',
-  tin_c3_service: '#998dd9',
+  capability_application: 'var(--color-success)',
+  capability_tin: 'var(--color-info)',
+  capability_data_object: 'var(--color-warning)',
+  capability_c3_service: 'var(--color-domain-relay)',
+  tin_application: 'var(--color-success)',
+  tin_data_object: 'var(--color-warning)',
+  tin_c3_service: 'var(--color-domain-relay)',
 };
 
 function treeLayout(items: C3Item[], selectedType: string, search: string): { nodes: Node[]; edges: Edge[] } {
@@ -116,7 +117,7 @@ function treeLayout(items: C3Item[], selectedType: string, search: string): { no
   }
   roots.forEach((root) => calcWidth(root));
 
-  const color = TYPE_COLOR[selectedType] ?? '#0052cc';
+  const color = TYPE_COLOR[selectedType] ?? 'var(--color-info)';
   const rfNodes: Node[] = [];
   const rfEdges: Edge[] = [];
 
@@ -146,8 +147,8 @@ function treeLayout(items: C3Item[], selectedType: string, search: string): { no
         source: item.parent_uuid,
         target: item.uuid,
         type: 'smoothstep',
-        markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#6b778c' },
-        style: { stroke: '#6b778c', strokeWidth: 1.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: 'var(--color-text-secondary)' },
+        style: { stroke: 'var(--color-text-secondary)', strokeWidth: 1.5 },
       });
     }
 
@@ -191,7 +192,7 @@ function relationLayout(data: { nodes: C3RelationGraphNode[]; edges: C3RelationG
           code: item.code,
           status: item.status,
           node_kind: item.node_kind,
-          color: RELATION_KIND_COLOR[item.node_kind] ?? '#6b778c',
+          color: RELATION_KIND_COLOR[item.node_kind] ?? 'var(--color-text-secondary)',
           completeness_status: item.completeness_status ?? null,
           item_type: item.item_type ?? null,
         },
@@ -205,9 +206,9 @@ function relationLayout(data: { nodes: C3RelationGraphNode[]; edges: C3RelationG
     target: edge.target,
     type: 'smoothstep',
     animated: edge.edge_kind.startsWith('capability_'),
-    markerEnd: { type: MarkerType.ArrowClosed, color: RELATION_EDGE_COLOR[edge.relation_type] ?? '#6b778c' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: RELATION_EDGE_COLOR[edge.relation_type] ?? 'var(--color-text-secondary)' },
     style: {
-      stroke: RELATION_EDGE_COLOR[edge.relation_type] ?? '#6b778c',
+      stroke: RELATION_EDGE_COLOR[edge.relation_type] ?? 'var(--color-text-secondary)',
       strokeWidth: edge.edge_kind.startsWith('capability_') ? 2.2 : 1.6,
       strokeDasharray: edge.edge_kind.startsWith('tin_') ? '5 3' : undefined,
     },
@@ -217,7 +218,7 @@ function relationLayout(data: { nodes: C3RelationGraphNode[]; edges: C3RelationG
 }
 
 function C3NodeCard({ data }: { data: Record<string, unknown> }) {
-  const color = String(data.color ?? '#0052cc');
+  const color = String(data.color ?? 'var(--color-info)');
   const code = data.code == null ? '' : String(data.code);
   const label = data.label == null ? '' : String(data.label);
   const status = data.status == null ? '' : String(data.status);
@@ -235,7 +236,7 @@ function C3NodeCard({ data }: { data: Record<string, unknown> }) {
 }
 
 function RelationNodeCard({ data }: { data: Record<string, unknown> }) {
-  const color = String(data.color ?? '#6b778c');
+  const color = String(data.color ?? 'var(--color-text-secondary)');
   const nodeKind = data.node_kind == null ? '' : String(data.node_kind);
   const code = data.code == null ? '' : String(data.code);
   const label = data.label == null ? '' : String(data.label);
@@ -373,7 +374,7 @@ export default function C3GraphPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <a href="/c3/list" className={styles.backLink}>← Seznam</a>
+        <Link href="/c3/list" className={styles.backLink}>← Seznam</Link>
       </div>
 
       <div className={styles.tabs}>
@@ -418,10 +419,10 @@ export default function C3GraphPage() {
             maxZoom={2}
             proOptions={{ hideAttribution: true }}
           >
-            <Background gap={24} size={1} color="var(--color-border-subtle, #f4f5f7)" />
+            <Background gap={24} size={1} color="var(--color-border-default)" />
             <Controls />
             <MiniMap
-              nodeColor={(node) => (node.data?.color as string) ?? '#0052cc'}
+              nodeColor={(node) => (node.data?.color as string) ?? 'var(--color-info)'}
               maskColor="rgba(0,0,0,0.04)"
               style={{ border: '1px solid var(--color-border-default)' }}
             />

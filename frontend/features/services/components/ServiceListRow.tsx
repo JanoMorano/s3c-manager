@@ -13,16 +13,16 @@ import type { SortField, SortOrder } from '../api/services.api';
 import styles from './ServiceListRow.module.css';
 
 const LIFECYCLE_DOT_COLOR: Record<string, string> = {
-  draft:        '#a1a1aa',
-  under_review: '#3b82f6',
-  approved:     '#10b981',
-  live:         '#059669',
-  deprecated:   '#f59e0b',
-  retired:      '#ef4444',
+  draft:        'var(--color-text-muted)',
+  under_review: 'var(--color-info)',
+  approved:     'var(--color-success)',
+  live:         'var(--color-success)',
+  deprecated:   'var(--color-warning)',
+  retired:      'var(--color-danger)',
 };
 
 function LifecycleDot({ state }: { state: string }) {
-  const color = LIFECYCLE_DOT_COLOR[state] ?? '#a1a1aa';
+  const color = LIFECYCLE_DOT_COLOR[state] ?? 'var(--color-text-muted)';
   const label = state.replace('_', ' ');
   return (
     <span
@@ -32,6 +32,13 @@ function LifecycleDot({ state }: { state: string }) {
       aria-label={`Lifecycle: ${label}`}
     />
   );
+}
+
+function formatCost(value: number | null) {
+  if (value == null || Number.isNaN(value)) return '—';
+  if (value >= 1_000_000) return `€${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `€${Math.round(value / 1_000)}k`;
+  return `€${value.toLocaleString('cs-CZ')}`;
 }
 
 interface ServiceListRowProps {
@@ -54,9 +61,11 @@ export function ServiceListRow({ service, density = 'comfortable', selected }: S
         )}
       </div>
 
-      {/* Col 2: Title + short description */}
       <div className={styles.colTitle}>
-        <span className={styles.title}>{service.title}</span>
+        <span className={styles.titleLine}>
+          <span className={styles.title}>{service.title}</span>
+          {service.requestable && <span className={styles.requestableChip}>Requestable</span>}
+        </span>
         {density === 'comfortable' && service.short_description && (
           <span className={styles.desc}>{service.short_description}</span>
         )}
@@ -77,7 +86,6 @@ export function ServiceListRow({ service, density = 'comfortable', selected }: S
         <AvailabilityBadge pct={service.sla_availability} />
       </div>
 
-      {/* Col 6: Status + Lifecycle */}
       <div className={styles.colStatus}>
         <StatusPill status={service.service_status ?? 'draft'} size="sm" />
         {service.lifecycle_state && (
@@ -85,7 +93,12 @@ export function ServiceListRow({ service, density = 'comfortable', selected }: S
         )}
       </div>
 
-      {/* Col 7: Owner */}
+      <div className={styles.colSignals}>
+        <span>{service.flavour_count ?? 0} flavours</span>
+        <span>{service.relation_count ?? 0} links</span>
+        <strong>{formatCost(service.in_service_eur)}</strong>
+      </div>
+
       <div className={styles.colOwner}>
         <span className={styles.owner}>{service.service_owner ?? '—'}</span>
       </div>
@@ -127,6 +140,7 @@ export function ServiceListHeader({
       <div className={styles.colDomains}>Domains</div>
       <div className={styles.colAvail}>Availability</div>
       <div className={styles.colStatus}>{label('service_status', 'Status')}</div>
+      <div className={styles.colSignals}>Signals</div>
       <div className={styles.colOwner}>Owner</div>
     </div>
   );

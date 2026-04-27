@@ -6,8 +6,9 @@
 import Link from '@/app/components/AppLink';
 import { useEffect, useState } from 'react';
 import { AUTH_STATE_EVENT, getAuthSnapshot, restoreAuthSession } from '@/features/auth/authStore';
-import { useT } from '@/app/i18n/useI18n';
+import { useI18n } from '@/app/i18n/useI18n';
 import { hasRoleAccess } from '@/features/auth/roles';
+import { useTheme, type ThemeMode } from '@/features/theme/ThemeContext';
 import NavGlobalSearch from './NavGlobalSearch';
 import styles from '../layout.module.css';
 
@@ -15,8 +16,13 @@ function readRole(): string | null {
   return getAuthSnapshot()?.role ?? null;
 }
 
+function nextThemeMode(mode: ThemeMode): ThemeMode {
+  return mode === 'dark' ? 'light' : 'dark';
+}
+
 export default function NavTopActions() {
-  const t = useT();
+  const { t } = useI18n();
+  const { mode, setMode } = useTheme();
   const [hydrated, setHydrated] = useState(false);
   const [role, setRole] = useState<string | null>(null);
 
@@ -44,6 +50,17 @@ export default function NavTopActions() {
   return (
     <>
       {canSearch && <NavGlobalSearch />}
+      {canSearch && (
+        <button
+          type="button"
+          className={`${styles.themeToggle} ${mode === 'dark' ? styles.themeToggleDark : ''}`}
+          aria-label={t('nav.theme_switch')}
+          title={mode === 'dark' ? t('theme.light') : t('theme.dark')}
+          onClick={() => setMode(nextThemeMode(mode))}
+        >
+          <span className={styles.themeToggleKnob} aria-hidden="true">{mode === 'dark' ? '🌙' : '💡'}</span>
+        </button>
+      )}
       {isEditor && (
         <Link href="/management/new-service" className={styles.topBarNewBtn}>
           {t('nav.new_service') || 'New service'}

@@ -2,6 +2,7 @@
 
 import Link from '@/app/components/AppLink';
 import { useLocale, useT } from '@/app/i18n/useI18n';
+import type { Locale } from '@/app/i18n/messages';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
@@ -63,12 +64,14 @@ const EMPTY_DRAFT: UserDraft = {
   department: '',
 }
 
-function formatDate(value: string | null, locale: 'cs' | 'en', neverLabel: string): string {
+function formatDate(value: string | null, locale: Locale, neverLabel: string): string {
   if (!value) return neverLabel
   try {
-    const dateLocale: Record<'cs' | 'en', string> = {
+    const dateLocale: Record<Locale, string> = {
       cs: 'cs-CZ',
       en: 'en-GB',
+      sk: 'sk-SK',
+      de: 'de-DE',
     }
     return new Intl.DateTimeFormat(dateLocale[locale], {
       dateStyle: 'short',

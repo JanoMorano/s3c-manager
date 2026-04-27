@@ -29,7 +29,7 @@
 }
 
 .input::placeholder { color: var(--color-text-muted); }
-.input:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.25); }
+.input:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .input:disabled { background: var(--color-bg-canvas); color: var(--color-text-muted); cursor: not-allowed; }
 
 .error .input { border-color: var(--color-danger); }

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from '@/app/components/AppLink';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyNodeChanges,
@@ -33,26 +34,26 @@ import { useLocale } from '@/app/i18n/useI18n';
 import styles from '../../graph/overview.module.css';
 
 const GROUP_COLOR: Record<string, string> = {
-  'Application Services': '#0052cc',
-  'Platform Services': '#0065ff',
-  'Infrastructure Services': '#6554c0',
-  'Security Services': '#de350b',
-  'Network Services': '#ff8b00',
-  'Workplace Services': '#00875a',
-  'Subject Matter Expertise Services': '#36b37e',
-  'Training Services': '#57d9a3',
+  'Application Services': 'var(--color-info)',
+  'Platform Services': 'var(--color-info)',
+  'Infrastructure Services': 'var(--color-domain-relay)',
+  'Security Services': 'var(--color-danger)',
+  'Network Services': 'var(--color-warning)',
+  'Workplace Services': 'var(--color-success)',
+  'Subject Matter Expertise Services': 'var(--color-success)',
+  'Training Services': 'var(--color-success)',
 };
 
 const SERVICE_TYPE_COLOR: Record<string, string> = {
-  CF: '#0052cc',
-  CFS: '#6554c0',
-  ES: '#00875a',
-  SS: '#de350b',
-  MS: '#ff8b00',
-  AS: '#36b37e',
+  CF: 'var(--color-info)',
+  CFS: 'var(--color-domain-relay)',
+  ES: 'var(--color-success)',
+  SS: 'var(--color-danger)',
+  MS: 'var(--color-warning)',
+  AS: 'var(--color-success)',
 };
 
-const DEFAULT_COLOR = '#6b778c';
+const DEFAULT_COLOR = 'var(--color-text-secondary)';
 
 const ALL_RELATION_TYPES = ['depends_on', 'prerequisite', 'underlying', 'replaces', 'related_to', 'provided_by'];
 const NODE_W = 200;
@@ -376,7 +377,7 @@ function EntityNodeCard({ data }: { data: Record<string, unknown> }) {
       className={`${styles.node} ${data.selected ? styles.nodeSelected : ''}`}
       onClick={data.onSelect as () => void}
       title={String(data.label ?? '')}
-      style={{ borderColor: '#6b778c' }}
+      style={{ borderColor: 'var(--color-text-secondary)' }}
     >
       <Handle type="target" position={Position.Left} />
       <div className={styles.nodeId}>{String(data.code ?? '')}</div>
@@ -409,15 +410,15 @@ function SwimlaneNodeCard({ data }: { data: Record<string, unknown> }) {
 function FlavourNodeCard({ data }: { data: Record<string, unknown> }) {
   return (
     <div style={{
-      background: '#fffae6', border: '1px solid #f6c90e', borderRadius: 6,
+      background: 'var(--color-bg-surface)ae6', border: '1px solid var(--color-warning)', borderRadius: 6,
       padding: '4px 8px', fontSize: '0.7rem', minWidth: 110, textAlign: 'center',
     }}>
       <Handle type="target" position={Position.Top} />
-      <div style={{ fontWeight: 600, color: '#974f0c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+      <div style={{ fontWeight: 600, color: 'var(--color-warning)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
         {String(data.label ?? '')}
       </div>
       {data.price != null && (
-        <div style={{ color: '#6b778c', fontSize: '0.65rem' }}>{String(data.price)}</div>
+        <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.65rem' }}>{String(data.price)}</div>
       )}
     </div>
   );
@@ -811,7 +812,7 @@ export default function GlobalGraphPage() {
             strokeDasharray: dash,
           },
           labelStyle: (!showEdgeLabels || performanceMode) ? undefined : { fontSize: 10, fill: visual.color, fontWeight: 600 },
-          labelBgStyle: (!showEdgeLabels || performanceMode) ? undefined : { fill: '#fff', fillOpacity: 0.88 },
+          labelBgStyle: (!showEdgeLabels || performanceMode) ? undefined : { fill: 'var(--color-bg-surface)', fillOpacity: 0.88 },
           data: { raw: edge },
         };
       });
@@ -827,8 +828,8 @@ export default function GlobalGraphPage() {
         source: `svc:${f.service_id}`,
         target: `flv:${f.id}`,
         type: 'bezier' as Edge['type'],
-        style: { stroke: '#f6c90e', strokeWidth: 1.2, strokeDasharray: '4 3' },
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#f6c90e' },
+        style: { stroke: 'var(--color-warning)', strokeWidth: 1.2, strokeDasharray: '4 3' },
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--color-warning)' },
       }));
   }, [showFlavours, allFlavours, visibleServiceIds]);
 
@@ -1093,6 +1094,11 @@ export default function GlobalGraphPage() {
       <main className={styles.main}>
         <div className={styles.header}>
           <h1 className={styles.title}>Dependency Graph</h1>
+          <nav className={styles.graphTabs} aria-label="Service graph views">
+            <span className={`${styles.graphTab} ${styles.graphTabActive}`}>Canvas</span>
+            <Link className={styles.graphTab} href="/services/dependency-flow">Dependency flow</Link>
+            <Link className={styles.graphTab} href="/services/consolidation-matrix">Consolidation matrix</Link>
+          </nav>
           <span className={styles.meta}>
             {visibleServices.length} služeb · {visibleC3Nodes.length + visibleC3EntityNodes.length} C3 objektů · {rfEdges.length} vazeb
           </span>
@@ -1128,12 +1134,12 @@ export default function GlobalGraphPage() {
                         return GROUP_COLOR[String(node.data?.portfolio_group ?? '')] ?? DEFAULT_COLOR;
                       }
                       return ({
-                        c3_capability: '#36b37e',
-                        c3_tin: '#4c9aff',
-                        c3_application: '#36b37e',
-                        c3_data_object: '#ff8b00',
-                        c3_service: '#6554c0',
-                        flavour: '#f6c90e',
+                        c3_capability: 'var(--color-success)',
+                        c3_tin: 'var(--color-info)',
+                        c3_application: 'var(--color-success)',
+                        c3_data_object: 'var(--color-warning)',
+                        c3_service: 'var(--color-domain-relay)',
+                        flavour: 'var(--color-warning)',
                       } as Record<string, string>)[nodeKind] ?? DEFAULT_COLOR;
                     }}
                     maskColor="rgba(0,0,0,0.04)"

@@ -289,14 +289,16 @@ Administrators manage:
 - local accounts and AD/SSO-backed accounts
 - role assignments
 - account activity and profile data
-- user language preference (`cs` / `en`)
+- user language preference (`cs` / `en` / `sk` / `de`)
+- persona preference for user-driven dashboard mode
 
 Language preference behavior:
 
 - canonical user locale stored in `preferred_lang`
 - web UI keeps locale cookie `sc_locale`
 - when a signed-in user changes language on `/user-info`, both DB preference and cookie are refreshed
-- legacy values (`cz`, `cze`) are normalised to `cs`
+- legacy values (`cz`, `cze`) are normalised to `cs`; `svk` to `sk`; `ger` / `deu` to `de`
+- language and persona controls are intentionally placed on `/user-info`, not in the quick user dropdown
 
 ### Group Management
 

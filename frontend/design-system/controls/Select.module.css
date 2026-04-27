@@ -32,7 +32,7 @@
 
 .select:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 .select:focus:not(:focus-visible) { outline: none; }
-.select:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.25); }
+.select:focus { border-color: var(--color-focus-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .select:disabled { background-color: var(--color-bg-canvas); color: var(--color-text-muted); cursor: not-allowed; }
 
 .error .select { border-color: var(--color-danger); }

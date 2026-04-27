@@ -229,10 +229,11 @@ export default function InstallPage() {
       const data: InstallStatusResponse = await res.json();
       setInstallInfo(data);
 
-      // If READY, update AuthGuard cache and redirect to login
+      // If READY, update AuthGuard cache but keep the install page stable.
+      // The user can continue explicitly via the result action; auto-redirecting
+      // from /install causes visible route flicker during first-run diagnostics.
       if (data.status === 'READY') {
         markInstallReady(data.modules);
-        router.replace('/login');
         return;
       }
 

@@ -3,6 +3,8 @@ import { cookies, headers } from 'next/headers';
 import './globals.css';
 import AppShell from './components/AppShell';
 import I18nProvider from './i18n/I18nProvider';
+import { PersonaProvider } from '@/features/auth/PersonaContext';
+import { ThemeProvider } from '@/features/theme/ThemeContext';
 import { getLocaleBootstrapScript } from './i18n/bootstrap';
 import { resolveLocaleFromHeader } from '../../shared/i18n/locales';
 import { normalizeSupportedLocale } from '../../shared/i18n/core';
@@ -21,15 +23,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieLocale = normalizeSupportedLocale(cookieStore.get('sc_locale')?.value);
   const headerLocale = headerStore.get('accept-language');
   const resolvedLocale = cookieLocale ?? resolveLocaleFromHeader(headerLocale);
+  const themeBootstrap = `
+    (function(){
+      try {
+        var mode = localStorage.getItem('s3c_theme_mode') || 'system';
+        var theme = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch (_) {}
+    })();
+  `;
 
   return (
     <html lang={resolvedLocale}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
         <script dangerouslySetInnerHTML={{ __html: getLocaleBootstrapScript() }} />
       </head>
       <body>
         <I18nProvider initialLocale={resolvedLocale}>
-          <AppShell>{children}</AppShell>
+          <ThemeProvider>
+            <PersonaProvider>
+              <AppShell>{children}</AppShell>
+            </PersonaProvider>
+          </ThemeProvider>
         </I18nProvider>
       </body>
     </html>

@@ -9,7 +9,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-No entries yet.
+### Added
+- Generic evidence document/source records in capability coverage payloads and the capability `Documents` tab.
+- Local-account Playwright E2E covering service mapping preview → save → capability dashboard confirmation.
+- Local-account Playwright regression covering the simplified user dropdown actions.
+- i18n keys for C3 taxonomy list controls and the service editor C3 mapping preview flow.
+
+### Changed
+- Legacy FMN Air C2 coverage endpoint now acts as a compatibility adapter over the generic capability coverage engine.
+- FMN Air C2 legacy response no longer exposes developer-local PDF paths or route-specific hardcoded requirement constants.
+- Legacy FMN Air C2 alias accepts both canonical abbreviated and imported long Level-3 capability slugs.
+- User dropdown now keeps only `User Info` and `Log Out`; language and persona settings remain in the user information area.
+
+### Fixed
+- C3 taxonomy list visible labels now use the shared i18n catalog instead of mixed Czech/English literals.
 
 ## [1.0.2] — 2026-04-25
 

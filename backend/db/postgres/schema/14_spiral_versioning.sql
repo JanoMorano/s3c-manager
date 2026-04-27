@@ -52,7 +52,7 @@ CREATE INDEX IF NOT EXISTS ix_c3_capability_builder_fmn_spiral
     ON c3_capability_builder(fmn_spiral)
     WHERE fmn_spiral IS NOT NULL;
 
--- ── Spiral 7 baseline seed ───────────────────────────────────────────────────
+-- ── Spiral baseline seed ─────────────────────────────────────────────────────
 
 INSERT INTO ref_spiral_baseline (
     spiral_code,
@@ -60,22 +60,37 @@ INSERT INTO ref_spiral_baseline (
     is_active,
     notes
 )
-VALUES (
-    'Spiral_7',
-    'Spiral 7',
-    FALSE,
-    'Spiral 7 baseline; activate through admin → Taxonomy → Spiral management.'
-)
-ON CONFLICT (spiral_code) DO NOTHING;
+VALUES
+    (
+        'Spiral_4',
+        'Spiral 4',
+        FALSE,
+        'Historical Spiral 4 baseline; inactive until explicitly enabled.'
+    ),
+    (
+        'Spiral_5',
+        'Spiral 5',
+        FALSE,
+        'Spiral 5 baseline used by FMN Air C2 procedural/service instruction parity.'
+    ),
+    (
+        'Spiral_7',
+        'Spiral 7',
+        FALSE,
+        'Spiral 7 baseline; activate through admin → Taxonomy → Spiral management.'
+    )
+ON CONFLICT (spiral_code) DO UPDATE SET
+    spiral_label = EXCLUDED.spiral_label,
+    notes = EXCLUDED.notes;
 
 -- ── Migration tracking ───────────────────────────────────────────────────────
 
 INSERT INTO platform.schema_migrations (migration_key, migration_label, schema_version, notes)
 VALUES (
     '14_spiral_versioning',
-    'FMN Spiral versioning — fmn_spiral columns on C3 entity tables, Spiral_7 seed',
+    'FMN Spiral versioning — fmn_spiral columns on C3 entity tables, Spiral_4/5/7 seed',
     '2.1.0',
-    'fmn_spiral VARCHAR(20) added to c3_taxonomy, c3_application, c3_data_object, c3_service, c3_technology_interaction, c3_capability_builder; Spiral_7 seeded into ref_spiral_baseline'
+    'fmn_spiral VARCHAR(20) added to c3_taxonomy, c3_application, c3_data_object, c3_service, c3_technology_interaction, c3_capability_builder; Spiral_4/5/7 seeded into ref_spiral_baseline'
 )
 ON CONFLICT (migration_key) DO UPDATE SET
     migration_label = EXCLUDED.migration_label,

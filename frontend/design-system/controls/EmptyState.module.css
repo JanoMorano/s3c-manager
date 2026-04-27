@@ -1,0 +1,25 @@
+.empty {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-md);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+}
+
+.action {
+  margin-top: var(--space-2);
+}

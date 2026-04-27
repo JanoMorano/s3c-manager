@@ -38,7 +38,7 @@ export default function LoginPage() {
   const [form,  setForm]  = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy,  setBusy]  = useState(false);
-  const [ssoChecking, setSsoChecking] = useState(true);
+  const [ssoChecking, setSsoChecking] = useState(false);
   const [ssoMessage, setSsoMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,6 +58,20 @@ export default function LoginPage() {
           return;
         }
 
+        const modesRes = await fetch('/api/v1/auth/modes', { cache: 'no-store', credentials: 'include' });
+        if (cancelled) return;
+        if (!modesRes.ok) {
+          setSsoMessage(null);
+          return;
+        }
+
+        const modes = await modesRes.json().catch(() => null);
+        if (cancelled || !modes?.sso) {
+          setSsoMessage(null);
+          return;
+        }
+
+        setSsoChecking(true);
         const res = await fetch('/api/v1/auth/sso', { cache: 'no-store', credentials: 'include' });
         if (cancelled) return;
 
@@ -140,7 +154,7 @@ export default function LoginPage() {
             autoFocus
             value={form.username}
             onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-            disabled={busy || ssoChecking}
+            disabled={busy}
             required
           />
           <label className={styles.label} htmlFor={passwordInputId}>{t('auth.login.password_label')}</label>
@@ -151,11 +165,11 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={form.password}
             onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-            disabled={busy || ssoChecking}
+            disabled={busy}
             required
           />
           {error && <div className={styles.errorMsg}>{error}</div>}
-          <button className={styles.btn} type="submit" disabled={busy || ssoChecking}>
+          <button className={styles.btn} type="submit" disabled={busy}>
             {ssoChecking ? t('common.loading') : busy ? t('auth.login.logging_in') : t('auth.login.submit')}
           </button>
         </form>

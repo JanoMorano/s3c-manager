@@ -84,7 +84,7 @@
 .domainFilterChip:hover { border-color: var(--color-border-strong); color: var(--color-text-secondary); }
 
 .domainFilterChipActive {
-  color: #fff;
+  color: var(--color-bg-surface);
   font-weight: 500;
   border-color: transparent;
 }
