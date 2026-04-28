@@ -13,6 +13,7 @@ import AuthGuard from './AuthGuard';
 import SidebarNav from './SidebarNav';
 import NavTopActions from './NavTopActions';
 import NavUser from './NavUser';
+import NavHelpCenter from './NavHelpCenter';
 
 // ── Brand mark SVG ─────────────────────────────────────────────────────────
 function BrandMark() {
@@ -67,6 +68,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* User */}
           <div className={styles.sidebarBottom}>
+            <NavHelpCenter />
             <NavUser />
           </div>
 

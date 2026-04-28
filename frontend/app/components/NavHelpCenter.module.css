@@ -1,0 +1,100 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.trigger,
+.contextBtn {
+  width: 100%;
+  display: inline-flex;
+  justify-content: flex-start;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-sidebar-muted, var(--color-text-muted)) 18%, transparent);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-sidebar-muted, var(--color-text-secondary));
+  padding: var(--space-1) var(--space-2);
+  font: var(--text-body-sm);
+  cursor: pointer;
+  min-height: 34px;
+}
+
+.trigger:hover,
+.contextBtn:hover {
+  background: color-mix(in srgb, var(--color-sidebar-active, var(--color-action-primary)) 16%, transparent);
+  color: var(--color-sidebar-text, var(--color-text-primary));
+}
+
+.trigger:focus-visible,
+.contextBtn:focus-visible,
+.resultLink:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.content {
+  max-width: min(760px, 96vw);
+  width: min(760px, 96vw);
+  max-height: min(86vh, 900px);
+}
+
+.searchLabel {
+  font: var(--text-label-md);
+  color: var(--color-text-secondary);
+}
+
+.results {
+  display: grid;
+  gap: var(--space-2);
+  max-height: min(58vh, 560px);
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+
+.resultCard {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.resultTitle {
+  margin: 0;
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.resultText {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.resultLink {
+  color: var(--color-info);
+  font: var(--text-label-md);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-border-default);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 900px) {
+  .content {
+    width: 96vw;
+    max-width: 96vw;
+    padding: var(--space-4);
+  }
+
+  .results {
+    max-height: 52vh;
+  }
+}
