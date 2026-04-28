@@ -345,6 +345,253 @@ Each result links to the appropriate detail page.
 
 ---
 
+## Page Template (Standard for Every Main Page)
+
+This section introduces a consistent template that can be reused for each page in the application.
+
+### 1) Service List (`/services/list`)
+
+**What the page is for**
+- Main operational view for browsing, filtering, and exporting services.
+
+**When to use it**
+- When you need to quickly find a service, validate lifecycle state, or prepare a filtered export.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Search | Full-text query across service records | Use business keywords or ID fragments; avoid overly generic terms | `Email Gateway` | Which rows are visible and exportable |
+| Status filter | Operational status selection | Choose one or more statuses relevant to the report | `active` | Result set, dashboard consistency checks |
+| Portfolio filter | Portfolio ownership grouping | Select the business/IT portfolio where the service belongs | `Core IT` | Governance reporting and portfolio drill-down |
+| Type filter | Service type segmentation | Pick the exact service type taxonomy entry | `Business Service` | Type analytics and list segmentation |
+| Lifecycle filter | Service lifecycle phase | Select the lifecycle stage required for review | `live` | Visibility in lifecycle-focused reviews |
+| Requestable filter | Requestability toggle | Set to `yes` when looking for orderable services | `requestable = true` | Request-path discovery and self-service readiness |
+| Domain filter | Domain classification | Filter by relevant domain(s), not free text | `Cyber Security` | Domain KPIs and ownership routing |
+
+**Typical mistakes and fixes**
+- Too broad search returning noise → combine search with lifecycle and domain filters.
+- Empty result with `Requestable only` → switch to `All` to validate data presence first.
+- Sharing wrong view → verify URL contains expected filter query parameters before sharing.
+
+**Related steps/processes**
+- Service triage and discovery.
+- CSV export for stakeholder reporting.
+- Navigation entry point to service detail and graph pages.
+
+### 2) Service Detail (`/services/{service_id}`)
+
+**What the page is for**
+- Canonical record of one service, including offerings, governance, support, and audit trail.
+
+**When to use it**
+- When validating end-to-end service quality before publication or lifecycle transition.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Title | Human-readable service name | Keep concise and unique in business language | `Secure File Transfer` | Discoverability in list/search and consumer clarity |
+| Short description | One-line service summary | Describe outcome, not implementation internals | `Managed encrypted file exchange for partners` | Overview clarity and catalogue readability |
+| Consumer value (`consumer_value`) | End-user benefit statement | Write in plain language with measurable benefit | `Reduces partner onboarding time by 40%` | Business understanding and approval discussions |
+| Lifecycle state | Maturity and availability stage | Move sequentially according to governance gate criteria | `under_review` | Eligibility for publication and warning banners |
+| Request channel | How users request the service | Provide a valid URL or actionable channel reference | `https://servicedesk.example/request/123` | Requestability flow and fulfillment entry |
+| Owner | Responsible service owner | Use maintained owner identity and contact | `owner@example.com` | Escalation, accountability, and review routing |
+| Support tier | Support model criticality | Match agreed support package and SLA commitments | `Tier 2` | Support expectations and incident handling |
+
+**Typical mistakes and fixes**
+- Generic consumer value text → rewrite as specific user outcome.
+- Broken request link → test link and fix URL before lifecycle promotion.
+- Lifecycle moved too early → complete missing mandatory fields first.
+
+**Related steps/processes**
+- Service onboarding completion.
+- Governance and readiness checks.
+- Audit and change traceability.
+
+### 3) Services Dashboard (`/services/dashboard`)
+
+**What the page is for**
+- KPI overview of service catalogue health and distribution.
+
+**When to use it**
+- Weekly/monthly governance review, completeness tracking, lifecycle trend monitoring.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Time scope (if configured) | Period for metrics interpretation | Align with reporting cadence | `Last 30 days` | Trend comparability between reports |
+| Status KPI | Count by status | Validate source data before presenting KPI | `Active: 124` | Operational health storytelling |
+| Lifecycle KPI | Count per lifecycle state | Reconcile unexpected spikes against recent edits/imports | `Deprecated: 11` | Retirement planning and backlog prioritization |
+| Requestable KPI | Number of requestable services | Compare with service strategy baseline | `Requestable: 78` | Self-service maturity measurement |
+
+**Typical mistakes and fixes**
+- Comparing non-equivalent periods → standardize reporting window.
+- Interpreting KPI without data quality checks → cross-check list filters first.
+
+**Related steps/processes**
+- Leadership reporting.
+- Quarterly service rationalization.
+- Input for remediation campaigns.
+
+### 4) Services Graph (`/services/graph`)
+
+**What the page is for**
+- Visual map of cross-service relationships and dependencies.
+
+**When to use it**
+- Impact analysis, architecture discussion, dependency risk workshops.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Connector type | Relationship semantics in graph | Select connector relevant to current analysis question | `depends_on` | Which edges are displayed |
+| Line style | Visual edge rendering | Use consistent style when exporting for review packs | `Curved` | Readability of dense graphs |
+| C3 Taxonomy overlay | C3 context overlay switch | Enable only when mapping context is needed | `On` | Additional node/edge context |
+| Flavours overlay | Variant overlay switch | Turn on for product/variant analysis | `On` | Granularity and graph density |
+
+**Typical mistakes and fixes**
+- Overloaded graph view → narrow connector scope and disable nonessential overlays.
+- Misread relationships → verify connector legend before interpretation.
+
+**Related steps/processes**
+- Dependency review before change freeze.
+- Service impact communication for CAB/change boards.
+
+### 5) New Service Wizard (`/management/new-service`)
+
+**What the page is for**
+- Step-by-step creation of a new service record with mandatory structure.
+
+**When to use it**
+- Creating new services and ensuring governance-required minimum data is captured.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Service ID | Unique service identifier | Use stable naming convention, avoid ad-hoc abbreviations | `SVC-EMAIL-GW-001` | Record uniqueness, integrations, routing |
+| Type | Taxonomy classification | Choose official taxonomy option only | `Technical Service` | Filtering, reporting, governance rules |
+| Lifecycle | Initial maturity stage | Set realistic starting stage (usually `draft`) | `draft` | Workflow gates and publishing eligibility |
+| Requestable | Whether users can request it | Enable only when request path is fully defined | `true` | Visibility in requestable filters and fulfilment flow |
+| Lead time | Expected fulfillment delay | Use measurable SLA-compatible value | `5 business days` | User expectations and support planning |
+| Owner email | Accountability contact | Provide valid, monitored mailbox | `service.owner@example.com` | Escalation and review assignments |
+| Availability | Expected uptime target | Match agreed SLA commitments | `99.9%` | SLA monitoring and dashboard metrics |
+
+**Typical mistakes and fixes**
+- Placeholder values left in production → validate all steps before submit.
+- Invalid owner contact → test mailbox and update to active owner.
+- Overstated SLA → align with real support model and capacity.
+
+**Related steps/processes**
+- Service onboarding.
+- Post-create enrichment in full service editor.
+- Readiness gate for `live` transition.
+
+### 6) C3 List (`/c3/list`)
+
+**What the page is for**
+- Discovery page for C3 capabilities/entities with filtering.
+
+**When to use it**
+- Finding C3 records, checking state, preparing mapping activities.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Search | Text search across C3 records | Search by capability name/code where possible | `Cyber Threat Detection` | Result precision and triage speed |
+| Taxonomy type | C3 object category | Select exact category needed for current task | `Capability` | List scope and downstream actions |
+| State | Record state filter | Use state to focus on draft vs validated items | `validated` | Data quality review scope |
+| Parent capability | Hierarchy anchor | Select parent before bulk mapping tasks | `Mission Assurance` | Context and relationship relevance |
+
+**Typical mistakes and fixes**
+- Wrong taxonomy type selected → reset filters and reapply in correct order.
+- Missing expected items → remove parent filter and verify state filter.
+
+**Related steps/processes**
+- C3-to-service mapping.
+- Taxonomy completeness checks.
+
+### 7) C3 Detail (`/c3/{uuid}`)
+
+**What the page is for**
+- Detailed C3 record with hierarchy, quality metadata, and mappings.
+
+**When to use it**
+- Reviewing one C3 item for quality, lineage, and service-catalogue links.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| UUID | Immutable record identifier | Never edit manually; treat as system identity | `550e8400-e29b-41d4-a716-446655440000` | Traceability and link integrity |
+| Classification | Taxonomy position and class | Keep aligned with approved C3 model | `Operational Capability` | Grouping in lists and map placement |
+| Data quality/source | Origin and confidence metadata | Reference actual source and confidence level | `Source: Spiral 7, confidence: high` | Validation trust and governance decisions |
+| Linked services | Related service catalogue mappings | Attach only semantically correct service links | `SVC-EMAIL-GW-001` | Coverage metrics and impact chains |
+
+**Typical mistakes and fixes**
+- Mapping by name similarity only → validate semantic fit with owner.
+- Stale source metadata → update provenance after import/sync.
+
+**Related steps/processes**
+- Capability review boards.
+- Coverage gap remediation.
+
+### 8) Import Upload (`/import/upload`)
+
+**What the page is for**
+- Controlled ingestion point for catalogue/C3 datasets with dry-run and commit.
+
+**When to use it**
+- Bulk updates, initial seeding, structured synchronization from source files.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Import target | Dataset type to ingest | Pick target matching file schema | `Service Catalogue CSV` | Validation rules and parser selection |
+| File | Uploaded source data | Use UTF-8 and validated template format | `services-q2.csv` | Import success and issue count |
+| Dry-run | Validation-only mode | Run first for all non-trivial imports | `Enabled` | Prevents unintended production writes |
+| Commit | Final write execution | Commit only after dry-run has no blocking errors | `Execute` | Database changes and audit history |
+
+**Typical mistakes and fixes**
+- Direct commit without dry-run → rerun with dry-run and fix schema issues.
+- Wrong delimiter/encoding → re-export file as UTF-8 CSV with expected separator.
+- Ignored warnings piling up → resolve reference-data mismatches before next batch.
+
+**Related steps/processes**
+- Reference data maintenance.
+- Audit and rollback preparedness.
+
+### 9) Global Search (`/search`)
+
+**What the page is for**
+- Unified cross-module lookup for services, C3 capabilities, and entities.
+
+**When to use it**
+- Fast navigation when route is unknown, or cross-domain investigation is needed.
+
+**Field overview (meaning + examples)**
+
+| Field | What it means | How to fill correctly | Example value | What it affects |
+|---|---|---|---|---|
+| Query | Global keyword input | Use specific phrases (name, code, acronym) | `Zero Trust` | Recall quality and result grouping |
+| Result group | Module grouping in output | Open items from the intended domain first | `Services` | Navigation path and investigation speed |
+| Result link | Deep-link target | Verify target record matches intent before editing | `/services/123` | Time-to-task and error avoidance |
+
+**Typical mistakes and fixes**
+- Too many irrelevant results → refine query with exact code or quoted phrase.
+- Editing wrong object after search jump → confirm breadcrumb and route context.
+
+**Related steps/processes**
+- Incident support lookups.
+- Cross-reference checks before governance decisions.
+
+---
+
 ## Common User Scenarios
 
 ### Find a Service and Check Its Request Path
