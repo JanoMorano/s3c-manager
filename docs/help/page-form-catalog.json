@@ -1,0 +1,3064 @@
+{
+  "generated_at": "2026-04-28",
+  "scope": "frontend/app/**/page.tsx",
+  "routes": [
+    {
+      "route": "/admin/c3/[uuid]",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3/dashboard",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3/graph",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-application/[code]",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-application",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "application_code",
+                  "label": "Application",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_source",
+                  "label": "Data source",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "external_id",
+                  "label": "External id",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_qualifier",
+                  "label": "Data qualifier",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "source_description",
+                  "label": "Source description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised_description",
+                  "label": "Revised description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised",
+                  "label": "Revised",
+                  "data_type": "boolean",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/c3-capability-builder",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-capability-builder2",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-data-objects/[code]",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-data-objects",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "data_object_code",
+                  "label": "Data Object",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "provenance_raw",
+                  "label": "Provenance",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "references_raw",
+                  "label": "References",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "standards_raw",
+                  "label": "Standards",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/c3-ref",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-services/[code]",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-services",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "service_code",
+                  "label": "Service",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_source",
+                  "label": "Data source",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "external_id",
+                  "label": "External id",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_qualifier",
+                  "label": "Data qualifier",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "source_description",
+                  "label": "Source description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised_description",
+                  "label": "Revised description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised",
+                  "label": "Revised",
+                  "data_type": "boolean",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/c3-technology-interactions/[code]",
+      "sections": []
+    },
+    {
+      "route": "/admin/c3-technology-interactions",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "technology_interaction_code",
+                  "label": "Technology Interaction",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ciav_review_status",
+                  "label": "CIAV review status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "mcsma_review_status",
+                  "label": "MCSMA review status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_instructions",
+                  "label": "Service Instructions",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interaction_type",
+                  "label": "Technology interaction type",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interaction_maturity",
+                  "label": "Technology interaction maturity",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interactions_1_raw",
+                  "label": "Technology Interactions 1",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "conditionality",
+                  "label": "Conditionality",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "services_1_raw",
+                  "label": "Services 1",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "applications_1_raw",
+                  "label": "Applications 1",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "services_2_raw",
+                  "label": "Services 2",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interactions_2_raw",
+                  "label": "Technology Interactions 2",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interactions_3_raw",
+                  "label": "Technology Interactions 3",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "services_3_raw",
+                  "label": "Services 3",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "applications_2_raw",
+                  "label": "Applications 2",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_objects_raw",
+                  "label": "Data Objects",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/catalogue-ref",
+      "sections": [
+        {
+          "section": "Reference tables",
+          "forms": [
+            {
+              "form": "Ref table row editor",
+              "fields": [
+                {
+                  "key": "table",
+                  "label": "Reference table",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Chooses controlled vocabulary scope used by service forms and filters."
+                },
+                {
+                  "key": "key",
+                  "label": "Reference key",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Stored canonical value referenced by foreign-key style fields in services."
+                },
+                {
+                  "key": "label",
+                  "label": "Reference label",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Displayed in dropdowns and reports as user-facing dimension text."
+                },
+                {
+                  "key": "sort_order",
+                  "label": "Sort order",
+                  "data_type": "number",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": 0,
+                  "impact": "Determines ordering in editors and exported codebooks."
+                },
+                {
+                  "key": "is_active",
+                  "label": "Active",
+                  "data_type": "boolean",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": true,
+                  "impact": "Inactive values are hidden/blocked in selection UIs and QA checks."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/groups/[id]",
+      "sections": [
+        {
+          "section": "Group details",
+          "forms": [
+            {
+              "form": "Group form",
+              "fields": [
+                {
+                  "key": "group_code",
+                  "label": "Group code",
+                  "data_type": "string",
+                  "validation": "Required in UI; immutable in edit mode.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Primary key for RBAC mapping and reporting joins."
+                },
+                {
+                  "key": "group_name",
+                  "label": "Group name",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Displayed in user/group administration and permission reports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Administrative context in audits and exports."
+                },
+                {
+                  "key": "is_active",
+                  "label": "Active",
+                  "data_type": "boolean",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": true,
+                  "impact": "Controls whether group is offered/assignable to users."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "section": "Permissions",
+          "forms": [
+            {
+              "form": "Permission matrix",
+              "fields": [
+                {
+                  "key": "permissions[]",
+                  "label": "Permission toggles",
+                  "data_type": "boolean",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Determines effective authorization for protected routes and actions."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/groups/new",
+      "sections": [
+        {
+          "section": "Group details",
+          "forms": [
+            {
+              "form": "Group form",
+              "fields": [
+                {
+                  "key": "group_code",
+                  "label": "Group code",
+                  "data_type": "string",
+                  "validation": "Required in UI; immutable in edit mode.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Primary key for RBAC mapping and reporting joins."
+                },
+                {
+                  "key": "group_name",
+                  "label": "Group name",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Displayed in user/group administration and permission reports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Administrative context in audits and exports."
+                },
+                {
+                  "key": "is_active",
+                  "label": "Active",
+                  "data_type": "boolean",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": true,
+                  "impact": "Controls whether group is offered/assignable to users."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "section": "Permissions",
+          "forms": [
+            {
+              "form": "Permission matrix",
+              "fields": [
+                {
+                  "key": "permissions[]",
+                  "label": "Permission toggles",
+                  "data_type": "boolean",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Determines effective authorization for protected routes and actions."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/admin/groups",
+      "sections": []
+    },
+    {
+      "route": "/admin/import/bulk-folder",
+      "sections": []
+    },
+    {
+      "route": "/admin/import",
+      "sections": []
+    },
+    {
+      "route": "/admin/installation",
+      "sections": []
+    },
+    {
+      "route": "/admin/new-c3",
+      "sections": []
+    },
+    {
+      "route": "/admin/new-service",
+      "sections": []
+    },
+    {
+      "route": "/admin",
+      "sections": []
+    },
+    {
+      "route": "/administration/installation",
+      "sections": []
+    },
+    {
+      "route": "/administration",
+      "sections": []
+    },
+    {
+      "route": "/administration/users",
+      "sections": []
+    },
+    {
+      "route": "/administration/web",
+      "sections": []
+    },
+    {
+      "route": "/c3/[uuid]/edit",
+      "sections": []
+    },
+    {
+      "route": "/c3/[uuid]",
+      "sections": []
+    },
+    {
+      "route": "/c3/applications/[code]/edit",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "application_code",
+                  "label": "Application",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_source",
+                  "label": "Data source",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "external_id",
+                  "label": "External id",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_qualifier",
+                  "label": "Data qualifier",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "source_description",
+                  "label": "Source description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised_description",
+                  "label": "Revised description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised",
+                  "label": "Revised",
+                  "data_type": "boolean",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/c3/applications/[code]",
+      "sections": []
+    },
+    {
+      "route": "/c3/applications",
+      "sections": []
+    },
+    {
+      "route": "/c3/capability-map",
+      "sections": []
+    },
+    {
+      "route": "/c3/capability-map-spiral6",
+      "sections": []
+    },
+    {
+      "route": "/c3/capability-map-spiral7",
+      "sections": []
+    },
+    {
+      "route": "/c3/dashboard",
+      "sections": []
+    },
+    {
+      "route": "/c3/data-objects/[code]/edit",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "data_object_code",
+                  "label": "Data Object",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "provenance_raw",
+                  "label": "Provenance",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "references_raw",
+                  "label": "References",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "standards_raw",
+                  "label": "Standards",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/c3/data-objects/[code]",
+      "sections": []
+    },
+    {
+      "route": "/c3/data-objects",
+      "sections": []
+    },
+    {
+      "route": "/c3/fmn-air-c2",
+      "sections": [
+        {
+          "section": "Coverage calculator",
+          "forms": [
+            {
+              "form": "Search",
+              "fields": [
+                {
+                  "key": "query",
+                  "label": "Capability/service query",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Determines selected service set and displayed FMN coverage metrics."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/c3/graph",
+      "sections": []
+    },
+    {
+      "route": "/c3/list",
+      "sections": []
+    },
+    {
+      "route": "/c3/services/[code]/edit",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "service_code",
+                  "label": "Service",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_source",
+                  "label": "Data source",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "external_id",
+                  "label": "External id",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_qualifier",
+                  "label": "Data qualifier",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "source_description",
+                  "label": "Source description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised_description",
+                  "label": "Revised description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised",
+                  "label": "Revised",
+                  "data_type": "boolean",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/c3/services/[code]",
+      "sections": []
+    },
+    {
+      "route": "/c3/services",
+      "sections": []
+    },
+    {
+      "route": "/c3/technology-interactions/[code]/edit",
+      "sections": [
+        {
+          "section": "Entity editor",
+          "forms": [
+            {
+              "form": "Grid row editor",
+              "fields": [
+                {
+                  "key": "technology_interaction_code",
+                  "label": "Technology Interaction",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "UUID",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "modification_date",
+                  "label": "Modification date",
+                  "data_type": "datetime",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order",
+                  "data_type": "number",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "SS overall status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "SS baseline status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ciav_review_status",
+                  "label": "CIAV review status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "mcsma_review_status",
+                  "label": "MCSMA review status",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_instructions",
+                  "label": "Service Instructions",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interaction_type",
+                  "label": "Technology interaction type",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interaction_maturity",
+                  "label": "Technology interaction maturity",
+                  "data_type": "string",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interactions_1_raw",
+                  "label": "Technology Interactions 1",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "conditionality",
+                  "label": "Conditionality",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "services_1_raw",
+                  "label": "Services 1",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "applications_1_raw",
+                  "label": "Applications 1",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "services_2_raw",
+                  "label": "Services 2",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interactions_2_raw",
+                  "label": "Technology Interactions 2",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "technology_interactions_3_raw",
+                  "label": "Technology Interactions 3",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "services_3_raw",
+                  "label": "Services 3",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "applications_2_raw",
+                  "label": "Applications 2",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_objects_raw",
+                  "label": "Data Objects",
+                  "data_type": "textarea",
+                  "validation": "Configured in editFields; API endpoint performs semantic validation.",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/c3/technology-interactions/[code]",
+      "sections": []
+    },
+    {
+      "route": "/c3/technology-interactions",
+      "sections": []
+    },
+    {
+      "route": "/c3-dashboard",
+      "sections": []
+    },
+    {
+      "route": "/capabilities/[slug]",
+      "sections": []
+    },
+    {
+      "route": "/capabilities",
+      "sections": []
+    },
+    {
+      "route": "/catalogue",
+      "sections": []
+    },
+    {
+      "route": "/dashboard",
+      "sections": []
+    },
+    {
+      "route": "/import",
+      "sections": []
+    },
+    {
+      "route": "/import/upload",
+      "sections": []
+    },
+    {
+      "route": "/install",
+      "sections": []
+    },
+    {
+      "route": "/login",
+      "sections": [
+        {
+          "section": "Authentication",
+          "forms": [
+            {
+              "form": "Sign in",
+              "fields": [
+                {
+                  "key": "username",
+                  "label": "Username",
+                  "data_type": "string",
+                  "validation": "HTML required attribute.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Controls authentication identity and audit logging."
+                },
+                {
+                  "key": "password",
+                  "label": "Password",
+                  "data_type": "password",
+                  "validation": "HTML required attribute.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Used for authentication; failed validation blocks access."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/management/new-c3",
+      "sections": [
+        {
+          "section": "Main editor",
+          "forms": [
+            {
+              "form": "Entity form",
+              "fields": [
+                {
+                  "key": "abbreviation",
+                  "label": "Abbreviation",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "application",
+                  "label": "Application",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_qualifier",
+                  "label": "Data Qualifier",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "data_source",
+                  "label": "Data Source",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "datasets_raw",
+                  "label": "Datasets Raw",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "description",
+                  "label": "Description",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "external_id",
+                  "label": "External Id",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_status",
+                  "label": "Item Status",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "item_type",
+                  "label": "Item Type",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "order_num",
+                  "label": "Order Num",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "parent_code",
+                  "label": "Parent Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "parent_uuid",
+                  "label": "Parent Uuid",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "provenance_raw",
+                  "label": "Provenance Raw",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "references_raw",
+                  "label": "References Raw",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "revised_description",
+                  "label": "Revised Description",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "script_raw",
+                  "label": "Script Raw",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "source_description",
+                  "label": "Source Description",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_baseline_status",
+                  "label": "Ss Baseline Status",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ss_overall_status",
+                  "label": "Ss Overall Status",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "standards_raw",
+                  "label": "Standards Raw",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "synonym",
+                  "label": "Synonym",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "z.string().min(1, 'Title is required')",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "uuid",
+                  "label": "Uuid",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/management/new-service",
+      "sections": [
+        {
+          "section": "Main editor",
+          "forms": [
+            {
+              "form": "Entity form",
+              "fields": [
+                {
+                  "key": "business_summary",
+                  "label": "Business Summary",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "consumer_value",
+                  "label": "Consumer Value",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "fulfillment_lead_time_text",
+                  "label": "Fulfillment Lead Time Text",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "global_service_group_code",
+                  "label": "Global Service Group Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "lifecycle_state",
+                  "label": "Lifecycle State",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [
+                    "draft",
+                    "under_review",
+                    "approved",
+                    "live",
+                    "deprecated",
+                    "retired"
+                  ],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "manager",
+                  "label": "Manager",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "organizational_element_code",
+                  "label": "Organizational Element Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "portfolio_group_code",
+                  "label": "Portfolio Group Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "request_channel_url",
+                  "label": "Request Channel Url",
+                  "data_type": "string",
+                  "validation": "z.string().url('Musí být platná URL').optional().or(z.literal(''))",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "security_classification",
+                  "label": "Security Classification",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_id",
+                  "label": "Service Id",
+                  "data_type": "string",
+                  "validation": "z.string().min(1, 'Service ID je povinné').max(20, 'Max 20 znaků')",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_line_code",
+                  "label": "Service Line Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_owner",
+                  "label": "Service Owner",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_owner_email",
+                  "label": "Service Owner Email",
+                  "data_type": "string",
+                  "validation": "z.string().email('Neplatný email').optional().or(z.literal(''))",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_owner_org",
+                  "label": "Service Owner Org",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_type",
+                  "label": "Service Type",
+                  "data_type": "string",
+                  "validation": "z.string().min(1, 'Typ služby je povinný')",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_availability",
+                  "label": "Sla Availability",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().min(0).max(100).optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_delivery",
+                  "label": "Sla Delivery",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().min(0).optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_restoration",
+                  "label": "Sla Restoration",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().min(0).optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "summary",
+                  "label": "Summary",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "target_audience_summary",
+                  "label": "Target Audience Summary",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "z.string().min(1, 'Název je povinný')",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "value_proposition",
+                  "label": "Value Proposition",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "vlastnik",
+                  "label": "Vlastnik",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/management",
+      "sections": []
+    },
+    {
+      "route": "/operations",
+      "sections": []
+    },
+    {
+      "route": "/",
+      "sections": []
+    },
+    {
+      "route": "/search",
+      "sections": [
+        {
+          "section": "Search",
+          "forms": [
+            {
+              "form": "Fulltext search",
+              "fields": [
+                {
+                  "key": "q",
+                  "label": "Search query",
+                  "data_type": "string",
+                  "validation": "Form submit requires non-empty query in client state.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Filters global search results ranking and list content."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/services/[id]/edit",
+      "sections": [
+        {
+          "section": "Main editor",
+          "forms": [
+            {
+              "form": "Entity form",
+              "fields": [
+                {
+                  "key": "approval_required",
+                  "label": "Approval Required",
+                  "data_type": "boolean",
+                  "validation": "z.boolean().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "business_purpose",
+                  "label": "Business Purpose",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "business_summary",
+                  "label": "Business Summary",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "charging_basis",
+                  "label": "Charging Basis",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "consumer_value",
+                  "label": "Consumer Value",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "customer_type",
+                  "label": "Customer Type",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "detailed_description",
+                  "label": "Detailed Description",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "exclusions",
+                  "label": "Exclusions",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "fulfillment_lead_time_text",
+                  "label": "Fulfillment Lead Time Text",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "global_service_group_code",
+                  "label": "Global Service Group Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "lifecycle_state",
+                  "label": "Lifecycle State",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [
+                    "draft",
+                    "under_review",
+                    "approved",
+                    "live",
+                    "deprecated",
+                    "retired"
+                  ],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "manager",
+                  "label": "Manager",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "manager_org",
+                  "label": "Manager Org",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "notes_json",
+                  "label": "Notes Json",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "operational_notes_raw",
+                  "label": "Operational Notes Raw",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "ordering_note",
+                  "label": "Ordering Note",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "organizational_element_code",
+                  "label": "Organizational Element Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "portfolio_group_code",
+                  "label": "Portfolio Group Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "rate_note",
+                  "label": "Rate Note",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "request_channel_type",
+                  "label": "Request Channel Type",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "request_channel_url",
+                  "label": "Request Channel Url",
+                  "data_type": "string",
+                  "validation": "z.string().url('Must be a valid URL').optional().or(z.literal(''))",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "requestable",
+                  "label": "Requestable",
+                  "data_type": "boolean",
+                  "validation": "z.boolean().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "retired_note",
+                  "label": "Retired Note",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "scope_text",
+                  "label": "Scope Text",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "security_classification",
+                  "label": "Security Classification",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_area",
+                  "label": "Service Area",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_features",
+                  "label": "Service Features",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_line_code",
+                  "label": "Service Line Code",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_owner",
+                  "label": "Service Owner",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_owner_email",
+                  "label": "Service Owner Email",
+                  "data_type": "string",
+                  "validation": "z.string().email().optional().or(z.literal(''))",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_owner_org",
+                  "label": "Service Owner Org",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_status",
+                  "label": "Service Status",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [
+                    "active",
+                    "retired",
+                    "deprecated",
+                    "draft"
+                  ],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "service_type",
+                  "label": "Service Type",
+                  "data_type": "string",
+                  "validation": "z.string().min(1, 'Service type is required')",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_availability",
+                  "label": "Sla Availability",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().min(0).max(100).optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_delivery",
+                  "label": "Sla Delivery",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().min(0).optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_delivery_text",
+                  "label": "Sla Delivery Text",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_restoration",
+                  "label": "Sla Restoration",
+                  "data_type": "number",
+                  "validation": "z.coerce.number().min(0).optional().nullable()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "sla_restoration_text",
+                  "label": "Sla Restoration Text",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "source_url",
+                  "label": "Source Url",
+                  "data_type": "string",
+                  "validation": "z.string().url('Must be a valid URL').optional().or(z.literal(''))",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "summary",
+                  "label": "Summary",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "target_audience_summary",
+                  "label": "Target Audience Summary",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "title",
+                  "label": "Title",
+                  "data_type": "string",
+                  "validation": "z.string().min(1, 'Title is required')",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "unit_of_measure",
+                  "label": "Unit Of Measure",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "value_proposition",
+                  "label": "Value Proposition",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "vlastnik",
+                  "label": "Vlastnik",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                },
+                {
+                  "key": "vlastnik_org",
+                  "label": "Vlastnik Org",
+                  "data_type": "string",
+                  "validation": "z.string().optional()",
+                  "allowed_values": [],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Influences saved entity values and downstream reporting exports."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": "/services/[id]/graph",
+      "sections": []
+    },
+    {
+      "route": "/services/[id]/history",
+      "sections": []
+    },
+    {
+      "route": "/services/[id]",
+      "sections": []
+    },
+    {
+      "route": "/services/consolidation-matrix",
+      "sections": []
+    },
+    {
+      "route": "/services/dashboard",
+      "sections": []
+    },
+    {
+      "route": "/services/dependency-flow",
+      "sections": []
+    },
+    {
+      "route": "/services/graph",
+      "sections": []
+    },
+    {
+      "route": "/services/list",
+      "sections": []
+    },
+    {
+      "route": "/spirals/[code]",
+      "sections": []
+    },
+    {
+      "route": "/spirals",
+      "sections": []
+    },
+    {
+      "route": "/user-info",
+      "sections": [
+        {
+          "section": "Profile",
+          "forms": [
+            {
+              "form": "Profile form",
+              "fields": [
+                {
+                  "key": "display_name",
+                  "label": "Display name",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Shown in UI ownership labels and user audit context."
+                },
+                {
+                  "key": "email",
+                  "label": "E-mail",
+                  "data_type": "string",
+                  "validation": "Must be valid e-mail format.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Used for notifications and owner reporting dimensions."
+                },
+                {
+                  "key": "locale",
+                  "label": "Locale",
+                  "data_type": "string",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [
+                    "cs-CZ",
+                    "en-US"
+                  ],
+                  "required": "optional",
+                  "default": null,
+                  "impact": "Changes localization of formatted dates/numbers in reports."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "section": "Security",
+          "forms": [
+            {
+              "form": "Password change",
+              "fields": [
+                {
+                  "key": "current_password",
+                  "label": "Current password",
+                  "data_type": "password",
+                  "validation": "Not explicitly constrained in UI beyond backend checks.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Authorizes sensitive credential change action."
+                },
+                {
+                  "key": "new_password",
+                  "label": "New password",
+                  "data_type": "password",
+                  "validation": "Policy enforced server-side (min length/complexity).",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Affects account security posture and auth success."
+                },
+                {
+                  "key": "confirm_password",
+                  "label": "Confirm password",
+                  "data_type": "password",
+                  "validation": "Must match new password.",
+                  "allowed_values": [],
+                  "required": "required",
+                  "default": null,
+                  "impact": "Prevents accidental credential mismatch during update."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
