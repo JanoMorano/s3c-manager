@@ -6,7 +6,6 @@ const C3_ROUTES = {
     capabilityMap: '/c3/capability-map-spiral7',
     capabilityMapSpiral6: '/c3/capability-map-spiral6',
     capabilityMapSpiral7: '/c3/capability-map-spiral7',
-    fmnAirC2: '/c3/fmn-air-c2',
     technologyInteractions: '/c3/technology-interactions',
     services: '/c3/services',
     dataObjects: '/c3/data-objects',

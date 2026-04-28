@@ -1,6 +1,6 @@
 # Import Formats
 
-Service Catalogue v2 supports four import formats: CSV, JSON, XLSX, and ArchiMate XML.
+Service Catalogue supports four import formats: CSV, JSON, XLSX, and ArchiMate XML.
 
 Example payloads are available in:
 

@@ -231,6 +231,7 @@ test('czech administration users localizes role, provider, and action labels fro
 });
 
 test('english user info renders profile and password labels in english', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await prepareLocale(page, 'en', { authenticated: true, ready: true });
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
@@ -270,6 +271,25 @@ test('english user info renders profile and password labels in english', async (
   await expect(page.locator('html')).not.toContainText('Útvar');
   await expect(page.locator('html')).not.toContainText('Uložit profil');
   await expect(page.locator('html')).not.toContainText('Změna hesla');
+
+  const userView = page.getByText('User view', { exact: true });
+  const language = page.getByLabel('Language', { exact: true });
+  const persona = page.getByLabel('Persona', { exact: true });
+  await expect(language).toBeVisible();
+  await expect(persona).toBeVisible();
+
+  const [userViewBox, languageBox, personaBox] = await Promise.all([
+    userView.boundingBox(),
+    language.boundingBox(),
+    persona.boundingBox(),
+  ]);
+  expect(userViewBox).not.toBeNull();
+  expect(languageBox).not.toBeNull();
+  expect(personaBox).not.toBeNull();
+  expect(languageBox!.x).toBeGreaterThan(userViewBox!.x + userViewBox!.width);
+  expect(personaBox!.x).toBeGreaterThan(languageBox!.x + languageBox!.width);
+  expect(Math.abs(userViewBox!.y - languageBox!.y)).toBeLessThan(36);
+  expect(Math.abs(languageBox!.y - personaBox!.y)).toBeLessThan(36);
 });
 
 test('english web settings save fallback stays in english', async ({ page }) => {

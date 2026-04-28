@@ -25,7 +25,7 @@ After login, the left sidebar exposes these sections:
 - `Command Centre` — Catalogue, C3, Capability, Spiral, and Operations dashboards
 - `Service Catalogue` — all services, services graph, dependency flow, and consolidation matrix
 - `C3 Reference` — C3 lists, relation graph, and capability map reference views
-- `FMN Spirals` — FMN spiral workspaces such as FMN Air C2
+- `FMN Spirals` — spiral workspaces and capability coverage views that are enabled for the installed baseline
 - `Administration` — system settings, users, import, content admin, and references
 
 If the C3 module was disabled during installation, all C3 groups disappear from the UI automatically.

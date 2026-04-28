@@ -35,7 +35,6 @@ export default function SpiralsPage() {
 
       <nav className={styles.tabs} aria-label="Spiral sections">
         <Link href="/spirals" className={`${styles.tab} ${styles.tabActive}`}>{t('spirals.tabs.overview')}</Link>
-        <Link href="/c3/fmn-air-c2" className={styles.tabLinkButton}>{t('spirals.tabs.fmn_air_c2')}</Link>
       </nav>
 
       <section className={styles.layout}>

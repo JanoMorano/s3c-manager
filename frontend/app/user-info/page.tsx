@@ -368,13 +368,14 @@ export default function UserInfoPage() {
             </div>
 
             <div className={styles.preferencePanel}>
-              <div>
+              <div className={styles.preferenceIntro}>
                 <h2 className={styles.preferenceTitle}>{t('user_info.preferences_title')}</h2>
                 <p className={styles.preferenceDesc}>{t('user_info.preferences_desc')}</p>
               </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>{t('user_info.language_label')}</label>
+              <div className={`${styles.field} ${styles.preferenceField}`}>
+                <label className={styles.fieldLabel} htmlFor="preferred-language">{t('user_info.language_label')}</label>
                 <select
+                  id="preferred-language"
                   name="preferred_lang"
                   className={styles.input}
                   value={profileForm.preferred_lang}
@@ -387,9 +388,10 @@ export default function UserInfoPage() {
                   <option value="de">{t('locale.de')}</option>
                 </select>
               </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>{t('user_info.persona_label')}</label>
+              <div className={`${styles.field} ${styles.preferenceField}`}>
+                <label className={styles.fieldLabel} htmlFor="preferred-persona">{t('user_info.persona_label')}</label>
                 <select
+                  id="preferred-persona"
                   className={styles.input}
                   value={persona}
                   onChange={(event) => void handlePersonaChange(event.target.value as Persona)}

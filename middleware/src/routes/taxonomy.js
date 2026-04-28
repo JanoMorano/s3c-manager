@@ -44,6 +44,7 @@ const CAPABILITY_MAP_TITLE_KEY = 'c3.capability_map.title';
 const CAPABILITY_MAP_TITLE_KEY_SPIRAL6 = 'c3.capability_map.title.spiral6';
 const DEFAULT_CAPABILITY_MAP_TITLE = 'C3 Taxonomy Catalogue — Baseline 7';
 const DEFAULT_CAPABILITY_MAP_TITLE_SPIRAL6 = 'C3 Taxonomy Catalogue — Baseline 6';
+const DEFAULT_CAPABILITY_MAP_SPIRAL = 'Spiral_7';
 const AIR_C2_LEGACY_SLUG = 'cap-bmc-air-bmc';
 const AIR_C2_LEGACY_SLUG_FALLBACKS = [
     AIR_C2_LEGACY_SLUG,
@@ -653,15 +654,39 @@ function normalizeCapabilityMapTitle(value, translate = (key, params) => key) {
     return title;
 }
 
+function normalizeSpiralCode(value, fallback = DEFAULT_CAPABILITY_MAP_SPIRAL) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return fallback;
+
+    const direct = raw.match(/^Spiral[_\s-]?(\d+)$/i);
+    if (direct) return `Spiral_${direct[1]}`;
+
+    const numeric = raw.match(/^(\d+)$/);
+    if (numeric) return `Spiral_${numeric[1]}`;
+
+    return fallback;
+}
+
+function getSpiralNumber(spiral) {
+    return String(spiral ?? '').match(/^Spiral_(\d+)$/)?.[1] ?? null;
+}
+
 function resolveCapabilityMapTitleKey(spiral) {
-    return spiral === 'Spiral_6' ? CAPABILITY_MAP_TITLE_KEY_SPIRAL6 : CAPABILITY_MAP_TITLE_KEY;
+    if (spiral === 'Spiral_6') return CAPABILITY_MAP_TITLE_KEY_SPIRAL6;
+    if (spiral === DEFAULT_CAPABILITY_MAP_SPIRAL) return CAPABILITY_MAP_TITLE_KEY;
+    const spiralNumber = getSpiralNumber(spiral);
+    return spiralNumber ? `c3.capability_map.title.spiral${spiralNumber}` : CAPABILITY_MAP_TITLE_KEY;
 }
 
 function resolveCapabilityMapTitleDefault(spiral) {
-    return spiral === 'Spiral_6' ? DEFAULT_CAPABILITY_MAP_TITLE_SPIRAL6 : DEFAULT_CAPABILITY_MAP_TITLE;
+    if (spiral === 'Spiral_6') return DEFAULT_CAPABILITY_MAP_TITLE_SPIRAL6;
+    if (spiral === DEFAULT_CAPABILITY_MAP_SPIRAL) return DEFAULT_CAPABILITY_MAP_TITLE;
+    const spiralNumber = getSpiralNumber(spiral);
+    return spiralNumber ? `C3 Taxonomy Catalogue — Baseline ${spiralNumber}` : DEFAULT_CAPABILITY_MAP_TITLE;
 }
 
-async function getCapabilityMapTitle(spiral = 'Spiral_7') {
+async function getCapabilityMapTitle(spiral = DEFAULT_CAPABILITY_MAP_SPIRAL) {
+    spiral = normalizeSpiralCode(spiral);
     const configKey = resolveCapabilityMapTitleKey(spiral);
     const cacheKey = `c3_capmap_title:${configKey}:v1`;
     const cached = cache.get(cacheKey);
@@ -680,11 +705,13 @@ async function getCapabilityMapTitle(spiral = 'Spiral_7') {
     return title;
 }
 
-async function upsertCapabilityMapTitle(title, updatedBy = null, spiral = 'Spiral_7') {
+async function upsertCapabilityMapTitle(title, updatedBy = null, spiral = DEFAULT_CAPABILITY_MAP_SPIRAL) {
+    spiral = normalizeSpiralCode(spiral);
     const configKey = resolveCapabilityMapTitleKey(spiral);
-    const description = spiral === 'Spiral_6'
-        ? 'Editable title for the C3 Capability Map (Spiral 6) page'
-        : 'Editable title for the canonical C3 Capability Map page';
+    const spiralNumber = getSpiralNumber(spiral);
+    const description = spiral === DEFAULT_CAPABILITY_MAP_SPIRAL
+        ? 'Editable title for the canonical C3 Capability Map page'
+        : `Editable title for the C3 Capability Map (Spiral ${spiralNumber ?? '?'}) page`;
 
     await getPlatformPool().query(`
         INSERT INTO platform.app_config (
@@ -1312,7 +1339,7 @@ router.get('/c3', async (req, res, next) => {
         const cached = cache.get(cacheKey);
         if (cached) return res.json(cached);
 
-        const rows = await selectRows(getPool(), `
+        let rows = await selectRows(getPool(), `
             SELECT
                 c.*,
                 p.title AS parent_title,
@@ -1660,6 +1687,15 @@ router.get('/c3/capability-map-spiral6', requireAuth, async (req, res, next) => 
     } catch (err) { next(err); }
 });
 
+router.get(/^\/c3\/capability-map-spiral(\d+)$/, requireAuth, async (req, res, next) => {
+    try {
+        const spiral = normalizeSpiralCode(req.params[0]);
+        const pageTitle = await getCapabilityMapTitle(spiral);
+        const payload = await buildCapabilityMapPayloadBySpiral(spiral, pageTitle);
+        res.json(payload);
+    } catch (err) { next(err); }
+});
+
 router.get('/c3-capability-builder/domains', requireAuth, async (req, res, next) => {
     try {
         const domains = await listCapabilityBuilderDomains();
@@ -1676,10 +1712,7 @@ router.get('/c3-capability-builder', canAdmin, async (req, res, next) => {
         const search = parseTextFilter(req.query.search);
         const limit = parseIntFilter(req.query.limit, { fallback: 500, min: 1, max: 5000 });
 
-        // Optional spiral filter: ?spiral=Spiral_6 or ?spiral=Spiral_7.
-        const ALLOWED_SPIRALS = ['Spiral_6', 'Spiral_7'];
-        const spiralParam = req.query.spiral ? String(req.query.spiral).trim() : null;
-        const spiralFilter = spiralParam && ALLOWED_SPIRALS.includes(spiralParam) ? spiralParam : null;
+        const spiralFilter = req.query.spiral ? normalizeSpiralCode(req.query.spiral, null) : null;
 
         const result = spiralFilter
             ? await selectRows(getPool(), `
@@ -1713,7 +1746,7 @@ router.get('/c3-capability-builder', canAdmin, async (req, res, next) => {
 
 router.get('/c3-capability-builder/settings', canAdmin, async (req, res, next) => {
     try {
-        const spiral = req.query.spiral === 'Spiral_6' ? 'Spiral_6' : 'Spiral_7';
+        const spiral = normalizeSpiralCode(req.query.spiral);
         const pageTitle = await getCapabilityMapTitle(spiral);
         res.json({
             config_key: resolveCapabilityMapTitleKey(spiral),
@@ -1725,7 +1758,7 @@ router.get('/c3-capability-builder/settings', canAdmin, async (req, res, next) =
 
 router.put('/c3-capability-builder/settings', canAdmin, async (req, res, next) => {
     try {
-        const spiral = req.body?.spiral === 'Spiral_6' ? 'Spiral_6' : 'Spiral_7';
+        const spiral = normalizeSpiralCode(req.body?.spiral);
         const pageTitle = normalizeCapabilityMapTitle(req.body?.page_title, (key, params) => tReq(req, key, params));
         await upsertCapabilityMapTitle(pageTitle, req.user?.username ?? null, spiral);
         res.json({
@@ -1741,6 +1774,7 @@ router.post('/c3-capability-builder', canAdmin, async (req, res, next) => {
         await ensureCapabilityBuilderSeeded();
 
         const normalized = await validateCapabilityBuilderPayload(req.body, null, 'data.c3_capability_builder', 20, (key, params) => tReq(req, key, params));
+        const spiral = normalizeSpiralCode(req.body?.spiral ?? req.body?.fmn_spiral);
         const insertResult = await getPool().query(`
                 INSERT INTO data.c3_capability_builder (
                     page_id,
@@ -1749,7 +1783,8 @@ router.post('/c3-capability-builder', canAdmin, async (req, res, next) => {
                     parent_id,
                     level,
                     state,
-                    domain_code
+                    domain_code,
+                    fmn_spiral
                 )
                 VALUES (
                     $1,
@@ -1758,7 +1793,8 @@ router.post('/c3-capability-builder', canAdmin, async (req, res, next) => {
                     $4,
                     $5,
                     $6,
-                    $7
+                    $7,
+                    $8
                 )
                 RETURNING id
             `, [
@@ -1769,6 +1805,7 @@ router.post('/c3-capability-builder', canAdmin, async (req, res, next) => {
                 normalized.level,
                 normalized.state,
                 normalized.domainCode,
+                spiral,
             ]);
 
         invalidateC3CacheKeys();
@@ -1796,6 +1833,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
         if (!id) return res.status(400).json({ error: tReq(req, 'taxonomy.errors.invalid_id') });
 
         const normalized = await validateCapabilityBuilderPayload(req.body, id, 'data.c3_capability_builder', 20, (key, params) => tReq(req, key, params));
+        const spiral = normalizeSpiralCode(req.body?.spiral ?? req.body?.fmn_spiral);
         const updateResult = await getPool().query(`
                 UPDATE data.c3_capability_builder
                 SET
@@ -1806,6 +1844,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
                     level = $6,
                     state = $7,
                     domain_code = $8,
+                    fmn_spiral = $9,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
             `, [
@@ -1817,6 +1856,7 @@ router.put('/c3-capability-builder/:id', canAdmin, async (req, res, next) => {
                 normalized.level,
                 normalized.state,
                 normalized.domainCode,
+                spiral,
             ]);
         if (resultRowCount(updateResult) === 0) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.capability_builder_item_not_found') });
 
@@ -3368,10 +3408,13 @@ router.post('/spiral', requireAuth, canAdmin, async (req, res, next) => {
         const { spiral_code, spiral_label, notes } = req.body;
         if (!spiral_code || !spiral_label)
             return res.status(400).json({ error: tReq(req, 'taxonomy.errors.spiral_required_fields') });
+        const normalizedSpiralCode = normalizeSpiralCode(spiral_code, null);
+        if (!normalizedSpiralCode)
+            return res.status(400).json({ error: tReq(req, 'taxonomy.errors.spiral_required_fields') });
         await getPool().query(`
             INSERT INTO data.ref_spiral_baseline (spiral_code, spiral_label, is_active, notes)
             VALUES ($1, $2, FALSE, $3)
-        `, [spiral_code, spiral_label, notes ?? null]);
+        `, [normalizedSpiralCode, spiral_label, notes ?? null]);
         res.status(201).json({ ok: true });
     } catch (err) {
         if (isUniqueViolation(err))

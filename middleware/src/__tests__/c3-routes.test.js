@@ -43,7 +43,7 @@ describe('canonical C3 route normalization', () => {
         expect(normalizeLegacyC3Path(C3_ROUTES.dashboard)).toBe(C3_ROUTES.dashboard);
     });
 
-    test('exposes FMN Air C2 coverage route', () => {
-        expect(C3_ROUTES.fmnAirC2).toBe('/c3/fmn-air-c2');
+    test('does not expose FMN Air C2 as a production web route', () => {
+        expect(C3_ROUTES.fmnAirC2).toBeUndefined();
     });
 });

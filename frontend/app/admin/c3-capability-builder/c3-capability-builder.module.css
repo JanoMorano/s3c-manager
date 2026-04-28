@@ -167,6 +167,14 @@
   flex-wrap: wrap;
 }
 
+.createSpiralForm {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: min(760px, 100%);
+}
+
 .button {
   padding: 10px 14px;
   border-radius: 10px;
@@ -350,6 +358,10 @@
 @media (max-width: 680px) {
   .shell {
     padding: 16px;
+  }
+
+  .createSpiralForm {
+    grid-template-columns: 1fr;
   }
 
   .fieldRow {

@@ -10,7 +10,7 @@ import { resolveLocaleFromHeader } from '../../shared/i18n/locales';
 import { normalizeSupportedLocale } from '../../shared/i18n/core';
 
 export const metadata: Metadata = {
-  title: 'Service Catalogue v2',
+  title: 'Service Catalogue',
   description: 'Internal service catalogue — graph + pricing + SLA + taxonomy',
   icons: {
     icon: '/favicon.svg',

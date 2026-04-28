@@ -57,7 +57,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className={styles.sidebarBrandMark}>
                 <BrandMark />
               </span>
-              <span className={styles.sidebarBrandName}>S3C Manager v1.1</span>
+              <span className={styles.sidebarBrandName}>S3C Manager</span>
             </Link>
           </div>
 

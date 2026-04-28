@@ -285,7 +285,7 @@ function C3CatalogueInner() {
       }
 
       if (itemTypeFilter.length > 0 && !itemTypeFilter.includes(String(row.item_type ?? ''))) return false;
-      if (parentFilter.length > 0 && !parentFilter.includes(String(row.parent_title ?? ''))) return false;
+      if (parentFilter.length > 0 && !parentFilter.includes(String(row.parent_title ?? '(Kořenové schopnosti)'))) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(String(row.item_status ?? ''))) return false;
 
       return true;

@@ -22,7 +22,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
@@ -185,7 +185,7 @@ const schema = z.object({
   notes_json:                   z.string().optional(),
 });
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.output<typeof schema>;
 
 function compactPayload<T extends Record<string, unknown>>(obj: T): Partial<T> {
   return Object.fromEntries(
@@ -1009,7 +1009,7 @@ export default function NewServiceWizard() {
     register, handleSubmit, watch, setValue, trigger,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {
       service_id: '', title: '', service_type: '',
       service_status: 'draft', lifecycle_state: 'draft',

@@ -5,7 +5,6 @@ export const C3_ROUTES = {
   capabilityMapSpiral6: '/c3/capability-map-spiral6',
   capabilityMapSpiral7: '/c3/capability-map-spiral7',
   graph: '/c3/graph',
-  fmnAirC2: '/c3/fmn-air-c2',
   technologyInteractions: '/c3/technology-interactions',
   services: '/c3/services',
   dataObjects: '/c3/data-objects',

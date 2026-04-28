@@ -29,12 +29,6 @@ export default function HomePage() {
           desc: t('home.card.c3_dashboard.desc'),
           icon: '🗺',
         },
-        {
-          href: C3_ROUTES.fmnAirC2,
-          title: 'FMN Air C2 Coverage',
-          desc: 'Vyhodnocení pokrytí aplikací proti FMN Spiral 5 Air požadavkům.',
-          icon: '✈️',
-        },
       ]
     : [
         {

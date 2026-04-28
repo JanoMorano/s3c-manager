@@ -31,7 +31,7 @@ services:
       - "8080:3000"
     environment:
       NODE_ENV: production
-      APP_VERSION: ${APP_VERSION:-1.1.0}
+      APP_VERSION: ${APP_VERSION:-1.1.1}
       SCHEMA_VERSION: ${SCHEMA_VERSION:-2.2.1}
       DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: ${DB_HOST:-postgres}

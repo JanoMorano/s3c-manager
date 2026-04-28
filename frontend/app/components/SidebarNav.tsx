@@ -145,18 +145,16 @@ export default function SidebarNav() {
   const isDependencyFlow = pathname.startsWith('/services/dependency-flow');
   const isConsolidation  = pathname.startsWith('/services/consolidation-matrix');
   const isCapMap         = pathname === C3_ROUTES.capabilityMap || pathname === C3_ROUTES.capabilityMapSpiral6 || pathname === C3_ROUTES.capabilityMapSpiral7;
-  const isFmnAirC2       = pathname === C3_ROUTES.fmnAirC2;
   const isOperations     = pathname.startsWith('/operations');
   const isAdmin          = pathname.startsWith('/administration');
   const isManagement     = pathname.startsWith('/management');
   const isImport         = pathname.startsWith('/import');
   const activeSection = useMemo(() => {
     if (isServiceList || isServiceGraph || isDependencyFlow || isConsolidation) return 'catalogue';
-    if (c3Visible && isFmnAirC2) return 'fmn';
     if (c3Visible && (pathname === C3_ROUTES.list || pathname === C3_ROUTES.graph || isCapMap)) return 'c3';
     if (isAdmin || isManagement || isImport) return 'admin';
     return 'command';
-  }, [c3Visible, isAdmin, isCapMap, isConsolidation, isDependencyFlow, isFmnAirC2, isImport, isManagement, isServiceGraph, isServiceList, pathname]);
+  }, [c3Visible, isAdmin, isCapMap, isConsolidation, isDependencyFlow, isImport, isManagement, isServiceGraph, isServiceList, pathname]);
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['command', 'catalogue']));
 
   useEffect(() => {
@@ -203,12 +201,6 @@ export default function SidebarNav() {
           <NavItem href={C3_ROUTES.list} icon={<IconList />} label={t('nav.c3_lists')} active={pathname === C3_ROUTES.list} />
           <NavItem href={C3_ROUTES.graph} icon={<IconGraph />} label={t('nav.c3_relation_graph')} active={pathname === C3_ROUTES.graph} />
           <NavItem href={C3_ROUTES.capabilityMapSpiral7} icon={<IconMap />} label={t('nav.c3_capability_map')} active={isCapMap} />
-        </NavSection>
-      )}
-
-      {c3Visible && (
-        <NavSection id="fmn" label={t('nav.fmn_spirals')} open={openSections.has('fmn')} onToggle={() => toggleSection('fmn')}>
-          <NavItem href={C3_ROUTES.fmnAirC2} icon={<IconStar />} label={t('nav.fmn_air_c2')} active={isFmnAirC2} />
         </NavSection>
       )}
 

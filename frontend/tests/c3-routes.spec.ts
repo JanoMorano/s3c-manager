@@ -22,12 +22,23 @@ test('C3 capability map Spiral 7 route renders', async ({ page }) => {
   if (!(await loginForProtectedC3Route(page))) return;
   await page.goto('/c3/capability-map-spiral7');
   await expect(page.getByText('C3 Taxonomy Catalogue — Baseline 7')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Spiral 6' })).toHaveAttribute('href', '/c3/capability-map-spiral6');
+  await expect(page.getByRole('link', { name: 'Spiral 7' })).toHaveAttribute('href', '/c3/capability-map-spiral7');
 });
 
 test('C3 capability map Spiral 6 route renders', async ({ page }) => {
   if (!(await loginForProtectedC3Route(page))) return;
   await page.goto('/c3/capability-map-spiral6');
   await expect(page.getByText('C3 Taxonomy Catalogue — Baseline 6')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Spiral 6' })).toHaveAttribute('href', '/c3/capability-map-spiral6');
+  await expect(page.getByRole('link', { name: 'Spiral 7' })).toHaveAttribute('href', '/c3/capability-map-spiral7');
+});
+
+test('FMN Air C2 web route is not exposed in production navigation', async ({ page }) => {
+  if (!(await loginForProtectedC3Route(page))) return;
+  await page.goto('/c3/fmn-air-c2');
+  await expect(page.locator('a[href="/c3/fmn-air-c2"]')).toHaveCount(0);
+  await expect(page.locator('main')).not.toContainText('FMN Air C2');
 });
 
 test('C3 technology interactions route renders', async ({ page }) => {

@@ -134,3 +134,18 @@ Keep a short monthly report with:
 - KPI snapshot and trend versus previous month
 - top 5 gaps to fix next month
 - owners, deadlines, and expected KPI impact per action
+
+## Lab Load Test Snapshot (2026-04-28)
+
+The application was tested in the local lab against the containerized stack with
+authenticated, parallel users hitting catalogue, operations, service, and C3
+read endpoints.
+
+| Scenario | Duration | Parallel users | Requests | Errors | p95 latency | Result |
+|---|---:|---:|---:|---:|---:|---|
+| Baseline concurrency | 30 s | 30 | 1,438 | 0 | 35.5 ms | Stable |
+| High concurrency | 30 s | 100 | 2,441 | 0 | 38 ms | Stable |
+
+These numbers are lab evidence, not a production SLA. Production capacity must
+still be validated with the target hardware, reverse proxy, database storage,
+real data volume, TLS, and observability enabled.

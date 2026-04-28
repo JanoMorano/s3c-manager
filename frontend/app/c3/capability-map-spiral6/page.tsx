@@ -5,6 +5,7 @@ export default function C3CapabilityMapSpiral6Page() {
     <CapabilityMapPage
       apiPath="/api/v1/taxonomy/c3/capability-map-spiral6"
       defaultTitle="C3 Taxonomy Catalogue — Baseline 6"
+      activeSpiralCode="Spiral_6"
       emptyStateDescription="Pro C3 Capability Map Spiral 6 zatím nejsou dostupná žádná baseline data."
     />
   );

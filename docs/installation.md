@@ -10,8 +10,19 @@
 
 For local development without Docker:
 
-- Node.js 20+
+- Node.js 20.9+ minimum, Node.js 25.6+ recommended for the current dependency baseline
 - PostgreSQL 16+
+
+Current application package baseline:
+
+| Area | Version baseline |
+|---|---|
+| Frontend runtime | Next.js 16.2, React 19.2, TypeScript 6.0 |
+| Frontend styling | Tailwind CSS 4.2, `@tailwindcss/postcss` 4.2, CSS Modules |
+| Middleware runtime | Express 5.2, PostgreSQL `pg` 8.20 |
+| Test tooling | Playwright 1.59, Jest 30.3, Frontend ESLint 9.39, Middleware ESLint 10.2 |
+
+The exact package versions are controlled by `frontend/package-lock.json` and `middleware/package-lock.json`.
 
 ---
 
@@ -242,6 +253,7 @@ Recommended cadence:
 | `NEXT_PORT` | `3000` | Next.js port |
 | `CORS_ORIGINS` | `http://localhost:8080` | Allowed CORS origins |
 | `APP_RUN_DB_INIT` | `true` | Run database init on startup |
+| `RATE_LIMIT_API_MAX` | `6000` | Maximum API requests per minute per client IP; sized for shared office NAT and load tests of 100 parallel users |
 
 ### Seed Flags
 

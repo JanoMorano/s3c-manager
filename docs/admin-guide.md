@@ -12,8 +12,10 @@ This guide describes the operation, configuration, and administration of the Ser
 
 The canonical deployment uses two containers:
 
-- `app` — Next.js frontend, Express middleware, init and seed logic, retention scheduler
+- `app` — Next.js 16.2 / React 19.2 frontend, Express 5.2 middleware, init and seed logic, retention scheduler
 - `postgres` — `platform` schema (system), `data` schema (business data)
+
+The current package baseline is controlled by `frontend/package.json`, `frontend/package-lock.json`, `middleware/package.json`, and `middleware/package-lock.json`. Frontend ESLint is pinned to the latest Next-compatible 9.x release until `eslint-config-next` supports ESLint 10 through its bundled React plugins.
 
 ---
 
@@ -90,8 +92,8 @@ Maintain a dedicated help changelog entry for each documentation update, includi
 
 Every published help package must explicitly state:
 
-- **Documentation version** (for example `DOC v1.1.0`)
-- **Target application version** it describes (for example `APP v1.1.0`)
+- **Documentation version** (for example `DOC v1.1.1`)
+- **Target application version** it describes (for example `APP v1.1.1`)
 
 Use a compatibility label in this format:
 

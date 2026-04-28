@@ -31,6 +31,7 @@ const adminRoutes     = require('./routes/admin');
 const graphRoutes     = require('./routes/graph');
 const exportRoutes    = require('./routes/exports');
 const searchRoutes    = require('./routes/search');
+const governanceRoutes = require('./routes/governance');
 const { router: refRoutes }  = require('./routes/ref');
 const { router: capLinksRoutes } = require('./routes/capability-links');
 const groupsRoutes = require('./routes/groups');
@@ -127,6 +128,7 @@ app.use('/api/v1/admin',     groupsRoutes);
 app.use('/api/v1/graph',     graphRoutes);
 app.use('/api/v1/export',    exportRoutes);
 app.use('/api/v1/search',    searchRoutes);
+app.use('/api/v1/governance', governanceRoutes);
 app.use('/api/v1/ref',       refRoutes);
 // capability links: /api/v1/taxonomy/c3/:uuid/links/*
 app.use('/api/v1/taxonomy/c3/:uuid/links', requireC3ModuleApiEnabled, capLinksRoutes);

@@ -99,31 +99,11 @@ Application behavior:
 - Spiral 7 is the active builder layer with editable service mappings
 - dashboard and capability-map pages are only rendered after application sign-in
 
-## FMN Air C2 Coverage
+## Capability Coverage
 
-Route `/c3/fmn-air-c2` adds a capability-management view for FMN Spiral 5 Air C2. In v1.1.0 it is a legacy-friendly view over the same generic Level-3 capability coverage engine used by `/capabilities/[slug]`.
+Production capability coverage is exposed through the generic capability endpoints and the capability pages. The legacy FMN Air C2 web route `/c3/fmn-air-c2` is intentionally not part of production navigation.
 
-It links:
-
-- imported C3 capability, entity, and technology interaction data
-- spiral membership records
-- service catalogue C3 mappings
-- generic requirement evidence records produced by the coverage engine
-
-The API endpoint is:
-
-```text
-GET /api/v1/taxonomy/c3/fmn-air-c2/coverage?service=ABC
-```
-
-The response is designed for capability managers:
-
-- coverage percentage for a selected application/service
-- covered FMN Air C2 requirements
-- missing core requirements
-- duplicate coverage across multiple services, useful for portfolio rationalization
-
-The legacy endpoint remains available for compatibility, but new dashboards should call the generic capability endpoints:
+Use the generic capability endpoints:
 
 ```text
 GET /api/v1/capabilities/by-slug/:slug/coverage?spiral=Spiral_5
@@ -132,7 +112,7 @@ GET /api/v1/capabilities/by-slug/:slug/duplicate-coverage?spiral=Spiral_5
 GET /api/v1/capabilities/by-slug/:slug/consolidation-candidates?spiral=Spiral_5
 ```
 
-The current implementation deliberately keeps PDF storage/viewer out of v1.1.0 scope. Evidence document rows are generated from imported C3 taxonomy, spiral membership, and service mappings, and they intentionally do not contain developer-local PDF paths. If future FMN PDFs are imported as structured documents, they should be connected through the generic evidence model without reintroducing route-specific constants.
+The current implementation deliberately keeps PDF storage/viewer out of v1.1.1 scope. Evidence document rows are generated from imported C3 taxonomy, spiral membership, and service mappings, and they intentionally do not contain developer-local PDF paths. If future FMN PDFs are imported as structured documents, they should be connected through the generic evidence model without reintroducing route-specific constants or route-specific dashboards.
 
 ## How to Load Your Own Data
 

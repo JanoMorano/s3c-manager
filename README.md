@@ -6,23 +6,25 @@
 
 Enterprise service catalogue for service governance, dependency graphs, pricing/SLA management, and an optional C3 taxonomy module.
 
-> **Stack:** Next.js 15 · Node.js / Express · PostgreSQL 16 · Docker Compose
+> **Stack:** Next.js 16.2 · React 19.2 · Express 5.2 · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.1.0
+## What's New in V1.1.1
 
-- capability-driven decision cockpit for Catalogue, Operations, C3, Capabilities, Spirals, and FMN Air C2
+- dynamic C3 Capability Map creation from the admin builder, including custom maps such as Spiral 99
+- Operations cockpit split into focused views for health, governance, pricing, owners, and C3 mapping
+- capability-driven decision cockpit for Catalogue, Operations, C3, Capabilities, and Spirals
 - generic Level-3 capability coverage, overlap, gap, duplicate coverage, and consolidation evidence views
 - real NATO/C3 import smoke, local-account regression tests, light/dark tokens, and `cs` / `en` / `sk` / `de` i18n support
 
 ## What It Is
 
-Service Catalogue v2 provides:
+Service Catalogue provides:
 
 - an IT and business service catalogue
 - relationship graphs between services and C3 entities
 - pricing, flavours, SLA, and ownership management
 - governance review, audit trails, and import pipelines
-- an optional C3 module for Spiral 6 and Spiral 7 capability maps
+- an optional C3 module for Spiral 6, Spiral 7, and custom capability maps
 
 ## Who It Is For
 
@@ -114,8 +116,10 @@ Browser
 
 Canonical runtime:
 
-- `app` = Next.js + middleware in one image
+- `app` = Next.js 16.2 + React 19.2 frontend and Express 5.2 middleware in one image
 - `postgres` = PostgreSQL 16
+
+Runtime dependency versions are controlled by the committed package manifests and lockfiles.
 
 ## Main Features
 
@@ -172,9 +176,7 @@ These screenshots are static preview assets. To interact with the product, run t
 - [C3 Module](docs/c3-module.md)
 - [Import Formats](docs/import-formats.md)
 - [Modules](docs/modules.md)
-- [Help IA (CZ)](docs/help-information-architecture-cs.md)
 - [Demo Guide](DEMO.md)
-- [Development Conventions](docs/dev-conventions.md)
 - [Upgrade Guide](docs/upgrade.md)
 
 ## Import Examples
@@ -197,7 +199,7 @@ cd middleware && npm ci && npm test
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/dev-conventions.md](docs/dev-conventions.md) for coding and review rules.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for coding and review rules.
 
 ## Security
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'frontend' / 'app'
+EXCLUDED_PRODUCTION_ROUTES = {'/c3/fmn-air-c2'}
 
 
 def route_from_page(path: Path) -> str:
@@ -125,6 +126,7 @@ def parse_edit_fields_from_config():
     return configs
 
 routes = [route_from_page(p) for p in sorted(APP.rglob('page.tsx'))]
+routes = [r for r in routes if r not in EXCLUDED_PRODUCTION_ROUTES]
 
 catalog = {
     'generated_at': '2026-04-28',
@@ -193,8 +195,6 @@ route_map['/admin/catalogue-ref'] = {
         add_field('is_active','Active','boolean',required='optional',default=True,impact='Inactive values are hidden/blocked in selection UIs and QA checks.')
     ]}]}]
 }
-route_map['/c3/fmn-air-c2'] = {'route':'/c3/fmn-air-c2','sections':[{'section':'Coverage calculator','forms':[{'form':'Search','fields':[add_field('query','Capability/service query','string',required='required',impact='Determines selected service set and displayed FMN coverage metrics.')]}]}]}
-
 for rt in ['/admin/groups/new','/admin/groups/[id]']:
     route_map[rt] = {'route':rt,'sections':[{'section':'Group details','forms':[{'form':'Group form','fields':[
         add_field('group_code','Group code','string',required='required',validation='Required in UI; immutable in edit mode.',impact='Primary key for RBAC mapping and reporting joins.'),
@@ -205,7 +205,7 @@ for rt in ['/admin/groups/new','/admin/groups/[id]']:
 
 catalog['routes'] = [route_map[r] for r in routes if r in route_map]
 
-out_dir = ROOT / 'docs' / 'help'
+out_dir = ROOT / 'dev' / 'docs' / 'help'
 out_dir.mkdir(parents=True, exist_ok=True)
 json_path = out_dir / 'page-form-catalog.json'
 json_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding='utf-8')

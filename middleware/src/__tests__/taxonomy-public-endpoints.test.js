@@ -183,6 +183,52 @@ describe('taxonomy public c3 endpoints', () => {
         expectBody(response.body);
     });
 
+    test('GET /c3 supports public item type filtering for capability pickers', async () => {
+        const { __query } = require('../db/pool');
+        __query.mockResolvedValueOnce({
+            rows: [
+                {
+                    uuid: 'cp-1',
+                    title: 'Command capability',
+                    item_type: 'CP',
+                    level_num: 3,
+                    external_id: 'CP-1',
+                    source_external_id: null,
+                    application: null,
+                    parent_code: null,
+                    references_raw: null,
+                    datasets_raw: null,
+                    parent_uuid: null,
+                },
+                {
+                    uuid: 'bp-1',
+                    title: 'Business process',
+                    item_type: 'BP',
+                    level_num: 3,
+                    external_id: 'BP-1',
+                    source_external_id: null,
+                    application: null,
+                    parent_code: null,
+                    references_raw: null,
+                    datasets_raw: null,
+                    parent_uuid: null,
+                },
+            ],
+        });
+        mockAuthState.authenticated = false;
+
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app).get('/api/v1/taxonomy/c3?item_type=CP&limit=10');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([
+            expect.objectContaining({ uuid: 'cp-1', item_type: 'CP' }),
+        ]);
+    });
+
     test.each([
         ['/api/v1/taxonomy/c3/dashboard'],
         ['/api/v1/taxonomy/c3/capability-map'],

@@ -4,6 +4,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -112,6 +113,7 @@ export default function C3DashboardPage() {
   const t = useT();
   const locale = useLocale();
   const activeTab = (searchParams?.get('tab') ?? 'overview') as DashboardTab;
+  const [selectedParent, setSelectedParent] = useState<CountRow | null>(null);
   const { data, isLoading, error } = useSWR<C3DashboardResponse>('/api/v1/taxonomy/c3/dashboard', apiFetch, { revalidateOnFocus: false });
   const { data: manifest } = useSWR<ExportManifestResponse>('/api/v1/export/manifest?scope=c3', apiFetch, { revalidateOnFocus: false });
 
@@ -147,7 +149,7 @@ export default function C3DashboardPage() {
 
       {activeTab === 'overview' && (
         <>
-          <Overview data={data} router={router} t={t} />
+          <Overview data={data} router={router} t={t} onSelectParent={setSelectedParent} />
           <GraphConcepts data={data} t={t} />
         </>
       )}
@@ -155,6 +157,7 @@ export default function C3DashboardPage() {
       {activeTab === 'mappings' && <Mappings data={data} t={t} />}
       {activeTab === 'imports' && <Imports data={data} t={t} locale={locale} />}
       {activeTab === 'review' && <Review data={data} t={t} />}
+      {selectedParent && <ParentCapabilityDialog parent={selectedParent} onClose={() => setSelectedParent(null)} />}
     </main>
   );
 }
@@ -236,7 +239,7 @@ function GraphConcepts({ data, t }: { data: C3DashboardResponse; t: TFunction })
   );
 }
 
-function Overview({ data, router, t }: { data: C3DashboardResponse; router: ReturnType<typeof useRouter>; t: TFunction }) {
+function Overview({ data, router, t, onSelectParent }: { data: C3DashboardResponse; router: ReturnType<typeof useRouter>; t: TFunction; onSelectParent: (parent: CountRow) => void }) {
   return (
     <section className={dashboardStyles.dashboardGrid}>
       <ChartCard title={t('c3.dashboard.by_item_type')} hint={t('c3.dashboard.by_item_type_hint')}>
@@ -245,7 +248,13 @@ function Overview({ data, router, t }: { data: C3DashboardResponse; router: Retu
             <XAxis type="number" tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={48} />
             <Tooltip />
-            <Bar dataKey="value" radius={[0, 3, 3, 0]} onClick={(entry: CountRow) => router.push(`/c3/list?item_type=${encodeURIComponent(entry.name)}`)}>
+            <Bar
+              dataKey="value"
+              radius={[0, 3, 3, 0]}
+              onClick={(entry) => {
+                if (entry.name) router.push(`/c3/list?item_type=${encodeURIComponent(entry.name)}`);
+              }}
+            >
               {data.by_type.map((entry) => <Cell key={entry.name} fill={TYPE_COLORS[entry.name] ?? 'var(--color-text-muted)'} />)}
             </Bar>
           </BarChart>
@@ -257,7 +266,14 @@ function Overview({ data, router, t }: { data: C3DashboardResponse; router: Retu
             <XAxis type="number" tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
             <Tooltip />
-            <Bar dataKey="value" fill="var(--color-domain-zenith)" radius={[0, 3, 3, 0]} />
+            <Bar
+              dataKey="value"
+              fill="var(--color-domain-zenith)"
+              radius={[0, 3, 3, 0]}
+              onClick={(entry) => {
+                if (entry.name) onSelectParent({ name: entry.name, value: Number(entry.value ?? 0) });
+              }}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -268,13 +284,62 @@ function Overview({ data, router, t }: { data: C3DashboardResponse; router: Retu
   );
 }
 
+function ParentCapabilityDialog({ parent, onClose }: { parent: CountRow; onClose: () => void }) {
+  const isRoot = parent.name === '(Kořenové schopnosti)';
+  const listHref = `/c3/list?parent=${encodeURIComponent(parent.name)}`;
+
+  return (
+    <div className={dashboardStyles.modalBackdrop} role="presentation" onMouseDown={onClose}>
+      <section
+        className={dashboardStyles.modalDialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="parent-capability-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className={dashboardStyles.modalHeader}>
+          <div>
+            <span className={dashboardStyles.pageEyebrow}>C3 parent drilldown</span>
+            <h2 id="parent-capability-dialog-title" className={dashboardStyles.cardTitle}>{parent.name}</h2>
+          </div>
+          <button type="button" className={dashboardStyles.iconButton} onClick={onClose} aria-label="Zavřít">×</button>
+        </div>
+        <div className={dashboardStyles.modalBody}>
+          <p className={dashboardStyles.sectionHint}>
+            {isRoot
+              ? 'Kořenové schopnosti jsou položky bez nadřazené capability. Tvoří horní úroveň stromu a často určují hlavní oblasti, podle kterých se dál člení služby.'
+              : 'Tato nadřazená schopnost sdružuje podřízené C3 položky. Použij filtr, pokud chceš vidět navazující položky a jejich mapování na služby.'}
+          </p>
+          <MetricLine label="Počet navázaných položek" value={parent.value} />
+        </div>
+        <div className={dashboardStyles.modalActions}>
+          <Link href={listHref} className={dashboardStyles.secondaryLink} onClick={onClose}>
+            Otevřít vyfiltrovaný C3 katalog
+          </Link>
+          <button type="button" className={dashboardStyles.ghostButton} onClick={onClose}>Zavřít</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Health({ data, router, t }: { data: C3DashboardResponse; router: ReturnType<typeof useRouter>; t: TFunction }) {
   return (
     <section className={dashboardStyles.dashboardGrid}>
       <ChartCard title={t('c3.dashboard.by_status')} hint={t('c3.dashboard.by_status_hint')}>
         <ResponsiveContainer width="100%" height={230}>
           <PieChart>
-            <Pie data={data.by_status} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={82} onClick={(entry: CountRow) => router.push(`/c3/list?status=${encodeURIComponent(entry.name)}`)}>
+            <Pie
+              data={data.by_status}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={82}
+              onClick={(entry) => {
+                if (entry.name) router.push(`/c3/list?status=${encodeURIComponent(entry.name)}`);
+              }}
+            >
               {data.by_status.map((entry) => <Cell key={entry.name} fill={STATUS_COLORS[entry.name] ?? 'var(--color-text-muted)'} />)}
             </Pie>
             <Tooltip />

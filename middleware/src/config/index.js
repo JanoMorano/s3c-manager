@@ -166,7 +166,7 @@ const config = {
         },
         api: {
             windowMs: 60 * 1000,
-            max: parseNumber(process.env.RATE_LIMIT_API_MAX, 500),
+            max: parseNumber(process.env.RATE_LIMIT_API_MAX, 6000),
         },
     },
 

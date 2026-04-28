@@ -13,12 +13,36 @@ import styles from './c3-capability-builder.module.css';
 const ITEM_ENDPOINT = '/api/v1/taxonomy/c3-capability-builder';
 const DOMAIN_ENDPOINT = '/api/v1/taxonomy/c3-capability-builder/domains';
 const SETTINGS_ENDPOINT_BASE = '/api/v1/taxonomy/c3-capability-builder/settings';
+const SPIRAL_ENDPOINT = '/api/v1/taxonomy/spiral';
 
-type SpiralCode = 'Spiral_6' | 'Spiral_7';
-const SPIRAL_OPTIONS: { value: SpiralCode; label: string; mapHref: string }[] = [
-  { value: 'Spiral_6', label: 'Spiral 6', mapHref: '/c3/capability-map-spiral6' },
-  { value: 'Spiral_7', label: 'Spiral 7', mapHref: '/c3/capability-map-spiral7' },
+type SpiralCode = string;
+
+const FALLBACK_SPIRALS: SpiralBaseline[] = [
+  { id: 6, spiral_code: 'Spiral_6', spiral_label: 'Spiral 6', is_active: false, notes: null },
+  { id: 7, spiral_code: 'Spiral_7', spiral_label: 'Spiral 7', is_active: true, notes: null },
 ];
+
+function normalizeSpiralCode(value: string) {
+  const cleaned = value.trim();
+  const numeric = cleaned.match(/^(\d+)$/);
+  if (numeric) return `Spiral_${numeric[1]}`;
+  const spiral = cleaned.match(/^Spiral[_\s-]?(\d+)$/i);
+  if (spiral) return `Spiral_${spiral[1]}`;
+  return cleaned;
+}
+
+function spiralNumber(code: string) {
+  return code.match(/^Spiral_(\d+)$/)?.[1] ?? code.replace(/\D+/g, '');
+}
+
+function spiralMapHref(code: string) {
+  return `/c3/capability-map-spiral${spiralNumber(code)}`;
+}
+
+function spiralLabel(code: string) {
+  const number = spiralNumber(code);
+  return number ? `Spiral ${number}` : code;
+}
 
 interface CapabilityDomain {
   code: string;
@@ -45,6 +69,19 @@ interface CapabilityItem {
 
 interface CapabilityMapSettings {
   page_title: string;
+}
+
+interface SpiralBaseline {
+  id: number;
+  spiral_code: string;
+  spiral_label: string;
+  is_active: boolean;
+  notes: string | null;
+}
+
+interface SpiralResponse {
+  active: SpiralBaseline | null;
+  all: SpiralBaseline[];
 }
 
 interface DraftItem {
@@ -74,13 +111,31 @@ type BuilderTab = 'items' | 'domains';
 export default function C3CapabilityBuilderPage() {
   const [activeTab, setActiveTab] = useState<BuilderTab>('items');
   const [spiralCode, setSpiralCode] = useState<SpiralCode>('Spiral_7');
-  const activeSpiral = SPIRAL_OPTIONS.find((o) => o.value === spiralCode)!;
+  const { data: spiralData } = useSWR<SpiralResponse>(SPIRAL_ENDPOINT, apiFetch, {
+    revalidateOnFocus: false,
+  });
+  const spiralOptions = useMemo(() => {
+    const byCode = new Map<string, SpiralBaseline>();
+    FALLBACK_SPIRALS.forEach((spiral) => byCode.set(spiral.spiral_code, spiral));
+    (spiralData?.all ?? []).forEach((spiral) => byCode.set(spiral.spiral_code, spiral));
+    return [...byCode.values()].sort((left, right) => Number(spiralNumber(left.spiral_code)) - Number(spiralNumber(right.spiral_code)));
+  }, [spiralData?.all]);
+  const activeSpiral = spiralOptions.find((o) => o.spiral_code === spiralCode) ?? {
+    id: 0,
+    spiral_code: spiralCode,
+    spiral_label: spiralLabel(spiralCode),
+    is_active: false,
+    notes: null,
+  };
   const settingsEndpoint = `${SETTINGS_ENDPOINT_BASE}?spiral=${spiralCode}`;
   const { data: settings, error: settingsError } = useSWR<CapabilityMapSettings>(settingsEndpoint, apiFetch, {
     revalidateOnFocus: false,
   });
   const [pageTitleDraft, setPageTitleDraft] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [spiralSaving, setSpiralSaving] = useState(false);
+  const [newSpiralNumber, setNewSpiralNumber] = useState('');
+  const [newSpiralLabel, setNewSpiralLabel] = useState('');
   const [settingsErrorMessage, setSettingsErrorMessage] = useState<string | null>(null);
   const [settingsOk, setSettingsOk] = useState<string | null>(null);
 
@@ -115,12 +170,54 @@ export default function C3CapabilityBuilderPage() {
       await Promise.all([
         globalMutate('/api/v1/taxonomy/c3/capability-map-spiral6'),
         globalMutate('/api/v1/taxonomy/c3/capability-map-spiral7'),
+        globalMutate(`/api/v1/taxonomy/c3/capability-map-spiral${spiralNumber(spiralCode)}`),
       ]);
-      setSettingsOk(`Nadpis Capability Map (${activeSpiral.label}) byl uložen.`);
+      setSettingsOk(`Nadpis Capability Map (${activeSpiral.spiral_label}) byl uložen.`);
     } catch (error: unknown) {
       setSettingsErrorMessage(error instanceof Error ? error.message : 'Uložení nastavení selhalo');
     } finally {
       setSettingsSaving(false);
+    }
+  }
+
+  async function handleCreateSpiral() {
+    const normalized = normalizeSpiralCode(newSpiralNumber || newSpiralLabel);
+    const number = spiralNumber(normalized);
+    if (!number) {
+      setSettingsErrorMessage('Zadej číslo spirály, například 99.');
+      return;
+    }
+
+    setSpiralSaving(true);
+    setSettingsErrorMessage(null);
+    setSettingsOk(null);
+    try {
+      const res = await fetch(SPIRAL_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+        body: JSON.stringify({
+          spiral_code: normalized,
+          spiral_label: newSpiralLabel.trim() || `Spiral ${number}`,
+          notes: 'Created from C3 Capability Builder',
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `Vytvoření spirály selhalo (${res.status})`);
+      }
+      await globalMutate(SPIRAL_ENDPOINT);
+      setSpiralCode(normalized);
+      setPageTitleDraft(`C3 Taxonomy Catalogue — Baseline ${number}`);
+      setNewSpiralNumber('');
+      setNewSpiralLabel('');
+      setSettingsOk(`Capability mapa ${newSpiralLabel.trim() || `Spiral ${number}`} byla založena. Teď můžeš uložit nadpis a přidat položky.`);
+    } catch (error: unknown) {
+      setSettingsErrorMessage(error instanceof Error ? error.message : 'Vytvoření spirály selhalo');
+    } finally {
+      setSpiralSaving(false);
     }
   }
 
@@ -138,27 +235,45 @@ export default function C3CapabilityBuilderPage() {
       <div className={styles.spiralSelectorSection}>
         <div className={styles.spiralSelectorLabel}>Volba editace Capability Map spirály:</div>
         <div className={styles.spiralSelector}>
-          {SPIRAL_OPTIONS.map((opt) => (
+          {spiralOptions.map((opt) => (
             <button
-              key={opt.value}
+              key={opt.spiral_code}
               type="button"
-              className={`${styles.spiralButton} ${spiralCode === opt.value ? styles.spiralButtonActive : ''}`}
+              className={`${styles.spiralButton} ${spiralCode === opt.spiral_code ? styles.spiralButtonActive : ''}`}
               onClick={() => {
-                setSpiralCode(opt.value);
+                setSpiralCode(opt.spiral_code);
                 setSettingsOk(null);
                 setSettingsErrorMessage(null);
               }}
             >
-              {opt.label}
+              {opt.spiral_label}
             </button>
           ))}
+        </div>
+        <div className={styles.createSpiralForm}>
+          <input
+            className={styles.input}
+            value={newSpiralNumber}
+            onChange={(event) => setNewSpiralNumber(event.target.value)}
+            placeholder="Nová spirála, např. 99"
+            inputMode="numeric"
+          />
+          <input
+            className={styles.input}
+            value={newSpiralLabel}
+            onChange={(event) => setNewSpiralLabel(event.target.value)}
+            placeholder="Volitelný název, např. Spiral 99"
+          />
+          <button type="button" className={styles.button} onClick={handleCreateSpiral} disabled={spiralSaving}>
+            {spiralSaving ? 'Zakládám…' : 'Založit mapu'}
+          </button>
         </div>
       </div>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <div className={styles.panelTitle}>Nastavení mapy</div>
-          <div className={styles.panelMeta}>C3 Capability Map — {activeSpiral.label}</div>
+          <div className={styles.panelMeta}>C3 Capability Map — {activeSpiral.spiral_label}</div>
         </div>
         <div className={styles.panelBody}>
           {settingsError && <div className={styles.error}>{settingsError.message}</div>}
@@ -166,12 +281,12 @@ export default function C3CapabilityBuilderPage() {
           {settingsOk && <div className={styles.success}>{settingsOk}</div>}
 
           <div className={styles.fieldGrid}>
-            <Field label={`Nadpis stránky (${activeSpiral.label})`}>
+            <Field label={`Nadpis stránky (${activeSpiral.spiral_label})`}>
               <input
                 className={styles.input}
                 value={pageTitleDraft}
                 onChange={(event) => setPageTitleDraft(event.target.value)}
-                placeholder={activeSpiral.value === 'Spiral_6' ? 'C3 Taxonomy Catalogue — Baseline 6' : 'C3 Taxonomy Catalogue — Baseline 7'}
+                placeholder={`C3 Taxonomy Catalogue — Baseline ${spiralNumber(activeSpiral.spiral_code)}`}
               />
             </Field>
           </div>
@@ -183,10 +298,10 @@ export default function C3CapabilityBuilderPage() {
               onClick={handleSaveMapSettings}
               disabled={settingsSaving}
             >
-              {settingsSaving ? 'Ukládám…' : `Uložit nadpis mapy (${activeSpiral.label})`}
+              {settingsSaving ? 'Ukládám…' : `Uložit nadpis mapy (${activeSpiral.spiral_label})`}
             </button>
-            <Link href={activeSpiral.mapHref} className={styles.actionLink}>
-              Otevřít C3 Capability Map ({activeSpiral.label})
+            <Link href={spiralMapHref(activeSpiral.spiral_code)} className={styles.actionLink}>
+              Otevřít C3 Capability Map ({activeSpiral.spiral_label})
             </Link>
           </div>
         </div>
@@ -216,7 +331,7 @@ export default function C3CapabilityBuilderPage() {
 function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }) {
   const searchParams = useSearchParams();
   const itemEndpointWithSpiral = `${ITEM_ENDPOINT}?spiral=${spiralCode}`;
-  const activeSpiral = SPIRAL_OPTIONS.find((o) => o.value === spiralCode)!;
+  const activeSpiralLabel = spiralLabel(spiralCode);
   const { data: items, error: itemsError, isLoading: itemsLoading } = useSWR<CapabilityItem[]>(itemEndpointWithSpiral, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -346,6 +461,7 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
           level: Number.parseInt(draft.level, 10),
           state: draft.state || null,
           domain_code: draft.domain_code,
+          spiral: spiralCode,
         }),
       });
       if (!res.ok) {
@@ -395,7 +511,7 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
           </p>
         </div>
         <div className={styles.headerActions}>
-          <Link href={activeSpiral.mapHref} className={styles.actionLink}>Otevřít mapu ({activeSpiral.label})</Link>
+          <Link href={spiralMapHref(spiralCode)} className={styles.actionLink}>Otevřít mapu ({activeSpiralLabel})</Link>
           <Link href="/c3/list" className={`${styles.actionLink} ${styles.actionPrimary}`}>C3 Taxonomy</Link>
         </div>
       </div>

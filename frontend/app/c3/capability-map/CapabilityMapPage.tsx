@@ -98,8 +98,35 @@ interface PosterRuntime {
 interface CapabilityMapPageProps {
   apiPath: string;
   defaultTitle: string;
+  activeSpiralCode?: string;
   builderHref?: string;
   emptyStateDescription?: string;
+}
+
+interface SpiralBaseline {
+  id: number;
+  spiral_code: string;
+  spiral_label: string;
+  is_active: boolean;
+  notes: string | null;
+}
+
+interface SpiralResponse {
+  active: SpiralBaseline | null;
+  all: SpiralBaseline[];
+}
+
+const FALLBACK_SPIRAL_MAP_LINKS = [
+  { code: 'Spiral_6', label: 'Spiral 6', href: '/c3/capability-map-spiral6' },
+  { code: 'Spiral_7', label: 'Spiral 7', href: '/c3/capability-map-spiral7' },
+];
+
+function spiralNumber(code: string) {
+  return code.match(/^Spiral_(\d+)$/)?.[1] ?? code.replace(/\D+/g, '');
+}
+
+function buildSpiralHref(code: string) {
+  return `/c3/capability-map-spiral${spiralNumber(code)}`;
 }
 
 function setsEqual(left: Set<string>, right: Set<string>) {
@@ -144,6 +171,7 @@ function buildParentListHref(title: string) {
 export default function CapabilityMapPage({
   apiPath,
   defaultTitle,
+  activeSpiralCode = 'Spiral_7',
   builderHref,
   emptyStateDescription,
 }: CapabilityMapPageProps) {
@@ -154,12 +182,33 @@ export default function CapabilityMapPage({
     apiFetch,
     { revalidateOnFocus: false },
   );
+  const { data: spiralData } = useSWR<SpiralResponse>('/api/v1/taxonomy/spiral', apiFetch, {
+    revalidateOnFocus: false,
+  });
 
   const [showUnmapped, setShowUnmapped] = useState(true);
   const [mappedPageIds, setMappedPageIds] = useState<Set<string>>(() => new Set());
   const [mappedUuids, setMappedUuids] = useState<Set<string>>(() => new Set());
   const [infoNode, setInfoNode] = useState<CapabilityItem | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, text: '', x: 0, y: 0 });
+  const spiralMapLinks = useMemo(() => {
+    const byCode = new Map(FALLBACK_SPIRAL_MAP_LINKS.map((spiral) => [spiral.code, spiral]));
+    (spiralData?.all ?? []).forEach((spiral) => {
+      byCode.set(spiral.spiral_code, {
+        code: spiral.spiral_code,
+        label: spiral.spiral_label,
+        href: buildSpiralHref(spiral.spiral_code),
+      });
+    });
+    if (activeSpiralCode && !byCode.has(activeSpiralCode)) {
+      byCode.set(activeSpiralCode, {
+        code: activeSpiralCode,
+        label: `Spiral ${spiralNumber(activeSpiralCode) || activeSpiralCode}`,
+        href: buildSpiralHref(activeSpiralCode),
+      });
+    }
+    return [...byCode.values()].sort((left, right) => Number(spiralNumber(left.code)) - Number(spiralNumber(right.code)));
+  }, [activeSpiralCode, spiralData?.all]);
 
   useEffect(() => {
     const localState = parseCatalogueState();
@@ -466,6 +515,18 @@ export default function CapabilityMapPage({
       )}
 
       <div className={styles.infoBar}>
+        <div className={styles.spiralSwitch} aria-label="Capability map spirals">
+          {spiralMapLinks.map((spiral) => (
+            <Link
+              key={spiral.code}
+              href={spiral.href}
+              className={`${styles.spiralChip} ${activeSpiralCode === spiral.code ? styles.spiralChipActive : ''}`}
+              aria-current={activeSpiralCode === spiral.code ? 'page' : undefined}
+            >
+              {spiral.label}
+            </Link>
+          ))}
+        </div>
         <strong>{data?.page_title || defaultTitle}</strong>
         {runtime ? (
           <span>

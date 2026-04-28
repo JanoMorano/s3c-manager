@@ -11,6 +11,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 No unreleased changes yet.
 
+## [1.1.1] — 2026-04-28
+
+### Added
+- Dynamic C3 Capability Map creation from the Capability Builder, including custom map routes such as `/c3/capability-map-spiral99`.
+- C3 dashboard drilldown for top parent capabilities.
+- Operations cockpit tabs for Health, Governance, Pricing, Owners, and C3 mapping.
+- Lab load-test evidence for 30 and 100 parallel users.
+
+### Changed
+- Sidebar brand no longer includes the app version; the current product version is shown above Help as `v.1.1.1`.
+- Product/runtime defaults aligned to application version `1.1.1`.
+
 ## [1.1.0] — 2026-04-27
 
 ### Added
@@ -87,7 +99,8 @@ No unreleased changes yet.
 - Design tokens — CSS custom properties for color, spacing, radius, and typography
 - Dashboard — KPI tiles, distribution charts, and review due lists
 
-[Unreleased]: https://github.com/example/service-catalogue/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/example/service-catalogue/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/example/service-catalogue/releases/tag/v1.1.1
 [1.1.0]: https://github.com/example/service-catalogue/releases/tag/v1.1.0
 [1.0.2]: https://github.com/example/service-catalogue/releases/tag/v1.0.2
 [1.0.0-beta.1]: https://github.com/example/service-catalogue/releases/tag/v1.0.0-beta.1

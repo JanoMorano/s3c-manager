@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import Link from '@/app/components/AppLink';
 import useSWR from 'swr';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,11 +35,12 @@ const schema = z.object({
   references_raw: z.string().optional(),
   provenance_raw: z.string().optional(),
   item_type: z.string().optional(),
+  level_num: z.coerce.number().int().min(1).max(9).optional().nullable(),
   parent_code: z.string().optional(),
   parent_uuid: z.string().optional(),
 });
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.output<typeof schema>;
 
 interface C3Type { code: string; name: string; }
 interface C3Item {
@@ -67,7 +68,7 @@ export default function NewC3Page() {
     setValue,
     formState: { errors, isDirty, dirtyFields },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {
       uuid: '',
       application: '',
@@ -89,7 +90,8 @@ export default function NewC3Page() {
       standards_raw: '',
       references_raw: '',
       provenance_raw: '',
-      item_type: '',
+      item_type: 'CP',
+      level_num: 3,
       parent_code: '',
       parent_uuid: '',
     },
@@ -99,6 +101,14 @@ export default function NewC3Page() {
   const watchedExternalId = watch('external_id');
   const watchedStatus = watch('item_status');
   const dirtyCount = Object.keys(dirtyFields).length;
+  const typeOptions = useMemo(() => {
+    const ordered = [...(types ?? [])].sort((a, b) => {
+      if (a.code === 'CP') return -1;
+      if (b.code === 'CP') return 1;
+      return a.code.localeCompare(b.code);
+    });
+    return ordered;
+  }, [types]);
 
   const parentOptions = useMemo(
     () =>
@@ -135,6 +145,7 @@ export default function NewC3Page() {
         references_raw: data.references_raw?.trim(),
         provenance_raw: data.provenance_raw?.trim(),
         item_type: data.item_type?.trim(),
+        level_num: data.level_num ?? null,
         parent_code: data.parent_code?.trim(),
         parent_uuid: data.parent_uuid?.trim(),
       });
@@ -191,7 +202,7 @@ export default function NewC3Page() {
               <Field label="Item Type">
                 <select {...register('item_type')} className={styles.input}>
                   <option value="">— select —</option>
-                  {types?.map((type) => (
+                  {typeOptions.map((type) => (
                     <option key={type.code} value={type.code}>
                       {type.code} — {type.name}
                     </option>
@@ -207,6 +218,9 @@ export default function NewC3Page() {
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="Level">
+                <input type="number" {...register('level_num')} className={styles.input} min={1} max={9} />
               </Field>
             </div>
             <Field label="Description">

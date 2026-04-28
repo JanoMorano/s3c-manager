@@ -7,7 +7,7 @@
 import { use, useEffect, useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useService, useServices, usePortfolioGroups, useServiceTypes, useServiceLines, useOrganizationalElements, useNetworkDomains, useGlobalServiceGroups, useC3Taxonomy, useServiceRoles, useSecurityClassifications, useServiceReadiness } from '@/features/services/hooks/useServices';
@@ -95,7 +95,7 @@ const schema = z.object({
   domains:                z.array(z.string()).optional(),
 });
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.output<typeof schema>;
 
 const STATUS_OPTIONS    = ['active','retired','deprecated','draft'];
 const LIFECYCLE_OPTIONS = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
@@ -137,9 +137,19 @@ interface PreviewMappingResponse {
 
 interface Level3CapabilityOption {
   uuid: string;
-  page_id: string;
+  page_id: string | null;
   title: string;
   parent?: { title?: string | null } | null;
+}
+
+interface C3TaxonomyCapabilityRow {
+  uuid: string;
+  external_id?: string | null;
+  source_external_id?: string | null;
+  title?: string | null;
+  item_type?: string | null;
+  level_num?: number | string | null;
+  parent_title?: string | null;
 }
 
 export default function ServiceEditorPage({ params }: Props) {
@@ -531,10 +541,20 @@ export default function ServiceEditorPage({ params }: Props) {
   useEffect(() => {
     if (!showC3Add || level3Capabilities.length > 0) return;
     let cancelled = false;
-    fetch('/api/v1/capabilities/lvl3', { credentials: 'include', headers: authHeaders() })
+    fetch('/api/v1/taxonomy/c3?item_type=CP&limit=1000', { credentials: 'include', headers: { ...authHeaders(), 'Cache-Control': 'no-cache' } })
       .then((response) => response.ok ? response.json() : [])
       .then((payload) => {
-        if (!cancelled) setLevel3Capabilities(Array.isArray(payload) ? payload : []);
+        if (cancelled) return;
+        const capabilities: Level3CapabilityOption[] = (Array.isArray(payload) ? payload : [])
+          .filter((item: C3TaxonomyCapabilityRow) => String(item.item_type ?? '').toUpperCase() === 'CP')
+          .filter((item: C3TaxonomyCapabilityRow) => Number(item.level_num) === 3)
+          .map((item: C3TaxonomyCapabilityRow) => ({
+            uuid: item.uuid,
+            page_id: item.external_id ?? item.source_external_id ?? null,
+            title: item.title ?? item.uuid,
+            parent: item.parent_title ? { title: item.parent_title } : null,
+          }));
+        setLevel3Capabilities(capabilities);
       })
       .catch(() => {
         if (!cancelled) setLevel3Capabilities([]);
@@ -617,7 +637,7 @@ export default function ServiceEditorPage({ params }: Props) {
 
   const { register, handleSubmit, reset, watch, setValue,
           formState: { errors, isDirty, dirtyFields } } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {},
   });
 
@@ -1617,7 +1637,7 @@ export default function ServiceEditorPage({ params }: Props) {
                     <option value="">{t('service_editor.c3.select_level3')}</option>
                     {level3Capabilities.map(capability => (
                       <option key={capability.uuid} value={capability.uuid}>
-                        {capability.page_id} — {capability.title}
+                        {capability.page_id ? `${capability.page_id} — ` : ''}{capability.title}
                       </option>
                     ))}
                   </select>

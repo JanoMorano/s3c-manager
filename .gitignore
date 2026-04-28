@@ -7,34 +7,16 @@
 coverage/
 
 frontend/.next/
-frontend/.npm/
-frontend/Library/
 frontend/node_modules/
 middleware/node_modules/
-.vscode/
-claude/
-.worktrees/
+dev/
 
 logs/
 output/
-_archive/
 improvement/
-
-# Internal planning/design docs
-docs/design/
-docs/plans/
-docs/capabilities/
 
 # Playwright/runtime test artifacts
 frontend/test-results/
-
-# NATO Data - NO COMMIT
-import-nato/
-
-# TIDEPEDIA - never commit
-shared/c3 
-shared/spiral6
-shared/spiral7
 
 # Secrets & keys — never commit
 .env
@@ -44,9 +26,6 @@ shared/spiral7
 *.key
 *.p12
 *.pfx
-
-# Improvement
-improvement/
 
 # Binary artefacts — use external storage (OCI registry, S3, etc.)
 *.tar
