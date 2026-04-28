@@ -278,6 +278,131 @@ See [upgrade.md](upgrade.md) for the full migration workflow.
 
 ---
 
+## Admin sekce (CZ)
+
+### 1) Podporované prostředí a předpoklady instalace
+
+Pro provoz v produkci i testu používejte minimálně:
+
+- Docker Engine 24+
+- Docker Compose v2.20+
+- 2 vCPU / 4 GB RAM minimum (doporučeno 4 vCPU / 8 GB RAM)
+- min. 10 GB volného místa pro aplikaci, databázi a zálohy
+- nastavené tajné klíče: `JWT_SECRET`, `DB_PASSWORD`, `POSTGRES_PASSWORD`
+
+Doporučení:
+
+- pro sdílené prostředí vždy zapnout `INSTALL_SETUP_TOKEN`
+- používat HTTPS přes reverzní proxy
+- ověřit dostupnost portu aplikace a DB konektivity před startem instalace
+
+### 2) Instalační postup krok za krokem
+
+1. Připravte `.env` (tajné klíče, hesla DB, volitelně instalační token).
+2. Spusťte stack (`docker compose up -d`).
+3. Sledujte logy inicializace (`docker compose logs -f app`) a vyčkejte na dokončení bootstrapu.
+4. Otevřete aplikaci na `/install`.
+5. Dokončete wizard: konfigurace, vytvoření prvního admin účtu, kontrola DB, výběr modulů.
+6. (Volitelně) proveďte úvodní import dat.
+7. Ověřte stav instalace na `READY`.
+
+### 3) Import dat (formáty, mapování sloupců, validace, rollback)
+
+#### Podporované formáty
+
+- CSV (`text/csv`, `text/plain`)
+- JSON (`application/json`)
+- XLSX
+- ArchiMate XML (`application/xml`, `text/xml`) pro C3 cíle
+
+#### Mapování sloupců a polí
+
+- CSV a XLSX mapují primárně na canonical názvy (`service_id`, `title`, …).
+- JSON akceptuje canonical názvy i aliasy (`serviceId`, `serviceType`, `status`).
+- U C3 XML se mapují identifikátory, názvy, popisy a metadata na C3 taxonomy pole.
+
+#### Validace při importu
+
+Import pipeline:
+
+`parse -> normalize -> taxonomy resolve -> upsert -> audit log -> batch summary`
+
+Validace zahrnuje:
+
+- povinná pole (typicky `service_id`, `title`)
+- datové typy a formát hodnot
+- referenční/taxonomické kódy (neznámé kódy = warning, neblokují celý běh)
+- kolize klíčů řešené upsertem (`INSERT`/`UPDATE`)
+
+#### Rollback po importu
+
+- automatický rollback importu není podporován jako jediné tlačítko v UI
+- bezpečný návrat se provádí obnovou databáze ze zálohy před importem
+- pro kontrolu dopadu používejte dry-run endpointy/importní náhled před ostrým během
+
+#### Kontrolní checklist před importem
+
+- [ ] Existuje aktuální záloha databáze (ideálně čerstvá, mimo hostitele).
+- [ ] Byl proveden dry-run se stejným souborem a bez kritických chyb.
+- [ ] Soubor má očekávaný formát (oddělovač, kódování, hlavičky, datové typy).
+- [ ] Povinné sloupce/pole jsou vyplněné (`service_id`, `title`, …).
+- [ ] Referenční kódy (taxonomy, status, typy) odpovídají hodnotám v systému.
+- [ ] Je potvrzené importní okno a odpovědná osoba pro případ rollbacku.
+
+#### Kontrolní checklist po importu
+
+- [ ] Import batch je dokončen bez fatálních chyb.
+- [ ] `rows_failed` je 0 nebo je zdokumentován akceptovaný rozsah chyb.
+- [ ] Warnings z `import_issue` jsou vyhodnoceny a mají plán nápravy.
+- [ ] Náhodný vzorek importovaných záznamů byl funkčně ověřen v UI.
+- [ ] Auditní stopa (`import_batch`, audit log) je kompletní.
+- [ ] V případě problému je připravený a otestovaný postup obnovy ze zálohy.
+
+### 4) Aktualizace / verzování
+
+- aplikace používá SemVer (`MAJOR.MINOR.PATCH`)
+- při rozdílu verze aplikace a DB stavu se aktivuje režim upgrade (`UPGRADE_REQUIRED`)
+- před každým upgradem je povinná záloha DB
+- migrace jsou jednosměrné, sledované v `platform.schema_migrations`
+
+Praktický postup:
+
+1. vytvořit zálohu
+2. nasadit nové image (`docker compose pull && docker compose up -d`)
+3. dokončit upgrade flow ve wizardu
+4. ověřit `READY`, health endpointy a stav migrací
+
+### 5) Zálohování a obnova
+
+Primární skripty:
+
+- `./scripts/backup-postgres.sh`
+- `./scripts/restore-postgres.sh`
+
+Zásady:
+
+- zálohovat minimálně před každým releasem a před větším importem
+- uchovávat minimálně jednu kopii mimo cílový host
+- pravidelně testovat obnovu v neprodukčním prostředí
+- `deploy.sh rebuild-db` nepoužívat jako náhradu backup/restore procesu
+
+### 6) Řešení běžných chyb
+
+Nejčastější situace a reakce:
+
+- **Instalace se neodemkne /install write endpointy**
+  - zkontrolovat `INSTALL_SETUP_TOKEN` a posílanou hlavičku `x-install-setup-token`
+- **Import hlásí mnoho warningů taxonomy_unresolved**
+  - ověřit mapování referenčních kódů, případně doplnit reference před dalším během
+- **Po upgrade je stav `UPGRADE_REQUIRED` stále aktivní**
+  - zkontrolovat logy migrací a tabulku `platform.schema_migrations`
+- **Aplikace není READY po restore**
+  - ověřit konzistenci dumpu, DB přihlašovací údaje a readiness endpoint
+- **SSO login nefunguje**
+  - zkontrolovat trusted proxy hlavičky a sdílené tajemství mezi proxy a aplikací
+
+---
+
 ## Users, Groups, and SSO
 
 ### User Management
