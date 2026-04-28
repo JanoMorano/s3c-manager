@@ -165,6 +165,89 @@ The **Overview** and **Governance** tabs surface operational links:
 
 These are structured links pointing to external systems. No live integration is required — they work as curated reference links.
 
+### Návod: Provázání služby s navazujícími entitami (objekt, klient, workflow, závislosti)
+
+Tento postup je určený pro editory služeb, kteří chtějí navázat službu na provozní objekt, klientský kontext, workflow a technické/provozní závislosti.
+
+#### 1) Povinné předpoklady před provázáním
+
+Než začnete vytvářet vazby, ověřte:
+
+- služba existuje v katalogu a není smazaná (`service_catalog.is_deleted = FALSE`),
+- máte roli alespoň `editor` (vytváření/úpravy relací je editorská operace),
+- cílová služba pro dependency relaci existuje (pro `from_service_id` i `to_service_id`),
+- relace není self-loop (služba nesmí odkazovat sama na sebe),
+- pro requestable scénáře má služba vyplněný request channel (`request_channel_type` nebo `request_channel_url`),
+- pokud vazbu vážete k offeringu, offering musí patřit ke stejné službě (platí pro support model, audience policy i operational link).
+
+#### 2) Povolené kombinace vazeb
+
+> Praktické pravidlo: nejprve nastavte „kdo službu používá“ (klient), pak „jak se obsluhuje“ (workflow), nakonec „na čem stojí“ (závislosti).
+
+| Typ vazby | Kam se zapisuje | Povolené kombinace |
+|---|---|---|
+| **Objekt** (např. CI, aplikace, dokumentace) | `service_operational_link` (`link_type`, `title`, `url`) | Může být na úrovni celé služby (`offering_id = NULL`) nebo konkrétního offeringu (`offering_id = <id stejné služby>`). |
+| **Klient** (cílová skupina/eligibility) | `service_audience_policy` | Více záznamů je povoleno; lze kombinovat service-level i offering-level pravidla. Offering-level záznam musí odkazovat na offering stejné služby. |
+| **Workflow** (request/provision/support tok) | primárně `request_channel_type` / `request_channel_url`, doplňkově `service_operational_link` | Povolené je mít zároveň request channel + více workflow odkazů (runbook, BPMN, approval flow). |
+| **Závislosti** mezi službami | `service_relation` | Povolené typy relací: `depends_on`, `prerequisite`, `underlying`, `requires_account`, `uses`, `provides`, `provided_by`, `replaces`, `replaced_by`, `integrates_with`, `related_to`, `part_of`, `child_of`. |
+
+Důležitý limit pro závislosti:
+
+- aktivní relace je unikátní v kombinaci `(from_service_id, to_service_id, relation_type_code, pace_code_normalized)`,
+- relaci lze znovu založit po „odpojení“ (soft delete), ale ne duplicitně paralelně.
+
+#### 3) Co se stane při změně nebo odpojení vazby
+
+- **Dependency relace (`service_relation`)**
+  - odpojení přes DELETE je soft delete (`is_deleted = TRUE`),
+  - relace se přestane zobrazovat v API/UI dotazech, které filtrují `is_deleted = FALSE`,
+  - auditní stopa zůstává zachovaná.
+- **Vazby navázané na offering (`support_model`, `audience_policy`, `operational_link`)**
+  - při smazání offeringu se jeho navázané záznamy smažou automaticky (FK `ON DELETE CASCADE`),
+  - při změně offeringu mimo „mateřskou“ službu DB update odmítne (kompozitní FK na `(offering_id, service_id)`).
+- **Změna lifecycle na `live`**
+  - systém může blokovat přechod bez provozní připravenosti (typicky chybějící offering/support model u requestable služby),
+  - pokud máte zapnuté readiness policy na relace/dependencies, chybějící vazby se projeví jako blocker/warning.
+
+#### 4) Řešení konfliktů nebo duplicitních vazeb
+
+Když narazíte na konflikt:
+
+1. **Duplicitní dependency relace**
+   Zkontrolujte, zda už neexistuje stejná aktivní kombinace `from + to + relation_type + pace`. Pokud ano, místo nové relace upravte `relation_note`, `impact_level`, `is_mandatory` nebo `is_verified`.
+2. **Neplatná vazba na offering**
+   Ověřte, že `offering_id` patří skutečně k dané službě. Pokud ne, založte vazbu znovu pod správnou službou/offeringem.
+3. **Konflikt importu vs. ruční editace**
+   U importu platí upsert logika nad relacemi; při nesouladu preferujte jednotný zdroj pravdy (buď import kontrakt, nebo ruční governance) a druhý tok dočasně zmrazte.
+4. **Kolize typů relací**
+   Pokud máte zároveň `depends_on` i `underlying` pro stejné dva uzly, ponechte pouze semanticky přesnější typ a druhou relaci odpojte, aby graf nebyl „přesycený“.
+
+#### 5) Reálné scénáře: správně vs. špatně
+
+##### Scénář A — Service Desk + IAM
+
+**Správně**
+- `IT-SVC-001 (Service Desk)` má relaci `depends_on` na `IT-SVC-014 (IAM)`.
+- Má operational link `link_type=workflow`, `title=Account approval flow`, URL na schvalovací proces.
+- Pro VIP offering má samostatné audience policy (klient = management).
+
+**Špatně**
+- Stejná dependency relace je založena 2× se stejným `pace_code` (duplicitní edge).
+- Workflow link je uložen jako plain text bez URL (nelze použít jako provozní odkaz).
+- Audience policy pro VIP offering odkazuje na offering jiného service_id.
+
+##### Scénář B — Collaboration Platform
+
+**Správně**
+- `DIG-COLLAB` má `underlying` vazbu na `INF-STORAGE`.
+- `requestable=true` a vyplněný request channel URL na katalog požadavků.
+- V governance jsou dva operational links: „KB objekt“ a „Change workflow“.
+
+**Špatně**
+- Služba je nastavena jako `requestable=true`, ale bez request channel (validace blokuje konzistentní publikaci).
+- Vazba na `INF-STORAGE` je omylem `related_to` místo `underlying`, což zkreslí dependency pohled.
+- Při refaktoru je offering smazán bez kontroly dopadu; tím se automaticky odstraní i jeho support/audience/link vazby.
+
 ---
 
 ## Service Lifecycle
