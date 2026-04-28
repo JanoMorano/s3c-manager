@@ -62,6 +62,46 @@ Available to `editor` and `admin`. Provides:
 - `editor` — can edit services, C3 entities, capabilities, and imports
 - `admin` — manages users, groups, web/SSO settings, references, installation workflows, and audit
 
+## Help Documentation Governance
+
+To keep end-user help accurate and publishable, use the following accountability model:
+
+- **Content owner (odpovědný za správnost)** — confirms factual and process correctness of help content before publication.
+- **Reviewer (věcná kontrola)** — performs peer review for clarity, consistency, and alignment with implemented behavior.
+- **Approver (publikace)** — gives final sign-off and publishes the help update to the target channel.
+
+### Review Cadence and Triggers
+
+- **Periodic review cadence:** monthly (at minimum once every calendar month).
+- **Release trigger:** mandatory out-of-cycle review after every application release (patch, minor, or major).
+- For release-triggered reviews, complete validation before announcing release notes to users.
+
+### Help Changelog
+
+Maintain a dedicated help changelog entry for each documentation update, including:
+
+- date of change
+- changed sections/pages
+- short summary of impact for users
+- author, reviewer, and approver identity
+- link to related release note or ticket (if applicable)
+
+### Documentation Versioning vs. Application Version
+
+Every published help package must explicitly state:
+
+- **Documentation version** (for example `DOC v1.1.0`)
+- **Target application version** it describes (for example `APP v1.1.0`)
+
+Use a compatibility label in this format:
+
+```text
+Documentation version: DOC vX.Y.Z
+Compatible with application: APP vA.B.C
+```
+
+If documentation lags behind a newer app release, mark the mismatch clearly at the top of the document.
+
 ---
 
 ## Service Catalogue Administration
