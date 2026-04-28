@@ -80,3 +80,57 @@ Suggested maintenance sequence:
 5. verify `/api/health/ready`
 
 Do not use `./deploy.sh rebuild-db` as a substitute for backup and restore.
+
+## Rollout Plan: Pilot → Full Deployment
+
+Use a phased rollout to reduce operational risk and validate content quality
+before organization-wide adoption.
+
+### Phase 1: Pilot
+
+Scope the pilot to a smaller group (for example one department, one service
+domain, or selected support teams) for 2-4 weeks.
+
+Recommended pilot goals:
+
+- validate discoverability of key knowledge content
+- confirm reduced support demand for recurring questions
+- capture top knowledge gaps from real user behavior
+
+Track these KPIs during the pilot:
+
+- completion rate of key user tasks
+- reduction of support tickets by topic
+- most searched queries with no result
+- article feedback score (`"Was this article helpful?"`)
+
+Pilot exit criteria (example):
+
+- stable or improving task completion trend
+- measurable support ticket reduction in top 3 recurring topics
+- documented action list for no-result search queries
+- article helpfulness score reaches agreed baseline
+
+### Phase 2: Full Deployment
+
+After pilot exit criteria are met, expand in waves:
+
+1. onboarding of adjacent teams/domains
+2. communication and enablement for new user groups
+3. weekly KPI review during the first full-deployment month
+4. transition to monthly optimization cadence
+
+### Monthly KPI-Driven Prioritization
+
+At the end of each month, prioritize backlog items by observed weakness:
+
+1. **Key task completion**: improve flows where users fail or abandon tasks
+2. **Support tickets by topic**: add or revise content for high-volume themes
+3. **No-result searches**: create new articles or synonyms for top missing terms
+4. **Article helpfulness**: rewrite low-rated content and add missing context
+
+Keep a short monthly report with:
+
+- KPI snapshot and trend versus previous month
+- top 5 gaps to fix next month
+- owners, deadlines, and expected KPI impact per action
