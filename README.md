@@ -172,6 +172,7 @@ These screenshots are static preview assets. To interact with the product, run t
 - [C3 Module](docs/c3-module.md)
 - [Import Formats](docs/import-formats.md)
 - [Modules](docs/modules.md)
+- [Help IA (CZ)](docs/help-information-architecture-cs.md)
 - [Demo Guide](DEMO.md)
 - [Development Conventions](docs/dev-conventions.md)
 - [Upgrade Guide](docs/upgrade.md)
