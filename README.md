@@ -8,7 +8,7 @@ Lightweight, self-hosted service and capability governance cockpit for organizat
 
 > **Stack:** Next.js 16.2 · React 19.2 · Express 5.2 · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.2 Governance Cockpit
+## What's New in V1.1.2 Governance Cockpit
 
 - Service 360 view with portfolio, offerings, owners, readiness, governance decisions, C3 mappings, dependencies, and audit context
 - Decision Cockpit on `/operations` with readiness queue, capability coverage, review deadlines, owner load, and recent decisions
