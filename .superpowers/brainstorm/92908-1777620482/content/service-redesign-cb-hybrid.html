@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>S3C B/C Hybrid</title>
+  <style>
+    :root {
+      --ink: #090a0f;
+      --muted: #667085;
+      --soft: #f5f6f8;
+      --panel: #ffffff;
+      --line: #e6e8ee;
+      --blue: #2f68ff;
+      --green: #17b26a;
+      --orange: #f79009;
+      --red: #f04438;
+      --violet: #7a5af8;
+      --cyan: #06aed4;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f2f3f5; color: var(--ink); }
+
+    .page {
+      max-width: 1540px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 9px 0 8px;
+      font-size: 38px;
+      line-height: 1.04;
+      letter-spacing: -.035em;
+      max-width: 920px;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 930px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .decision {
+      border: 1px solid #d8dce5;
+      border-radius: 999px;
+      background: white;
+      padding: 8px 12px;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: 1.25fr .95fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .mockup {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: var(--panel);
+      overflow: hidden;
+      box-shadow: 0 22px 64px rgba(15, 23, 42, .11);
+    }
+
+    .mockup.large { min-height: 720px; }
+    .mockup.small { min-height: 350px; }
+
+    .chrome {
+      height: 44px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfbfc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    .traffic { display: flex; gap: 7px; }
+    .traffic i { width: 10px; height: 10px; border-radius: 999px; background: #d0d5dd; }
+    .chrome b { font-size: 12px; color: #475467; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      min-height: calc(100% - 44px);
+      background: #fff;
+    }
+
+    .rail {
+      background: #090a0f;
+      padding: 16px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      align-items: center;
+    }
+
+    .rail .mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: white;
+      color: #090a0f;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .navdot {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.08);
+    }
+
+    .navdot.active { background: var(--blue); }
+
+    .content { padding: 20px; overflow: hidden; }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid #e4e7ec;
+      background: #f9fafb;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #344054;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill.blue { border-color: #c7d7fe; background: #eef4ff; color: #174ea6; }
+    .pill.green { border-color: #abefc6; background: #ecfdf3; color: #067647; }
+    .pill.orange { border-color: #fedf89; background: #fffaeb; color: #b54708; }
+    .pill.red { border-color: #fecdca; background: #fef3f2; color: #b42318; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .summary {
+      border: 1px solid #eceef3;
+      border-radius: 22px;
+      padding: 18px;
+      background: linear-gradient(180deg, #fff 0%, #fbfcff 100%);
+    }
+
+    .summary h2 {
+      margin: 8px 0 10px;
+      font-size: 30px;
+      line-height: 1.02;
+      letter-spacing: -.03em;
+    }
+
+    .plain {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      border: 1px solid #edf0f4;
+      border-radius: 16px;
+      background: #fff;
+      padding: 11px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      letter-spacing: -.02em;
+      margin-bottom: 2px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 900;
+    }
+
+    .action-panel {
+      border: 1px solid #eceef3;
+      border-radius: 22px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .panel-title h3 {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: -.01em;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 9px;
+      align-items: start;
+      border: 1px solid #edf0f4;
+      border-radius: 16px;
+      padding: 10px;
+      margin-top: 8px;
+      background: #fbfcfd;
+    }
+
+    .task i {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      background: #ecfdf3;
+      border: 1px solid #abefc6;
+    }
+
+    .task i.warn { background: #fff6ed; border-color: #fedf89; }
+    .task i.bad { background: #fef3f2; border-color: #fecdca; }
+    .task b { display: block; font-size: 12px; margin-bottom: 3px; }
+    .task span { display: block; color: var(--muted); font-size: 11px; line-height: 1.35; }
+
+    .map-wrap {
+      display: grid;
+      grid-template-columns: 1fr 250px;
+      gap: 14px;
+    }
+
+    .map {
+      position: relative;
+      height: 380px;
+      border-radius: 24px;
+      border: 1px solid #e9edf4;
+      background:
+        radial-gradient(circle at 12px 12px, #dfe4ec 1px, transparent 1.1px) 0 0 / 24px 24px,
+        #fbfcfd;
+      overflow: hidden;
+    }
+
+    .edge {
+      position: absolute;
+      height: 2px;
+      background: #cbd5e1;
+      transform-origin: left center;
+    }
+
+    .edge.blue { background: #9bb4ff; }
+    .edge.orange { background: #fdba74; }
+    .edge.green { background: #86efac; }
+
+    .node {
+      position: absolute;
+      min-width: 118px;
+      border-radius: 17px;
+      border: 1px solid #e4e7ec;
+      background: white;
+      padding: 11px;
+      box-shadow: 0 14px 34px rgba(15, 23, 42, .09);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .node small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.35;
+      margin-top: 3px;
+      font-weight: 700;
+    }
+
+    .node.main { border-color: #9bb4ff; box-shadow: 0 20px 50px rgba(47, 104, 255, .18); }
+    .node.cap { border-color: #abefc6; }
+    .node.risk { border-color: #fedf89; }
+    .node.bad { border-color: #fecdca; }
+
+    .story {
+      border: 1px solid #eceef3;
+      border-radius: 22px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .story h3 { margin: 0 0 10px; font-size: 13px; }
+    .story-item { padding: 10px 0; border-top: 1px solid #edf0f4; }
+    .story-item:first-of-type { border-top: 0; }
+    .story-item b { display: block; font-size: 12px; margin-bottom: 4px; }
+    .story-item span { display: block; font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+    .side-stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .mini-content {
+      padding: 18px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .mini-card {
+      border: 1px solid #edf0f4;
+      border-radius: 18px;
+      background: #fbfcfd;
+      padding: 12px;
+      min-height: 126px;
+    }
+
+    .mini-card b { display: block; font-size: 13px; margin-bottom: 7px; }
+    .mini-card span { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; }
+
+    .bar {
+      height: 7px;
+      border-radius: 999px;
+      background: #edf0f4;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .bar i { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
+
+    .cap-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .cap-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 9px;
+      align-items: center;
+      border: 1px solid #edf0f4;
+      border-radius: 16px;
+      padding: 9px;
+      background: #fbfcfd;
+    }
+
+    .cap-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 11px;
+      background: #eef4ff;
+      border: 1px solid #c7d7fe;
+    }
+
+    .cap-row b { display: block; font-size: 12px; }
+    .cap-row small { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+    .notes {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 20px;
+      padding: 15px;
+    }
+
+    .note b { display: block; font-size: 13px; margin-bottom: 7px; }
+    .note span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    @media (max-width: 1180px) {
+      .screen-grid, .hero, .map-wrap, .notes { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <div class="eyebrow">B/C hybrid direction</div>
+        <h1>Relationship Studio: manažerský příběh + admin checklist v jednom</h1>
+        <p class="lead">
+          Hlavní obrazovka vysvětluje “co tato služba drží a co se rozbije”, ale hned vedle říká správci služby,
+          co přesně má doplnit. Je to StackAI-like: čisté plochy, výrazná hierarchie, málo rušivých tabulek, hodně srozumitelných vazeb.
+        </p>
+      </div>
+      <div class="decision">Můj návrh: stavět tímto směrem</div>
+    </header>
+
+    <section class="screen-grid">
+      <article class="mockup large">
+        <div class="chrome"><div class="traffic"><i></i><i></i><i></i></div><b>Service Relationship Studio</b><span class="pill blue">Service view</span></div>
+        <div class="app">
+          <aside class="rail">
+            <div class="mark">S3</div>
+            <div class="navdot active"></div>
+            <div class="navdot"></div>
+            <div class="navdot"></div>
+            <div class="navdot"></div>
+            <div class="navdot"></div>
+          </aside>
+          <div class="content">
+            <div class="topline">
+              <span class="pill">Service Catalogue / SVC-IAM</span>
+              <span class="pill orange">Owner action needed</span>
+            </div>
+
+            <section class="hero">
+              <div class="summary">
+                <span class="pill green">Live service</span>
+                <h2>Identity & Access Management</h2>
+                <p class="plain">Tahle služba ověřuje uživatele a řídí přístupy. Když není dostupná, zastaví onboarding, portály a několik bezpečnostních procesů.</p>
+                <div class="metric-row">
+                  <div class="metric"><strong>72%</strong><span>publish ready</span></div>
+                  <div class="metric"><strong>18</strong><span>impacted nodes</span></div>
+                  <div class="metric"><strong>P1</strong><span>top risk</span></div>
+                </div>
+              </div>
+              <aside class="action-panel">
+                <div class="panel-title"><h3>Co má admin udělat teď</h3><span class="pill red">3 blockers</span></div>
+                <div class="task"><i class="bad"></i><div><b>Doplnit request channel</b><span>Manažer vidí službu, ale uživatel ji nemá jak objednat.</span></div></div>
+                <div class="task"><i class="warn"></i><div><b>Potvrdit owner review</b><span>Review deadline je za 5 dní, jinak spadne readiness.</span></div></div>
+                <div class="task"><i></i><div><b>Zkontrolovat C3 vazby</b><span>12 vazeb je ok, 2 jsou podezřelé duplicity.</span></div></div>
+              </aside>
+            </section>
+
+            <section class="map-wrap">
+              <div class="map">
+                <span class="edge blue" style="left:178px;top:175px;width:170px;transform:rotate(-18deg)"></span>
+                <span class="edge blue" style="left:178px;top:205px;width:168px;transform:rotate(18deg)"></span>
+                <span class="edge green" style="left:382px;top:132px;width:166px;transform:rotate(-8deg)"></span>
+                <span class="edge orange" style="left:382px;top:236px;width:152px;transform:rotate(12deg)"></span>
+                <span class="edge" style="left:590px;top:116px;width:155px;transform:rotate(31deg)"></span>
+                <span class="edge" style="left:590px;top:257px;width:150px;transform:rotate(-28deg)"></span>
+                <div class="node main" style="left:38px;top:165px;">IAM<small>tahle služba</small></div>
+                <div class="node cap" style="left:310px;top:88px;">Access Control<small>C3 capability</small></div>
+                <div class="node risk" style="left:310px;top:238px;">User Directory<small>critical dependency</small></div>
+                <div class="node" style="left:560px;top:78px;">HR Onboarding<small>consumer service</small></div>
+                <div class="node" style="left:560px;top:246px;">Secure Portal<small>consumer service</small></div>
+                <div class="node bad" style="left:770px;top:156px;">Audit Gap<small>missing evidence</small></div>
+              </div>
+              <aside class="story">
+                <h3>Manažerské čtení vazeb</h3>
+                <div class="story-item"><b>1. Co drží business</b><span>IAM je předpoklad pro onboarding, portál a secure email.</span></div>
+                <div class="story-item"><b>2. Kde je riziko</b><span>User Directory dependency nemá potvrzené SLA a review.</span></div>
+                <div class="story-item"><b>3. Co rozhodnout</b><span>Schválit výjimku, nebo vrátit službu ownerovi k doplnění.</span></div>
+              </aside>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <div class="side-stack">
+        <article class="mockup small">
+          <div class="chrome"><div class="traffic"><i></i><i></i><i></i></div><b>C3 Board</b><span class="pill green">Capability health</span></div>
+          <div class="mini-content">
+            <div class="topline">
+              <span class="pill">C3 / Operational picture</span>
+              <span class="pill orange">7 gaps</span>
+            </div>
+            <h2 style="margin:8px 0 6px;font-size:24px;letter-spacing:-.03em">C3 board jako mapa rozhodnutí</h2>
+            <p class="plain">Místo dlouhého seznamu: capability domény, co je pokryté službami, co je nejasné a kdo to musí opravit.</p>
+            <div class="mini-grid">
+              <div class="mini-card"><b>Access</b><span>12 services mapped, 2 owner actions</span><div class="bar"><i style="width:78%;background:#17b26a"></i></div></div>
+              <div class="mini-card"><b>Data</b><span>4 missing evidence links</span><div class="bar"><i style="width:42%;background:#f79009"></i></div></div>
+              <div class="mini-card"><b>Comms</b><span>overlap across 3 services</span><div class="bar"><i style="width:62%;background:#2f68ff"></i></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="mockup small">
+          <div class="chrome"><div class="traffic"><i></i><i></i><i></i></div><b>Capability Detail</b><span class="pill blue">Plain language</span></div>
+          <div class="mini-content">
+            <div class="topline">
+              <span class="pill">Capability / Access Control</span>
+              <span class="pill red">needs evidence</span>
+            </div>
+            <h2 style="margin:8px 0 6px;font-size:24px;letter-spacing:-.03em">Capability bez technického šumu</h2>
+            <p class="plain">Manažer vidí, proč capability existuje. Admin vidí, které služby, aplikace, data objects a TIN musí doplnit.</p>
+            <div class="cap-list">
+              <div class="cap-row"><i class="cap-icon"></i><div><b>Service mappings</b><small>IAM primary, Portal secondary</small></div><span class="pill green">OK</span></div>
+              <div class="cap-row"><i class="cap-icon"></i><div><b>Applications</b><small>2 linked, 1 stale</small></div><span class="pill orange">Review</span></div>
+              <div class="cap-row"><i class="cap-icon"></i><div><b>Data objects</b><small>missing audit data object</small></div><span class="pill red">Fix</span></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="notes">
+      <div class="note"><b>Pro admina</b><span>Každá stránka má jasné “co teď opravit”, ne jen volné edit pole.</span></div>
+      <div class="note"><b>Pro manažera</b><span>Vazby jsou vyprávěné jako dopad: co služba drží, co riskuje, koho ovlivní.</span></div>
+      <div class="note"><b>Pro C3</b><span>C3 board není jen taxonomie, ale mapa pokrytí a chybějící evidence.</span></div>
+      <div class="note"><b>Pro implementaci</b><span>Začal bych novým shell/layoutem pro service detail, pak C3 board a capability detail.</span></div>
+    </section>
+  </main>
+</body>
+</html>
