@@ -7,6 +7,7 @@ const offeringsRepo = require('../db/offerings.repo');
 const supportModelRepo = require('../db/support-model.repo');
 const audienceRepo = require('../db/audience.repo');
 const operationalLinksRepo = require('../db/operational-links.repo');
+const serviceOverviewRepo = require('../db/service-overview.repo');
 const audit   = require('../db/audit.repo');
 const { requireAuth } = require('../middleware/auth');
 const { canEdit, canAdmin } = require('../middleware/rbac');
@@ -234,8 +235,12 @@ router.get('/', async (req, res, next) => {
         const status = Array.isArray(req.query.status) ? req.query.status.join(',') : req.query.status;
         const serviceType = Array.isArray(req.query.service_type) ? req.query.service_type.join(',') : req.query.service_type;
         const portfolioGroup = req.query.portfolio_group || req.query.portfolioGroup || undefined;
+        const portfolioCode = req.query.portfolio_code || req.query.portfolioCode || undefined;
         const domain = req.query.domain || undefined;
         const lifecycleState = req.query.lifecycle_state || undefined;
+        const lifecycleStageCode = req.query.lifecycle_stage_code || req.query.lifecycleStageCode || undefined;
+        const criticalityCode = req.query.criticality_code || req.query.criticalityCode || undefined;
+        const reviewDue = req.query.review_due || req.query.reviewDue || undefined;
         const requestable = req.query.requestable ?? undefined;
         const result = await repo.findAllDirect({
             page:        Math.max(1, parseInt(page)),
@@ -243,12 +248,16 @@ router.get('/', async (req, res, next) => {
             status,
             serviceType,
             portfolioGroup,
+            portfolioCode,
             domain,
             search,
             sort,
             order,
             ownerName:   owner || undefined,
             lifecycleState,
+            lifecycleStageCode,
+            criticalityCode,
+            reviewDue,
             requestable,
         });
         res.set('X-Total-Count', result.total)
@@ -265,11 +274,15 @@ router.get('/export/csv', async (req, res, next) => {
         const status = Array.isArray(req.query.status) ? req.query.status.join(',') : req.query.status;
         const serviceType = Array.isArray(req.query.service_type) ? req.query.service_type.join(',') : req.query.service_type;
         const portfolioGroup = req.query.portfolio_group || req.query.portfolioGroup || undefined;
+        const portfolioCode = req.query.portfolio_code || req.query.portfolioCode || undefined;
         const domain = req.query.domain || undefined;
         const sort = req.query.sort;
         const order = req.query.order;
         const owner = req.query.owner;
         const lifecycleState = req.query.lifecycle_state || undefined;
+        const lifecycleStageCode = req.query.lifecycle_stage_code || req.query.lifecycleStageCode || undefined;
+        const criticalityCode = req.query.criticality_code || req.query.criticalityCode || undefined;
+        const reviewDue = req.query.review_due || req.query.reviewDue || undefined;
         const requestable = req.query.requestable ?? undefined;
 
         const result = await repo.findAllDirect({
@@ -278,12 +291,16 @@ router.get('/export/csv', async (req, res, next) => {
             status,
             serviceType,
             portfolioGroup,
+            portfolioCode,
             domain,
             search,
             sort,
             order,
             ownerName: owner || undefined,
             lifecycleState,
+            lifecycleStageCode,
+            criticalityCode,
+            reviewDue,
             requestable,
         });
 
@@ -308,6 +325,15 @@ router.get('/export/csv', async (req, res, next) => {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="service-catalogue-export.csv"');
         res.send(csv);
+    } catch (err) { next(err); }
+});
+
+// ─── GET /services/:id/overview ──────────────────────────────────────────────
+router.get('/:id/overview', async (req, res, next) => {
+    try {
+        const item = await serviceOverviewRepo.getServiceOverview(req.params.id);
+        if (!item) return res.status(404).json({ error: 'Služba nenalezena' });
+        res.json({ item });
     } catch (err) { next(err); }
 });
 

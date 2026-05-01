@@ -140,9 +140,11 @@ export default function SidebarNav() {
   const { c3Visible } = useInstallStatus();
 
   const isServiceList    = pathname === '/services/list' || pathname === '/services';
-  const isCatalogue      = pathname === '/catalogue' || pathname === '/services/dashboard' || pathname === '/dashboard';
+  const isPortfolio      = pathname.startsWith('/portfolio');
+  const isCatalogue      = pathname === '/catalogue' || pathname === '/services/dashboard';
   const isServiceGraph   = pathname === '/services/graph' || /^\/services\/[^/]+\/graph$/.test(pathname);
   const isDependencyFlow = pathname.startsWith('/services/dependency-flow');
+  const isImpactAnalysis = pathname.startsWith('/services/impact');
   const isConsolidation  = pathname.startsWith('/services/consolidation-matrix');
   const isCapMap         = pathname === C3_ROUTES.capabilityMap || pathname === C3_ROUTES.capabilityMapSpiral6 || pathname === C3_ROUTES.capabilityMapSpiral7;
   const isOperations     = pathname.startsWith('/operations');
@@ -150,11 +152,11 @@ export default function SidebarNav() {
   const isManagement     = pathname.startsWith('/management');
   const isImport         = pathname.startsWith('/import');
   const activeSection = useMemo(() => {
-    if (isServiceList || isServiceGraph || isDependencyFlow || isConsolidation) return 'catalogue';
+    if (isPortfolio || isServiceList || isServiceGraph || isDependencyFlow || isImpactAnalysis || isConsolidation) return 'catalogue';
     if (c3Visible && (pathname === C3_ROUTES.list || pathname === C3_ROUTES.graph || isCapMap)) return 'c3';
     if (isAdmin || isManagement || isImport) return 'admin';
     return 'command';
-  }, [c3Visible, isAdmin, isCapMap, isConsolidation, isDependencyFlow, isImport, isManagement, isServiceGraph, isServiceList, pathname]);
+  }, [c3Visible, isAdmin, isCapMap, isConsolidation, isDependencyFlow, isImpactAnalysis, isImport, isManagement, isPortfolio, isServiceGraph, isServiceList, pathname]);
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['command', 'catalogue']));
 
   useEffect(() => {
@@ -178,6 +180,7 @@ export default function SidebarNav() {
   return (
     <div className={styles.sidebarNavList}>
       <NavSection id="command" label={t('nav.command_centre')} open={openSections.has('command')} onToggle={() => toggleSection('command')}>
+        <NavItem href="/operations" icon={<IconCog />} label={t('nav.operations')} active={isOperations} />
         <NavItem href="/catalogue" icon={<IconGrid />} label={t('nav.catalogue_dashboard')} active={isCatalogue} />
         {c3Visible && (
           <>
@@ -186,13 +189,14 @@ export default function SidebarNav() {
             <NavItem href="/spirals" icon={<IconStar />} label={t('nav.spiral_workspace')} active={pathname.startsWith('/spirals')} />
           </>
         )}
-        <NavItem href="/operations" icon={<IconCog />} label={t('nav.operations')} active={isOperations} />
       </NavSection>
 
       <NavSection id="catalogue" label={t('nav.service_catalogue')} open={openSections.has('catalogue')} onToggle={() => toggleSection('catalogue')}>
+        <NavItem href="/portfolio" icon={<IconGrid />} label={t('nav.portfolio')} active={isPortfolio} />
         <NavItem href="/services/list" icon={<IconList />} label={t('nav.services_list')} active={isServiceList} />
         <NavItem href="/services/graph" icon={<IconGraph />} label={t('nav.services_graph')} active={isServiceGraph} />
         <NavItem href="/services/dependency-flow" icon={<IconGraph />} label={t('nav.dependency_flow')} active={isDependencyFlow} />
+        <NavItem href="/services/impact" icon={<IconGraph />} label="Impact analysis" active={isImpactAnalysis} />
         <NavItem href="/services/consolidation-matrix" icon={<IconTaxonomy />} label={t('nav.consolidation_matrix')} active={isConsolidation} />
       </NavSection>
 

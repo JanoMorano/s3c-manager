@@ -6,6 +6,9 @@ const SC_COLUMNS = `
     sc.id,
     sc.service_id,
     sc.title,
+    sc.portfolio_id,
+    sp.portfolio_code,
+    sp.title AS portfolio_title,
     sc.portfolio_group_code AS portfolio_group,
     COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
     sc.service_type_code AS service_type,
@@ -53,6 +56,9 @@ const SC_COLUMNS = `
     sc.target_audience_summary,
     sc.requestable,
     sc.lifecycle_state,
+    sc.lifecycle_stage_code,
+    sc.criticality_code,
+    sc.review_due_at,
     sc.request_channel_type,
     sc.request_channel_url,
     sc.approval_required,
@@ -221,10 +227,14 @@ async function findAllDirect({
     status,
     serviceType,
     portfolioGroup,
+    portfolioCode,
     domain,
     search,
     ownerName,
     lifecycleState,
+    lifecycleStageCode,
+    criticalityCode,
+    reviewDue,
     requestable,
     sort = 'title',
     order = 'ASC',
@@ -262,6 +272,17 @@ async function findAllDirect({
     if (portfolioGroup) {
         filters.push(`sc.portfolio_group_code = ${bind(portfolioGroup)}`);
     }
+    if (portfolioCode) {
+        filters.push(`(
+            sc.portfolio_group_code = ${bind(portfolioCode)}
+            OR EXISTS (
+                SELECT 1
+                FROM data.service_portfolio sp_filter
+                WHERE sp_filter.id = sc.portfolio_id
+                  AND sp_filter.portfolio_code = ${bind(portfolioCode)}
+            )
+        )`);
+    }
     if (domainValues.length) {
         filters.push(`EXISTS (
             SELECT 1
@@ -292,6 +313,25 @@ async function findAllDirect({
     if (lifecycleValues.length) {
         filters.push(`sc.lifecycle_state = ANY(${bind(lifecycleValues)}::varchar[])`);
     }
+    const lifecycleStageValues = splitCsv(lifecycleStageCode);
+    if (lifecycleStageValues.length) {
+        filters.push(`COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) = ANY(${bind(lifecycleStageValues)}::varchar[])`);
+    }
+    const criticalityValues = splitCsv(criticalityCode);
+    if (criticalityValues.length) {
+        filters.push(`sc.criticality_code = ANY(${bind(criticalityValues)}::varchar[])`);
+    }
+    if (reviewDue === 'overdue') {
+        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP`);
+    } else if (reviewDue === 'missing') {
+        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) IS NULL`);
+    } else if (reviewDue === 'next_30') {
+        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
+        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '30 days'`);
+    } else if (reviewDue === 'next_90') {
+        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
+        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
+    }
     if (requestable === true || requestable === 'true') {
         filters.push(`sc.requestable = TRUE`);
     } else if (requestable === false || requestable === 'false') {
@@ -311,6 +351,9 @@ async function findAllDirect({
             sc.id,
             sc.service_id,
             sc.title,
+            sc.portfolio_id,
+            sp.portfolio_code,
+            sp.title AS portfolio_title,
             sc.short_description,
             sc.service_type_code AS service_type,
             sc.service_status_code AS service_status,
@@ -326,9 +369,13 @@ async function findAllDirect({
             sc.sla_restoration_hours AS sla_restoration,
             sc.portfolio_group_code AS portfolio_group,
             COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
+            COALESCE(sp.title, pg.name, sc.portfolio_group_code) AS portfolio_display_name,
             COALESCE(sl.name, sc.service_line_code) AS service_line_name,
             COALESCE(gsg.name, sc.global_service_group_code) AS global_service_group_name,
             sc.lifecycle_state,
+            sc.lifecycle_stage_code,
+            sc.criticality_code,
+            COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at,
             sc.requestable,
             sc.graph_x,
             sc.graph_y,
@@ -379,6 +426,8 @@ async function findAllDirect({
                 LIMIT 1
             ) AS manager
         FROM data.service_catalog sc
+        LEFT JOIN data.service_portfolio sp
+            ON sp.id = sc.portfolio_id
         LEFT JOIN data.service_c3_mapping scm
             ON scm.service_id = sc.id AND scm.is_primary = TRUE
         LEFT JOIN data.ref_portfolio_group pg
@@ -422,6 +471,8 @@ async function findByServiceId(serviceId) {
         FROM data.service_catalog sc
         LEFT JOIN data.service_c3_mapping scm
             ON scm.service_id = sc.id AND scm.is_primary = TRUE
+        LEFT JOIN data.service_portfolio sp
+            ON sp.id = sc.portfolio_id
         LEFT JOIN data.ref_portfolio_group pg
             ON pg.code = sc.portfolio_group_code
         LEFT JOIN data.ref_service_line sl
@@ -468,6 +519,8 @@ async function findAllForExport() {
         FROM data.service_catalog sc
         LEFT JOIN data.service_c3_mapping scm
             ON scm.service_id = sc.id AND scm.is_primary = TRUE
+        LEFT JOIN data.service_portfolio sp
+            ON sp.id = sc.portfolio_id
         LEFT JOIN data.ref_portfolio_group pg
             ON pg.code = sc.portfolio_group_code
         LEFT JOIN data.ref_service_line sl
@@ -726,15 +779,16 @@ async function update(serviceId, data, performedBy) {
         'budget_activity_code', 'other_info_raw', 'pricing_note_raw',
         'global_service_group_code', 'service_line_code', 'organizational_element_code',
         'sla_restoration_text', 'sla_delivery_text', 'created_at_source', 'modified_at_source',
-        'target_audience_summary', 'requestable', 'lifecycle_state', 'request_channel_type',
+        'target_audience_summary', 'requestable', 'lifecycle_state', 'lifecycle_stage_code',
+        'criticality_code', 'review_due_at', 'portfolio_id', 'request_channel_type',
         'request_channel_url', 'approval_required', 'fulfillment_lead_time_text',
         'review_owner_user_id', 'next_review_due_at', 'consumer_value',
     ]);
 
     const jsonFields = new Set(['customer_type', 'options', 'notes', 'training_refs', 'prerequisites_json', 'dependencies_json']);
-    const integerFields = new Set(['sla_restoration', 'sla_delivery', 'source_sp_id', 'review_owner_user_id']);
+    const integerFields = new Set(['sla_restoration', 'sla_delivery', 'source_sp_id', 'review_owner_user_id', 'portfolio_id']);
     const decimalFields = new Set(['sla_availability']);
-    const dateFields = new Set(['created_at_source', 'modified_at_source', 'next_review_due_at']);
+    const dateFields = new Set(['created_at_source', 'modified_at_source', 'next_review_due_at', 'review_due_at']);
     const booleanFields = new Set(['is_available_status_ambiguous', 'requestable', 'approval_required']);
 
     const values = [performedBy];

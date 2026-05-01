@@ -22,6 +22,7 @@ const { canEdit } = require('../middleware/rbac');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
 const { getPool } = require('../db/pool');
 const { logGraphLayoutChange } = require('../db/audit.repo');
+const relationsRepo = require('../db/relations.repo');
 const { parseCsvFilter, parseTextFilter } = require('../utils/query-filters');
 
 router.use(requireAuth);
@@ -37,7 +38,7 @@ async function buildOverviewPayload(query, options = {}) {
     const domains = parseCsvFilter(query.domain, { maxItems: 12 });
     const relationTypes = parseCsvFilter(query.relation_type, {
         maxItems: 10,
-        allowed: ['depends_on', 'prerequisite', 'underlying', 'replaces', 'related_to', 'provided_by', 'c3_parent'],
+        allowed: ['depends_on', 'prerequisite', 'underlying', 'replaces', 'related_to', 'provided_by', 'supports', 'consumes', 'implements', 'exposes_data', 'uses_application', 'c3_parent'],
     });
 
     const serviceNodesResult = await pool.query(`
@@ -890,82 +891,13 @@ router.put('/overview/layout', canEdit, async (req, res, next) => {
 // Traversal follows incoming edges (from_service_id where to_service_id = X.id).
 router.get('/impact/:serviceId', async (req, res, next) => {
     try {
-        const serviceId = req.params.serviceId;
-        const maxDepth  = Math.min(10, parseInt(req.query.depth) || 5);
-        const pool      = getPool();
-
-        const rootCheck = await pool.query(`
-            SELECT sc.service_id, sc.title,
-                   sc.service_type_code   AS service_type,
-                   sc.service_status_code AS service_status,
-                   sc.portfolio_group_code AS portfolio_group,
-                   COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name
-            FROM data.service_catalog sc
-            LEFT JOIN data.ref_portfolio_group pg ON pg.code = sc.portfolio_group_code
-            WHERE sc.service_id = $1 AND sc.is_deleted = FALSE
-        `, [serviceId]);
-
-        if (!rootCheck.rows.length) {
-            return res.status(404).json({ error: 'Služba nenalezena' });
-        }
-
-        const visited      = new Set([serviceId]);
-        let   frontier     = [serviceId];
-        let   depthReached = 0;
-        const collectedEdges = [];
-
-        for (let depth = 0; depth < maxDepth && frontier.length > 0; depth++) {
-            depthReached = depth + 1;
-            const edgeResult = await pool.query(`
-                SELECT f.service_id AS from_sid,
-                       t.service_id AS to_sid,
-                       sr.relation_type_code AS relation_type,
-                       sr.impact_level,
-                       sr.impact_mode,
-                       sr.pace_code
-                FROM data.service_relation sr
-                JOIN data.service_catalog f ON f.id = sr.from_service_id AND f.is_deleted = FALSE
-                JOIN data.service_catalog t ON t.id = sr.to_service_id   AND t.is_deleted = FALSE
-                WHERE sr.is_deleted = FALSE
-                  AND t.service_id = ANY($1::varchar[])
-            `, [frontier]);
-
-            frontier = [];
-            for (const row of edgeResult.rows) {
-                collectedEdges.push(row);
-                if (!visited.has(row.from_sid)) {
-                    visited.add(row.from_sid);
-                    frontier.push(row.from_sid);
-                }
-            }
-        }
-
-        const impactedIds = [...visited].filter(id => id !== serviceId);
-        let   nodes       = [];
-
-        if (impactedIds.length > 0) {
-            const nodesResult = await pool.query(`
-                SELECT sc.service_id, sc.title,
-                       sc.service_type_code    AS service_type,
-                       sc.service_status_code  AS service_status,
-                       sc.portfolio_group_code AS portfolio_group,
-                       COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
-                       sc.sla_availability
-                FROM data.service_catalog sc
-                LEFT JOIN data.ref_portfolio_group pg ON pg.code = sc.portfolio_group_code
-                WHERE sc.service_id = ANY($1::varchar[])
-                  AND sc.is_deleted = FALSE
-            `, [impactedIds]);
-            nodes = nodesResult.rows;
-        }
-
-        res.json({
-            root:           rootCheck.rows[0],
-            nodes,
-            edges:          collectedEdges,
-            depth_reached:  depthReached,
-            total_impacted: nodes.length,
+        const maxDepth = Math.min(10, parseInt(req.query.depth, 10) || 5);
+        const payload = await relationsRepo.getServiceImpact(req.params.serviceId, {
+            direction: 'downstream',
+            depth: maxDepth,
+            include: ['services'],
         });
+        res.json(payload);
     } catch (err) { next(err); }
 });
 

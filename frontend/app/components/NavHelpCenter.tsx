@@ -9,7 +9,7 @@ export default function NavHelpCenter() {
 
   return (
     <div className={styles.stack}>
-      <span className={styles.versionBadge}>v.1.1.1</span>
+      <span className={styles.versionBadge}>v.1.1.2</span>
       <Link href="/help" className={styles.trigger}>
         {t('nav.help')}
       </Link>

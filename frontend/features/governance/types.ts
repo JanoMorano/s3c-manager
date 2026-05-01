@@ -1,3 +1,5 @@
+import type { ServiceReadiness } from '@/features/services/model/service.types';
+
 export type GovernanceSeverity = 'P0' | 'P1' | 'P2' | 'info';
 
 export interface GovernanceResponse<T> {
@@ -97,7 +99,54 @@ export interface GovernanceFilters {
   type?: string;
   owner?: string;
   scope?: string;
+  serviceId?: string;
+  assignedTo?: string;
+  status?: string;
+  decision?: string;
+  decisionType?: string;
   q?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface GovernanceReview {
+  id: number;
+  service_id: string;
+  service_title: string;
+  review_type: string;
+  status: 'pending' | 'in_review' | 'approved' | 'rejected' | 'deferred' | 'cancelled' | string;
+  requested_by: string | null;
+  assigned_to: string | null;
+  due_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  overdue?: boolean;
+}
+
+export interface GovernanceDecision {
+  id: number;
+  service_id: string;
+  service_title: string;
+  decision_type: string;
+  decision: 'approved' | 'rejected' | 'deferred' | 'cancelled' | string;
+  rationale: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  created_at: string | null;
+}
+
+export interface ReadinessSummaryResponse {
+  items: ServiceReadiness[];
+  groups: {
+    blockers: ServiceReadiness[];
+    warnings: ServiceReadiness[];
+    ready: ServiceReadiness[];
+  };
+  counts: {
+    total: number;
+    blockers: number;
+    warnings: number;
+    ready: number;
+  };
 }

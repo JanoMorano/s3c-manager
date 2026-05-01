@@ -3,7 +3,9 @@ import { apiFetch, buildGraphOverviewUrl, buildListUrl } from '../api/services.a
 import type { ListParams } from '../api/services.api';
 import type {
   ServiceListResponse,
+  PortfolioListResponse,
   ServiceDetail,
+  ServiceOverviewResponse,
   SlaResponse,
   GraphResponse,
   ServiceGraphV2Response,
@@ -12,6 +14,7 @@ import type {
   DashboardResponse,
   DashboardHeadlineResponse,
   DashboardInboxResponse,
+  DashboardDecisionSummaryResponse,
   OperationsResponse,
   CompletenessItem,
   ServiceFrameworkCoverage,
@@ -23,6 +26,7 @@ import type {
   ServiceSupportModel,
   ServiceAudiencePolicy,
   ServiceOperationalLink,
+  ImpactResponse,
 } from '../model/service.types';
 
 // ── Services list ────────────────────────────────────────────────────────────
@@ -34,10 +38,25 @@ export function useServices(params: ListParams = {}) {
   });
 }
 
+export function usePortfolioList() {
+  return useSWR<PortfolioListResponse>('/api/v1/portfolio', apiFetch, {
+    revalidateOnFocus: false,
+    dedupingInterval: 120_000,
+  });
+}
+
 // ── Service detail ───────────────────────────────────────────────────────────
 export function useService(id: string | null) {
   return useSWR<ServiceDetail>(
     id ? `/api/v1/services/${id}` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
+export function useServiceOverview(id: string | null) {
+  return useSWR<ServiceOverviewResponse>(
+    id ? `/api/v1/services/${id}/overview` : null,
     apiFetch,
     { revalidateOnFocus: false }
   );
@@ -134,6 +153,25 @@ export function useC3RelationGraph(params: { search?: string; itemType?: string;
   });
 }
 
+export function useServiceImpact(params: {
+  serviceId?: string | null;
+  direction?: 'downstream' | 'upstream';
+  depth?: number;
+  include?: string[];
+  enabled?: boolean;
+} = {}) {
+  const q = new URLSearchParams();
+  q.set('direction', params.direction ?? 'downstream');
+  q.set('depth', String(params.depth ?? 3));
+  if (params.include?.length) q.set('include', params.include.join(','));
+  const key = params.enabled === false || !params.serviceId
+    ? null
+    : `/api/v1/impact/services/${encodeURIComponent(params.serviceId)}?${q.toString()}`;
+  return useSWR<ImpactResponse>(key, apiFetch, {
+    revalidateOnFocus: false,
+  });
+}
+
 // ── Score / Completeness detail ───────────────────────────────────────────────
 export function useServiceScore(id: string | null) {
   return useSWR<ServiceScoreResponse>(
@@ -178,6 +216,13 @@ export function useDashboardHeadline() {
 
 export function useDashboardInbox() {
   return useSWR<DashboardInboxResponse>('/api/v1/dashboard/inbox', apiFetch, {
+    refreshInterval: 60_000,
+    revalidateOnFocus: false,
+  });
+}
+
+export function useDashboardSummary() {
+  return useSWR<DashboardDecisionSummaryResponse>('/api/v1/dashboard/summary', apiFetch, {
     refreshInterval: 60_000,
     revalidateOnFocus: false,
   });

@@ -78,6 +78,7 @@ export default function DependencyFlowPage() {
           </p>
         </div>
         <div className={styles.actions}>
+          <Link className={styles.ghostButton} href="/services/impact">Impact analysis</Link>
           <Link className={styles.ghostButton} href="/services/graph">Open graph canvas</Link>
           <Link className={styles.linkButton} href="/services/consolidation-matrix">Consolidation matrix</Link>
         </div>

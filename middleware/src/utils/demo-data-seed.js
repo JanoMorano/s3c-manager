@@ -3,7 +3,7 @@
  * demo-data-seed.js
  *
  * Creates a demo dataset for Service Catalogue:
- *  - 3 complete demo services (all metadata)
+ *  - 8 demo services across lifecycle and governance states
  *  - Pricing flavours for each service
  *  - Service relationships
  *  - Role assignments (ownership)
@@ -32,6 +32,8 @@ const DEMO_UUIDS = {
     CAP_BP_L4: 'demo-bp-0002-0000-000000000016',
     CAP_CI_L4: 'demo-ci-0002-0000-000000000017',
     CAP_UA_L4: 'demo-ua-0002-0000-000000000018',
+    CAP_RPA: 'demo-cp-0003-0000-000000000019',
+    CAP_GAP: 'demo-cp-0004-0000-000000000020',
     APP_01: 'demo-app-0001-0000-000000000009',
     APP_02: 'demo-app-0002-0000-000000000010',
     TIN_01: 'demo-tin-0001-0000-000000000011',
@@ -138,7 +140,7 @@ function resolveDemoSeedLocale(locale) {
 
 function buildDemoServices(locale = 'cs') {
     const resolvedLocale = resolveDemoSeedLocale(locale);
-    return [
+    const services = [
         {
             service_id: 'DEMO-PIS-001',
             title: '[DEMO] Platform Integration Service',
@@ -286,7 +288,200 @@ function buildDemoServices(locale = 'cs') {
             }),
             ...getDemoServiceCopy(resolvedLocale, 'DEMO-DAP-003'),
         },
+        {
+            service_id: 'DEMO-RPA-004',
+            title: '[DEMO] Process Automation Service',
+            service_type_code: 'MS',
+            service_status_code: 'planned',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'SHARED',
+            global_service_group_code: 'INFRA',
+            service_line_code: 'INTEGRATION',
+            organizational_element_code: 'CIS',
+            short_description: 'Automation service for repeatable back-office workflows and approval orchestration.',
+            description: 'Process Automation Service provides managed robotic process automation, workflow orchestration, and low-code integration patterns for repeatable business tasks.',
+            business_purpose: 'Reduce manual hand-offs and standardize approval workflows before moving them into core systems.',
+            scope_text: 'Covers tactical automations, approval workflows, and assisted integrations.',
+            value_proposition: 'Creates quick wins while governance reviews decide whether a process deserves productization.',
+            service_features: 'Workflow templates, attended automation, queue monitoring, approval routing',
+            sla_availability: 99.0,
+            sla_restoration_hours: 12,
+            sla_delivery_days: 10,
+            service_url: 'https://automation.example.org',
+            security_classification_code: 'RESTRICTED',
+            unit_of_measure: 'per workflow / month',
+            charging_basis: 'Workflow tier',
+            rate_note: 'Standard workflow EUR 750/month; enterprise workflow EUR 1,600/month.',
+            ordering_note: 'Request through governance review with process owner approval.',
+            customer_type: ['Internal'],
+            operational_notes_raw: 'Managed by automation center of excellence.',
+            budget_activity_code: 'BA-INFRA-2024',
+            lifecycle_state: 'under_review',
+            lifecycle_stage_code: 'design',
+            criticality_code: 'standard',
+            requestable: true,
+            next_review_due_at: '2026-05-31T00:00:00Z',
+            review_due_at: '2026-05-31T00:00:00Z',
+            notes_json: JSON.stringify({ demo_signal: 'incomplete_primary_mapping', risk_level: 'medium' }),
+        },
+        {
+            service_id: 'DEMO-LRG-005',
+            title: '[DEMO] Legacy Reporting Gateway',
+            service_type_code: 'SS',
+            service_status_code: 'deprecated',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'DATA',
+            global_service_group_code: 'ANALYTICS',
+            service_line_code: 'BI',
+            organizational_element_code: 'CDO',
+            short_description: 'Legacy reporting gateway kept temporarily for contractual reporting feeds.',
+            description: 'Legacy Reporting Gateway proxies old report consumers into the analytics platform while consumers migrate to modern dashboards.',
+            business_purpose: 'Keep legacy reporting consumers stable during migration.',
+            scope_text: 'Read-only reporting feeds and scheduled exports.',
+            value_proposition: 'Controls retirement risk by making remaining consumers visible.',
+            service_features: 'Legacy export scheduler, report proxy, consumer inventory',
+            sla_availability: 98.5,
+            sla_restoration_hours: 24,
+            sla_delivery_days: 15,
+            service_url: 'https://legacy-reporting.example.org',
+            security_classification_code: 'RESTRICTED',
+            unit_of_measure: 'per report feed',
+            charging_basis: 'Migration exception',
+            rate_note: 'No new consumers; cost recovered through migration program.',
+            ordering_note: 'New requests are blocked; use Data Analytics Platform instead.',
+            customer_type: ['Internal'],
+            operational_notes_raw: 'Retirement candidate, no new integrations accepted.',
+            budget_activity_code: 'BA-DATA-2024',
+            lifecycle_state: 'deprecated',
+            lifecycle_stage_code: 'retiring',
+            criticality_code: 'important',
+            requestable: false,
+            next_review_due_at: '2026-05-15T00:00:00Z',
+            review_due_at: '2026-05-15T00:00:00Z',
+            retired_note: 'Target retirement after final consumer migration.',
+            notes_json: JSON.stringify({ demo_signal: 'retiring_service', risk_level: 'high' }),
+        },
+        {
+            service_id: 'DEMO-DOC-006',
+            title: '[DEMO] Document Collaboration Workspace',
+            service_type_code: 'CF',
+            service_status_code: 'draft',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'SHARED',
+            global_service_group_code: 'INFRA',
+            service_line_code: 'INTEGRATION',
+            organizational_element_code: 'CIS',
+            short_description: 'Draft collaboration workspace service with intentionally incomplete governance metadata.',
+            description: 'Document Collaboration Workspace demonstrates readiness blockers: missing owner, incomplete capability mapping, and pending decision.',
+            business_purpose: 'Provide a safe demo record for readiness queue and governance review workflows.',
+            scope_text: 'Draft internal collaboration use case.',
+            value_proposition: 'Shows how a service moves from draft to governed catalogue entry.',
+            service_features: 'Workspace templates, retention policies, team access',
+            sla_availability: null,
+            sla_restoration_hours: null,
+            sla_delivery_days: 7,
+            service_url: 'https://docs.example.org',
+            security_classification_code: 'RESTRICTED',
+            unit_of_measure: 'per workspace',
+            charging_basis: 'Per workspace',
+            rate_note: null,
+            ordering_note: 'Blocked until owner and readiness review are assigned.',
+            customer_type: ['Internal'],
+            operational_notes_raw: 'Intentionally incomplete for readiness demo.',
+            budget_activity_code: 'BA-INFRA-2024',
+            lifecycle_state: 'draft',
+            lifecycle_stage_code: 'draft',
+            criticality_code: 'standard',
+            requestable: false,
+            next_review_due_at: null,
+            review_due_at: null,
+            notes_json: JSON.stringify({ demo_signal: 'readiness_blocker', risk_level: 'medium' }),
+        },
+        {
+            service_id: 'DEMO-OBS-007',
+            title: '[DEMO] Observability Command Center',
+            service_type_code: 'ES',
+            service_status_code: 'active',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'SHARED',
+            global_service_group_code: 'INFRA',
+            service_line_code: 'INTEGRATION',
+            organizational_element_code: 'CIS',
+            short_description: 'Central observability service for service health, telemetry, and alert correlation.',
+            description: 'Observability Command Center aggregates logs, metrics, traces, and service health signals for governed services.',
+            business_purpose: 'Reduce incident diagnosis time and provide operational evidence for reviews.',
+            scope_text: 'Monitoring, telemetry, and alert correlation for catalogue services.',
+            value_proposition: 'Makes ownership and readiness issues visible before operational impact.',
+            service_features: 'Metrics, logs, traces, dashboards, alert routing',
+            sla_availability: 99.9,
+            sla_restoration_hours: 4,
+            sla_delivery_days: 3,
+            service_url: 'https://observability.example.org',
+            security_classification_code: 'RESTRICTED',
+            unit_of_measure: 'per monitored service',
+            charging_basis: 'Telemetry volume',
+            rate_note: 'EUR 120/service/month plus telemetry volume.',
+            ordering_note: 'Request via platform operations.',
+            customer_type: ['Internal', 'Operations'],
+            operational_notes_raw: 'Consumes signals from PIS, IAM, DAP, and automation.',
+            budget_activity_code: 'BA-INFRA-2024',
+            lifecycle_state: 'live',
+            lifecycle_stage_code: 'active',
+            criticality_code: 'mission_critical',
+            requestable: true,
+            next_review_due_at: '2026-06-15T00:00:00Z',
+            review_due_at: '2026-06-15T00:00:00Z',
+            notes_json: JSON.stringify({ demo_signal: 'owner_load', risk_level: 'critical' }),
+        },
+        {
+            service_id: 'DEMO-LEG-008',
+            title: '[DEMO] Retired Field Portal',
+            service_type_code: 'CF',
+            service_status_code: 'retired',
+            catalogue_version: '2.1',
+            portfolio_group_code: 'DATA',
+            global_service_group_code: 'ANALYTICS',
+            service_line_code: 'BI',
+            organizational_element_code: 'CDO',
+            short_description: 'Retired portal kept as historical evidence for impact and lifecycle views.',
+            description: 'Retired Field Portal was replaced by modern analytics and collaboration workflows.',
+            business_purpose: 'Demonstrate retired lifecycle handling and historical dependency traces.',
+            scope_text: 'Historical record only.',
+            value_proposition: 'Shows what retired services look like without deleting audit context.',
+            service_features: 'Historical catalogue record',
+            sla_availability: null,
+            sla_restoration_hours: null,
+            sla_delivery_days: null,
+            service_url: null,
+            security_classification_code: 'RESTRICTED',
+            unit_of_measure: 'n/a',
+            charging_basis: 'Retired',
+            rate_note: null,
+            ordering_note: 'Do not request; replacement is Data Analytics Platform.',
+            customer_type: ['Internal'],
+            operational_notes_raw: 'Retired demo service.',
+            budget_activity_code: 'BA-DATA-2024',
+            lifecycle_state: 'retired',
+            lifecycle_stage_code: 'retired',
+            criticality_code: 'standard',
+            requestable: false,
+            next_review_due_at: null,
+            review_due_at: null,
+            retired_note: 'Replaced by DEMO-DAP-003.',
+            notes_json: JSON.stringify({ demo_signal: 'retired_service', risk_level: 'low' }),
+        },
     ];
+    const defaultsByStatus = {
+        active: { requestable: true, lifecycle_state: 'live', lifecycle_stage_code: 'active', criticality_code: 'important', next_review_due_at: '2026-06-30T00:00:00Z', review_due_at: '2026-06-30T00:00:00Z' },
+        planned: { requestable: true, lifecycle_state: 'under_review', lifecycle_stage_code: 'design', criticality_code: 'standard', next_review_due_at: '2026-05-31T00:00:00Z', review_due_at: '2026-05-31T00:00:00Z' },
+        draft: { requestable: false, lifecycle_state: 'draft', lifecycle_stage_code: 'draft', criticality_code: 'standard', next_review_due_at: null, review_due_at: null },
+        deprecated: { requestable: false, lifecycle_state: 'deprecated', lifecycle_stage_code: 'retiring', criticality_code: 'important', next_review_due_at: '2026-05-15T00:00:00Z', review_due_at: '2026-05-15T00:00:00Z' },
+        retired: { requestable: false, lifecycle_state: 'retired', lifecycle_stage_code: 'retired', criticality_code: 'standard', next_review_due_at: null, review_due_at: null },
+    };
+    return services.map((service) => ({
+        ...(defaultsByStatus[service.service_status_code] ?? defaultsByStatus.draft),
+        ...service,
+    }));
 }
 
 // ── Helper ──────────────────────────────────────────────────────────────────────
@@ -321,6 +516,19 @@ async function seedReferenceData(pool) {
             ('DATA',     'Data Services',      52)
         ON CONFLICT (code) DO NOTHING
     `, [], 'ref_portfolio_group:demo');
+
+    await safeQuery(pool, `
+        INSERT INTO data.service_portfolio (portfolio_code, title, description, status_code)
+        VALUES
+            ('SHARED',   'Shared Services',   'Common platforms, integration, collaboration, and operational command services.', 'active'),
+            ('SECURITY', 'Security Services', 'Identity, access, assurance, and security governance services.', 'active'),
+            ('DATA',     'Data Services',     'Analytics, reporting, and data-product services across the organisation.', 'active')
+        ON CONFLICT (portfolio_code) DO UPDATE SET
+            title       = EXCLUDED.title,
+            description = EXCLUDED.description,
+            status_code = EXCLUDED.status_code,
+            updated_at  = CURRENT_TIMESTAMP
+    `, [], 'service_portfolio:demo');
 
     // Global service groups
     await safeQuery(pool, `
@@ -423,6 +631,8 @@ async function seedServices(pool, locale = 'cs') {
                 unit_of_measure, charging_basis, rate_note, ordering_note,
                 exclusions, customer_type_json, operational_notes_raw, budget_activity_code,
                 retired_note, notes_json,
+                requestable, lifecycle_state, next_review_due_at, review_due_at,
+                lifecycle_stage_code, criticality_code,
                 is_deleted, is_stub, created_by, updated_by
             )
             VALUES (
@@ -432,6 +642,7 @@ async function seedServices(pool, locale = 'cs') {
                 $21, $22, $23, $24, $25, $26,
                 $27, $28, $29, $30,
                 $31, $32,
+                $33, $34, $35, $36, $37, $38,
                 FALSE, FALSE, 'demo-seed', 'demo-seed'
             )
             ON CONFLICT (service_id) DO UPDATE SET
@@ -464,6 +675,12 @@ async function seedServices(pool, locale = 'cs') {
                 budget_activity_code          = EXCLUDED.budget_activity_code,
                 retired_note                  = EXCLUDED.retired_note,
                 notes_json                    = EXCLUDED.notes_json,
+                requestable                   = EXCLUDED.requestable,
+                lifecycle_state               = EXCLUDED.lifecycle_state,
+                next_review_due_at            = EXCLUDED.next_review_due_at,
+                review_due_at                 = EXCLUDED.review_due_at,
+                lifecycle_stage_code          = EXCLUDED.lifecycle_stage_code,
+                criticality_code              = EXCLUDED.criticality_code,
                 updated_by                    = 'demo-seed',
                 updated_at                    = CURRENT_TIMESTAMP
         `, [
@@ -477,9 +694,79 @@ async function seedServices(pool, locale = 'cs') {
             svc.unit_of_measure, svc.charging_basis, svc.rate_note ?? null, svc.ordering_note ?? null,
             svc.exclusions ?? null, JSON.stringify(svc.customer_type ?? []), svc.operational_notes_raw, svc.budget_activity_code,
             svc.retired_note ?? null, svc.notes_json ?? null,
+            svc.requestable ?? null, svc.lifecycle_state ?? null, svc.next_review_due_at ?? null, svc.review_due_at ?? null,
+            svc.lifecycle_stage_code ?? null, svc.criticality_code ?? null,
         ], `service_catalog:${svc.service_id}`);
     }
     logger.info('demo-seed: services OK');
+}
+
+async function seedPortfolioAssignments(pool) {
+    await safeQuery(pool, `
+        UPDATE data.service_catalog sc
+        SET portfolio_id = sp.id,
+            updated_at = CURRENT_TIMESTAMP
+        FROM data.service_portfolio sp
+        WHERE sc.service_id LIKE 'DEMO-%'
+          AND sc.portfolio_group_code = sp.portfolio_code
+          AND sc.is_deleted = FALSE
+    `, [], 'service_catalog:demo-portfolio-assignment');
+    logger.info('demo-seed: portfolio assignments OK');
+}
+
+function buildDemoOfferings() {
+    return [
+        { service_id: 'DEMO-PIS-001', offering_code: 'PIS-API', title: 'API integration channel', description: 'Reusable API integration for governed services.', is_default: true, requestable: true, approval_required: true, support_tier_code: 'standard', status: 'active', display_order: 1 },
+        { service_id: 'DEMO-PIS-001', offering_code: 'PIS-EVENT', title: 'Event stream channel', description: 'Asynchronous event stream with monitoring.', is_default: false, requestable: true, approval_required: true, support_tier_code: 'premium', status: 'active', display_order: 2 },
+        { service_id: 'DEMO-IAM-002', offering_code: 'IAM-SSO', title: 'SSO onboarding', description: 'Application onboarding to centralized SSO.', is_default: true, requestable: true, approval_required: true, support_tier_code: 'standard', status: 'active', display_order: 1 },
+        { service_id: 'DEMO-IAM-002', offering_code: 'IAM-PAM', title: 'Privileged access vault', description: 'Privileged account management and vault onboarding.', is_default: false, requestable: true, approval_required: true, support_tier_code: 'premium', status: 'active', display_order: 2 },
+        { service_id: 'DEMO-DAP-003', offering_code: 'DAP-DASH', title: 'Dashboard workspace', description: 'Governed BI workspace with standard datasets.', is_default: true, requestable: true, approval_required: true, support_tier_code: 'standard', status: 'active', display_order: 1 },
+        { service_id: 'DEMO-DAP-003', offering_code: 'DAP-ML', title: 'ML compute workspace', description: 'GPU-backed experimentation workspace.', is_default: false, requestable: true, approval_required: true, support_tier_code: 'premium', status: 'active', display_order: 2 },
+        { service_id: 'DEMO-RPA-004', offering_code: 'RPA-WORKFLOW', title: 'Workflow automation', description: 'Managed workflow automation package.', is_default: true, requestable: true, approval_required: true, support_tier_code: 'standard', status: 'draft', display_order: 1 },
+        { service_id: 'DEMO-RPA-004', offering_code: 'RPA-AUDIT', title: 'Audited automation', description: 'Automation with additional audit evidence.', is_default: false, requestable: true, approval_required: true, support_tier_code: 'premium', status: 'draft', display_order: 2 },
+        { service_id: 'DEMO-LRG-005', offering_code: 'LRG-EXPORT', title: 'Legacy export exception', description: 'Temporary report export exception.', is_default: true, requestable: false, approval_required: true, support_tier_code: 'best_effort', status: 'deprecated', display_order: 1 },
+        { service_id: 'DEMO-DOC-006', offering_code: 'DOC-WORKSPACE', title: 'Draft workspace', description: 'Draft offering blocked by readiness.', is_default: true, requestable: false, approval_required: true, support_tier_code: 'standard', status: 'draft', display_order: 1 },
+        { service_id: 'DEMO-OBS-007', offering_code: 'OBS-SERVICE', title: 'Service observability', description: 'Telemetry onboarding for one service.', is_default: true, requestable: true, approval_required: false, support_tier_code: 'standard', status: 'active', display_order: 1 },
+        { service_id: 'DEMO-LEG-008', offering_code: 'LEG-HISTORY', title: 'Historical reference', description: 'Retired service evidence only.', is_default: true, requestable: false, approval_required: false, support_tier_code: 'none', status: 'retired', display_order: 1 },
+    ];
+}
+
+async function seedOfferings(pool) {
+    for (const offering of buildDemoOfferings()) {
+        await safeQuery(pool, `
+            INSERT INTO data.service_offering (
+                service_id, offering_code, title, description, is_default, requestable,
+                approval_required, request_channel_type, request_channel_url,
+                lead_time_text, support_tier_code, status, display_order
+            )
+            SELECT sc.id, $2, $3, $4, $5, $6, $7, 'portal', sc.service_url,
+                   'Demo fulfilment target', $8, $9, $10
+            FROM data.service_catalog sc
+            WHERE sc.service_id = $1 AND sc.is_deleted = FALSE
+            ON CONFLICT (service_id, offering_code) DO UPDATE SET
+                title = EXCLUDED.title,
+                description = EXCLUDED.description,
+                is_default = EXCLUDED.is_default,
+                requestable = EXCLUDED.requestable,
+                approval_required = EXCLUDED.approval_required,
+                support_tier_code = EXCLUDED.support_tier_code,
+                status = EXCLUDED.status,
+                display_order = EXCLUDED.display_order,
+                updated_at = CURRENT_TIMESTAMP
+        `, [
+            offering.service_id,
+            offering.offering_code,
+            offering.title,
+            offering.description,
+            offering.is_default,
+            offering.requestable,
+            offering.approval_required,
+            offering.support_tier_code,
+            offering.status,
+            offering.display_order,
+        ], `offering:${offering.service_id}:${offering.offering_code}`);
+    }
+    logger.info('demo-seed: service offerings OK');
 }
 
 // ── 2. DOMAIN AVAILABILITY ──────────────────────────────────────────────────────
@@ -488,6 +775,11 @@ async function seedDomainAvailability(pool) {
         { service_id: 'DEMO-PIS-001', domains: ['RELAY', 'CLOUD', 'GRID', 'PRISM', 'HELIX'] },
         { service_id: 'DEMO-IAM-002', domains: ['RELAY', 'CLOUD', 'GRID', 'PRISM', 'HELIX'] },
         { service_id: 'DEMO-DAP-003', domains: ['GRID', 'PRISM'] },
+        { service_id: 'DEMO-RPA-004', domains: ['CLOUD', 'GRID'] },
+        { service_id: 'DEMO-LRG-005', domains: ['GRID'] },
+        { service_id: 'DEMO-DOC-006', domains: ['CLOUD'] },
+        { service_id: 'DEMO-OBS-007', domains: ['RELAY', 'CLOUD', 'GRID'] },
+        { service_id: 'DEMO-LEG-008', domains: ['GRID'] },
     ];
     for (const entry of entries) {
         for (const domain of entry.domains) {
@@ -517,6 +809,13 @@ async function seedRoleAssignments(pool) {
         { service_id: 'DEMO-DAP-003', role_code: 'service_owner',             display_name: 'David Procházka', email: 'david.prochazka@example.org', organization_name: 'CDO Department' },
         { service_id: 'DEMO-DAP-003', role_code: 'service_delivery_manager',  display_name: 'Eva Kratochvíl', email: 'eva.kratochvil@example.org',  organization_name: 'CDO Department' },
         { service_id: 'DEMO-DAP-003', role_code: 'service_area_owner',        display_name: 'Ondřej Fiala',  email: 'ondrej.fiala@example.org',   organization_name: 'Directorate J9' },
+
+        { service_id: 'DEMO-RPA-004', role_code: 'service_owner',             display_name: 'Nina Automation', email: 'nina.automation@example.org', organization_name: 'Automation CoE' },
+        { service_id: 'DEMO-RPA-004', role_code: 'service_delivery_manager',  display_name: 'Pavel Workflow', email: 'pavel.workflow@example.org', organization_name: 'Automation CoE' },
+        { service_id: 'DEMO-LRG-005', role_code: 'service_owner',             display_name: 'David Procházka', email: 'david.prochazka@example.org', organization_name: 'CDO Department' },
+        { service_id: 'DEMO-OBS-007', role_code: 'service_owner',             display_name: 'Karel Novák', email: 'karel.novak@example.org', organization_name: 'CIS Department' },
+        { service_id: 'DEMO-OBS-007', role_code: 'service_delivery_manager',  display_name: 'Olga Signals', email: 'olga.signals@example.org', organization_name: 'Platform Operations' },
+        { service_id: 'DEMO-LEG-008', role_code: 'service_owner',             display_name: 'Ondřej Fiala', email: 'ondrej.fiala@example.org', organization_name: 'Directorate J9' },
     ];
     for (const r of roles) {
         await safeQuery(pool, `
@@ -531,17 +830,8 @@ async function seedRoleAssignments(pool) {
 }
 
 // ── 4. PRICING FLAVOURS ─────────────────────────────────────────────────────────
-async function seedFlavours(pool) {
-    // Restore soft-deleted demo flavours first so upsert finds active records.
-    await safeQuery(pool, `
-        UPDATE data.service_flavour sf
-        SET is_deleted = FALSE, updated_at = CURRENT_TIMESTAMP
-        FROM data.service_catalog sc
-        WHERE sf.service_id = sc.id
-          AND sc.service_id IN ('DEMO-PIS-001', 'DEMO-IAM-002', 'DEMO-DAP-003')
-          AND sf.is_deleted = TRUE
-    `, [], 'flavours:restore-soft-deleted');
-    const flavours = [
+function buildDemoFlavours() {
+    return [
         // PIS
         { service_id: 'DEMO-PIS-001', flavour_code: 'PIS-BASIC',    title: 'Basic',      service_unit: 'Instance', price_value: 2500,  currency_code: 'EUR', billing_period_code: 'MONTHLY',  initiation_cost: 5000,  lifecycle_cost: 30000, lifetime_years: 3, is_orderable: true,  display_order: 1, short_note: 'Základní instance pro testovací prostředí' },
         { service_id: 'DEMO-PIS-001', flavour_code: 'PIS-STD',      title: 'Standard',   service_unit: 'Instance', price_value: 8500,  currency_code: 'EUR', billing_period_code: 'MONTHLY',  initiation_cost: 15000, lifecycle_cost: 102000, lifetime_years: 3, is_orderable: true,  display_order: 2, short_note: 'HA instance pro produkční nasazení' },
@@ -556,7 +846,24 @@ async function seedFlavours(pool) {
         { service_id: 'DEMO-DAP-003', flavour_code: 'DAP-STARTER',  title: 'Starter',    service_unit: 'Compute-hour', price_value: 0.8, currency_code: 'EUR', billing_period_code: 'HOURLY',  initiation_cost: 3000,  lifecycle_cost: null, lifetime_years: null, is_orderable: true,  display_order: 1, short_note: 'Shared cluster, max 4 vCPU, 16 GB RAM' },
         { service_id: 'DEMO-DAP-003', flavour_code: 'DAP-BUS',      title: 'Business',   service_unit: 'Compute-hour', price_value: 1.5, currency_code: 'EUR', billing_period_code: 'HOURLY',  initiation_cost: 6000,  lifecycle_cost: null, lifetime_years: null, is_orderable: true,  display_order: 2, short_note: 'Dedikovaný cluster, BI dashboardy, až 16 vCPU' },
         { service_id: 'DEMO-DAP-003', flavour_code: 'DAP-ML',       title: 'ML',         service_unit: 'Compute-hour', price_value: 3.2, currency_code: 'EUR', billing_period_code: 'HOURLY',  initiation_cost: 15000, lifecycle_cost: null, lifetime_years: null, is_orderable: true,  display_order: 3, short_note: 'GPU cluster pro ML/AI workloady' },
+        // Governance cockpit additions
+        { service_id: 'DEMO-RPA-004', flavour_code: 'RPA-STD',      title: 'Standard Automation', service_unit: 'Workflow/month', price_value: 750, currency_code: 'EUR', billing_period_code: 'MONTHLY', initiation_cost: 2500, lifecycle_cost: null, lifetime_years: null, is_orderable: true, display_order: 1, short_note: 'Managed automation workflow' },
+        { service_id: 'DEMO-RPA-004', flavour_code: 'RPA-ENT',      title: 'Enterprise Automation', service_unit: 'Workflow/month', price_value: 1600, currency_code: 'EUR', billing_period_code: 'MONTHLY', initiation_cost: 5000, lifecycle_cost: null, lifetime_years: null, is_orderable: true, display_order: 2, short_note: 'High-control workflow with audit evidence' },
+        { service_id: 'DEMO-OBS-007', flavour_code: 'OBS-STD',      title: 'Standard Observability', service_unit: 'Service/month', price_value: 120, currency_code: 'EUR', billing_period_code: 'MONTHLY', initiation_cost: 1000, lifecycle_cost: null, lifetime_years: null, is_orderable: true, display_order: 1, short_note: 'Core telemetry and alerting' },
     ];
+}
+
+async function seedFlavours(pool) {
+    // Restore soft-deleted demo flavours first so upsert finds active records.
+    await safeQuery(pool, `
+        UPDATE data.service_flavour sf
+        SET is_deleted = FALSE, updated_at = CURRENT_TIMESTAMP
+        FROM data.service_catalog sc
+        WHERE sf.service_id = sc.id
+          AND sc.service_id LIKE 'DEMO-%'
+          AND sf.is_deleted = TRUE
+    `, [], 'flavours:restore-soft-deleted');
+    const flavours = buildDemoFlavours();
 
     for (const f of flavours) {
         await safeQuery(pool, `
@@ -622,16 +929,22 @@ async function seedFlavourSla(pool) {
 }
 
 // ── 5. SERVICE RELATIONSHIPS ─────────────────────────────────────────────────────
-async function seedRelations(pool) {
-    const relations = [
+function buildDemoRelations() {
+    return [
         { from: 'DEMO-PIS-001', to: 'DEMO-IAM-002', type: 'depends_on',  label: 'API autentizace',      pace_code: 'SYS',  is_mandatory: true,  impact_level: 'high',   note: 'Každý API call přes PIS vyžaduje IAM token validaci.' },
         { from: 'DEMO-DAP-003', to: 'DEMO-PIS-001', type: 'prerequisite',label: 'Ingestion pipeline',    pace_code: 'SYS',  is_mandatory: true,  impact_level: 'high',   note: 'Bez integrační vrstvy PIS není možné naplnit analytickou platformu.' },
         { from: 'DEMO-DAP-003', to: 'DEMO-IAM-002', type: 'underlying',  label: 'SSO trust',            pace_code: 'SYS',  is_mandatory: true,  impact_level: 'medium', note: 'IAM poskytuje podkladovou autentizaci pro analytický portál.' },
         { from: 'DEMO-IAM-002', to: 'DEMO-PIS-001', type: 'provided_by', label: 'Token distribution',   pace_code: 'DIFF', is_mandatory: false, impact_level: 'medium', note: 'IAM distribuuje JWT tokeny přes PIS event bus.' },
         { from: 'DEMO-PIS-001', to: 'DEMO-DAP-003', type: 'related_to',  label: 'Data publishing',      pace_code: 'COMM', is_mandatory: false, impact_level: 'low',    note: 'PIS publikuje integrační události, které DAP dále zpracovává.' },
         { from: 'DEMO-IAM-002', to: 'DEMO-DAP-003', type: 'replaces',    label: 'Legacy BI access',     pace_code: 'INNOV',is_mandatory: false, impact_level: 'medium', note: 'Nové IAM scénáře nahrazují starý přístup do BI portálu.' },
+        { from: 'DEMO-OBS-007', to: 'DEMO-RPA-004', type: 'depends_on',  label: 'Automation telemetry', pace_code: 'SYS',  is_mandatory: true,  impact_level: 'medium', note: 'Observability consumes automation execution telemetry.' },
+        { from: 'DEMO-RPA-004', to: 'DEMO-DAP-003', type: 'depends_on',  label: 'Decision analytics',   pace_code: 'SYS',  is_mandatory: true,  impact_level: 'medium', note: 'Automation review queues use analytics outputs from DAP.' },
+        { from: 'DEMO-LRG-005', to: 'DEMO-DAP-003', type: 'replaces',    label: 'Analytics migration',  pace_code: 'COMM', is_mandatory: false, impact_level: 'high',   note: 'Legacy reporting is being replaced by the analytics platform.' },
     ];
+}
 
+async function seedRelations(pool) {
+    const relations = buildDemoRelations();
     for (const rel of relations) {
         await safeQuery(pool, `
             INSERT INTO data.service_relation (
@@ -659,6 +972,8 @@ async function seedC3Taxonomy(pool) {
         { uuid: DEMO_UUIDS.CAP_CR, item_type: 'CR', external_id: 'DEMO-CR-001', title: '[DEMO] Core Service — Analytics',          short_title: 'Analytics',            item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo core service for data analytics and reporting.' },
         { uuid: DEMO_UUIDS.CAP_IP, item_type: 'IP', external_id: 'DEMO-IP-001', title: '[DEMO] Information Product — Ops Dashboard', short_title: 'Ops Dashboard',       item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo information product: operational dashboard.' },
         { uuid: DEMO_UUIDS.CAP_UA, item_type: 'UA', external_id: 'DEMO-UA-001', title: '[DEMO] User Application — Analytics Portal', short_title: 'Analytics Portal',    item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo user application: self-service analytics portal.' },
+        { uuid: DEMO_UUIDS.CAP_RPA, item_type: 'CP', external_id: 'DEMO-CP-004', title: '[DEMO] Capability — Process Automation', short_title: 'Process Automation', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo capability with incomplete primary mapping to show readiness blockers.' },
+        { uuid: DEMO_UUIDS.CAP_GAP, item_type: 'CP', external_id: 'DEMO-CP-999', title: '[DEMO] Capability — Uncovered Mission Workflow', short_title: 'Uncovered Workflow', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo uncovered capability intentionally left without service mapping.' },
         { uuid: DEMO_UUIDS.CAP_BP_L4, item_type: 'BP', external_id: 'DEMO-BP-010', title: '[DEMO] Integration Workflow Orchestration', short_title: 'Workflow Orchestration', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo L4 business process showing orchestration of integration workflows.', parent_uuid: DEMO_UUIDS.CAP_BP },
         { uuid: DEMO_UUIDS.CAP_CI_L4, item_type: 'CI', external_id: 'DEMO-CI-010', title: '[DEMO] Federated Identity Brokerage', short_title: 'Identity Brokerage', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo L4 COI service showing federated identity brokerage.', parent_uuid: DEMO_UUIDS.CAP_CI },
         { uuid: DEMO_UUIDS.CAP_UA_L4, item_type: 'UA', external_id: 'DEMO-UA-010', title: '[DEMO] Commander Insight Portal', short_title: 'Commander Portal', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo L4 user application showing command insights and BI views.', parent_uuid: DEMO_UUIDS.CAP_UA },
@@ -666,8 +981,8 @@ async function seedC3Taxonomy(pool) {
 
     for (const item of items) {
         await safeQuery(pool, `
-            INSERT INTO data.c3_taxonomy (uuid, item_type, external_id, title, abbreviation, item_status, description, parent_uuid)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO data.c3_taxonomy (uuid, item_type, external_id, title, abbreviation, item_status, description, parent_uuid, level_num, fmn_spiral)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (uuid) DO UPDATE SET
                 external_id = EXCLUDED.external_id,
                 title = EXCLUDED.title,
@@ -675,8 +990,10 @@ async function seedC3Taxonomy(pool) {
                 item_status = EXCLUDED.item_status,
                 description = EXCLUDED.description,
                 parent_uuid = EXCLUDED.parent_uuid,
+                level_num = EXCLUDED.level_num,
+                fmn_spiral = EXCLUDED.fmn_spiral,
                 synced_at = CURRENT_TIMESTAMP
-        `, [item.uuid, item.item_type, item.external_id, item.title, item.short_title, item.item_status, item.description, item.parent_uuid ?? null], `c3_taxonomy:${item.external_id}`);
+        `, [item.uuid, item.item_type, item.external_id, item.title, item.short_title, item.item_status, item.description, item.parent_uuid ?? null, item.parent_uuid ? 4 : 3, item.fmn_spiral ?? null], `c3_taxonomy:${item.external_id}`);
     }
     logger.info('demo-seed: c3_taxonomy OK');
 }
@@ -853,8 +1170,8 @@ async function seedC3Entities(pool) {
 }
 
 // ── 8. SERVICE → C3 MAPPING ──────────────────────────────────────────────────────
-async function seedServiceC3Mapping(pool) {
-    const mappings = [
+function buildDemoServiceC3Mappings() {
+    return [
         // DEMO-PIS-001
         { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'COMM',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'PIS podporuje integrační business procesy.' },
         { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'SYS',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'PIS podporuje roli integračního architekta.' },
@@ -882,12 +1199,19 @@ async function seedServiceC3Mapping(pool) {
         { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'primary',     pace: 'DIFF',  level: 3, domain: 'CoreServices',            is_primary: true,  note: 'DAP realizuje core analytics service.' },
         { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'implements',  pace: 'DIFF',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'DAP produkuje information products a dashboardy.' },
         { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'INNOV', level: 3, domain: 'UserApplications',        is_primary: false, note: 'DAP poskytuje self-service analytics portal.' },
+        // governance cockpit additions
+        { service_id: 'DEMO-RPA-004', c3_uuid: DEMO_UUIDS.CAP_RPA, type: 'primary', pace: 'INNOV', level: 3, domain: 'Capabilities', is_primary: true, note: 'RPA maps to an intentionally incomplete capability for readiness demo.' },
+        { service_id: 'DEMO-OBS-007', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports', pace: 'SYS', level: 3, domain: 'Capabilities', is_primary: false, note: 'Observability adds over-coverage to the platform capability.' },
+        { service_id: 'DEMO-LRG-005', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports', pace: 'COMM', level: 3, domain: 'CoreServices', is_primary: false, note: 'Legacy reporting remains a duplicate support path until retired.' },
         // explicit demo L4 capability content for capability maps
         { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP_L4, type: 'implements', pace: 'SYS', level: 4, domain: 'BusinessProcesses', is_primary: false, note: 'PIS automatizuje workflow orchestration integračních procesů.' },
         { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI_L4, type: 'implements', pace: 'DIFF', level: 4, domain: 'COIServices', is_primary: false, note: 'IAM zajišťuje federated identity brokerage mezi doménami.' },
         { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA_L4, type: 'implements', pace: 'INNOV', level: 4, domain: 'UserApplications', is_primary: false, note: 'DAP napájí commander insight portal živými dashboardy.' },
     ];
+}
 
+async function seedServiceC3Mapping(pool) {
+    const mappings = buildDemoServiceC3Mappings();
     for (const m of mappings) {
         await safeQuery(pool, `
             INSERT INTO data.service_c3_mapping (
@@ -1021,6 +1345,87 @@ async function seedCapabilityEntityLinks(pool) {
     logger.info('demo-seed: capability entity links OK');
 }
 
+function buildDemoGovernanceFixtures() {
+    return {
+        readinessExceptions: [
+            {
+                service_id: 'DEMO-RPA-004',
+                rule_key: 'requestable_service_has_pricing',
+                reason: 'Demo exception: pricing is approved during pilot automation governance.',
+                expires_at: '2026-06-30T00:00:00Z',
+                approved_by: 'governance-board@example.org',
+            },
+        ],
+        reviews: [
+            { service_id: 'DEMO-DOC-006', review_type: 'publish_readiness', status: 'pending', requested_by: 'demo-seed', assigned_to: 'workspace.owner@example.org', due_at: '2026-05-03T00:00:00Z' },
+            { service_id: 'DEMO-RPA-004', review_type: 'automation_governance', status: 'in_review', requested_by: 'demo-seed', assigned_to: 'nina.automation@example.org', due_at: '2026-05-14T00:00:00Z' },
+            { service_id: 'DEMO-LRG-005', review_type: 'retirement_plan', status: 'in_review', requested_by: 'demo-seed', assigned_to: 'david.prochazka@example.org', due_at: '2026-05-20T00:00:00Z' },
+            { service_id: 'DEMO-OBS-007', review_type: 'mission_critical_review', status: 'approved', requested_by: 'demo-seed', assigned_to: 'karel.novak@example.org', due_at: '2026-04-20T00:00:00Z', completed_at: '2026-04-21T00:00:00Z' },
+        ],
+        decisions: [
+            { service_id: 'DEMO-OBS-007', decision_type: 'publish', decision: 'approved', rationale: 'Mission-critical observability service has owner, SLA, and dependency evidence.', decided_by: 'governance-board@example.org', decided_at: '2026-04-21T10:00:00Z' },
+            { service_id: 'DEMO-RPA-004', decision_type: 'publish', decision: 'deferred', rationale: 'Primary capability mapping is incomplete until automation capability evidence is connected.', decided_by: 'governance-board@example.org', decided_at: '2026-04-22T10:00:00Z' },
+            { service_id: 'DEMO-LRG-005', decision_type: 'retirement', decision: 'approved', rationale: 'Legacy gateway can retire after final report consumers migrate to DAP.', decided_by: 'governance-board@example.org', decided_at: '2026-04-23T10:00:00Z' },
+            { service_id: 'DEMO-DOC-006', decision_type: 'publish', decision: 'rejected', rationale: 'Service owner and SLA evidence are missing.', decided_by: 'governance-board@example.org', decided_at: '2026-04-24T10:00:00Z' },
+        ],
+    };
+}
+
+async function seedGovernanceWorkflow(pool) {
+    const fixtures = buildDemoGovernanceFixtures();
+    for (const item of fixtures.readinessExceptions) {
+        await safeQuery(pool, `
+            INSERT INTO data.readiness_exception (service_id, rule_key, reason, expires_at, approved_by)
+            SELECT sc.id, $2, $3, $4, $5
+            FROM data.service_catalog sc
+            WHERE sc.service_id = $1 AND sc.is_deleted = FALSE
+            ON CONFLICT (service_id, rule_key) DO UPDATE SET
+                reason = EXCLUDED.reason,
+                expires_at = EXCLUDED.expires_at,
+                approved_by = EXCLUDED.approved_by
+        `, [item.service_id, item.rule_key, item.reason, item.expires_at, item.approved_by], `readiness_exception:${item.service_id}:${item.rule_key}`);
+    }
+
+    for (const review of fixtures.reviews) {
+        await safeQuery(pool, `
+            INSERT INTO data.governance_review (
+                service_id, review_type, status, requested_by, assigned_to, due_at, completed_at
+            )
+            SELECT sc.id, $2::varchar(80), $3::varchar(40), $4::varchar(255), $5::varchar(255), $6::timestamptz, $7::timestamptz
+            FROM data.service_catalog sc
+            WHERE sc.service_id = $1 AND sc.is_deleted = FALSE
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM data.governance_review existing
+                  WHERE existing.service_id = sc.id
+                    AND existing.review_type = $2::varchar(80)
+                    AND existing.status = $3::varchar(40)
+              )
+        `, [review.service_id, review.review_type, review.status, review.requested_by, review.assigned_to, review.due_at, review.completed_at ?? null], `governance_review:${review.service_id}:${review.review_type}`);
+    }
+
+    for (const decision of fixtures.decisions) {
+        await safeQuery(pool, `
+            INSERT INTO data.governance_decision (
+                service_id, decision_type, decision, rationale, decided_by, decided_at
+            )
+            SELECT sc.id, $2::varchar(80), $3::varchar(40), $4::text, $5::varchar(255), $6::timestamptz
+            FROM data.service_catalog sc
+            WHERE sc.service_id = $1 AND sc.is_deleted = FALSE
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM data.governance_decision existing
+                  WHERE existing.service_id = sc.id
+                    AND existing.decision_type = $2::varchar(80)
+                    AND existing.decision = $3::varchar(40)
+                    AND existing.decided_at = $6::timestamptz
+              )
+        `, [decision.service_id, decision.decision_type, decision.decision, decision.rationale, decision.decided_by, decision.decided_at], `governance_decision:${decision.service_id}:${decision.decision_type}`);
+    }
+
+    logger.info('demo-seed: governance workflow OK');
+}
+
 // ── MAIN EXPORT ──────────────────────────────────────────────────────────────────
 async function seedDemoData(pool, options = {}) {
     logger.info('demo-seed: starting demo data seeding...');
@@ -1028,6 +1433,8 @@ async function seedDemoData(pool, options = {}) {
         const locale = resolveDemoSeedLocale(options?.locale);
         await seedReferenceData(pool);
         await seedServices(pool, locale);
+        await seedPortfolioAssignments(pool);
+        await seedOfferings(pool);
         await seedDomainAvailability(pool);
         await seedRoleAssignments(pool);
         await seedFlavours(pool);
@@ -1039,7 +1446,8 @@ async function seedDemoData(pool, options = {}) {
         await seedC3Entities(pool);
         await seedServiceC3Mapping(pool);
         await seedCapabilityEntityLinks(pool);
-        logger.info('demo-seed: ✅ done — 3 demo services + C3 links created');
+        await seedGovernanceWorkflow(pool);
+        logger.info('demo-seed: ✅ done — 8 demo services + governance cockpit fixtures created');
         return { ok: true };
     } catch (err) {
         logger.error(`demo-seed: ❌ failed — ${err.message}`);
@@ -1105,13 +1513,29 @@ async function removeDemoData(pool) {
             DELETE FROM data.service_sla
             WHERE service_id IN (
                 SELECT id FROM data.service_catalog
-                WHERE service_id IN ('DEMO-PIS-001', 'DEMO-IAM-002', 'DEMO-DAP-003')
+                WHERE service_id LIKE 'DEMO-%'
             ) AND source_field = 'demo-seed'
         `, [], 'service_sla:remove');
+        await safeQuery(pool, `
+            DELETE FROM data.readiness_exception
+            WHERE service_id IN (SELECT id FROM data.service_catalog WHERE service_id LIKE 'DEMO-%')
+        `, [], 'readiness_exception:remove');
+        await safeQuery(pool, `
+            DELETE FROM data.governance_decision
+            WHERE service_id IN (SELECT id FROM data.service_catalog WHERE service_id LIKE 'DEMO-%')
+        `, [], 'governance_decision:remove');
+        await safeQuery(pool, `
+            DELETE FROM data.governance_review
+            WHERE service_id IN (SELECT id FROM data.service_catalog WHERE service_id LIKE 'DEMO-%')
+        `, [], 'governance_review:remove');
+        await safeQuery(pool, `
+            DELETE FROM data.service_offering
+            WHERE service_id IN (SELECT id FROM data.service_catalog WHERE service_id LIKE 'DEMO-%')
+        `, [], 'service_offering:remove');
         // Services
         await pool.query(`
             UPDATE data.service_catalog SET is_deleted = TRUE
-            WHERE service_id IN ('DEMO-PIS-001', 'DEMO-IAM-002', 'DEMO-DAP-003')
+            WHERE service_id LIKE 'DEMO-%'
         `);
         logger.info('demo-seed: ✅ demo data removed');
         return { ok: true };
@@ -1121,4 +1545,15 @@ async function removeDemoData(pool) {
     }
 }
 
-module.exports = { seedDemoData, removeDemoData, DEMO_UUIDS, buildDemoServices, resolveDemoSeedLocale };
+module.exports = {
+    seedDemoData,
+    removeDemoData,
+    DEMO_UUIDS,
+    buildDemoFlavours,
+    buildDemoGovernanceFixtures,
+    buildDemoOfferings,
+    buildDemoRelations,
+    buildDemoServiceC3Mappings,
+    buildDemoServices,
+    resolveDemoSeedLocale,
+};

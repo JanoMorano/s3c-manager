@@ -16,7 +16,6 @@ output/
 improvement/
 .superpowers/
 docs/superpowers
-dev/
 
 # Playwright/runtime test artifacts
 frontend/test-results/

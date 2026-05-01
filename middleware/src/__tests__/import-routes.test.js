@@ -147,6 +147,22 @@ describe('import routes', () => {
         expect(relRepo.create).toHaveBeenCalled();
     });
 
+    test('GET /profiles lists governance import profiles', async () => {
+        const router = require('../routes/import');
+        const app = express();
+        app.use('/api/v1/import', router);
+
+        const response = await request(app)
+            .get('/api/v1/import/profiles');
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toEqual(expect.arrayContaining([
+            expect.objectContaining({ key: 's3c-service-catalogue-json', mode: 'direct' }),
+            expect.objectContaining({ key: 'backstage-catalog-info', mode: 'direct' }),
+            expect.objectContaining({ key: 'itop-reference', mode: 'reference' }),
+        ]));
+    });
+
     test('POST /services/dry-run returns preflight summary and stores contract report', async () => {
         const importRepo = require('../db/import.repo');
         const router = require('../routes/import');
@@ -184,6 +200,56 @@ describe('import routes', () => {
         }));
     });
 
+    test('POST /services/dry-run accepts Backstage catalog-info profile', async () => {
+        const importRepo = require('../db/import.repo');
+        const router = require('../routes/import');
+        const app = express();
+        app.use(express.json());
+        app.use('/api/v1/import', router);
+
+        const response = await request(app)
+            .post('/api/v1/import/services/dry-run?profile=backstage-catalog-info')
+            .send({
+                source_name: 'catalog-info.yaml',
+                catalog_info_yaml: [
+                    'apiVersion: backstage.io/v1alpha1',
+                    'kind: Component',
+                    'metadata:',
+                    '  name: identity-access-management',
+                    '  title: Identity Access Management',
+                    '  annotations:',
+                    '    s3c/service-id: SVC-IAM',
+                    'spec:',
+                    '  type: service',
+                    '  lifecycle: production',
+                    '  owner: group:identity-platform',
+                    '  system: mission-access',
+                ].join('\n'),
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.profile_key).toBe('backstage-catalog-info');
+        expect(response.body.item_count).toBe(1);
+        expect(response.body.source_kind).toBe('backstage-catalog-info');
+        expect(importRepo.createContractReport).toHaveBeenCalledWith(expect.objectContaining({
+            sourceKind: 'backstage-catalog-info',
+        }));
+    });
+
+    test('POST /services/dry-run rejects unsupported import profile', async () => {
+        const router = require('../routes/import');
+        const app = express();
+        app.use(express.json());
+        app.use('/api/v1/import', router);
+
+        const response = await request(app)
+            .post('/api/v1/import/services/dry-run?profile=unknown-profile')
+            .send({ items: [{ service_id: 'SVC-1', title: 'Service One' }] });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain('Unsupported import profile');
+    });
+
     test('POST /services returns a localized missing-required error from accept-language', async () => {
         const router = require('../routes/import');
         const app = express();
@@ -210,7 +276,7 @@ describe('import routes', () => {
         app.use('/api/v1/import', router);
 
         const response = await request(app)
-            .post('/api/v1/import/services/csv/dry-run?source_name=services.csv')
+            .post('/api/v1/import/services/csv/dry-run?source_name=services.csv&profile=s3c-service-catalogue-csv')
             .set('Content-Type', 'text/csv')
             .send([
                 'service_id,title,portfolio_group_code,service_type,service_status,prerequisites_json',
@@ -218,11 +284,13 @@ describe('import routes', () => {
             ].join('\n'));
 
         expect(response.status).toBe(200);
+        expect(response.body.profile_key).toBe('s3c-service-catalogue-csv');
         expect(response.body.source_name).toBe('services.csv');
+        expect(response.body.source_kind).toBe('s3c-service-catalogue-csv');
         expect(response.body.stub_count).toBe(1);
         expect(response.body.source_hash_sha256).toMatch(/^[a-f0-9]{64}$/);
         expect(importRepo.createContractReport).toHaveBeenCalledWith(expect.objectContaining({
-            sourceKind: 'csv',
+            sourceKind: 's3c-service-catalogue-csv',
         }));
     });
 

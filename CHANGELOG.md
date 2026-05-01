@@ -11,6 +11,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 No unreleased changes yet.
 
+## [1.1.2] — 2026-05-01
+
+### Added
+- Service relationship studio on service detail pages with manager summary, readiness status, admin action queue, relationship map, C3 links, support path, and key service facts.
+- C3 dashboard relationship board with mapped coverage, unmapped evidence queue, import sync drift, validation findings, and taxonomy-to-impact story.
+- Capability hub and capability detail relationship views for coverage, gaps, services, spirals, overlaps, evidence documents, and plain-language next actions.
+- Frontend route documentation under `docs/desctiption/` for the application page surface.
+
+### Changed
+- Service, C3, and capability pages now use a shared B/C hybrid UX: manager-readable context first, admin work queue second, detailed tabs preserved underneath.
+- Product/runtime defaults, visible Help badge, package metadata, Docker Compose, Portainer stack, install fallback, and platform seed version aligned to `1.1.2`.
+- README release highlights now describe the Service Relationship Studio and capability governance UX.
+
+### Fixed
+- Kept the redesign within the existing API/data model and verified the affected Next.js routes compile in the production build.
+
 ## [1.1.1] — 2026-04-28
 
 ### Added
@@ -99,7 +115,8 @@ No unreleased changes yet.
 - Design tokens — CSS custom properties for color, spacing, radius, and typography
 - Dashboard — KPI tiles, distribution charts, and review due lists
 
-[Unreleased]: https://github.com/example/service-catalogue/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/example/service-catalogue/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/example/service-catalogue/releases/tag/v1.1.2
 [1.1.1]: https://github.com/example/service-catalogue/releases/tag/v1.1.1
 [1.1.0]: https://github.com/example/service-catalogue/releases/tag/v1.1.0
 [1.0.2]: https://github.com/example/service-catalogue/releases/tag/v1.0.2

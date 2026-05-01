@@ -22,6 +22,7 @@ INIT_WITH_TEST_SEEDS=true
 INIT_WITH_C3_ENTITY_SEEDS=true
 INIT_WITH_C3_BASELINE_TAXONOMY_SEED=true
 INIT_WITH_C3_CAPABILITY_MAP_SEED=true
+DEMO_SEED_LOCALE=en
 ```
 
 Then start the stack:
@@ -32,12 +33,16 @@ docker compose up -d
 
 ## What the Demo Data Includes
 
-- sample services in the catalogue
-- relations and flavours
-- SLA, ownership, and availability
+- 8 sample services across `active`, `planned`, `draft`, `deprecated`, and `retired`
+- 3 demo portfolios: shared services, security services, and data services
+- 12 service offerings and 12 pricing flavours
+- owner assignments across more than 6 people/groups, including one intentionally ownerless draft service
+- relations, SLA, ownership, availability, and a 3-level impact chain: Observability → Process Automation → Data Analytics → Platform Integration
 - C3 entities
 - Spiral 6 and Spiral 7 capability maps
-- a service dependency graph for a single service
+- capability coverage examples: uncovered capability, over-covered capability, primary mapping, supporting mapping, and incomplete mapping
+- readiness blockers and one readiness exception
+- governance reviews and decision log examples
 
 ## Recommended Demo Paths
 
@@ -45,7 +50,16 @@ docker compose up -d
 
 1. Open `/services/list`
 2. Open a service detail
-3. Switch to `Service Dependency Graph`
+3. Inspect `Readiness`, `Governance`, `Capabilities`, and `Dependencies` in Service 360
+4. Switch to `Service Dependency Graph`
+
+### Governance Cockpit
+
+1. Open `/operations`
+2. Review readiness, capability coverage, review deadlines, owner load, and recent decisions
+3. Open `/operations/readiness`
+4. Find the draft collaboration service blocker and the automation service exception
+5. Open `/operations/reviews` and `/operations/decisions`
 
 ### C3
 
@@ -53,6 +67,13 @@ docker compose up -d
 2. Open `/c3/capability-map-spiral7`
 3. Open `/c3/capability-map-spiral6`
 4. Open `/c3/graph`
+
+### Capability And Impact
+
+1. Open `/capabilities/coverage`
+2. Open `/capabilities/gaps` to see the uncovered demo capability
+3. Open `/capabilities/overlaps` to see duplicated service support
+4. Open `/services/impact` and run impact analysis from `DEMO-OBS-007`
 
 ### Imports
 

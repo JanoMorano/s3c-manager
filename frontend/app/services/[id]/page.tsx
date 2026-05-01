@@ -13,7 +13,7 @@ import Link from '@/app/components/AppLink';
 import { useSWRConfig } from 'swr';
 import { useInstallStatus } from '@/features/install/installStatus';
 import {
-  useService, useServiceSla, useServiceScore, useServiceRoles, useServiceC3Mappings,
+  useService, useServiceOverview, useServiceSla, useServiceScore, useServiceRoles, useServiceC3Mappings,
   useServiceFrameworks,
   type ServiceC3Mapping,
 } from '@/features/services/hooks/useServices';
@@ -25,6 +25,7 @@ import { SlaPanel }          from '@/features/services/components/SlaPanel';
 import { Surface } from '@/design-system/primitives';
 import { Button }  from '@/design-system/controls/Button';
 import { EmptyState, ProgressBar } from '@/design-system/controls';
+import { useGovernanceDecisions, useGovernanceReviews } from '@/features/governance/hooks/useGovernance';
 import type {
   ScoreBreakdownItem,
   ServiceAudiencePolicy,
@@ -33,6 +34,8 @@ import type {
   ServiceRoleAssignment,
   ServiceSupportModel,
   ServiceFrameworkCoverage,
+  ServiceOverview,
+  ServiceDetail,
 } from '@/features/services/model/service.types';
 import { authHeaders } from '@/features/services/api/services.api';
 import { safeHref } from '@/shared/utils/safeHref';
@@ -45,6 +48,7 @@ export default function ServiceDetailPage({ params }: Props) {
   const { id } = use(params);
   const { c3Visible } = useInstallStatus();
   const { data: svc, isLoading, error } = useService(id);
+  const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useServiceOverview(id);
   const { data: slaData } = useServiceSla(id);
   const { data: scoreData } = useServiceScore(id);
   const { data: rolesData } = useServiceRoles(id);
@@ -62,6 +66,7 @@ export default function ServiceDetailPage({ params }: Props) {
   const summarySourceUrl = safeHref(svc.source_url);
   const footerSourceUrl = safeHref(svc.source_url);
   const businessView = svc.business_view;
+  const overview = overviewData?.item ?? null;
   const technicalView = svc.technical_view;
   const businessSummary = businessView?.business_summary ?? svc.business_summary ?? svc.summary;
   const consumerValue = businessView?.consumer_value ?? svc.consumer_value ?? null;
@@ -108,79 +113,21 @@ export default function ServiceDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* ── Header (L1 Identity) ─────────────────────────────────────────── */}
-      <header className={styles.header}>
-        <div className={styles.headerMeta}>
-          <span className={styles.serviceId}>{svc.service_id}</span>
-          {svc.service_type && <span className={styles.typeChip}>{svc.service_type}</span>}
-        </div>
-        <div className={styles.headerMain}>
-          <h1 className={styles.title}>{svc.title}</h1>
-          <div className={styles.headerActions}>
-            <InlineStatusPill id={id} status={svc.service_status ?? 'draft'} />
-            <Link href={`/services/${id}/edit`}><Button size="sm">Edit</Button></Link>
-          </div>
-        </div>
-      </header>
-
-      <section className={styles.hero}>
-        <div className={styles.heroIntro}>
-          <div className={styles.heroEyebrow}>Business view</div>
-          <h2 className={styles.heroTitle}>
-            {businessSummary ?? svc.value_proposition ?? svc.summary ?? 'Service overview'}
-          </h2>
-          <p className={styles.heroBody}>
-            {svc.value_proposition ?? svc.business_purpose ?? svc.detailed_description ?? 'This service record is ready for business-facing enrichment.'}
-          </p>
-          <div className={styles.heroActions}>
-            {requestHref ? (
-              <a href={requestHref} target="_blank" rel="noreferrer" className={styles.primaryAction}>
-                Request service
-              </a>
-            ) : (
-              <button type="button" className={styles.primaryActionMuted} disabled>
-                Request path not configured
-              </button>
-            )}
-            <a href={supportAnchor} className={styles.secondaryAction}>View support</a>
-            <a href={governanceAnchor} className={styles.secondaryAction}>Open governance</a>
-            {summarySourceUrl && (
-              <a href={summarySourceUrl} target="_blank" rel="noreferrer" className={styles.secondaryAction}>
-                Source page ↗
-              </a>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.heroFacts}>
-          {overviewFacts.map((fact) =>
-            fact.label === 'Lifecycle' ? (
-              <div key={fact.label} className={styles.heroFact}>
-                <span className={styles.heroFactLabel}>{fact.label}</span>
-                <LifecycleBadge state={lifecycleState} fallback={fact.value} />
-              </div>
-            ) : (
-              <div key={fact.label} className={styles.heroFact}>
-                <span className={styles.heroFactLabel}>{fact.label}</span>
-                <span className={styles.heroFactValue}>{fact.value}</span>
-              </div>
-            )
-          )}
-        </div>
-      </section>
-
-      <div className={styles.summaryStrip}>
-        <SummaryItem label="Availability">
-          <AvailabilityBadge pct={svc.sla_availability} />
-        </SummaryItem>
-        <SummaryItem label="Portfolio">{svc.portfolio_group ?? '—'}</SummaryItem>
-        <SummaryItem label="Domains">
-          <DomainDotGroup domains={svc.available_on} />
-        </SummaryItem>
-        <SummaryItem label="Owner">{svc.service_owner ?? '—'}</SummaryItem>
-        <SummaryItem label="Support">{supportModels[0]?.support_owner_name ?? svc.vlastnik ?? '—'}</SummaryItem>
-        <SummaryItem label="Review due">{svc.next_review_due_at ? formatDate(svc.next_review_due_at) : '—'}</SummaryItem>
-      </div>
+      <RelationshipStudioHero
+        id={id}
+        service={svc}
+        overview={overview}
+        businessSummary={businessSummary}
+        consumerValue={consumerValue}
+        primaryOffering={primaryOffering}
+        supportModels={supportModels}
+        requestHref={requestHref}
+        supportAnchor={supportAnchor}
+        governanceAnchor={governanceAnchor}
+        summarySourceUrl={summarySourceUrl}
+        lifecycleState={lifecycleState}
+        overviewFacts={overviewFacts}
+      />
 
       <nav className={styles.viewNav} aria-label="Service detail views">
         {DETAIL_VIEWS.map((view) => (
@@ -203,6 +150,13 @@ export default function ServiceDetailPage({ params }: Props) {
         <div className={styles.main}>
           {activeView === 'overview' && (
             <>
+              <Service360Panel
+                overview={overview}
+                isLoading={overviewLoading}
+                error={overviewError}
+                serviceId={id}
+              />
+
               {(businessSummary || svc.detailed_description) && (
                 <Section title="Overview">
                   {businessSummary && <p className={styles.prose}>{businessSummary}</p>}
@@ -598,6 +552,352 @@ export default function ServiceDetailPage({ params }: Props) {
 }
 
 // ── Local helpers ─────────────────────────────────────────────────────────────
+type StudioActionTone = 'success' | 'warning' | 'danger' | 'info';
+
+interface StudioTask {
+  tone: StudioActionTone;
+  title: string;
+  detail: string;
+  href?: string;
+  label?: string;
+}
+
+function RelationshipStudioHero({
+  id,
+  service,
+  overview,
+  businessSummary,
+  consumerValue,
+  primaryOffering,
+  supportModels,
+  requestHref,
+  supportAnchor,
+  governanceAnchor,
+  summarySourceUrl,
+  lifecycleState,
+  overviewFacts,
+}: {
+  id: string;
+  service: ServiceDetail;
+  overview: ServiceOverview | null;
+  businessSummary: string | null | undefined;
+  consumerValue: string | null | undefined;
+  primaryOffering: ServiceOffering | null | undefined;
+  supportModels: ServiceSupportModel[];
+  requestHref: string | null;
+  supportAnchor: string;
+  governanceAnchor: string;
+  summarySourceUrl: string | null;
+  lifecycleState: string | null;
+  overviewFacts: Array<{ label: string; value: string }>;
+}) {
+  const blockers = overview?.readiness?.blockers ?? [];
+  const warnings = overview?.readiness?.warnings ?? [];
+  const relations = overview?.dependencies.total_count ?? service.relation_count ?? service.relations?.length ?? 0;
+  const mandatoryRelations = overview?.dependencies.mandatory_count ?? service.relations?.filter((item) => item.is_mandatory).length ?? 0;
+  const capabilityCount = overview?.capability_mappings.length ?? (service.c3_uuid ? 1 : 0);
+  const primaryCapability = overview?.capability_mappings.find((item) => item.is_primary) ?? overview?.capability_mappings[0] ?? null;
+  const completeness = service.completeness_score ?? (overview?.readiness?.is_publishable ? 100 : null);
+  const managerSummary = consumerValue ?? businessSummary ?? service.value_proposition ?? service.business_purpose ?? service.summary ?? 'Service record is ready for business-facing enrichment.';
+  const readinessLabel = blockers.length
+    ? `${blockers.length} blocker${blockers.length === 1 ? '' : 's'}`
+    : warnings.length
+      ? `${warnings.length} warning${warnings.length === 1 ? '' : 's'}`
+      : 'Ready to run';
+  const taskQueue = buildStudioTasks({
+    id,
+    overview,
+    service,
+    supportModels,
+    requestHref,
+    primaryOffering,
+    blockers,
+    warnings,
+    capabilityCount,
+  });
+  const mapNodes = [
+    {
+      label: 'Requester',
+      value: service.business_view?.target_audience_summary ?? service.target_audience_summary ?? 'Audience missing',
+    },
+    {
+      label: 'Owner',
+      value: overview?.owners.primary?.display_name ?? service.service_owner ?? service.vlastnik ?? 'Owner missing',
+    },
+    {
+      label: 'Support',
+      value: supportModels[0]?.support_owner_name ?? service.vlastnik ?? 'Support missing',
+    },
+    {
+      label: 'Capability',
+      value: primaryCapability?.title ?? service.c3_domain ?? service.c3_reference ?? 'C3 mapping missing',
+    },
+  ];
+
+  return (
+    <section className={styles.studioHero} aria-label="Service relationship overview">
+      <div className={styles.studioSummary}>
+        <div className={styles.studioTopline}>
+          <div className={styles.headerMeta}>
+            <span className={styles.serviceId}>{service.service_id}</span>
+            {service.service_type && <span className={styles.typeChip}>{service.service_type}</span>}
+            <InlineStatusPill id={id} status={service.service_status ?? 'draft'} />
+          </div>
+          <div className={styles.headerActions}>
+            <Link href={`/services/${id}/edit`}><Button size="sm">Edit</Button></Link>
+          </div>
+        </div>
+        <span className={styles.studioEyebrow}>Service relationship studio</span>
+        <h1 className={styles.studioTitle}>{service.title}</h1>
+        <p className={styles.studioLead}>{managerSummary}</p>
+
+        <div className={styles.studioActions}>
+          {requestHref ? (
+            <a href={requestHref} target="_blank" rel="noreferrer" className={styles.primaryAction}>
+              Request service
+            </a>
+          ) : (
+            <button type="button" className={styles.primaryActionMuted} disabled>
+              Request path missing
+            </button>
+          )}
+          <a href={supportAnchor} className={styles.secondaryAction}>Support</a>
+          <a href={governanceAnchor} className={styles.secondaryAction}>Governance</a>
+          {summarySourceUrl && (
+            <a href={summarySourceUrl} target="_blank" rel="noreferrer" className={styles.secondaryAction}>
+              Source page
+            </a>
+          )}
+        </div>
+
+        <div className={styles.studioMetricGrid} aria-label="Service headline metrics">
+          <StudioMetric value={completeness != null ? `${completeness}%` : 'N/A'} label="Completeness" detail={readinessLabel} tone={blockers.length ? 'danger' : warnings.length ? 'warning' : 'success'} />
+          <StudioMetric value={String(relations)} label="Relations" detail={`${mandatoryRelations} mandatory`} tone={mandatoryRelations ? 'warning' : 'info'} />
+          <StudioMetric value={String(capabilityCount)} label="C3 links" detail={primaryCapability?.code ?? service.c3_reference ?? 'No primary'} tone={capabilityCount ? 'success' : 'warning'} />
+        </div>
+      </div>
+
+      <div className={styles.studioTaskPanel}>
+        <div className={styles.studioPanelHeader}>
+          <div>
+            <span className={styles.studioEyebrow}>Admin queue</span>
+            <h2>What needs attention</h2>
+          </div>
+          <span className={`${styles.studioBadge} ${styles[`studioBadge_${blockers.length ? 'danger' : warnings.length ? 'warning' : 'success'}`]}`}>
+            {readinessLabel}
+          </span>
+        </div>
+        <div className={styles.studioTaskList}>
+          {taskQueue.map((task) => (
+            <StudioTaskRow key={task.title} task={task} />
+          ))}
+        </div>
+      </div>
+
+      <RelationshipMap
+        serviceTitle={service.title}
+        nodes={mapNodes}
+        readinessLabel={readinessLabel}
+        primaryOffering={primaryOffering?.title ?? primaryOffering?.offering_code ?? 'Offering missing'}
+      />
+
+      <div className={styles.studioFactsPanel}>
+        {overviewFacts.map((fact) => (
+          <div key={fact.label} className={styles.heroFact}>
+            <span className={styles.heroFactLabel}>{fact.label}</span>
+            {fact.label === 'Lifecycle'
+              ? <LifecycleBadge state={lifecycleState} fallback={fact.value} />
+              : <span className={styles.heroFactValue}>{fact.value}</span>}
+          </div>
+        ))}
+        <div className={styles.summaryMiniRow}>
+          <SummaryItem label="Availability">
+            <AvailabilityBadge pct={service.sla_availability} />
+          </SummaryItem>
+          <SummaryItem label="Domains">
+            <DomainDotGroup domains={service.available_on} />
+          </SummaryItem>
+          <SummaryItem label="Review due">
+            {service.next_review_due_at ? formatDate(service.next_review_due_at) : 'N/A'}
+          </SummaryItem>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function buildStudioTasks({
+  id,
+  overview,
+  service,
+  supportModels,
+  requestHref,
+  primaryOffering,
+  blockers,
+  warnings,
+  capabilityCount,
+}: {
+  id: string;
+  overview: ServiceOverview | null;
+  service: ServiceDetail;
+  supportModels: ServiceSupportModel[];
+  requestHref: string | null;
+  primaryOffering: ServiceOffering | null | undefined;
+  blockers: string[];
+  warnings: string[];
+  capabilityCount: number;
+}): StudioTask[] {
+  const tasks: StudioTask[] = [];
+  if (blockers.length) {
+    tasks.push({
+      tone: 'danger',
+      title: 'Publish blockers',
+      detail: blockers[0],
+      href: `/services/${id}/edit`,
+      label: 'Fix record',
+    });
+  } else if (warnings.length) {
+    tasks.push({
+      tone: 'warning',
+      title: 'Warnings before publish',
+      detail: warnings[0],
+      href: `/services/${id}/edit`,
+      label: 'Review',
+    });
+  } else {
+    tasks.push({
+      tone: 'success',
+      title: 'Record can be understood',
+      detail: 'No readiness blockers were detected in the current Service 360 data.',
+    });
+  }
+
+  tasks.push(requestHref ? {
+    tone: 'success',
+    title: 'Request path is configured',
+    detail: primaryOffering?.title ? `${primaryOffering.title} is the primary customer path.` : 'Users have a route to request the service.',
+    href: requestHref,
+    label: 'Open path',
+  } : {
+    tone: 'warning',
+    title: 'Request path missing',
+    detail: 'Admins should add a request channel before managers promote this service.',
+    href: `/services/${id}/edit`,
+    label: 'Add path',
+  });
+
+  tasks.push(supportModels.length ? {
+    tone: 'success',
+    title: 'Support ownership exists',
+    detail: `${supportModels[0]?.support_owner_name ?? service.vlastnik ?? 'Support'} is visible for escalation.`,
+    href: '#support',
+    label: 'View support',
+  } : {
+    tone: 'warning',
+    title: 'Support model missing',
+    detail: 'Requestable services need a named support owner and escalation path.',
+    href: '#support',
+    label: 'View support',
+  });
+
+  const missingAction = overview?.missing_actions[0];
+  if (missingAction) {
+    tasks.push({
+      tone: missingAction.severity === 'blocker' ? 'danger' : missingAction.severity === 'warning' ? 'warning' : 'info',
+      title: missingAction.title,
+      detail: missingAction.description,
+      href: missingAction.href || `/services/${id}/edit`,
+      label: 'Open',
+    });
+  } else {
+    tasks.push(capabilityCount ? {
+      tone: 'success',
+      title: 'C3 relationship is visible',
+      detail: 'Managers can see how this service supports capability coverage.',
+      href: `/services/${id}/graph`,
+      label: 'Open graph',
+    } : {
+      tone: 'warning',
+      title: 'C3 mapping missing',
+      detail: 'Connect this service to a capability so the C3 board can explain impact.',
+      href: `/services/${id}/edit`,
+      label: 'Map C3',
+    });
+  }
+
+  return tasks.slice(0, 4);
+}
+
+function StudioMetric({ value, label, detail, tone }: { value: string; label: string; detail: string; tone: StudioActionTone }) {
+  return (
+    <div className={`${styles.studioMetric} ${styles[`studioMetric_${tone}`]}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
+function StudioTaskRow({ task }: { task: StudioTask }) {
+  const content = (
+    <>
+      <span className={`${styles.taskDot} ${styles[`taskDot_${task.tone}`]}`} />
+      <span className={styles.taskCopy}>
+        <strong>{task.title}</strong>
+        <small>{task.detail}</small>
+      </span>
+      {task.label && <em>{task.label}</em>}
+    </>
+  );
+
+  if (task.href?.startsWith('http')) {
+    return <a href={task.href} target="_blank" rel="noreferrer" className={styles.studioTask}>{content}</a>;
+  }
+
+  if (task.href) {
+    return <Link href={task.href} className={styles.studioTask}>{content}</Link>;
+  }
+
+  return <div className={styles.studioTask}>{content}</div>;
+}
+
+function RelationshipMap({
+  serviceTitle,
+  nodes,
+  readinessLabel,
+  primaryOffering,
+}: {
+  serviceTitle: string;
+  nodes: Array<{ label: string; value: string }>;
+  readinessLabel: string;
+  primaryOffering: string;
+}) {
+  return (
+    <div className={styles.relationshipPanel}>
+      <div className={styles.studioPanelHeader}>
+        <div>
+          <span className={styles.studioEyebrow}>Relationship map</span>
+          <h2>How this service fits</h2>
+        </div>
+        <span className={styles.studioBadge}>{primaryOffering}</span>
+      </div>
+      <div className={styles.relationshipMap}>
+        <div className={styles.mapNodePrimary}>
+          <span>Service</span>
+          <strong>{serviceTitle}</strong>
+          <small>{readinessLabel}</small>
+        </div>
+        {nodes.map((node, index) => (
+          <div key={`${node.label}-${index}`} className={`${styles.mapNode} ${styles[`mapNode_${index}`] ?? ''}`}>
+            <span>{node.label}</span>
+            <strong>{node.value}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
   return (
     <section className={styles.section} id={id}>
@@ -612,6 +912,179 @@ function SummaryItem({ label, children }: { label: string; children: React.React
     <div className={styles.summaryItem}>
       <span className={styles.summaryLabel}>{label}</span>
       <span className={styles.summaryValue}>{children}</span>
+    </div>
+  );
+}
+
+function Service360Panel({
+  overview,
+  isLoading,
+  error,
+  serviceId,
+}: {
+  overview: ServiceOverview | null;
+  isLoading: boolean;
+  error: unknown;
+  serviceId: string;
+}) {
+  const { data: reviewData } = useGovernanceReviews({ serviceId, limit: 5 });
+  const { data: decisionData } = useGovernanceDecisions({ serviceId, limit: 5 });
+  const reviews = reviewData?.items ?? [];
+  const decisions = decisionData?.items ?? [];
+
+  if (isLoading) {
+    return (
+      <Section title="Service 360">
+        <div className={styles.service360State}>Loading overview...</div>
+      </Section>
+    );
+  }
+
+  if (error) {
+    return (
+      <Section title="Service 360">
+        <div className={styles.service360StateError}>Service 360 overview is not available.</div>
+      </Section>
+    );
+  }
+
+  if (!overview) {
+    return (
+      <Section title="Service 360">
+        <div className={styles.service360State}>No Service 360 data yet.</div>
+      </Section>
+    );
+  }
+
+  const blockers = overview.readiness?.blockers ?? [];
+  const warnings = overview.readiness?.warnings ?? [];
+  const ruleBadges = (overview.readiness?.rules ?? [])
+    .filter((rule) => ['failed', 'exception', 'disabled', 'skipped'].includes(rule.status))
+    .slice(0, 8);
+  const primaryCapability = overview.capability_mappings.find((item) => item.is_primary) ?? overview.capability_mappings[0] ?? null;
+  const ownerName = overview.owners.primary?.display_name ?? 'Missing';
+  const lifecycle = overview.lifecycle.stage_code ?? overview.lifecycle.state ?? overview.lifecycle.service_status ?? 'Missing';
+  const portfolio = overview.portfolio.title ?? overview.portfolio.code ?? 'Missing';
+  const readinessStatus = overview.readiness == null
+    ? 'Readiness unknown'
+    : overview.readiness.is_publishable
+      ? 'Publishable'
+      : 'Not publishable';
+
+  return (
+    <Section title="Service 360">
+      <div className={styles.service360Header}>
+        <div>
+          <div className={styles.service360Eyebrow}>Decision cockpit</div>
+          <p className={styles.service360Lead}>
+            {overview.service.summary ?? 'Operational governance summary for this service.'}
+          </p>
+        </div>
+        <span className={`${styles.service360Status} ${overview.readiness?.is_publishable ? styles.service360StatusReady : styles.service360StatusBlocked}`}>
+          {readinessStatus}
+        </span>
+      </div>
+
+      <div className={styles.service360Readiness} id="readiness">
+        <div className={styles.readinessHeader}>
+          <h3 className={styles.service360Subhead}>Readiness</h3>
+          <div className={styles.readinessCounts}>
+            <span className={`${styles.readinessBadge} ${blockers.length ? styles.readinessBadgeBlocker : ''}`}>
+              {countLabel(blockers.length, 'blocker')}
+            </span>
+            <span className={`${styles.readinessBadge} ${warnings.length ? styles.readinessBadgeWarning : ''}`}>
+              {countLabel(warnings.length, 'warning', 'warnings')}
+            </span>
+          </div>
+        </div>
+        {blockers.length || warnings.length ? (
+          <div className={styles.issueList}>
+            {blockers.map((item) => (
+              <div key={`blocker-${item}`} className={styles.issueItemBlocker}>{item}</div>
+            ))}
+            {warnings.map((item) => (
+              <div key={`warning-${item}`} className={styles.issueItemWarning}>{item}</div>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.emptyState}>No readiness blockers or warnings.</p>
+        )}
+        {ruleBadges.length > 0 && (
+          <div className={styles.readinessRuleBadges} aria-label="Readiness rules">
+            {ruleBadges.map((rule) => (
+              <span key={rule.rule_key} className={`${styles.readinessRuleBadge} ${styles[`readinessRule_${rule.status}`] ?? ''}`}>
+                {rule.severity} {rule.title}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.service360Grid}>
+        <Service360Metric label="Portfolio" value={portfolio} detail={overview.lifecycle.criticality_code ?? 'Standard criticality'} />
+        <Service360Metric label="Lifecycle" value={lifecycle} detail={overview.lifecycle.review_due_at ? `Review ${formatDate(overview.lifecycle.review_due_at)}` : 'Review missing'} />
+        <Service360Metric label="Owners" value={ownerName} detail={overview.owners.steward?.display_name ?? 'Steward missing'} />
+        <Service360Metric label="Offerings" value={countLabel(overview.offerings.count, 'offering')} detail={overview.offerings.primary?.title ?? overview.offerings.primary?.offering_code ?? 'Primary missing'} />
+        <Service360Metric label="SLA & Pricing" value={overview.sla.has_sla && overview.pricing.has_prices ? 'Covered' : 'Incomplete'} detail={`${overview.sla.record_count} SLA records / ${overview.pricing.priced_flavour_count} priced`} />
+        <Service360Metric label="Dependencies" value={`${overview.dependencies.outgoing_count} out / ${overview.dependencies.incoming_count} in`} detail={`${overview.dependencies.mandatory_count} mandatory`} />
+        <Service360Metric label="Capabilities" value={countLabel(overview.capability_mappings.length, 'mapping')} detail={primaryCapability?.title ?? 'Primary missing'} />
+        <Service360Metric label="C3 Mapping" value={primaryCapability?.code ?? primaryCapability?.c3_uuid ?? 'Missing'} detail={primaryCapability?.status ?? primaryCapability?.mapping_type_code ?? 'Unclassified'} />
+        <Service360Metric label="Governance" value={countLabel(overview.governance_risks.count, 'risk')} detail={`${overview.governance_risks.high_count} high priority`} />
+        <Service360Metric label="Audit" value={countLabel(overview.audit_summary.count, 'change')} detail={overview.audit_summary.last_action?.performed_at ? formatDate(overview.audit_summary.last_action.performed_at) : 'No recent changes'} />
+      </div>
+
+      <div className={styles.service360Workflow} id="governance-workflow">
+        <div className={styles.readinessHeader}>
+          <h3 className={styles.service360Subhead}>Governance workflow</h3>
+          <Link href={`/operations/reviews?service_id=${encodeURIComponent(serviceId)}`} className={styles.actionInlineLink}>Open reviews</Link>
+        </div>
+        <div className={styles.workflowMiniGrid}>
+          <div>
+            <h4>Current reviews</h4>
+            {reviews.length ? reviews.map((review) => (
+              <Link key={review.id} href="/operations/reviews" className={styles.workflowMiniRow}>
+                <strong>{review.review_type}</strong>
+                <span>{review.status} · {review.assigned_to ?? 'Unassigned'} · {review.due_at ? formatDate(review.due_at) : 'No due date'}</span>
+              </Link>
+            )) : <p className={styles.emptyState}>No current governance reviews.</p>}
+          </div>
+          <div>
+            <h4>Recent decisions</h4>
+            {decisions.length ? decisions.map((decision) => (
+              <Link key={decision.id} href="/operations/decisions" className={styles.workflowMiniRow}>
+                <strong>{decision.decision}</strong>
+                <span>{decision.decision_type} · {decision.decided_by ?? 'unknown'} · {decision.rationale ?? 'No rationale'}</span>
+              </Link>
+            )) : <p className={styles.emptyState}>No governance decisions yet.</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.service360Actions}>
+        <h3 className={styles.service360Subhead}>Actions</h3>
+        {overview.missing_actions.length > 0 ? (
+          <div className={styles.actionList}>
+            {overview.missing_actions.map((action) => (
+              <Link key={action.key} href={action.href || `/services/${serviceId}/edit`} className={styles.actionLink}>
+                <span className={styles.actionTitle}>{action.title}</span>
+                <span className={styles.actionDescription}>{action.description}</span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.emptyState}>No missing actions detected.</p>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function Service360Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className={styles.service360Metric}>
+      <span className={styles.service360MetricLabel}>{label}</span>
+      <span className={styles.service360MetricValue}>{value}</span>
+      <span className={styles.service360MetricDetail}>{detail}</span>
     </div>
   );
 }
@@ -1366,6 +1839,10 @@ function CoveragePanel({ frameworks, serviceId }: { frameworks: ServiceFramework
       </div>
     </Section>
   );
+}
+
+function countLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function formatBool(value: boolean | null | undefined) {

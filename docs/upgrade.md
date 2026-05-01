@@ -49,6 +49,17 @@ ORDER BY applied_at;
 | `01` – `13` | Core schema, references, C3 taxonomy, graphs |
 | `15_itil_catalogue_phase1.sql` | ITIL-ready catalogue foundation — adds `service_offering`, `service_support_model`, `service_audience_policy`, `service_operational_link`; adds lifecycle, requestability, support, and audience fields to `service_catalog` |
 | `16_consumer_value.sql` | Adds `consumer_value` column to `service_catalog` |
+| `17_spiral_membership.sql` | Adds C3 entity membership in FMN spirals |
+| `18_service_governance_views.sql` | Adds service governance helper views |
+| `19_capability_abbreviations.sql` | Adds capability abbreviation support |
+| `20_capability_coverage_views.sql` | Adds capability requirement and coverage helper views |
+| `21_governance_risk_views.sql` | Adds risk radar, owner-load, renewal, and advisor views |
+| `22_governance_views.sql` | Adds service publish readiness view |
+| `23_service_portfolio.sql` | Adds `service_portfolio`, service lifecycle metadata, review due dates, and criticality |
+| `24_readiness_rules.sql` | Adds `readiness_rule` and `readiness_exception` |
+| `25_capability_governance.sql` | Adds coverage, gap, and overlap governance views |
+| `26_governance_workflow.sql` | Adds `governance_review` and `governance_decision` |
+| `27_impact_analysis.sql` | Adds recursive service impact analysis views |
 
 ### What Migration 15 Adds
 
@@ -71,6 +82,19 @@ ORDER BY applied_at;
 - `review_owner_user_id`, `next_review_due_at`
 
 **Backward compatibility:** all new columns are nullable with sensible defaults; no existing column is removed or renamed; existing API endpoints continue to work.
+
+### Governance Cockpit Schema Additions
+
+The governance cockpit release is additive. It introduces:
+
+- portfolios and service lifecycle metadata for portfolio governance
+- structured service offerings beside pricing flavours
+- readiness rules and time-bound exceptions
+- governance reviews and decision log rows
+- capability coverage, gap, overlap, and readiness views
+- recursive impact analysis across service relationships and C3 evidence
+
+Before upgrading, take a database backup. After upgrading, verify `/operations`, `/operations/readiness`, `/operations/reviews`, `/operations/decisions`, `/capabilities/coverage`, and `/services/impact`.
 
 ### Adding a New Migration
 
@@ -123,5 +147,5 @@ curl http://localhost:8080/api/health/ready
 
 # Verify ITIL migrations applied
 psql -c "SELECT migration_name, status FROM platform.schema_migrations ORDER BY applied_at" 
-# Should include 15_itil_catalogue_phase1 and 16_consumer_value with status = 'applied'
+# Should include migrations 15 through 27 with status = 'applied'
 ```

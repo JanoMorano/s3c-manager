@@ -1,0 +1,180 @@
+.shell {
+  min-height: 100vh;
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-bg-canvas);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-lg);
+}
+
+.lead {
+  max-width: 760px;
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(220px, 320px);
+  gap: var(--space-3);
+  align-items: end;
+  margin-bottom: var(--space-4);
+}
+
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.toolbar select,
+.toolbar input {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cardHeader small {
+  color: var(--color-text-muted);
+  font: var(--text-mono-sm);
+}
+
+.cardHeader h2 {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.5;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.metrics div {
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.metrics dt {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.metrics dd {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.ownerLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.ownerLine strong {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.serviceLink {
+  width: max-content;
+  color: var(--color-action-primary);
+  font: var(--text-label-md);
+  text-decoration: none;
+}
+
+.serviceLink:hover {
+  text-decoration: underline;
+}
+
+.state {
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .kpiGrid,
+  .toolbar,
+  .grid,
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}

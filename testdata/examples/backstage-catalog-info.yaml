@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: identity-access-management
+  title: Identity Access Management
+  description: Governed identity and access service.
+  annotations:
+    s3c/service-id: SVC-IAM
+spec:
+  type: service
+  lifecycle: production
+  owner: group:identity-platform
+  system: mission-access

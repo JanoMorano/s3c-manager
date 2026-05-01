@@ -26,6 +26,107 @@ function toInboxItem(row) {
     };
 }
 
+function toCount(value) {
+    return Number(value ?? 0);
+}
+
+function emptySummary() {
+    return {
+        total_services: 0,
+        services_ready_for_publish: 0,
+        services_blocked_by_readiness: 0,
+        overdue_reviews: 0,
+        uncovered_capabilities: 0,
+        over_covered_capabilities: 0,
+        active_governance_reviews: 0,
+        recent_decisions: 0,
+    };
+}
+
+function normalizeSummary(row) {
+    const fallback = emptySummary();
+    if (!row) return fallback;
+    return Object.fromEntries(
+        Object.keys(fallback).map((key) => [key, toCount(row[key])]),
+    );
+}
+
+function summaryLinks() {
+    return {
+        governance_health: '/operations',
+        readiness_queue: '/operations/readiness',
+        capability_coverage: '/capabilities/coverage',
+        review_deadlines: '/operations/reviews',
+        owner_load: '/operations/owner-load',
+        recent_decisions: '/operations/decisions',
+    };
+}
+
+// ─── GET /dashboard/summary ─────────────────────────────────────────────────
+router.get('/summary', async (req, res, next) => {
+    try {
+        const result = await getPool().query(`
+            WITH service_totals AS (
+                SELECT COUNT(*)::integer AS total_services
+                FROM data.service_catalog sc
+                WHERE sc.is_deleted = FALSE
+                  AND sc.is_stub = FALSE
+            ),
+            readiness AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE COALESCE(is_publishable, FALSE) = TRUE)::integer AS services_ready_for_publish,
+                    COUNT(*) FILTER (WHERE COALESCE(is_publishable, FALSE) = FALSE)::integer AS services_blocked_by_readiness
+                FROM data.v_servicepublishreadiness
+            ),
+            capability AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE governance_state = 'uncovered')::integer AS uncovered_capabilities,
+                    COUNT(*) FILTER (WHERE governance_state = 'over_covered')::integer AS over_covered_capabilities
+                FROM data.v_capability_governance_coverage
+            ),
+            reviews AS (
+                SELECT
+                    COUNT(*) FILTER (
+                        WHERE status IN ('pending', 'in_review')
+                          AND due_at IS NOT NULL
+                          AND due_at < CURRENT_TIMESTAMP
+                    )::integer AS overdue_reviews,
+                    COUNT(*) FILTER (WHERE status IN ('pending', 'in_review'))::integer AS active_governance_reviews
+                FROM data.governance_review
+            ),
+            decisions AS (
+                SELECT COUNT(*)::integer AS recent_decisions
+                FROM (
+                    SELECT id
+                    FROM data.governance_decision
+                    ORDER BY decided_at DESC
+                    LIMIT 25
+                ) recent
+            )
+            SELECT
+                COALESCE(service_totals.total_services, 0)::integer AS total_services,
+                COALESCE(readiness.services_ready_for_publish, 0)::integer AS services_ready_for_publish,
+                COALESCE(readiness.services_blocked_by_readiness, 0)::integer AS services_blocked_by_readiness,
+                COALESCE(reviews.overdue_reviews, 0)::integer AS overdue_reviews,
+                COALESCE(capability.uncovered_capabilities, 0)::integer AS uncovered_capabilities,
+                COALESCE(capability.over_covered_capabilities, 0)::integer AS over_covered_capabilities,
+                COALESCE(reviews.active_governance_reviews, 0)::integer AS active_governance_reviews,
+                COALESCE(decisions.recent_decisions, 0)::integer AS recent_decisions
+            FROM service_totals
+            CROSS JOIN readiness
+            CROSS JOIN capability
+            CROSS JOIN reviews
+            CROSS JOIN decisions
+        `);
+
+        res.json({
+            generated_at: new Date().toISOString(),
+            summary: normalizeSummary(result.rows[0]),
+            links: summaryLinks(),
+        });
+    } catch (err) { next(err); }
+});
+
 // ─── GET /dashboard/inbox ────────────────────────────────────────────────────
 router.get('/inbox', async (req, res, next) => {
     try {

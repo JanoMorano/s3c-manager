@@ -5,7 +5,7 @@ import Link from '@/app/components/AppLink';
 import { useSearchParams } from 'next/navigation';
 import { Badge, EmptyState, KpiCard, ProgressBar } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
-import { useOperationsDashboard } from '@/features/services/hooks/useServices';
+import { useDashboardSummary, useOperationsDashboard } from '@/features/services/hooks/useServices';
 import type { CompletenessItem } from '@/features/services/hooks/useServices';
 import {
   useContractOverlap,
@@ -24,6 +24,7 @@ import type {
 } from '@/features/governance/types';
 import { useT } from '@/app/i18n/useI18n';
 import styles from '../dashboard/dashboard.module.css';
+import cockpitStyles from './operations.module.css';
 import govStyles from './governance.module.css';
 
 function readinessTone(score: number) {
@@ -42,12 +43,21 @@ function severityTone(severity: GovernanceSeverity): BadgeVariant {
 type OperationsTab = 'health' | 'governance' | 'pricing' | 'owners' | 'c3';
 
 const OPERATIONS_TABS: Array<{ key: OperationsTab; labelKey: string; href: string }> = [
-  { key: 'health', labelKey: 'common.health', href: '/operations' },
-  { key: 'governance', labelKey: 'operations.tabs.governance', href: '/operations?tab=governance' },
+  { key: 'governance', labelKey: 'operations.tabs.governance', href: '/operations' },
+  { key: 'health', labelKey: 'common.health', href: '/operations?tab=health' },
   { key: 'pricing', labelKey: 'operations.tabs.pricing', href: '/operations?tab=pricing' },
   { key: 'owners', labelKey: 'operations.tabs.owners', href: '/operations?tab=owners' },
   { key: 'c3', labelKey: 'operations.tabs.c3', href: '/operations?tab=c3' },
 ];
+
+const DEFAULT_SUMMARY_LINKS = {
+  governance_health: '/operations',
+  readiness_queue: '/operations/readiness',
+  capability_coverage: '/capabilities/coverage',
+  review_deadlines: '/operations/reviews',
+  owner_load: '/operations/owner-load',
+  recent_decisions: '/operations/decisions',
+};
 
 function safeInternalHref(href: string | null | undefined, fallback: string) {
   if (href?.startsWith('/')) return href;
@@ -272,9 +282,36 @@ function CoverageMetricRows({
   );
 }
 
+function formatCount(value: number | null | undefined) {
+  return Number(value ?? 0).toLocaleString('en-US');
+}
+
+function CockpitSignal({
+  title,
+  value,
+  detail,
+  href,
+  tone = 'neutral',
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  href: string;
+  tone?: 'neutral' | 'good' | 'warn' | 'danger';
+}) {
+  return (
+    <Link href={href} className={`${cockpitStyles.signalCard} ${cockpitStyles[`signal_${tone}`]}`}>
+      <span className={cockpitStyles.signalLabel}>{title}</span>
+      <strong>{value}</strong>
+      <span>{detail}</span>
+    </Link>
+  );
+}
+
 export default function OperationsPage() {
   const t = useT();
   const searchParams = useSearchParams();
+  const cockpit = useDashboardSummary();
   const { data, isLoading, error } = useOperationsDashboard();
   const riskRadar = useServiceRiskRadar({ limit: 5 });
   const ownerLoad = useOwnerLoad({ limit: 5 });
@@ -294,9 +331,11 @@ export default function OperationsPage() {
   const contractItems = contractOverlap.data?.items ?? [];
   const renewalItems = renewalCalendar.data?.items ?? [];
   const advisorItems = advisor.data?.items ?? [];
+  const summary = cockpit.data?.summary;
+  const summaryLinks = cockpit.data?.links ?? DEFAULT_SUMMARY_LINKS;
   const governanceError = riskRadar.error || ownerLoad.error || contractOverlap.error || renewalCalendar.error || advisor.error;
   const requestedTab = searchParams?.get('tab') as OperationsTab | null;
-  const activeTab = OPERATIONS_TABS.some((tab) => tab.key === requestedTab) ? requestedTab! : 'health';
+  const activeTab = OPERATIONS_TABS.some((tab) => tab.key === requestedTab) ? requestedTab! : 'governance';
   const c3CoverageRows = data.sections.c3_mapping_gap.map((row) => ({
     label: row.item_type,
     value: row.mapped_count,
@@ -323,9 +362,64 @@ export default function OperationsPage() {
         <div className={styles.headerActions}>
           <span className={styles.cachedBadge}>{t('operations.badge.governance')}</span>
           <span className={styles.cachedBadge}>{t('operations.badge.evidence')}</span>
+          <Link href="/operations/readiness" className={styles.secondaryLink}>Readiness</Link>
+          <Link href="/operations/reviews" className={styles.secondaryLink}>Reviews</Link>
+          <Link href="/operations/decisions" className={styles.secondaryLink}>Decisions</Link>
           <Link href="/catalogue" className={styles.secondaryLink}>{t('operations.link.catalogue')}</Link>
         </div>
       </header>
+
+      <section className={cockpitStyles.cockpitSummary} aria-label="Decision cockpit summary">
+        <div className={cockpitStyles.cockpitIntro}>
+          <span className={styles.pageEyebrow}>Governance state</span>
+          <h2>Governance signals</h2>
+          <p>Ownership, readiness, capability coverage, review pressure, and decision activity in one operational view.</p>
+        </div>
+        <div className={cockpitStyles.signalGrid}>
+          <CockpitSignal
+            title="Governance Health"
+            value={`${formatCount(summary?.services_ready_for_publish)}/${formatCount(summary?.total_services)}`}
+            detail="services ready for publish"
+            href={summaryLinks.governance_health}
+            tone={summary?.services_blocked_by_readiness ? 'warn' : 'good'}
+          />
+          <CockpitSignal
+            title="Readiness Queue"
+            value={formatCount(summary?.services_blocked_by_readiness)}
+            detail="services blocked by readiness"
+            href={summaryLinks.readiness_queue}
+            tone={summary?.services_blocked_by_readiness ? 'danger' : 'good'}
+          />
+          <CockpitSignal
+            title="Capability Coverage"
+            value={`${formatCount(summary?.uncovered_capabilities)} / ${formatCount(summary?.over_covered_capabilities)}`}
+            detail="uncovered / over-covered capabilities"
+            href={summaryLinks.capability_coverage}
+            tone={(summary?.uncovered_capabilities ?? 0) > 0 ? 'warn' : 'good'}
+          />
+          <CockpitSignal
+            title="Review Deadlines"
+            value={`${formatCount(summary?.overdue_reviews)} / ${formatCount(summary?.active_governance_reviews)}`}
+            detail="overdue / active reviews"
+            href={summaryLinks.review_deadlines}
+            tone={(summary?.overdue_reviews ?? 0) > 0 ? 'danger' : 'neutral'}
+          />
+          <CockpitSignal
+            title="Owner Load"
+            value={formatCount(ownerItems.length)}
+            detail="owners with load signals"
+            href={summaryLinks.owner_load}
+            tone={ownerItems.some((item) => item.owner_load_score >= 80) ? 'danger' : ownerItems.length ? 'warn' : 'good'}
+          />
+          <CockpitSignal
+            title="Recent Decisions"
+            value={formatCount(summary?.recent_decisions)}
+            detail="latest governance decisions"
+            href={summaryLinks.recent_decisions}
+            tone={(summary?.recent_decisions ?? 0) > 0 ? 'neutral' : 'warn'}
+          />
+        </div>
+      </section>
 
       <section className={styles.kpiThree} aria-label="Operations headline KPIs">
         <KpiCard label={t('operations.kpi.metadata')} value={incomplete.length} hint={<span className={styles.kpiHint}><Badge variant={incomplete.length ? 'warning' : 'success'}>{incomplete.length ? t('common.action') : t('common.clean')}</Badge><span>{t('operations.kpi.metadata_hint')}</span></span>} />

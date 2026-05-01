@@ -224,6 +224,64 @@ describe('export routes', () => {
         expect(response.headers['x-cache-tags']).toContain('export:graph');
     });
 
+    test('GET /services returns service profile export', async () => {
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/services');
+
+        expect(response.status).toBe(200);
+        expect(response.body.profile_key).toBe('s3c-service-catalogue-json');
+        expect(response.body.services).toEqual([{ service_id: 'SVC-1' }]);
+        expect(response.headers['x-cache-tags']).toContain('export:services');
+    });
+
+    test('GET /governance-report returns portfolio readiness capability and decision bundle', async () => {
+        const { __query } = require('../db/pool');
+        __query
+            .mockResolvedValueOnce({ rows: [{ portfolio_code: 'CORE' }] })
+            .mockResolvedValueOnce({ rows: [{ service_id: 'SVC-IAM', readiness_state: 'ready' }] })
+            .mockResolvedValueOnce({ rows: [{ capability_uuid: 'cap-iam' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 44, decision: 'approved' }] });
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/governance-report');
+
+        expect(response.status).toBe(200);
+        expect(response.body.portfolios).toHaveLength(1);
+        expect(response.body.readiness).toHaveLength(1);
+        expect(response.body.capability_coverage).toHaveLength(1);
+        expect(response.body.decisions).toHaveLength(1);
+        expect(response.headers['x-cache-tags']).toContain('export:governance-report');
+    });
+
+    test('GET /backstage/catalog-info exports Backstage YAML', async () => {
+        mockFindAllForExport.mockResolvedValueOnce([
+            {
+                service_id: 'SVC-IAM',
+                title: 'Identity Access Management',
+                service_type: 'platform',
+                lifecycle_stage_code: 'active',
+                service_owner: 'group:identity-platform',
+            },
+        ]);
+
+        const router = require('../routes/exports');
+        const app = express();
+        app.use('/api/v1/export', router);
+
+        const response = await request(app).get('/api/v1/export/backstage/catalog-info');
+
+        expect(response.status).toBe(200);
+        expect(response.type).toContain('yaml');
+        expect(response.text).toContain('kind: Component');
+        expect(response.text).toContain('s3c/service-id: SVC-IAM');
+    });
+
     test('GET /bundle rejects non-admin access', async () => {
         const { __query } = require('../db/pool');
 

@@ -92,8 +92,8 @@ Maintain a dedicated help changelog entry for each documentation update, includi
 
 Every published help package must explicitly state:
 
-- **Documentation version** (for example `DOC v1.1.1`)
-- **Target application version** it describes (for example `APP v1.1.1`)
+- **Documentation version** (for example `DOC v1.1.2`)
+- **Target application version** it describes (for example `APP v1.1.2`)
 
 Use a compatibility label in this format:
 
@@ -214,6 +214,46 @@ Lifecycle states and their meaning:
 Transition validation blocks advancement — the API rejects invalid transitions and returns a descriptive error. The editor surfaces these as inline validation messages.
 
 Deprecated and retired services show a prominent banner on the detail page warning consumers.
+
+### Readiness Rules And Exceptions
+
+Readiness rules are the publication gate used by Service 360, `/operations/readiness`, and governance approval checks.
+
+Default rules cover:
+
+- service owner
+- service offering
+- lifecycle stage
+- primary capability mapping
+- complete primary capability evidence
+- SLA
+- dependency classification
+- review date
+- pricing for requestable services
+
+Exceptions are allowed only when an editor/admin can document a reason and, ideally, an expiry date. Use exceptions for temporary governance waivers such as pilot pricing, contract migration, or delayed capability evidence. Do not use exceptions to hide missing ownership permanently.
+
+Administrative expectations:
+
+- review exceptions before release gates and monthly governance meetings
+- keep reasons human-readable and audit-friendly
+- prefer short expiry windows for blocking rules
+- delete or let exceptions expire when the underlying service data is fixed
+- verify audit logs after creating or deleting readiness exceptions
+
+### Governance Reviews And Decisions
+
+Governance reviews live on `/operations/reviews`; decisions live on `/operations/decisions`.
+
+Recommended policy:
+
+- editors may request reviews and update service evidence
+- admins or delegated governance owners should approve, reject, defer, or cancel decisions
+- reject and defer decisions require rationale
+- approval should not bypass readiness blockers unless the decision type explicitly allows deferral
+- retirement decisions should link to replacement service or documented rationale where possible
+
+Audit logs should capture review and decision mutations. During release hardening, verify at least one review creation/update and one decision creation in the audit log.
 
 ### Services Dashboard
 

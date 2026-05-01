@@ -27,8 +27,10 @@ Mandatory. It cannot be disabled.
 - service detail
 - service editing
 - services, flavours, and SLA
+- portfolios, service offerings, readiness rules, exceptions, reviews, and decisions
 - service relations and graphs
 - ownership and domain availability
+- governance cockpit, decision log, and impact analysis
 - Service Catalogue import
 - dashboards and validation views
 
@@ -44,6 +46,12 @@ Key tables include:
 - `service_available_on`
 - `service_role_assignment`
 - `service_c3_mapping`
+- `service_portfolio`
+- `service_offering`
+- `readiness_rule`
+- `readiness_exception`
+- `governance_review`
+- `governance_decision`
 - `service_raw_field`
 - `import_batch`
 - `import_row`
@@ -57,6 +65,12 @@ Key tables include:
 - `/services/{service_id}`
 - `/services/{service_id}/edit`
 - `/services/{service_id}/graph`
+- `/portfolio`
+- `/operations`
+- `/operations/readiness`
+- `/operations/reviews`
+- `/operations/decisions`
+- `/services/impact`
 
 ### Main API Groups
 
@@ -66,6 +80,10 @@ Key tables include:
 - `/api/v1/stats`
 - `/api/v1/import`
 - `/api/v1/graph`
+- `/api/v1/portfolio`
+- `/api/v1/readiness`
+- `/api/v1/governance`
+- `/api/v1/impact`
 
 ## `C3_TAXONOMY`
 

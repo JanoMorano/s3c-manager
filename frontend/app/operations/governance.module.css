@@ -129,6 +129,221 @@
   font: var(--text-body-sm);
 }
 
+.readinessGroupGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.readinessRow {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.readinessRowHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.readinessTitleLink {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.readinessTitleLink:hover { text-decoration: underline; }
+
+.readinessTitleLink strong,
+.readinessTitleLink span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readinessTitleLink strong { font: var(--text-label-md); }
+.readinessTitleLink span { color: var(--color-text-muted); font: var(--text-body-sm); }
+
+.ruleBadgeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ruleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: 2px 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  overflow-wrap: anywhere;
+}
+
+.ruleBadge > span:last-child {
+  min-width: 0;
+}
+
+.ruleBadge strong {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.exceptionPanel {
+  border-top: 1px solid var(--color-border-default);
+  padding-top: var(--space-2);
+}
+
+.exceptionSummary {
+  width: max-content;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--color-info);
+  font: var(--text-label-md);
+}
+
+.exceptionForm {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.exceptionField {
+  display: grid;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.exceptionField input {
+  min-height: 34px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  padding: 6px 8px;
+  font: var(--text-body-sm);
+}
+
+.workflowGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.workflowRow {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.workflowMain {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.workflowTitle {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.workflowTitle strong,
+.workflowTitle span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflowTitle span,
+.workflowMeta,
+.workflowRationale {
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+.workflowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.workflowRationale {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.workflowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.workflowActions button,
+.workflowForm button {
+  min-height: 34px;
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-action-primary);
+  color: var(--color-bg-surface);
+  padding: 0 var(--space-3);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+
+.workflowActions button {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.workflowForm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.workflowForm label {
+  display: grid;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.workflowForm input,
+.workflowForm select,
+.workflowForm textarea {
+  width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  padding: 7px 9px;
+  font: var(--text-body-sm);
+}
+
+.workflowForm textarea {
+  resize: vertical;
+}
+
 @media (max-width: 900px) {
   .governanceHeader,
   .panelHeader {
@@ -136,7 +351,9 @@
     align-items: flex-start;
   }
 
-  .governanceGrid {
+  .governanceGrid,
+  .readinessGroupGrid,
+  .workflowGrid {
     grid-template-columns: 1fr;
   }
 
