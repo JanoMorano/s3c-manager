@@ -20,7 +20,7 @@
  *   - placeholder v modré kurzívě (ukázkové hodnoty)
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,7 @@ import { z } from 'zod';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
 import Link from '@/app/components/AppLink';
+import { WizardStepTracker } from '@/app/components/layout-v2';
 import {
   usePortfolioGroups, useServiceTypes, useNetworkDomains,
   useServiceLines, useOrganizationalElements, useGlobalServiceGroups,
@@ -187,6 +188,29 @@ const schema = z.object({
 
 type FormData = z.output<typeof schema>;
 
+const DRAFT_KEY = 'sc_new_service_draft';
+
+const DEFAULT_FORM_VALUES: Partial<FormData> = {
+  service_id: '',
+  title: '',
+  service_type: '',
+  service_status: 'draft',
+  lifecycle_state: 'draft',
+  requestable: false,
+  approval_required: false,
+  domains: [],
+  sla_availability: null,
+  sla_restoration: null,
+  sla_delivery: null,
+};
+
+interface WizardDraft {
+  data?: Partial<FormData>;
+  c3Selected?: string[];
+  step?: number;
+  savedAt?: string;
+}
+
 function compactPayload<T extends Record<string, unknown>>(obj: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== '' && v !== undefined && v !== null),
@@ -258,38 +282,14 @@ interface StepDef { id: number; label: string }
 
 function StepProgress({ current, steps }: { current: number; steps: StepDef[] }) {
   return (
-    <div className={styles.stepProgress} role="list" aria-label="Postup průvodce">
-      {steps.map((s) => {
-        const done   = current > s.id;
-        const active = current === s.id;
-        return (
-          <div
-            key={s.id}
-            role="listitem"
-            className={[
-              styles.stepItem,
-              done   ? styles.stepItemDone   : '',
-              active ? styles.stepItemActive : '',
-            ].filter(Boolean).join(' ')}
-          >
-            <div className={[
-              styles.stepDot,
-              done   ? styles.stepDotDone   : '',
-              active ? styles.stepDotActive : '',
-            ].filter(Boolean).join(' ')}>
-              {done ? '✓' : s.id}
-            </div>
-            <span className={[
-              styles.stepLabel,
-              done   ? styles.stepLabelDone   : '',
-              active ? styles.stepLabelActive : '',
-            ].filter(Boolean).join(' ')}>
-              {s.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    <WizardStepTracker
+      activeId={String(current)}
+      steps={steps.map((item) => ({
+        id: String(item.id),
+        label: item.label,
+        state: current > item.id ? 'done' : current === item.id ? 'active' : 'todo',
+      }))}
+    />
   );
 }
 
@@ -1006,18 +1006,51 @@ export default function NewServiceWizard() {
   ], [c3Visible, reviewStep]);
 
   const {
-    register, handleSubmit, watch, setValue, trigger,
+    register, handleSubmit, watch, setValue, trigger, reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
-    defaultValues: {
-      service_id: '', title: '', service_type: '',
-      service_status: 'draft', lifecycle_state: 'draft',
-      requestable: false, approval_required: false,
-      domains: [],
-      sla_availability: null, sla_restoration: null, sla_delivery: null,
-    },
+    defaultValues: DEFAULT_FORM_VALUES,
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as WizardDraft;
+      if (draft.data) reset({ ...DEFAULT_FORM_VALUES, ...draft.data });
+      if (Array.isArray(draft.c3Selected)) setC3Selected(draft.c3Selected.filter(Boolean));
+      if (draft.step && draft.step >= 1 && draft.step <= reviewStep) setStep(draft.step);
+    } catch {
+      window.localStorage.removeItem(DRAFT_KEY);
+    }
+  }, [reset, reviewStep]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const subscription = watch((value) => {
+      const draft: WizardDraft = {
+        data: value as Partial<FormData>,
+        c3Selected,
+        step,
+        savedAt: new Date().toISOString(),
+      };
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    });
+    return () => subscription.unsubscribe();
+  }, [c3Selected, step, watch]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const draft: WizardDraft = {
+      data: watch(),
+      c3Selected,
+      step,
+      savedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [c3Selected, step, watch]);
 
   const toggleC3 = useCallback((uuid: string) => {
     setC3Selected((prev) =>
@@ -1113,6 +1146,7 @@ export default function NewServiceWizard() {
         await updateRole(createdId, { roleCode: 'service_delivery_manager', displayName: data.manager.trim() });
       }
 
+      if (typeof window !== 'undefined') window.localStorage.removeItem(DRAFT_KEY);
       router.push(`/services/${createdId}/edit`);
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Vytvoření selhalo — zkuste znovu');

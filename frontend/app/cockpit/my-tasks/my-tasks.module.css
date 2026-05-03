@@ -1,0 +1,115 @@
+/* ── Refresh bar ─────────────────────────────────────────────────────────── */
+
+.refreshBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.refreshBtn {
+  padding: 7px 14px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: var(--text-label-sm);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-text-muted);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.refreshHint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.sections {
+  display: grid;
+  gap: 8px;
+}
+
+.section {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.sectionToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.sectionToggle:hover {
+  background: var(--color-bg-subtle);
+}
+
+.sectionChevron {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.sectionCount {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-border-default);
+  border-radius: 999px;
+  padding: 2px 9px;
+  flex-shrink: 0;
+}
+
+.countDanger {
+  background: color-mix(in srgb, var(--color-danger) 15%, transparent);
+  color: var(--color-danger);
+}
+
+.countWarn {
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: var(--color-warning);
+}
+
+.sectionBody {
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* ── Due date emphasis ───────────────────────────────────────────────────── */
+
+.dueOverdue {
+  color: var(--color-danger) !important;
+  font-weight: 600;
+}
+
+.dueSoon {
+  color: var(--color-warning) !important;
+  font-weight: 600;
+}

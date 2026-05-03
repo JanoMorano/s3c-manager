@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { getConfiguredAdminCredentials, loginWithConfiguredAdmin } from './admin-credentials';
 
-test('service detail exposes business-first and governance views', async ({ page }) => {
+test('service detail exposes relationship studio and governance views', async ({ page }) => {
   const credentials = getConfiguredAdminCredentials();
   if (!credentials) {
     test.skip(true, 'Set PLAYWRIGHT_ADMIN_USERNAME and PLAYWRIGHT_ADMIN_PASSWORD to run service detail tests.');
@@ -18,12 +18,16 @@ test('service detail exposes business-first and governance views', async ({ page
 
   await expect(page).toHaveURL(/\/services\/[^/]+$/, { timeout: 15_000 });
 
-  await expect(page.getByText('Business view')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Service relationship studio')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'What needs attention' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'How this service fits' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /overview/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /offerings/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /request & support/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: /coverage/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /governance/i })).toBeVisible({ timeout: 15_000 });
 
+  await expect(page.getByRole('heading', { name: 'Service 360' }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('At a glance')).toBeVisible({ timeout: 15_000 });
 
@@ -31,9 +35,10 @@ test('service detail exposes business-first and governance views', async ({ page
   await expect(page.getByRole('heading', { name: 'Request & Eligibility' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: 'Support' })).toBeVisible({ timeout: 15_000 });
 
+  await page.getByRole('button', { name: /coverage/i }).click();
+  await expect(page.getByRole('heading', { name: 'Coverage', exact: true })).toBeVisible({ timeout: 15_000 });
+
   await page.getByRole('button', { name: /governance/i }).click();
   await expect(page.getByRole('heading', { name: 'Operational Metadata' })).toBeVisible({ timeout: 15_000 });
-  await expect(
-    page.getByLabel('Service detail side panels').getByText('Governance', { exact: true }),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Relationships' })).toBeVisible({ timeout: 15_000 });
 });

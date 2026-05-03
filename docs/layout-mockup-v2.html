@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<title>S3C Manager — Layout Proposal v2 (supplement mockup)</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --neutral: #475569;
+    --border: #e2e8f0;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --ok: #15803d;
+    --ok-soft: #dcfce7;
+    --warn: #b45309;
+    --warn-soft: #fef3c7;
+    --bad: #b91c1c;
+    --bad-soft: #fee2e2;
+    --sidebar: #0f172a;
+    --sidebar-ink: #e2e8f0;
+    --sidebar-muted: #94a3b8;
+    --sidebar-active: #1e293b;
+    --purple: #7c3aed;
+    --purple-soft: #ede9fe;
+    --orange: #ea580c;
+    --orange-soft: #ffedd5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, "Segoe UI", "Inter", Helvetica, Arial, sans-serif; }
+  .doc { max-width: 1320px; margin: 0 auto; padding: 32px 28px 64px; }
+  h1.doc-title { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .doc-sub { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
+  h2.section { font-size: 18px; font-weight: 700; margin: 40px 0 8px; }
+  h2.section .num { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; background: var(--accent); color: white; border-radius: 6px; font-size: 13px; margin-right: 10px; }
+  .lede { color: var(--muted); margin: 0 0 14px; font-size: 13.5px; }
+  .lede strong { color: var(--ink); }
+
+  .frame { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+  .frame + .frame { margin-top: 18px; }
+  .frame-caption { background: #f8fafc; border-bottom: 1px solid var(--border); padding: 8px 14px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+  .frame-caption strong { color: var(--ink); font-weight: 600; }
+
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 620px; }
+  .sidebar { background: var(--sidebar); color: var(--sidebar-ink); padding: 14px 0; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 16px 16px; border-bottom: 1px solid #1e293b; }
+  .brand-mark { width: 22px; height: 22px; border-radius: 5px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+  .brand-name { font-weight: 700; }
+  .nav-section { padding: 10px 0 4px; }
+  .nav-section + .nav-section { border-top: 1px solid #1e293b; }
+  .nav-section-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sidebar-muted); padding: 0 16px 5px; font-weight: 600; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 6px 16px; font-size: 12.5px; color: var(--sidebar-ink); }
+  .nav-item .ico { width: 13px; height: 13px; background: rgba(148, 163, 184, 0.4); border-radius: 3px; flex: 0 0 13px; }
+  .nav-item.active { background: var(--sidebar-active); color: white; border-left: 3px solid var(--accent); padding-left: 13px; }
+  .nav-item.active .ico { background: var(--accent); }
+  .sidebar-bottom { margin-top: auto; border-top: 1px solid #1e293b; padding: 12px 16px; color: var(--sidebar-muted); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ef4444); }
+
+  .pane { background: var(--bg); display: flex; flex-direction: column; }
+  .topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 10px 18px; display: flex; align-items: center; gap: 10px; height: 44px; }
+  .crumbs { color: var(--muted); font-size: 12.5px; }
+  .crumbs .sep { margin: 0 6px; opacity: 0.5; }
+  .crumbs .here { color: var(--ink); font-weight: 600; }
+  .topbar-spacer { flex: 1; }
+  .search { width: 280px; background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--muted); font-size: 12.5px; display: flex; align-items: center; gap: 8px; }
+  .kbd { margin-left: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--muted); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel); font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.danger { background: var(--bad); color: white; border-color: var(--bad); }
+  .toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--panel); }
+  .toggle .opt { padding: 5px 10px; font-size: 12px; color: var(--muted); }
+  .toggle .opt.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .bell, .user-chip { width: 28px; height: 28px; border-radius: 50%; background: #f1f5f9; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); border: 1px solid var(--border); }
+  .user-chip { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; font-weight: 600; }
+
+  .page-body { padding: 22px 24px; flex: 1; }
+  .page-title { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .page-purpose { color: var(--muted); font-size: 13.5px; margin: 0 0 14px; max-width: 720px; line-height: 1.55; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.live { background: var(--ok-soft); color: var(--ok); }
+  .pill.draft { background: #e2e8f0; color: var(--neutral); }
+  .pill.review { background: var(--accent-soft); color: var(--accent); }
+  .pill.deprecated { background: var(--warn-soft); color: var(--warn); }
+  .pill.retired { background: #f1f5f9; color: var(--muted); text-decoration: line-through; }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.purple { background: var(--purple-soft); color: var(--purple); }
+  .pill.orange { background: var(--orange-soft); color: var(--orange); }
+  .pill.neutral { background: #f1f5f9; color: var(--muted); }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; }
+  .kpi .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+  .kpi .val { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .kpi.warn { background: linear-gradient(180deg, #fff8eb 0%, var(--panel) 60%); }
+  .kpi.bad { background: linear-gradient(180deg, #fff1f2 0%, var(--panel) 60%); }
+
+  /* Editor specific */
+  .editor-shell { display: grid; grid-template-columns: 220px 1fr; min-height: 640px; }
+  .editor-subnav {
+    background: var(--panel); border-right: 1px solid var(--border);
+    padding: 14px 0; overflow-y: auto;
+  }
+  .esn-group { padding: 0 0 6px; }
+  .esn-group + .esn-group { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
+  .esn-group-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); padding: 4px 16px 6px; font-weight: 600;
+  }
+  .esn-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 16px; font-size: 13px; color: var(--neutral);
+    cursor: pointer;
+  }
+  .esn-item.on {
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+    border-left: 3px solid var(--accent); padding-left: 13px;
+  }
+  .esn-item .esn-badge {
+    margin-left: auto; font-size: 10.5px;
+    border-radius: 999px; padding: 1px 6px; font-weight: 700;
+  }
+  .esn-badge.bad { background: var(--bad-soft); color: var(--bad); }
+  .esn-badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .esn-badge.ok { background: var(--ok-soft); color: var(--ok); }
+
+  .editor-main {
+    display: flex; flex-direction: column;
+    background: var(--bg);
+  }
+  .editor-content {
+    padding: 18px 22px 80px;
+    flex: 1;
+  }
+  .form-section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px; margin-bottom: 12px;
+  }
+  .form-section h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+  .form-section .desc { color: var(--muted); font-size: 13px; margin: 0 0 14px; max-width: 640px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .ff { display: flex; flex-direction: column; gap: 4px; }
+  .ff label { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .ff label .req { color: var(--bad); }
+  .ff input, .ff select, .ff textarea {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px;
+    font-size: 13px; color: var(--ink);
+    font-family: inherit;
+  }
+  .ff textarea { min-height: 60px; resize: vertical; }
+  .ff input:focus, .ff select:focus, .ff textarea:focus {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  .ff .err {
+    font-size: 11.5px; color: var(--bad);
+  }
+  .ff.invalid input, .ff.invalid select, .ff.invalid textarea {
+    border-color: var(--bad);
+    box-shadow: 0 0 0 1px var(--bad-soft);
+  }
+  .ff.dirty label::after {
+    content: " ●"; color: var(--warn); font-size: 8px;
+  }
+  .save-bar {
+    position: sticky; bottom: 0;
+    background: var(--panel); border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 10;
+  }
+  .save-bar .status { font-size: 12.5px; color: var(--muted); }
+  .save-bar .status.dirty { color: var(--warn); font-weight: 600; }
+
+  /* Banner */
+  .banner {
+    display: flex; gap: 10px; align-items: center;
+    padding: 10px 14px; border-radius: 8px;
+    background: var(--warn-soft); color: var(--warn);
+    font-size: 13px; margin: 0 0 12px;
+    border: 1px solid #fde68a;
+  }
+  .banner.bad { background: var(--bad-soft); color: var(--bad); border-color: #fecaca; }
+  .banner .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .banner .right { margin-left: auto; font-weight: 600; }
+
+  /* Reviews kanban */
+  .rev-kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; min-height: 420px; }
+  .lane { background: #f8fafc; border: 1px solid var(--border); border-radius: 9px; padding: 10px; }
+  .lane h4 {
+    margin: 0 0 8px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .lane h4 .n {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 999px; padding: 1px 8px; font-size: 11px;
+    color: var(--muted); font-weight: 600;
+  }
+  .rev-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+  }
+  .rev-card .ttl { font-weight: 600; font-size: 13px; display: flex; gap: 6px; align-items: center; }
+  .rev-card .meta { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .rev-card .reason { font-size: 12.5px; margin-top: 6px; }
+  .rev-card .due { font-size: 11.5px; margin-top: 4px; }
+  .rev-card .due.warn { color: var(--warn); font-weight: 600; }
+  .rev-card .due.bad { color: var(--bad); font-weight: 600; }
+  .rev-card .footer { font-size: 11.5px; color: var(--accent); font-weight: 600; margin-top: 6px; }
+
+  /* Portfolio cards */
+  .portfolios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .portfolio {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 9px; padding: 14px 16px;
+  }
+  .portfolio h3 {
+    margin: 0 0 4px; font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .portfolio .purpose { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
+  .portfolio .row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; }
+  .portfolio .lc-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 8px 0 6px; }
+  .portfolio .lc-bar > span { display: block; }
+  .portfolio .lc-bar .lc-live { background: var(--ok); }
+  .portfolio .lc-bar .lc-dep { background: var(--warn); }
+  .portfolio .lc-bar .lc-drf { background: #cbd5e1; }
+  .portfolio .footer-link { color: var(--accent); font-size: 12.5px; font-weight: 600; margin-top: 8px; display: inline-block; }
+
+  /* Graph workspace */
+  .gws { display: grid; grid-template-columns: 200px 1fr 240px; min-height: 440px; }
+  .gws-toolbar { background: var(--panel); border-right: 1px solid var(--border); padding: 12px 14px; font-size: 12.5px; }
+  .gws-toolbar h5 {
+    margin: 14px 0 6px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); font-weight: 700;
+  }
+  .gws-toolbar h5:first-child { margin-top: 0; }
+  .gws-toolbar input, .gws-toolbar select {
+    width: 100%; padding: 5px 8px; font-size: 12px;
+    border: 1px solid var(--border); border-radius: 6px; background: white;
+    margin-bottom: 6px;
+  }
+  .gws-toolbar .check { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12px; }
+  .gws-toolbar .check input { width: auto; margin: 0; }
+  .gws-canvas { background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 18px; position: relative; }
+  .gws-detail { background: var(--panel); border-left: 1px solid var(--border); padding: 14px; font-size: 12.5px; }
+  .gws-detail h5 { margin: 0 0 8px; font-size: 13px; font-weight: 700; }
+  .gws-detail .row { display: flex; justify-content: space-between; padding: 4px 0; border-top: 1px dashed var(--border); }
+  .gws-detail .row:first-of-type { border-top: 0; }
+  .gws-detail .row .k { color: var(--muted); }
+
+  /* Wizard */
+  .steps { display: flex; gap: 0; align-items: stretch; background: var(--panel); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; margin-bottom: 14px; }
+  .step { flex: 1; padding: 10px 12px; font-size: 12px; color: var(--muted); border-right: 1px solid var(--border); }
+  .step:last-child { border-right: 0; }
+  .step .num { width: 18px; height: 18px; border-radius: 50%; background: #f1f5f9; color: var(--muted); font-size: 11px; font-weight: 700; text-align: center; line-height: 18px; display: inline-block; margin-right: 6px; }
+  .step.done { color: var(--ok); }
+  .step.done .num { background: var(--ok); color: white; }
+  .step.now { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .step.now .num { background: var(--accent); color: white; }
+
+  /* Modal preview */
+  .modal-preview {
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; max-width: 540px; margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  }
+  .modal-preview h3 {
+    margin: 0 0 4px; font-size: 16px; font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-preview .desc { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+  .modal-preview .preflight {
+    background: #f8fafc; border: 1px solid var(--border); border-radius: 7px;
+    padding: 10px 12px; font-size: 12.5px; margin: 8px 0 12px;
+  }
+  .modal-preview .preflight .row { padding: 3px 0; }
+  .modal-preview .preflight .ok { color: var(--ok); }
+  .modal-preview .preflight .warn { color: var(--warn); }
+
+  /* Admin user split */
+  .admin-split { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; }
+  .admin-list-tbl { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .admin-list-tbl table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .admin-list-tbl th { background: #f8fafc; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+  .admin-list-tbl td { padding: 8px 10px; border-top: 1px solid var(--border); }
+  .admin-editor {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 9px;
+    padding: 16px; align-self: start; position: sticky; top: 60px;
+  }
+
+  .role-help {
+    background: #f8fafc; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 11.5px; color: var(--muted); margin: 6px 0 10px;
+  }
+  .role-help b { color: var(--ink); }
+
+  /* Spirit notes */
+  .note { background: var(--panel); border: 1px dashed var(--border); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--ink); line-height: 1.6; }
+  .note strong { color: var(--accent); }
+
+  /* RefTableEditor mini */
+  .ref-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ref-tab {
+    padding: 4px 10px; font-size: 11.5px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--muted);
+  }
+  .ref-tab.on { background: var(--accent-soft); color: var(--accent); border-color: #bfdbfe; font-weight: 600; }
+  .ref-tbl { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 14px; }
+  .ref-tbl table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ref-tbl th { background: #f8fafc; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; }
+  .ref-tbl td { padding: 8px 10px; border-top: 1px solid var(--border); }
+  .ref-tbl tr.add td { background: #f8fafc; font-style: italic; color: var(--muted); }
+
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 4px; border: 1px solid var(--border); }
+
+  /* Code editor */
+  .code-editor {
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 9px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px; line-height: 1.6;
+    padding: 14px 16px;
+    overflow: hidden;
+    min-height: 280px;
+  }
+  .code-editor .ln { color: #475569; user-select: none; display: inline-block; width: 26px; text-align: right; padding-right: 10px; }
+  .code-editor .key { color: #93c5fd; }
+  .code-editor .str { color: #86efac; }
+  .code-editor .num { color: #fbbf24; }
+  .code-editor .com { color: #64748b; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1 class="doc-title">S3C Manager — Layout Proposal v2 (mockup)</h1>
+  <p class="doc-sub">
+    Vizuální doplněk k <code>LAYOUT_PROPOSAL2.md</code>. Pokrývá stránky a komponenty, které v1 mockup neukázal: Service editor, Reviews kanban + modal, Portfolio detail, Graph workspace template, C3 entity workspace, Administration users, New service wizard, Reference data editor.
+  </p>
+
+  <div class="note" style="margin-bottom: 24px;">
+    <strong>Pravidla shellu</strong> (top bar, sidebar, page header, tokens) se v této verzi nemění. Tento mockup zobrazuje jen <strong>page-body specifické</strong> části. Sidebar a top bar jsou zkrácené, abychom šetřili místo na to nové.
+  </div>
+
+  <!-- ========== 1. SERVICE EDITOR ========== -->
+  <h2 class="section"><span class="num">1</span>Service editor — sub-nav + form sections + sticky save bar</h2>
+  <p class="lede">Největší formulář v aplikaci. Levá vertikální sub-nav s validation badges, hlavní sloupec s <code>&lt;FormSection&gt;</code> bloky, sticky save bar dole. Requestable warning blokuje publish.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/services/identity-federation/edit</strong>
+      <span>Sub-nav: Identity active · 3 sekce s validačním badge</span>
+    </div>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Služby</div>
+          <div class="nav-item"><span class="ico"></span>Service list</div>
+          <div class="nav-item active"><span class="ico"></span>Service editor</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Služby</span><span class="sep">›</span><span>List</span><span class="sep">›</span><span class="here">Identity Federation — Editor</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body" style="padding: 14px 18px 0;">
+          <h2 class="page-title">Editor — Identity Federation</h2>
+          <p class="page-purpose">Upravte katalogový záznam, role, SLA, pricing, offerings, vztahy a C3 mapping. Změny se neukládají automaticky.</p>
+
+          <div class="banner">
+            <span class="dot"></span>
+            <span><strong>Requestable warning:</strong> služba je „requestable", ale offering „Partner SSO" nemá vyplněné <em>support model</em>. Doplňte v sekci „Support model".</span>
+            <span class="right">Skočit na sekci →</span>
+          </div>
+        </div>
+
+        <div class="editor-shell">
+          <aside class="editor-subnav">
+            <div class="esn-group">
+              <div class="esn-group-label">Hlavní</div>
+              <div class="esn-item on">Identity</div>
+              <div class="esn-item">Description</div>
+              <div class="esn-item">Catalogue access <span class="esn-badge warn">1</span></div>
+              <div class="esn-item">Classification</div>
+              <div class="esn-item">Ownership <span class="esn-badge ok">✓</span></div>
+              <div class="esn-item">SLA &amp; Domains</div>
+            </div>
+            <div class="esn-group">
+              <div class="esn-group-label">Collections</div>
+              <div class="esn-item">Offerings <span class="esn-badge bad">2</span></div>
+              <div class="esn-item">Pricing / Flavours</div>
+              <div class="esn-item">Relationships</div>
+              <div class="esn-item">C3 mapping</div>
+              <div class="esn-item">Support model <span class="esn-badge warn">1</span></div>
+              <div class="esn-item">Audience</div>
+              <div class="esn-item">Operational links</div>
+            </div>
+            <div class="esn-group">
+              <div class="esn-group-label">Pomocné</div>
+              <div class="esn-item">Raw fields (RO)</div>
+              <div class="esn-item">Governance notes</div>
+            </div>
+          </aside>
+          <div class="editor-main">
+            <div class="editor-content">
+              <div class="form-section">
+                <h3>Identity</h3>
+                <p class="desc">Základní identifikace služby. Service ID je po vytvoření trvalé.</p>
+                <div class="form-grid">
+                  <div class="ff dirty">
+                    <label>Title <span class="req">*</span></label>
+                    <input value="Identity Federation"/>
+                  </div>
+                  <div class="ff">
+                    <label>Service ID</label>
+                    <input value="ID-FED-001" disabled style="background: #f1f5f9; color: var(--muted);"/>
+                  </div>
+                  <div class="ff">
+                    <label>Service type <span class="req">*</span></label>
+                    <select><option>Platform service</option></select>
+                  </div>
+                  <div class="ff">
+                    <label>Service status</label>
+                    <select><option>active</option><option>retired</option><option>deprecated</option><option>draft</option></select>
+                  </div>
+                  <div class="ff full">
+                    <label>Lifecycle state <span class="req">*</span></label>
+                    <select>
+                      <option>live (current)</option>
+                      <option>deprecated</option>
+                    </select>
+                    <span style="font-size: 11.5px; color: var(--muted); margin-top: 2px;">Z „live" lze přejít jen na „deprecated". Ostatní stavy nejsou dovolené přechody.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h3>Description <span style="font-size: 12px; color: var(--muted); font-weight: 400;">— sekce „Description" je v sub-nav vedle Identity</span></h3>
+                <p class="desc">Krátký a podrobný popis služby pro konzumenty i interní uživatele.</p>
+                <div class="form-grid">
+                  <div class="ff full">
+                    <label>Summary (krátký)</label>
+                    <input value="SSO + federovaná identita pro interní i partnerské aplikace."/>
+                  </div>
+                  <div class="ff full">
+                    <label>Detailed description</label>
+                    <textarea>Doporučená cesta pro nové aplikace, které potřebují integraci s podnikovou identitou. Šetří týdny implementace OIDC/SAML…</textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section" id="catalogue-access">
+                <h3>Catalogue access &amp; request model</h3>
+                <p class="desc">Jak se služba objednává. Pokud je <code>requestable</code>, musí mít request channel a alespoň jeden offering se support modelem.</p>
+                <div class="form-grid">
+                  <div class="ff">
+                    <label>Requestable</label>
+                    <select><option>true</option><option>false</option></select>
+                  </div>
+                  <div class="ff">
+                    <label>Approval required</label>
+                    <select><option>true</option></select>
+                  </div>
+                  <div class="ff">
+                    <label>Request channel type <span class="req">*</span></label>
+                    <select><option>portal</option><option>email</option><option>external</option><option>none</option></select>
+                  </div>
+                  <div class="ff invalid">
+                    <label>Request channel URL <span class="req">*</span></label>
+                    <input value="not-a-url"/>
+                    <span class="err">Není validní URL formát (chybí http:// nebo https://).</span>
+                  </div>
+                  <div class="ff full">
+                    <label>Target audience summary</label>
+                    <input value="Aplikační týmy + partneři"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="save-bar">
+              <span class="status dirty">3 nesynchronizovaná pole · 1 chyba · last save 14:32</span>
+              <span style="margin-left: auto; display: flex; gap: 8px;">
+                <span class="btn ghost">Discard</span>
+                <span class="btn">Save draft</span>
+                <span class="btn primary">Save &amp; publish</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="lede" style="margin-top: 16px;">
+    <strong>Detaily, které Codex často minuje:</strong>
+    badge logika v sub-nav (červená = chybí povinné, oranžová = warning, zelená = sekce splňuje readiness),
+    sticky save bar má 4 stavy (clean / dirty / saving / error),
+    Service ID je po vytvoření disabled,
+    lifecycle select ukazuje jen povolené přechody (žádné disabled options),
+    requestable banner ihned navádí na sekci, která způsobila warning.
+  </p>
+
+  <!-- ========== 2. REVIEWS KANBAN ========== -->
+  <h2 class="section"><span class="num">2</span>Reviews — kanban + action modal</h2>
+  <p class="lede">Status change není drag-drop, vždy modal s rationale. Pre-flight check ukáže readiness ihned při openingu modalu.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/operations/reviews</strong>
+      <span>View: Board · 14 open reviews</span>
+    </div>
+    <div class="shell" style="min-height: 540px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Governance</div>
+          <div class="nav-item"><span class="ico"></span>Operations</div>
+          <div class="nav-item active"><span class="ico"></span>Reviews</div>
+          <div class="nav-item"><span class="ico"></span>Decisions</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Governance</span><span class="sep">›</span><span class="here">Reviews</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <div class="toggle"><span class="opt on">Board</span><span class="opt">List</span><span class="opt">Calendar</span></div>
+          <span class="btn primary">⊕ Request review</span>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body">
+          <h2 class="page-title">Governance reviews</h2>
+          <p class="page-purpose">Schvalujte, odmítejte nebo odložte review služeb. Status change vždy s rationale.</p>
+
+          <div class="kpis">
+            <div class="kpi"><div class="lbl">Open</div><div class="val">14</div></div>
+            <div class="kpi"><div class="lbl">In review</div><div class="val">6</div></div>
+            <div class="kpi bad"><div class="lbl">Overdue</div><div class="val">5</div></div>
+            <div class="kpi"><div class="lbl">Closed (30d)</div><div class="val">38</div></div>
+          </div>
+
+          <div class="rev-kanban">
+            <div class="lane">
+              <h4>Requested <span class="n">8</span></h4>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill review">publish</span> Identity Federation</div>
+                <div class="meta">Owner: Alice Veselá</div>
+                <div class="reason">Doplnění Partner SSO offering pro EU partnery.</div>
+                <div class="due warn">Due: 2026-05-05 (za 3 dny)</div>
+                <div class="footer">Open detail →</div>
+              </div>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill ok">owner</span> Backup Vault</div>
+                <div class="meta">Owner: — bez ownera</div>
+                <div class="reason">Owner attestation overdue.</div>
+                <div class="due bad">Due: 2026-04-28 ⚠ overdue</div>
+                <div class="footer">Open detail →</div>
+              </div>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill purple">coverage</span> Print Queue</div>
+                <div class="meta">Owner: Eva Černá</div>
+                <div class="reason">Capability mapping coverage check.</div>
+                <div class="due">Due: 2026-05-12</div>
+                <div class="footer">Open detail →</div>
+              </div>
+            </div>
+            <div class="lane">
+              <h4>In review <span class="n">6</span></h4>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill review">publish</span> CRM Sync v3</div>
+                <div class="meta">Reviewer: Karel Dvořák</div>
+                <div class="reason">Started 2 dny zpět.</div>
+                <div class="due">Due: 2026-05-08</div>
+                <div class="footer">Open detail →</div>
+              </div>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill ok">owner</span> VPN Concentrator</div>
+                <div class="meta">Reviewer: Eva Černá</div>
+                <div class="reason">Owner re-attestation Q2.</div>
+                <div class="due">Due: 2026-05-10</div>
+                <div class="footer">Open detail →</div>
+              </div>
+            </div>
+            <div class="lane">
+              <h4>Decision needed <span class="n">4</span></h4>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill review">publish</span> Email Relay v4</div>
+                <div class="meta">Reviewer: Karel Dvořák</div>
+                <div class="reason">All checks pass · waiting for sign-off.</div>
+                <div class="due warn">Due: 2026-05-04 (za 2 dny)</div>
+                <div class="footer">Open detail →</div>
+              </div>
+            </div>
+            <div class="lane">
+              <h4>Closed <span class="n">38</span></h4>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill ok">approved</span> Identity Federation</div>
+                <div class="meta">Closed 2026-05-01 · Eva Černá</div>
+                <div class="reason">v1 publish approved.</div>
+                <div class="footer">Open decision →</div>
+              </div>
+              <div class="rev-card">
+                <div class="ttl"><span class="pill bad">rejected</span> Print Queue v1</div>
+                <div class="meta">Closed 2026-04-28 · Karel Dvořák</div>
+                <div class="reason">Capability mapping missing.</div>
+                <div class="footer">Open decision →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 14px; margin: 18px 0 8px;">Review action modal (Approve / Reject / Defer)</h3>
+  <div class="modal-preview">
+    <h3>Review action <span style="font-size: 18px; color: var(--muted); cursor: pointer;">×</span></h3>
+    <p class="desc">publish · Identity Federation · requested by Petr Novák · 2026-04-28</p>
+
+    <div class="preflight">
+      <div class="row ok">✓ Owner is assigned (Alice Veselá)</div>
+      <div class="row ok">✓ Default offering exists</div>
+      <div class="row ok">✓ Capability mapping is set</div>
+      <div class="row warn">⚠ 1 readiness warning — audience policy missing for offering „Partner SSO"</div>
+    </div>
+
+    <div class="ff" style="margin-bottom: 10px;">
+      <label>Decision</label>
+      <div style="display: flex; gap: 8px;">
+        <span class="btn" style="background: var(--ok-soft); color: var(--ok); border-color: #bbf7d0; font-weight: 600;">◉ Approved</span>
+        <span class="btn" style="background: var(--bad-soft); color: var(--bad); border-color: #fecaca;">◯ Rejected</span>
+        <span class="btn" style="background: var(--warn-soft); color: var(--warn); border-color: #fde68a;">◯ Deferred</span>
+      </div>
+    </div>
+
+    <div class="ff" style="margin-bottom: 10px;">
+      <label>Rationale (volitelné pro Approved, povinné pro Reject/Defer)</label>
+      <textarea>Bezpečnostní review prošel; offering Partner SSO splňuje compliance pro EU partnery (GDPR + eIDAS).</textarea>
+    </div>
+
+    <div class="ff" style="margin-bottom: 10px;">
+      <label>Evidence (volitelné)</label>
+      <input value="SR-2026-12 · EU-2026-Q2"/>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px; font-size: 12px; margin: 8px 0 12px;">
+      <strong>Po uložení vznikne v decision logu záznam:</strong>
+      <ul style="margin: 6px 0 0 16px; padding: 0;">
+        <li>What: Approve publish of Identity Federation</li>
+        <li>Why: [rationale výše]</li>
+        <li>Affects: Service · Identity Federation</li>
+        <li>Expires: 2027-05-01 (annual review)</li>
+      </ul>
+    </div>
+
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <span class="btn ghost">Cancel</span>
+      <span class="btn primary">Confirm</span>
+    </div>
+  </div>
+
+  <!-- ========== 3. PORTFOLIO DETAIL ========== -->
+  <h2 class="section"><span class="num">3</span>Portfolio landing &amp; detail</h2>
+  <p class="lede">Card má lifecycle distribution bar a kontext (top services, owners). Detail je nová route s 7 sekcemi.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/portfolio</strong>
+      <span>Portfolio landing — 6 portfolií</span>
+    </div>
+    <div class="shell" style="min-height: 520px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Služby</div>
+          <div class="nav-item active"><span class="ico"></span>Portfolio</div>
+          <div class="nav-item"><span class="ico"></span>Service list</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Služby</span><span class="sep">›</span><span class="here">Portfolio</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body">
+          <h2 class="page-title">Portfolios</h2>
+          <p class="page-purpose">Skupiny služeb podle owner skupin a strategického zaměření.</p>
+
+          <div class="kpis" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="kpi"><div class="lbl">Portfolios</div><div class="val">6</div></div>
+            <div class="kpi"><div class="lbl">Services</div><div class="val">132</div></div>
+            <div class="kpi warn"><div class="lbl">Reviews overdue</div><div class="val">5</div></div>
+          </div>
+
+          <div class="portfolios">
+            <div class="portfolio">
+              <h3>Platform <span class="pill ok">28 services</span></h3>
+              <div class="purpose">Identity &amp; access · Compute · Storage</div>
+              <div class="row"><span style="color: var(--muted);">Active</span><strong>24</strong></div>
+              <div class="row"><span style="color: var(--muted);">Overdue reviews</span><strong style="color: var(--warn);">2</strong></div>
+              <div class="row"><span style="color: var(--muted);">Owners</span><strong>Alice Veselá +4</strong></div>
+              <div class="lc-bar">
+                <span class="lc-live" style="width: 60%;"></span>
+                <span class="lc-dep" style="width: 14%;"></span>
+                <span class="lc-drf" style="width: 10%;"></span>
+              </div>
+              <div style="font-size: 11.5px; color: var(--muted);">live 17 · dep 4 · drft 3</div>
+              <a class="footer-link">Open portfolio →</a>
+            </div>
+            <div class="portfolio">
+              <h3>Workplace <span class="pill ok">19 services</span></h3>
+              <div class="purpose">Endpoint · Print · Collaboration tools</div>
+              <div class="row"><span style="color: var(--muted);">Active</span><strong>17</strong></div>
+              <div class="row"><span style="color: var(--muted);">Overdue reviews</span><strong>1</strong></div>
+              <div class="row"><span style="color: var(--muted);">Owners</span><strong>Eva Černá +2</strong></div>
+              <div class="lc-bar">
+                <span class="lc-live" style="width: 70%;"></span>
+                <span class="lc-dep" style="width: 15%;"></span>
+                <span class="lc-drf" style="width: 5%;"></span>
+              </div>
+              <div style="font-size: 11.5px; color: var(--muted);">live 13 · dep 3 · drft 1</div>
+              <a class="footer-link">Open portfolio →</a>
+            </div>
+            <div class="portfolio">
+              <h3>Networks <span class="pill warn">22 services</span></h3>
+              <div class="purpose">DNS · VPN · WAN · Firewall</div>
+              <div class="row"><span style="color: var(--muted);">Active</span><strong>18</strong></div>
+              <div class="row"><span style="color: var(--muted);">Overdue reviews</span><strong style="color: var(--bad);">2</strong></div>
+              <div class="row"><span style="color: var(--muted);">Owners</span><strong>Petr Novák +1</strong></div>
+              <div class="lc-bar">
+                <span class="lc-live" style="width: 50%;"></span>
+                <span class="lc-dep" style="width: 30%;"></span>
+                <span class="lc-drf" style="width: 5%;"></span>
+              </div>
+              <div style="font-size: 11.5px; color: var(--muted);">live 11 · dep 6 · drft 1</div>
+              <a class="footer-link">Open portfolio →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/portfolio/platform</strong>
+      <span>Portfolio detail — 7 sekcí (NOVÁ ROUTE)</span>
+    </div>
+    <div class="shell" style="min-height: 540px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Služby</div>
+          <div class="nav-item active"><span class="ico"></span>Portfolio</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Služby</span><span class="sep">›</span><span>Portfolio</span><span class="sep">›</span><span class="here">Platform</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body">
+          <h2 class="page-title">Platform</h2>
+          <p class="page-purpose">Strategicky podpůrné služby pro identitu, compute a storage.</p>
+
+          <div class="kpis">
+            <div class="kpi"><div class="lbl">Services</div><div class="val">28</div></div>
+            <div class="kpi bad"><div class="lbl">Critical</div><div class="val">4</div></div>
+            <div class="kpi warn"><div class="lbl">Overdue reviews</div><div class="val">2</div></div>
+            <div class="kpi"><div class="lbl">Coverage</div><div class="val">88 %</div></div>
+          </div>
+
+          <div class="form-section">
+            <h3>1. Purpose &amp; ownership</h3>
+            <p style="font-size: 13px; margin: 0 0 8px;">Strategicky podpůrné služby, které drží identitu uživatelů, výpočetní kapacitu a storage. Klíčové pro většinu jiných portfolií — Networks, Workplace i Security z nich vychází.</p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <span class="pill review">Owner: Alice Veselá (Platform Identity)</span>
+              <span class="pill review">+4 owners</span>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>2. Services <span style="font-size: 11.5px; color: var(--muted); font-weight: 400;">(embedded /services/list?portfolio=platform)</span></h3>
+            <div style="font-size: 12.5px; color: var(--muted); padding: 20px; text-align: center; background: #f8fafc; border-radius: 7px; border: 1px dashed var(--border);">
+              [Embedded ServiceList component — 28 řádků]
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-section">
+              <h3>3. Lifecycle distribution</h3>
+              <div class="lc-bar" style="height: 14px;">
+                <span class="lc-live" style="width: 60%;"></span>
+                <span class="lc-dep" style="width: 14%;"></span>
+                <span class="lc-drf" style="width: 10%;"></span>
+                <span style="background: #cbd5e1; width: 16%;"></span>
+              </div>
+              <div style="font-size: 12.5px; margin-top: 8px;">
+                live 17 · dep 4 · drft 3 · retired 4
+              </div>
+            </div>
+            <div class="form-section">
+              <h3>4. Criticality</h3>
+              <div style="font-size: 12.5px;">
+                <div style="display: flex; gap: 8px; padding: 4px 0;"><span class="pill bad">Critical</span><strong>4</strong> services</div>
+                <div style="display: flex; gap: 8px; padding: 4px 0;"><span class="pill warn">High</span><strong>9</strong> services</div>
+                <div style="display: flex; gap: 8px; padding: 4px 0;"><span class="pill review">Medium</span><strong>12</strong> services</div>
+                <div style="display: flex; gap: 8px; padding: 4px 0;"><span class="pill neutral">Low</span><strong>3</strong> services</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>5–7. Capability coverage · Decisions · Review calendar</h3>
+            <p style="font-size: 12.5px; color: var(--muted);">
+              [Tři embedované sekce: capability coverage filtered by portfolio, posledních 10 decisions, kalendář review v portfoliu]
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 4. GRAPH WORKSPACE ========== -->
+  <h2 class="section"><span class="num">4</span>Graph workspace template (5 stránek, 1 šablona)</h2>
+  <p class="lede">Toolbar (200 px) + Canvas (flex) + Detail panel (240 px). Sdílí <code>/services/graph</code>, <code>/services/dependency-flow</code>, <code>/services/[id]/graph</code>, <code>/c3/graph</code>.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/services/graph</strong>
+      <span>Toolbar | Canvas | Detail panel</span>
+    </div>
+    <div class="shell" style="min-height: 520px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Služby</div>
+          <div class="nav-item active"><span class="ico"></span>Service graph</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Služby</span><span class="sep">›</span><span class="here">Service graph</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="btn ghost">📄 Export PDF</span>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body" style="padding: 14px 18px 0;">
+          <h2 class="page-title">Service graph</h2>
+          <p class="page-purpose">Globální graf služeb, závislostí a C3 mappings.</p>
+        </div>
+
+        <div class="gws">
+          <aside class="gws-toolbar">
+            <h5>Search</h5>
+            <input placeholder="Service or C3 node…"/>
+            <h5>Filters</h5>
+            <select><option>Status: all</option></select>
+            <select><option>Portfolio: all</option></select>
+            <select><option>Type: all</option></select>
+            <h5>Relation type</h5>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+              <span class="pill review" style="font-size: 10.5px;">depends_on</span>
+              <span class="pill review" style="font-size: 10.5px;">prerequisite</span>
+              <span class="pill neutral" style="font-size: 10.5px;">underlying</span>
+              <span class="pill neutral" style="font-size: 10.5px;">replaces</span>
+              <span class="pill neutral" style="font-size: 10.5px;">related_to</span>
+            </div>
+            <h5>Toggles</h5>
+            <label class="check"><input type="checkbox" checked/>Show C3</label>
+            <label class="check"><input type="checkbox"/>Show flavours</label>
+            <label class="check"><input type="checkbox" checked/>Edge labels</label>
+            <label class="check"><input type="checkbox"/>Compact payload</label>
+            <label class="check"><input type="checkbox" checked/>Minimap</label>
+            <h5>Edge style</h5>
+            <div class="toggle" style="font-size: 11px;"><span class="opt on">straight</span><span class="opt">smooth</span></div>
+            <h5 style="margin-top: 12px;">Actions</h5>
+            <span class="btn ghost" style="width: 100%; margin-bottom: 4px;">Save layout</span>
+            <span class="btn ghost" style="width: 100%;">Reset zoom</span>
+          </aside>
+          <div class="gws-canvas">
+            <svg viewBox="0 0 540 360" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 360px;">
+              <defs>
+                <marker id="arrG" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/>
+                </marker>
+              </defs>
+              <g><circle cx="270" cy="180" r="32" fill="#0f172a" stroke="#0f172a"/><text x="270" y="180" text-anchor="middle" fill="white" font-size="10" font-weight="700">Identity</text><text x="270" y="194" text-anchor="middle" fill="#cbd5e1" font-size="9">Federation</text></g>
+              <g><circle cx="120" cy="80" r="22" fill="#dbeafe" stroke="#bfdbfe"/><text x="120" y="84" text-anchor="middle" fill="#1e3a8a" font-size="9" font-weight="600">Backup</text></g>
+              <g><circle cx="430" cy="80" r="22" fill="#dcfce7" stroke="#bbf7d0"/><text x="430" y="84" text-anchor="middle" fill="#14532d" font-size="9" font-weight="600">Email</text></g>
+              <g><circle cx="120" cy="280" r="22" fill="#fef3c7" stroke="#fde68a"/><text x="120" y="284" text-anchor="middle" fill="#b45309" font-size="9" font-weight="600">CRM</text></g>
+              <g><circle cx="430" cy="280" r="22" fill="#fee2e2" stroke="#fecaca"/><text x="430" y="280" text-anchor="middle" fill="#b91c1c" font-size="9" font-weight="600">Print</text><text x="430" y="290" text-anchor="middle" fill="#b91c1c" font-size="8">queue</text></g>
+              <line x1="142" y1="100" x2="248" y2="160" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrG)"/>
+              <line x1="408" y1="100" x2="292" y2="160" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrG)"/>
+              <line x1="142" y1="260" x2="248" y2="200" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrG)"/>
+              <line x1="408" y1="260" x2="292" y2="200" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrG)"/>
+              <g>
+                <rect x="40" y="40" width="60" height="32" rx="6" fill="#ede9fe" stroke="#ddd6fe"/>
+                <text x="70" y="60" text-anchor="middle" fill="#5b21b6" font-size="9" font-weight="600">C3 capa</text>
+              </g>
+              <line x1="100" y1="56" x2="240" y2="160" stroke="#7c3aed" stroke-width="1.2" stroke-dasharray="4,2"/>
+            </svg>
+            <div style="position: absolute; bottom: 18px; right: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px; width: 120px; height: 80px; font-size: 9px; color: var(--muted); text-align: center; line-height: 80px;">minimap</div>
+          </div>
+          <aside class="gws-detail">
+            <h5>Identity Federation</h5>
+            <div class="row"><span class="k">Type</span><strong>service</strong></div>
+            <div class="row"><span class="k">Lifecycle</span><strong>live</strong></div>
+            <div class="row"><span class="k">Owner</span><strong>Alice Veselá</strong></div>
+            <div class="row"><span class="k">Portfolio</span><strong>Platform</strong></div>
+            <div class="row"><span class="k">In edges</span><strong>3</strong></div>
+            <div class="row"><span class="k">Out edges</span><strong>4</strong></div>
+            <div class="row"><span class="k">C3 mapped</span><strong>Workforce Identity</strong></div>
+            <div style="margin-top: 14px;">
+              <span class="btn primary" style="width: 100%; justify-content: center;">Open detail →</span>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 5. ADMIN USERS ========== -->
+  <h2 class="section"><span class="num">5</span>Administration · Users — split list + sticky editor</h2>
+  <p class="lede">Levý sloupec list + filter, pravý sloupec sticky editor s role help boxem. Auth provider toggle podmíněně zpřístupňuje pole.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/administration/users</strong>
+      <span>Edit user „alice@example.com"</span>
+    </div>
+    <div class="shell" style="min-height: 520px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Administrace</div>
+          <div class="nav-item active"><span class="ico"></span>Uživatelé</div>
+          <div class="nav-item"><span class="ico"></span>Skupiny</div>
+          <div class="nav-item"><span class="ico"></span>Auth &amp; web</div>
+          <div class="nav-item"><span class="ico"></span>Logy</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Administrace</span><span class="sep">›</span><span class="here">Uživatelé</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="btn primary">⊕ New user</span>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body">
+          <h2 class="page-title">Uživatelé</h2>
+          <p class="page-purpose">Správa lokálních a AD účtů, rolí a aktivního stavu.</p>
+
+          <div class="kpis">
+            <div class="kpi"><div class="lbl">Total</div><div class="val">27</div></div>
+            <div class="kpi"><div class="lbl">Active</div><div class="val">24</div></div>
+            <div class="kpi"><div class="lbl">Local</div><div class="val">18</div></div>
+            <div class="kpi"><div class="lbl">AD</div><div class="val">9</div></div>
+          </div>
+
+          <div class="admin-split">
+            <div class="admin-list-tbl">
+              <table>
+                <tr>
+                  <th>Username</th><th>Display</th><th>Role</th><th>Auth</th><th>Active</th>
+                </tr>
+                <tr>
+                  <td>alice@example.com</td><td>Alice Veselá</td>
+                  <td><span class="pill review">editor</span></td>
+                  <td>local</td>
+                  <td><span class="pill ok">✓</span></td>
+                </tr>
+                <tr style="background: var(--accent-soft);">
+                  <td>moravec@janmoravec.com</td><td>Jan Moravec</td>
+                  <td><span class="pill bad">admin</span></td>
+                  <td>local</td>
+                  <td><span class="pill ok">✓</span></td>
+                </tr>
+                <tr>
+                  <td>petr@example.com</td><td>Petr Novák</td>
+                  <td><span class="pill review">editor</span></td>
+                  <td>ad</td>
+                  <td><span class="pill ok">✓</span></td>
+                </tr>
+                <tr>
+                  <td>karel@example.com</td><td>Karel Dvořák</td>
+                  <td><span class="pill neutral">viewer</span></td>
+                  <td>ad</td>
+                  <td><span class="pill warn">inactive</span></td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="admin-editor">
+              <h3 style="font-size: 14px; margin: 0 0 10px;">Edit user — Alice Veselá</h3>
+              <div class="form-grid" style="grid-template-columns: 1fr;">
+                <div class="ff">
+                  <label>Username</label>
+                  <input value="alice@example.com"/>
+                </div>
+                <div class="ff">
+                  <label>Display name</label>
+                  <input value="Alice Veselá"/>
+                </div>
+                <div class="ff">
+                  <label>Role</label>
+                  <select><option>viewer</option><option selected>editor</option><option>admin</option></select>
+                </div>
+                <div class="role-help">
+                  <b>editor</b> + edituje vlastní služby a C3 entity. Nemůže spravovat uživatele ani číselníky.
+                </div>
+                <div class="ff">
+                  <label>Auth provider</label>
+                  <select><option selected>local</option><option>ad</option></select>
+                </div>
+                <div class="ff">
+                  <label>Email</label>
+                  <input value="alice@example.com"/>
+                </div>
+                <div class="ff">
+                  <label>Department</label>
+                  <input value="Platform Identity"/>
+                </div>
+                <div class="ff">
+                  <label>Password (volitelné při editu)</label>
+                  <input type="password" placeholder="ponechat beze změny"/>
+                </div>
+                <div class="ff">
+                  <label style="display: flex; gap: 6px; align-items: center;"><input type="checkbox" checked/>Is active</label>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <span class="btn ghost" style="flex: 1; justify-content: center;">Cancel</span>
+                <span class="btn primary" style="flex: 1; justify-content: center;">Save</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 6. NEW SERVICE WIZARD ========== -->
+  <h2 class="section"><span class="num">6</span>New service wizard — 7 kroků</h2>
+  <p class="lede">Stejný step tracker jako import. Form sections per krok. Save draft do <code>localStorage</code>. Po úspěšném create redirect na editor pro doplnění offerings/SLA.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/management/new-service?step=3</strong>
+      <span>Step 3/7 · Access</span>
+    </div>
+    <div class="shell" style="min-height: 540px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Služby</div>
+          <div class="nav-item active"><span class="ico"></span>Nová služba</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Služby</span><span class="sep">›</span><span class="here">Nová služba</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body">
+          <h2 class="page-title">Nová služba</h2>
+          <p class="page-purpose">Krokový průvodce pro založení nové služby v katalogu.</p>
+
+          <div class="steps">
+            <div class="step done"><span class="num">1</span>Identity</div>
+            <div class="step done"><span class="num">2</span>Description</div>
+            <div class="step now"><span class="num">3</span>Access</div>
+            <div class="step"><span class="num">4</span>Classification</div>
+            <div class="step"><span class="num">5</span>Owners &amp; SLA</div>
+            <div class="step"><span class="num">6</span>C3 mapping</div>
+            <div class="step"><span class="num">7</span>Review</div>
+          </div>
+
+          <div class="form-section">
+            <h3>Catalogue access &amp; request model</h3>
+            <p class="desc">Jak se služba objednává. Tato pole určují, zda bude zobrazena jako requestable v katalogu.</p>
+            <div class="form-grid">
+              <div class="ff">
+                <label>Requestable</label>
+                <select><option>true</option><option>false</option></select>
+              </div>
+              <div class="ff">
+                <label>Approval required</label>
+                <select><option>true</option><option>false</option></select>
+              </div>
+              <div class="ff">
+                <label>Request channel type <span class="req">*</span></label>
+                <select><option>portal</option><option>email</option><option>external</option><option>none</option></select>
+              </div>
+              <div class="ff">
+                <label>Request channel URL</label>
+                <input placeholder="https://service-portal.example/services/…"/>
+              </div>
+              <div class="ff full">
+                <label>Target audience summary</label>
+                <input placeholder="Kdo bude službu používat?"/>
+              </div>
+              <div class="ff full">
+                <label>Fulfillment lead time</label>
+                <input placeholder="např. „3 pracovní dny"/>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px dashed var(--border); border-radius: 7px; padding: 10px 12px; font-size: 12px; color: var(--muted); margin: 10px 0;">
+            ⓘ Auto-save draft do prohlížeče · obnovíte při příštím otevření této stránky
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <span class="btn ghost">← Back</span>
+            <span class="btn">Save draft</span>
+            <span style="margin-left: auto;"><span class="btn primary">Next: Classification →</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 7. C3 ENTITY WORKSPACE ========== -->
+  <h2 class="section"><span class="num">7</span>C3 entity workspace template — list / detail / code editor</h2>
+  <p class="lede">Stejná šablona pro Applications, Data Objects, C3 Services, TINs (4 entity × 3 stránky = 12 unique briefs, 1 layout).</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/c3/applications/okta/edit</strong>
+      <span>Editace C3 Application — sticky save bar</span>
+    </div>
+    <div class="shell" style="min-height: 480px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Schopnosti a C3</div>
+          <div class="nav-item active"><span class="ico"></span>C3 list</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>C3</span><span class="sep">›</span><span>Applications</span><span class="sep">›</span><span class="here">Okta — Edit</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body" style="padding: 14px 18px 0;">
+          <h2 class="page-title">Okta — Edit</h2>
+          <p class="page-purpose">Editace C3 Application. Code, UUID a title jsou povinné.</p>
+        </div>
+
+        <div class="editor-shell">
+          <aside class="editor-subnav">
+            <div class="esn-group">
+              <div class="esn-group-label">Sekce</div>
+              <div class="esn-item on">Identification</div>
+              <div class="esn-item">Description</div>
+              <div class="esn-item">Source &amp; status</div>
+              <div class="esn-item">Links</div>
+              <div class="esn-item">Raw fields</div>
+            </div>
+          </aside>
+          <div class="editor-main">
+            <div class="editor-content">
+              <div class="form-section">
+                <h3>Identification &amp; classification</h3>
+                <p class="desc">Identifikační pole entity v C3 taxonomii.</p>
+                <div class="form-grid">
+                  <div class="ff dirty">
+                    <label>Application code <span class="req">*</span></label>
+                    <input value="okta"/>
+                  </div>
+                  <div class="ff">
+                    <label>UUID <span class="req">*</span></label>
+                    <input value="a4e1f3..." disabled style="background: #f1f5f9; color: var(--muted);"/>
+                  </div>
+                  <div class="ff full dirty">
+                    <label>Title <span class="req">*</span></label>
+                    <input value="Okta — Workforce Identity Cloud"/>
+                  </div>
+                  <div class="ff">
+                    <label>External ID</label>
+                    <input value="OKTA-2024-WF"/>
+                  </div>
+                  <div class="ff">
+                    <label>Order num</label>
+                    <input type="number" value="14"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h3>Description</h3>
+                <div class="form-grid">
+                  <div class="ff full">
+                    <label>Description</label>
+                    <textarea>Cloud-based identity provider integrovaný do Identity Federation jako primární IdP pro interní aplikace.</textarea>
+                  </div>
+                  <div class="ff full">
+                    <label>Revised description</label>
+                    <textarea></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h3>Source &amp; status</h3>
+                <div class="form-grid">
+                  <div class="ff">
+                    <label>Data source</label>
+                    <input value="manual"/>
+                  </div>
+                  <div class="ff">
+                    <label>Item status</label>
+                    <select><option>active</option><option>review</option><option>draft</option></select>
+                  </div>
+                  <div class="ff">
+                    <label>SS overall status</label>
+                    <select><option>baseline</option></select>
+                  </div>
+                  <div class="ff">
+                    <label>SS baseline status</label>
+                    <select><option>spiral_7</option></select>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <div class="save-bar">
+              <span class="status dirty">2 nesynchronizovaná pole · last save 14:18</span>
+              <span style="margin-left: auto; display: flex; gap: 8px;">
+                <span class="btn ghost">Reset</span>
+                <span class="btn primary">Save</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 14px; margin: 18px 0 8px;">Code editor varianta (např. <code>/c3/services/auth/code-edit</code>)</h3>
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/c3/services/auth/code-edit</strong>
+      <span>Monaco code editor · YAML</span>
+    </div>
+    <div style="padding: 18px 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div>
+          <strong style="font-size: 14px;">auth-service.yaml</strong>
+          <span style="font-size: 12px; color: var(--muted); margin-left: 8px;">format: yaml · lines: 142</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <span class="btn ghost">Validate</span>
+          <span class="btn ghost">Diff</span>
+          <span class="btn">Cancel</span>
+          <span class="btn primary">Save</span>
+        </div>
+      </div>
+      <div class="code-editor">
+        <div><span class="ln">1</span><span class="key">code</span>: <span class="str">"auth-service"</span></div>
+        <div><span class="ln">2</span><span class="key">title</span>: <span class="str">"Authentication Service"</span></div>
+        <div><span class="ln">3</span><span class="key">uuid</span>: <span class="str">"a4e1f3-...-c891"</span></div>
+        <div><span class="ln">4</span><span class="com"># Spiral 7 baseline mapping</span></div>
+        <div><span class="ln">5</span><span class="key">spiral</span>: <span class="num">7</span></div>
+        <div><span class="ln">6</span><span class="key">item_status</span>: <span class="str">"active"</span></div>
+        <div><span class="ln">7</span><span class="key">data_source</span>: <span class="str">"manual"</span></div>
+        <div><span class="ln">8</span><span class="key">capabilities</span>:</div>
+        <div><span class="ln">9</span>  - <span class="key">code</span>: <span class="str">"workforce-identity"</span></div>
+        <div><span class="ln">10</span>    <span class="key">role</span>: <span class="str">"implements"</span></div>
+        <div><span class="ln">11</span>  - <span class="key">code</span>: <span class="str">"partner-federation"</span></div>
+        <div><span class="ln">12</span>    <span class="key">role</span>: <span class="str">"supports"</span></div>
+        <div><span class="ln">13</span><span class="key">applications</span>:</div>
+        <div><span class="ln">14</span>  - <span class="str">"okta"</span></div>
+        <div><span class="ln">15</span>  - <span class="str">"entra-id"</span></div>
+        <div><span class="ln">16</span><span class="key">data_objects</span>:</div>
+        <div><span class="ln">17</span>  - <span class="str">"identity-record"</span></div>
+        <div><span class="ln">18</span>  - <span class="str">"session-token"</span></div>
+        <div><span class="ln">19</span>  - <span class="str">"audit-event"</span></div>
+        <div><span class="ln">20</span><span class="com"># …</span></div>
+      </div>
+      <div style="margin-top: 8px; font-size: 12px; color: var(--muted);">
+        ⓘ Lint warnings se zobrazují v gutteru. Diff toggle ukazuje změny proti uložené verzi.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 8. REFERENCE DATA EDITOR ========== -->
+  <h2 class="section"><span class="num">8</span>Reference data editor (<code>RefTableEditor</code>)</h2>
+  <p class="lede">Sdílená komponenta pro <code>/admin/catalogue-ref</code> a <code>/admin/c3-ref</code>. Tabovaný výběr tabulky + add form + inline editovatelná tabulka.</p>
+
+  <div class="frame">
+    <div class="frame-caption">
+      <strong>/admin/catalogue-ref</strong>
+      <span>Tab: ref_PortfolioGroup</span>
+    </div>
+    <div class="shell" style="min-height: 480px;">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"></div><div class="brand-name">S3C Manager</div></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Administrace</div>
+          <div class="nav-item active"><span class="ico"></span>Reference data</div>
+        </div>
+        <div class="sidebar-bottom"><span class="avatar"></span>Jan Moravec</div>
+      </aside>
+      <div class="pane">
+        <div class="topbar">
+          <div class="crumbs"><span>Administrace</span><span class="sep">›</span><span class="here">Reference data — catalogue</span></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">🔍 Search… <span class="kbd">⌘K</span></div>
+          <span class="bell">🔔</span>
+          <span class="user-chip">JM</span>
+        </div>
+        <div class="page-body">
+          <h2 class="page-title">Reference data — catalogue</h2>
+          <p class="page-purpose">Číselníky pro service editor a katalog (typy, statusy, portfolio…).</p>
+
+          <div class="ref-tabs">
+            <span class="ref-tab">ref_ServiceType</span>
+            <span class="ref-tab">ref_ServiceStatus</span>
+            <span class="ref-tab">ref_RelationType</span>
+            <span class="ref-tab on">ref_PortfolioGroup</span>
+            <span class="ref-tab">ref_GlobalServiceGroup</span>
+            <span class="ref-tab">ref_ServiceLine</span>
+            <span class="ref-tab">ref_OrganizationalElement</span>
+            <span class="ref-tab">ref_NetworkDomain</span>
+            <span class="ref-tab">ref_SecurityClassification</span>
+            <span class="ref-tab">ref_SupportWindow</span>
+            <span class="ref-tab">ref_FlavourStatus</span>
+            <span class="ref-tab">ref_ServiceRole</span>
+            <span class="ref-tab">ref_PaceCategory</span>
+          </div>
+
+          <div class="ref-tbl">
+            <table>
+              <tr>
+                <th>code (PK)</th><th>name_cs</th><th>name_en</th><th>color</th><th>is_active</th><th></th>
+              </tr>
+              <tr class="add">
+                <td>[input]</td><td>[input]</td><td>[input]</td><td>[color picker]</td><td>[checkbox]</td><td><span class="btn primary" style="font-size: 11px; padding: 3px 8px;">Add</span></td>
+              </tr>
+              <tr>
+                <td>PLATFORM</td><td>Platform</td><td>Platform</td><td><span class="swatch" style="background: #2563eb;"></span>#2563eb</td><td>✓</td><td><span class="btn ghost" style="font-size: 11px;">Edit · Del</span></td>
+              </tr>
+              <tr>
+                <td>WORKPLACE</td><td>Workplace</td><td>Workplace</td><td><span class="swatch" style="background: #15803d;"></span>#15803d</td><td>✓</td><td><span class="btn ghost" style="font-size: 11px;">Edit · Del</span></td>
+              </tr>
+              <tr>
+                <td>NETWORKS</td><td>Networks</td><td>Networks</td><td><span class="swatch" style="background: #b45309;"></span>#b45309</td><td>✓</td><td><span class="btn ghost" style="font-size: 11px;">Edit · Del</span></td>
+              </tr>
+              <tr>
+                <td>SECURITY</td><td>Security</td><td>Security</td><td><span class="swatch" style="background: #b91c1c;"></span>#b91c1c</td><td>✓</td><td><span class="btn ghost" style="font-size: 11px;">Edit · Del</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="font-size: 12px; color: var(--muted); margin-top: 8px;">
+            ⓘ Inline edit on click. Delete vyžaduje confirm. Foreign key fields (např. service line code) jsou typeahead select.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 9. POZNÁMKY ========== -->
+  <h2 class="section"><span class="num">9</span>Časté chyby, kterých se Codex dopustí</h2>
+  <div class="note">
+    <strong>1. Sub-nav vs Tabs.</strong> Editor má vertikální sub-nav (sticky), ne horizontální taby. Detail služby má horizontální taby. Tabulky v admin sekci mají vlastní tab pattern (ref_*).<br>
+    <strong>2. Sticky save bar má 4 stavy.</strong> clean (skrytý) / dirty (warn) / saving (spinner) / error (bad).<br>
+    <strong>3. Lifecycle select neukazuje disabled options.</strong> Skrytí, ne grey-out.<br>
+    <strong>4. Service ID je trvale disabled po vytvoření.</strong> Zobrazte ho s <code>background: #f1f5f9</code>, ne jen <code>disabled</code>.<br>
+    <strong>5. Requestable warning je banner, ne tooltip.</strong> Blokuje publish, povoluje draft.<br>
+    <strong>6. Reviews kanban není drag-drop.</strong> Status se mění modal s rationale.<br>
+    <strong>7. Decision modal preview shrnuje, co se zapíše do decision logu.</strong> Auditní transparence.<br>
+    <strong>8. Pre-flight check v review modalu je side-effect-free GET.</strong> Volá se při otevření modalu.<br>
+    <strong>9. Graph workspace má 3 sloupce.</strong> Toolbar vlevo, ne nahoře. Detail panel je collapsible.<br>
+    <strong>10. RefTableEditor add-row je inline řádek nahoře tabulky</strong>, ne separátní form. Foreign key fields = typeahead select, ne plain dropdown.<br>
+    <strong>11. Code editor má dark theme</strong> i když zbytek aplikace je light.<br>
+    <strong>12. Sub-nav badges</strong>: červená (chybí povinné), oranžová (warning), zelená (sekce splněná dle readiness).
+  </div>
+</div>
+</body>
+</html>

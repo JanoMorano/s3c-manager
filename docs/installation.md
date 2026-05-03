@@ -17,6 +17,7 @@ Current application package baseline:
 
 | Area | Version baseline |
 |---|---|
+| Application release | 1.1.2 |
 | Frontend runtime | Next.js 16.2, React 19.2, TypeScript 6.0 |
 | Frontend styling | Tailwind CSS 4.2, `@tailwindcss/postcss` 4.2, CSS Modules |
 | Middleware runtime | Express 5.2, PostgreSQL `pg` 8.20 |
@@ -249,6 +250,7 @@ Recommended cadence:
 
 | Variable | Default | Description |
 |---|---|---|
+| `APP_VERSION` | `1.1.2` | Application release version used by install/upgrade detection and visible release metadata |
 | `PORT` | `4000` | Express middleware port |
 | `NEXT_PORT` | `3000` | Next.js port |
 | `CORS_ORIGINS` | `http://localhost:8080` | Allowed CORS origins |
@@ -264,6 +266,9 @@ Recommended cadence:
 | `INIT_WITH_C3_BASELINE_TAXONOMY_SEED` | `false` | load baseline C3 taxonomy |
 | `INIT_WITH_C3_TAXONOMY_XLSX_SEED` | `false` | use the taxonomy snapshot derived from XLSX imports |
 | `INIT_WITH_C3_CAPABILITY_MAP_SEED` | `false` | load the baseline Spiral 7 capability map |
+| `DEMO_SEED_LOCALE` | system locale | force demo service copy locale, for example `en` or `cs` |
+
+When `INIT_WITH_TEST_SEEDS=true`, the demo dataset contains 8 services, 3 portfolios, 12 service offerings, 12 pricing flavours, owners, readiness blockers, a readiness exception, governance reviews, decisions, capability coverage examples, and a 3-level dependency chain. Enable the C3 seed flags as well when you want the demo capability maps and C3 entity evidence to be visible immediately.
 
 ### SSO
 
@@ -339,6 +344,19 @@ SQL file order:
 13_install_system.sql    — install state machine and module registry
 14_spiral_versioning.sql — Spiral versioning on C3 entities
 15_itil_catalogue_phase1.sql — additive ITIL-ready catalogue Phase 1 schema
+16_consumer_value.sql — consumer value field on services
+17_spiral_membership.sql — C3 entity membership in FMN spirals
+18_service_governance_views.sql — service governance helper views
+19_capability_abbreviations.sql — capability abbreviations
+20_capability_coverage_views.sql — capability coverage helper views
+21_governance_risk_views.sql — governance risk and owner-load views
+22_governance_views.sql — service publish readiness view
+23_service_portfolio.sql — portfolios and service lifecycle metadata
+24_readiness_rules.sql — readiness rules and exceptions
+25_capability_governance.sql — coverage, gap, and overlap views
+26_governance_workflow.sql — reviews and decision log
+27_impact_analysis.sql — recursive service/capability impact analysis
+28_enterprise_governance_contracts.sql — notifications, preferences, request log, C3 board state
 ```
 
 ---

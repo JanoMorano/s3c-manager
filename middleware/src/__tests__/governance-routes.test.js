@@ -23,6 +23,19 @@ jest.mock('../db/governance.repo', () => ({
     listRenewalRisks: jest.fn(),
     listAdvisorFindings: jest.fn(),
     dismissFinding: jest.fn(),
+    listReviews: jest.fn(),
+    createReview: jest.fn(),
+    updateReview: jest.fn(),
+    listDecisions: jest.fn(),
+    createDecision: jest.fn(),
+}));
+
+jest.mock('../db/audit.repo', () => ({
+    log: jest.fn(),
+}));
+
+jest.mock('../services/readiness', () => ({
+    getServiceReadiness: jest.fn(),
 }));
 
 describe('governance routes', () => {

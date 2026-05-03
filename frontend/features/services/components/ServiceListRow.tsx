@@ -1,44 +1,55 @@
 /**
  * §6.2 ServiceListRow — main catalogue list.
- * Columns: ID+Type | Title+ShortDesc | Portfolio | Domains | Availability | Status | Owner
+ * Columns: Service | Lifecycle | Owner | Readiness | Capability | C3 | Deps | Next action
  * Variants: density="compact" | "comfortable"
  */
 import Link from '@/app/components/AppLink';
 import { StatusPill } from './StatusPill';
-import { AvailabilityBadge } from './AvailabilityBadge';
-import { DomainDotGroup } from './DomainDotGroup';
+import { ProgressBar } from '@/design-system/controls';
 import { cn } from '@/shared/utils/cn';
 import type { ServiceListItem } from '../model/service.types';
 import type { SortField, SortOrder } from '../api/services.api';
 import styles from './ServiceListRow.module.css';
 
-const LIFECYCLE_DOT_COLOR: Record<string, string> = {
-  draft:        'var(--color-text-muted)',
-  under_review: 'var(--color-info)',
-  approved:     'var(--color-success)',
-  live:         'var(--color-success)',
-  deprecated:   'var(--color-warning)',
-  retired:      'var(--color-danger)',
-};
-
-function LifecycleDot({ state }: { state: string }) {
-  const color = LIFECYCLE_DOT_COLOR[state] ?? 'var(--color-text-muted)';
-  const label = state.replace('_', ' ');
-  return (
-    <span
-      className={styles.lifecycleDot}
-      style={{ background: color }}
-      title={`Lifecycle: ${label}`}
-      aria-label={`Lifecycle: ${label}`}
-    />
-  );
+function hasC3Mapping(service: ServiceListItem) {
+  return service.has_c3_mapping === true || service.has_c3_mapping === 1 || (service.c3_mapping_count ?? 0) > 0;
 }
 
-function formatCost(value: number | null) {
-  if (value == null || Number.isNaN(value)) return '—';
-  if (value >= 1_000_000) return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `€${Math.round(value / 1_000)}k`;
-  return `€${value.toLocaleString('cs-CZ')}`;
+function readinessTone(score: number): 'success' | 'warning' | 'danger' {
+  if (score >= 80) return 'success';
+  if (score >= 50) return 'warning';
+  return 'danger';
+}
+
+function readinessLabel(score: number, service: ServiceListItem) {
+  if (score < 50) return `${score}% · blocker`;
+  if (score < 80) return `${score}% · warning`;
+  if (!service.short_description) return `${score}% · summary`;
+  return `${score}% · ready`;
+}
+
+function ownerLabel(service: ServiceListItem) {
+  return service.service_owner ?? service.vlastnik ?? service.manager ?? null;
+}
+
+function capabilityLabel(service: ServiceListItem) {
+  return service.primary_capability_title ?? service.primary_capability_code ?? (hasC3Mapping(service) ? 'Mapped capability' : null);
+}
+
+function c3Count(service: ServiceListItem) {
+  if (service.c3_mapping_count != null) return service.c3_mapping_count;
+  return hasC3Mapping(service) ? 1 : 0;
+}
+
+function nextAction(service: ServiceListItem) {
+  const score = service.completeness_score ?? 0;
+  if (!ownerLabel(service)) return 'Přiřadit ownera';
+  if (!hasC3Mapping(service)) return 'Doplnit capability';
+  if (score < 50) return 'Doplnit readiness';
+  if (score < 80) return 'Spustit review';
+  if (service.lifecycle_state === 'under_review') return 'Schválit review';
+  if (service.lifecycle_state === 'deprecated') return 'Ověřit náhradu';
+  return 'Otevřít';
 }
 
 interface ServiceListRowProps {
@@ -48,59 +59,65 @@ interface ServiceListRowProps {
 }
 
 export function ServiceListRow({ service, density = 'comfortable', selected }: ServiceListRowProps) {
+  const score = service.completeness_score ?? 0;
+  const owner = ownerLabel(service);
+  const capability = capabilityLabel(service);
+  const mappingCount = c3Count(service);
+  const downstream = service.relation_count ?? 0;
+
   return (
     <Link
       href={`/services/${service.service_id}`}
       className={cn(styles.row, styles[density], selected && styles.selected)}
     >
-      {/* Col 1: ID + Type */}
-      <div className={styles.colId}>
-        <span className={styles.serviceId}>{service.service_id}</span>
-        {service.service_type && (
-          <span className={styles.typeChip}>{service.service_type}</span>
-        )}
-      </div>
-
-      <div className={styles.colTitle}>
+      <div className={styles.colService}>
         <span className={styles.titleLine}>
           <span className={styles.title}>{service.title}</span>
           {service.requestable && <span className={styles.requestableChip}>Requestable</span>}
         </span>
-        {density === 'comfortable' && service.short_description && (
-          <span className={styles.desc}>{service.short_description}</span>
-        )}
+        <span className={styles.serviceMeta}>{service.service_id} · {service.service_type ?? 'untyped'} · {service.portfolio_group ?? 'no portfolio'}</span>
+        {density === 'comfortable' && service.short_description && <span className={styles.desc}>{service.short_description}</span>}
       </div>
 
-      {/* Col 3: Portfolio group */}
-      <div className={styles.colPortfolio}>
-        <span className={styles.portfolio}>{service.portfolio_group ?? '—'}</span>
-      </div>
-
-      {/* Col 4: Domains */}
-      <div className={styles.colDomains}>
-        <DomainDotGroup domains={service.available_on} />
-      </div>
-
-      {/* Col 5: Availability */}
-      <div className={styles.colAvail}>
-        <AvailabilityBadge pct={service.sla_availability} />
-      </div>
-
-      <div className={styles.colStatus}>
-        <StatusPill status={service.service_status ?? 'draft'} size="sm" />
-        {service.lifecycle_state && (
-          <LifecycleDot state={service.lifecycle_state} />
-        )}
-      </div>
-
-      <div className={styles.colSignals}>
-        <span>{service.flavour_count ?? 0} flavours</span>
-        <span>{service.relation_count ?? 0} links</span>
-        <strong>{formatCost(service.in_service_eur)}</strong>
+      <div className={styles.colLifecycle}>
+        <StatusPill status={service.lifecycle_state ?? service.service_status ?? 'draft'} size="sm" />
       </div>
 
       <div className={styles.colOwner}>
-        <span className={styles.owner}>{service.service_owner ?? '—'}</span>
+        {owner ? (
+          <>
+            <span className={styles.owner}>{owner}</span>
+            {service.manager && service.manager !== owner && <span className={styles.ownerOrg}>{service.manager}</span>}
+          </>
+        ) : (
+          <span className={styles.ownerMissing}>— bez ownera</span>
+        )}
+      </div>
+
+      <div className={styles.colReadiness}>
+        <ProgressBar value={score} tone={readinessTone(score)} label={`${service.title} readiness`} />
+        <span className={styles.readinessText}>{readinessLabel(score, service)}</span>
+      </div>
+
+      <div className={styles.colCapability}>
+        {capability ? (
+          <span className={styles.capability}>{capability}</span>
+        ) : (
+          <span className={styles.capabilityMissing}>— nemapováno</span>
+        )}
+      </div>
+
+      <div className={styles.colC3}>
+        {mappingCount ? <span className={styles.counter}>{mappingCount}</span> : <span className={styles.muted}>—</span>}
+      </div>
+
+      <div className={styles.colDeps}>
+        <span className={styles.dependencyCount}>{downstream} ↓</span>
+        <span className={styles.muted}>/ {service.flavour_count ?? 0} offers</span>
+      </div>
+
+      <div className={styles.colNextAction}>
+        <span>{nextAction(service)} →</span>
       </div>
     </Link>
   );
@@ -134,14 +151,14 @@ export function ServiceListHeader({
 
   return (
     <div className={cn(styles.row, styles.header, styles[density])}>
-      <div className={styles.colId}>{label('service_id', 'ID / Type')}</div>
-      <div className={styles.colTitle}>{label('title', 'Title')}</div>
-      <div className={styles.colPortfolio}>{label('portfolio_group', 'Portfolio')}</div>
-      <div className={styles.colDomains}>Domains</div>
-      <div className={styles.colAvail}>Availability</div>
-      <div className={styles.colStatus}>{label('service_status', 'Status')}</div>
-      <div className={styles.colSignals}>Signals</div>
+      <div className={styles.colService}>{label('title', 'Service')}</div>
+      <div className={styles.colLifecycle}>{label('service_status', 'Lifecycle')}</div>
       <div className={styles.colOwner}>Owner</div>
+      <div className={styles.colReadiness}>Readiness</div>
+      <div className={styles.colCapability}>Capability</div>
+      <div className={styles.colC3}>C3</div>
+      <div className={styles.colDeps}>Deps</div>
+      <div className={styles.colNextAction}>Next action</div>
     </div>
   );
 }

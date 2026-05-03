@@ -178,6 +178,17 @@
 .validationError { font: var(--text-label-sm); color: var(--color-danger); margin-bottom: var(--space-1); }
 .validOk { font: var(--text-body-sm); color: var(--color-success); }
 
+.editorActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
 .lockedSection {
   border: 1px dashed var(--color-border-default);
   border-radius: var(--radius-sm);

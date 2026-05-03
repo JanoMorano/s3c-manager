@@ -1,0 +1,161 @@
+/* ── Owner picker ─────────────────────────────────────────────────────────── */
+
+.pickerWrap {
+  display: grid;
+  gap: 24px;
+}
+
+.pickerForm {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pickerInput {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font: var(--text-body-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.pickerBtn {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-text-primary);
+  color: var(--color-bg-surface);
+  padding: 10px 18px;
+  font: var(--text-label-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Top-10 owner list ────────────────────────────────────────────────────── */
+
+.topList {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.topListHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.barLegend {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.legLive::before   { content: '■'; color: var(--color-info); margin-right: 3px; }
+.legCritical::before { content: '■'; color: var(--color-danger); margin-right: 3px; }
+.legBlockers::before { content: '■'; color: var(--color-warning); margin-right: 3px; }
+.legOverdue::before  { content: '■'; color: var(--color-purple); margin-right: 3px; }
+
+.topRow {
+  display: grid;
+  grid-template-columns: 200px 1fr 60px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border-default);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s;
+}
+
+.topRow:last-child {
+  border-bottom: none;
+}
+
+.topRow:hover {
+  background: var(--color-bg-subtle);
+}
+
+.topName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topScore {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+/* ── Mini bar for top list ─────────────────────────────────────────────────── */
+
+.barWrap {
+  width: 100%;
+}
+
+.barTrack {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-border-default);
+}
+
+.segLive     { background: var(--color-info); }
+.segCritical { background: var(--color-danger); }
+.segBlockers { background: var(--color-warning); }
+.segOverdue  { background: var(--color-purple); }
+
+/* ── Workload chart (owner detail) ────────────────────────────────────────── */
+
+.chartWrap {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.chartRow {
+  display: grid;
+  grid-template-columns: 160px 1fr 48px;
+  align-items: center;
+  gap: 14px;
+}
+
+.chartLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.chartTrack {
+  height: 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-border-default);
+  overflow: hidden;
+}
+
+.chartBarLive     { height: 100%; background: var(--color-info); border-radius: var(--radius-md); transition: width 0.4s ease; }
+.chartBarCritical { height: 100%; background: var(--color-danger); border-radius: var(--radius-md); transition: width 0.4s ease; }
+.chartBarBlockers { height: 100%; background: var(--color-warning); border-radius: var(--radius-md); transition: width 0.4s ease; }
+.chartBarOverdue  { height: 100%; background: var(--color-purple); border-radius: var(--radius-md); transition: width 0.4s ease; }
+
+.chartVal {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--color-text-primary);
+}

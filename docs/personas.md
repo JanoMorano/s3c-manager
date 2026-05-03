@@ -1,4 +1,4 @@
-# Product Personas for s3c-manager v1.1.1
+# Product Personas for s3c-manager v1.1.2
 
 Personas are UX lenses over the same RBAC-secured data. They do not grant permissions.
 

@@ -83,6 +83,14 @@ interface ExportManifestResponse {
   schema_version: string;
 }
 
+interface ImportProfile {
+  key: string;
+  label: string;
+  mode: string;
+  required_fields: string[];
+  description?: string;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmt(dt: string | null) {
   if (!dt) return '—';
@@ -114,6 +122,7 @@ export default function ImportReviewPage() {
   const [rawFieldsTab, setRawFieldsTab] = useState(false);
   const [rawFieldsServiceId, setRawFieldsServiceId] = useState('');
   const [rawFieldsSearch, setRawFieldsSearch] = useState('');
+  const [selectedProfileKey, setSelectedProfileKey] = useState('s3c-service-catalogue-json');
 
   // ── Pagination state ──────────────────────────────────────────────────────
   const [batchOffset, setBatchOffset] = useState(0);
@@ -121,6 +130,11 @@ export default function ImportReviewPage() {
   const [hasMore, setHasMore] = useState(false);
   const { data: manifest } = useSWR<ExportManifestResponse>(
     '/api/v1/export/manifest?scope=import',
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+  const { data: profiles } = useSWR<{ items: ImportProfile[] }>(
+    '/api/v1/import/profiles',
     apiFetch,
     { revalidateOnFocus: false }
   );
@@ -200,6 +214,7 @@ export default function ImportReviewPage() {
   if (!data)     return null;
 
   const { batches, summary } = data;
+  const selectedProfile = (profiles?.items ?? []).find((profile) => profile.key === selectedProfileKey) ?? profiles?.items?.[0];
 
   return (
     <div className={styles.shell}>
@@ -225,6 +240,36 @@ export default function ImportReviewPage() {
             aria-pressed={rawFieldsTab}>Raw Fields (per služba)</button>
         </div>
       </div>
+
+      <section className={styles.profilePanel}>
+        <label className={styles.profileSelector}>
+          <span>Import profile</span>
+          <select
+            aria-label="Import profile"
+            value={selectedProfileKey}
+            onChange={(event) => setSelectedProfileKey(event.target.value)}
+          >
+            {(profiles?.items ?? []).map((profile) => (
+              <option key={profile.key} value={profile.key}>{profile.label}</option>
+            ))}
+          </select>
+        </label>
+        <div className={styles.profileDetail}>
+          <strong>{selectedProfile?.label ?? 'S3C service catalogue JSON'}</strong>
+          <span>{selectedProfile?.description ?? 'Native import/export profile.'}</span>
+          <div className={styles.profileFields}>
+            {(selectedProfile?.required_fields ?? ['service_id', 'title']).map((field) => (
+              <code key={field}>{field}</code>
+            ))}
+          </div>
+        </div>
+        <div className={styles.profileExports}>
+          <a className={styles.tabBtn} href="/api/v1/export/governance-report">Governance report</a>
+          <a className={styles.tabBtn} href="/api/v1/export/capabilities/coverage">Capability coverage export</a>
+          <a className={styles.tabBtn} href="/api/v1/export/backstage/catalog-info">Backstage catalog-info</a>
+          <Link className={styles.tabBtn} href="/help#data">Integration mappings</Link>
+        </div>
+      </section>
 
       {!rawTab && (
         <>

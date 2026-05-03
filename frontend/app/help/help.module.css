@@ -50,7 +50,9 @@
 .quickLinks a,
 .roleCard a,
 .panel a,
-.actionRow a {
+.actionRow a,
+.guideCallout a,
+.backLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -67,12 +69,17 @@
 .quickLinks a:hover,
 .roleCard a:hover,
 .panel a:hover,
-.actionRow a:hover {
+.actionRow a:hover,
+.guideCallout a:hover,
+.backLink:hover {
   background: color-mix(in srgb, var(--color-action-primary) 14%, transparent);
 }
 
 .section,
-.splitSection {
+.splitSection,
+.missionSection,
+.guideSection,
+.guideTimeline {
   margin-top: var(--space-5);
 }
 
@@ -85,6 +92,305 @@
 .panel h2 {
   margin: var(--space-1) 0 var(--space-2);
   font: var(--text-title-md);
+}
+
+.missionSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.missionSection .sectionIntro {
+  margin-bottom: 0;
+}
+
+.missionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.missionPanel {
+  min-height: 138px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}
+
+.missionPanel h3 {
+  margin-bottom: var(--space-2);
+  font: var(--text-title-sm);
+}
+
+.missionPanel p {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.5;
+}
+
+.guideCallout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--space-5);
+  align-items: center;
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-action-primary) 32%, var(--color-border-default));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-action-primary) 8%, var(--color-bg-surface));
+}
+
+.guideCallout h2 {
+  margin: var(--space-1) 0 var(--space-2);
+  font: var(--text-title-md);
+}
+
+.guideCallout p {
+  max-width: 920px;
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+  line-height: 1.55;
+}
+
+.guideHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-5);
+  align-items: end;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.guideHeroText {
+  max-width: 980px;
+}
+
+.guideHero h1 {
+  margin: var(--space-3) 0;
+  font: var(--text-title-lg);
+}
+
+.guideHero p,
+.guideStepHeader p,
+.guideStepBody p,
+.guidePrinciples p,
+.fieldGroup p,
+.fieldGroup strong,
+.errorGrid p,
+.capabilityGrid p {
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+  line-height: 1.55;
+}
+
+.backLink {
+  width: fit-content;
+  margin-bottom: var(--space-4);
+}
+
+.guideHeroStats {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.guideHeroStats div {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}
+
+.guideHeroStats strong {
+  display: block;
+  font: var(--text-title-lg);
+}
+
+.guideHeroStats span {
+  color: var(--color-text-secondary);
+  font: var(--text-label-md);
+}
+
+.guideQuickNav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3) 0;
+  background: var(--color-bg-canvas);
+}
+
+.guideQuickNav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-surface);
+  font: var(--text-label-sm);
+  text-decoration: none;
+}
+
+.guideQuickNav a:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+
+.guidePrinciples,
+.fieldMatrix,
+.errorGrid,
+.capabilityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.guidePrinciples article,
+.fieldGroup,
+.errorGrid article,
+.capabilityGrid article,
+.finalChecklist {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.guidePrinciples h3,
+.fieldGroup h3,
+.errorGrid h3,
+.capabilityGrid h3,
+.finalChecklist h3 {
+  margin-bottom: var(--space-2);
+  font: var(--text-title-sm);
+}
+
+.guideTimeline {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.guideStep {
+  scroll-margin-top: 72px;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.guideStepHeader {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.guideStepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: var(--color-bg-canvas);
+  background: var(--color-action-primary);
+  font: var(--text-label-md);
+}
+
+.guideRoute {
+  display: inline-flex;
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.guideStepHeader h2 {
+  margin-bottom: var(--space-2);
+  font: var(--text-title-md);
+}
+
+.guideFigure {
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+
+.guideImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.guideStepBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, .36fr);
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.guideStepBody h3 {
+  margin-bottom: var(--space-2);
+  font: var(--text-title-sm);
+}
+
+.guideChecklist,
+.finalChecklist ul,
+.fieldGroup ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+  line-height: 1.55;
+}
+
+.guideImpact {
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 38%, var(--color-border-default));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-elevated));
+}
+
+.fieldMatrix {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fieldGroup strong {
+  display: block;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-muted);
+  color: var(--color-text-primary);
+}
+
+.errorGrid article {
+  border-color: color-mix(in srgb, var(--color-danger) 28%, var(--color-border-default));
+}
+
+.finalChecklist {
+  margin-top: var(--space-4);
 }
 
 .outputGrid,
@@ -255,6 +561,13 @@
 }
 
 @media (max-width: 1180px) {
+  .missionSection,
+  .guideHero,
+  .guideCallout,
+  .guideStepBody {
+    grid-template-columns: 1fr;
+  }
+
   .outputGrid,
   .topicGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -262,6 +575,13 @@
 
   .roleGrid {
     grid-template-columns: 1fr;
+  }
+
+  .fieldMatrix,
+  .guidePrinciples,
+  .errorGrid,
+  .capabilityGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -289,12 +609,25 @@
     grid-template-columns: 1fr;
     gap: 2px;
   }
+
+  .guideStep {
+    padding: var(--space-4);
+  }
+
+  .guideStepHeader {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
   .outputGrid,
   .topicGrid,
-  .quickLinks {
+  .quickLinks,
+  .missionGrid,
+  .fieldMatrix,
+  .guidePrinciples,
+  .errorGrid,
+  .capabilityGrid {
     grid-template-columns: 1fr;
   }
 }

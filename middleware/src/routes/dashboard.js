@@ -11,6 +11,7 @@ function getUserIdentity(req) {
     return {
         email: req.user?.email ?? null,
         username: req.user?.username ?? null,
+        displayName: req.user?.display_name ?? null,
     };
 }
 
@@ -26,10 +27,111 @@ function toInboxItem(row) {
     };
 }
 
+function toCount(value) {
+    return Number(value ?? 0);
+}
+
+function emptySummary() {
+    return {
+        total_services: 0,
+        services_ready_for_publish: 0,
+        services_blocked_by_readiness: 0,
+        overdue_reviews: 0,
+        uncovered_capabilities: 0,
+        over_covered_capabilities: 0,
+        active_governance_reviews: 0,
+        recent_decisions: 0,
+    };
+}
+
+function normalizeSummary(row) {
+    const fallback = emptySummary();
+    if (!row) return fallback;
+    return Object.fromEntries(
+        Object.keys(fallback).map((key) => [key, toCount(row[key])]),
+    );
+}
+
+function summaryLinks() {
+    return {
+        governance_health: '/operations',
+        readiness_queue: '/operations/readiness',
+        capability_coverage: '/capabilities/coverage',
+        review_deadlines: '/operations/reviews',
+        owner_load: '/operations/owner-load',
+        recent_decisions: '/operations/decisions',
+    };
+}
+
+// ─── GET /dashboard/summary ─────────────────────────────────────────────────
+router.get('/summary', async (req, res, next) => {
+    try {
+        const result = await getPool().query(`
+            WITH service_totals AS (
+                SELECT COUNT(*)::integer AS total_services
+                FROM data.service_catalog sc
+                WHERE sc.is_deleted = FALSE
+                  AND sc.is_stub = FALSE
+            ),
+            readiness AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE COALESCE(is_publishable, FALSE) = TRUE)::integer AS services_ready_for_publish,
+                    COUNT(*) FILTER (WHERE COALESCE(is_publishable, FALSE) = FALSE)::integer AS services_blocked_by_readiness
+                FROM data.v_servicepublishreadiness
+            ),
+            capability AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE governance_state = 'uncovered')::integer AS uncovered_capabilities,
+                    COUNT(*) FILTER (WHERE governance_state = 'over_covered')::integer AS over_covered_capabilities
+                FROM data.v_capability_governance_coverage
+            ),
+            reviews AS (
+                SELECT
+                    COUNT(*) FILTER (
+                        WHERE status IN ('pending', 'in_review')
+                          AND due_at IS NOT NULL
+                          AND due_at < CURRENT_TIMESTAMP
+                    )::integer AS overdue_reviews,
+                    COUNT(*) FILTER (WHERE status IN ('pending', 'in_review'))::integer AS active_governance_reviews
+                FROM data.governance_review
+            ),
+            decisions AS (
+                SELECT COUNT(*)::integer AS recent_decisions
+                FROM (
+                    SELECT id
+                    FROM data.governance_decision
+                    ORDER BY decided_at DESC
+                    LIMIT 25
+                ) recent
+            )
+            SELECT
+                COALESCE(service_totals.total_services, 0)::integer AS total_services,
+                COALESCE(readiness.services_ready_for_publish, 0)::integer AS services_ready_for_publish,
+                COALESCE(readiness.services_blocked_by_readiness, 0)::integer AS services_blocked_by_readiness,
+                COALESCE(reviews.overdue_reviews, 0)::integer AS overdue_reviews,
+                COALESCE(capability.uncovered_capabilities, 0)::integer AS uncovered_capabilities,
+                COALESCE(capability.over_covered_capabilities, 0)::integer AS over_covered_capabilities,
+                COALESCE(reviews.active_governance_reviews, 0)::integer AS active_governance_reviews,
+                COALESCE(decisions.recent_decisions, 0)::integer AS recent_decisions
+            FROM service_totals
+            CROSS JOIN readiness
+            CROSS JOIN capability
+            CROSS JOIN reviews
+            CROSS JOIN decisions
+        `);
+
+        res.json({
+            generated_at: new Date().toISOString(),
+            summary: normalizeSummary(result.rows[0]),
+            links: summaryLinks(),
+        });
+    } catch (err) { next(err); }
+});
+
 // ─── GET /dashboard/inbox ────────────────────────────────────────────────────
 router.get('/inbox', async (req, res, next) => {
     try {
-        const { email, username } = getUserIdentity(req);
+        const { email, username, displayName } = getUserIdentity(req);
         const result = await getPool().query(`
             WITH owned_services AS (
                 SELECT DISTINCT sc.id, sc.service_id, sc.title, sc.updated_at, sc.completeness_score
@@ -97,7 +199,91 @@ router.get('/inbox', async (req, res, next) => {
             LIMIT 5
         `, [email, username]);
 
-        res.json({ items: result.rows.map(toInboxItem) });
+        const [ownedServices, myReviews, myDecisions] = await Promise.all([
+            getPool().query(`
+                SELECT DISTINCT
+                    sc.service_id,
+                    sc.title,
+                    sc.service_status_code AS service_status,
+                    sc.lifecycle_stage_code,
+                    sc.completeness_score,
+                    sc.next_review_due_at,
+                    sc.updated_at
+                FROM data.service_catalog sc
+                JOIN data.service_role_assignment sra
+                  ON sra.service_id = sc.id
+                 AND sra.valid_to IS NULL
+                WHERE sc.is_deleted = FALSE
+                  AND sc.is_stub = FALSE
+                  AND sra.role_code IN ('service_owner', 'owner', 'steward', 'delivery_manager')
+                  AND (
+                      LOWER(COALESCE(sra.email, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                      OR LOWER(COALESCE(sra.display_name, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                  )
+                ORDER BY sc.updated_at DESC NULLS LAST, sc.title ASC
+                LIMIT 8
+            `, [email, username, displayName]),
+            getPool().query(`
+                SELECT
+                    gr.id,
+                    sc.service_id,
+                    sc.title AS service_title,
+                    gr.review_type,
+                    gr.status,
+                    gr.assigned_to,
+                    gr.due_at,
+                    gr.created_at,
+                    gr.updated_at
+                FROM data.governance_review gr
+                JOIN data.service_catalog sc ON sc.id = gr.service_id
+                WHERE gr.status IN ('pending', 'in_review', 'deferred')
+                  AND (
+                      LOWER(COALESCE(gr.assigned_to, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                      OR LOWER(COALESCE(gr.requested_by, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                  )
+                ORDER BY gr.due_at ASC NULLS LAST, gr.updated_at DESC
+                LIMIT 8
+            `, [email, username, displayName]),
+            getPool().query(`
+                WITH mine AS (
+                    SELECT DISTINCT sc.id
+                    FROM data.service_catalog sc
+                    JOIN data.service_role_assignment sra
+                      ON sra.service_id = sc.id
+                     AND sra.valid_to IS NULL
+                    WHERE sc.is_deleted = FALSE
+                      AND sra.role_code IN ('service_owner', 'owner', 'steward', 'delivery_manager')
+                      AND (
+                          LOWER(COALESCE(sra.email, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                          OR LOWER(COALESCE(sra.display_name, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                      )
+                )
+                SELECT
+                    gd.id,
+                    sc.service_id,
+                    sc.title AS service_title,
+                    gd.decision_type,
+                    gd.decision,
+                    gd.rationale,
+                    gd.decided_by,
+                    gd.decided_at
+                FROM data.governance_decision gd
+                JOIN data.service_catalog sc ON sc.id = gd.service_id
+                WHERE gd.service_id IN (SELECT id FROM mine)
+                   OR LOWER(COALESCE(gd.decided_by, '')) IN (LOWER(COALESCE($1::text, '')), LOWER(COALESCE($2::text, '')), LOWER(COALESCE($3::text, '')))
+                ORDER BY gd.decided_at DESC
+                LIMIT 8
+            `, [email, username, displayName]),
+        ]);
+
+        const items = result.rows.map(toInboxItem);
+        res.json({
+            items,
+            my_owned_services: ownedServices.rows,
+            my_reviews: myReviews.rows,
+            my_blockers: items,
+            my_decisions: myDecisions.rows,
+        });
     } catch (err) { next(err); }
 });
 

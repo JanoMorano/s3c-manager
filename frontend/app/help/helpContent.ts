@@ -24,6 +24,18 @@ export type HelpContent = {
     lead: string;
   };
   quickLinks: Array<[string, string]>;
+  mission: {
+    eyebrow: string;
+    title: string;
+    paragraphs: string[];
+    benefits: Array<[string, string]>;
+  };
+  scenarioGuide: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    action: string;
+  };
   roleSection: {
     eyebrow: string;
     title: string;
@@ -87,6 +99,7 @@ const topicDefinitions = [
   ['linking', 'help.linking.relationship-basics', '/help#help.linking.relationship-basics', ['relations', 'dependency', 'workflow']],
   ['linking', 'help.linking.graph-navigation', '/help#help.linking.graph-navigation', ['graph', 'dependencies', 'impact']],
   ['linking', 'help.linking.c3-mapping', '/help#help.linking.c3-mapping', ['c3', 'fmn', 'capability']],
+  ['linking', 'help.linking.tins-apps-data', '/help#help.linking.tins-apps-data', ['tin', 'technology interactions', 'applications', 'data objects']],
   ['evaluation', 'help.evaluation.operations-cockpit', '/help#help.evaluation.operations-cockpit', ['operations', 'kpi', 'risk']],
   ['evaluation', 'help.evaluation.governance-cockpit', '/help#help.evaluation.governance-cockpit', ['operations', 'governance', 'risk', 'owner', 'contract']],
   ['evaluation', 'help.evaluation.readiness', '/help#help.evaluation.readiness', ['readiness', 'publishable', 'compliance']],
@@ -139,6 +152,27 @@ const cs: HelpContent = {
     lead: 'Český help pro S3C Manager podle informační architektury: role, katalog služeb, provazování, C3/FMN vyhodnocení, správa dat, instalace, provoz a FAQ.',
   },
   quickLinks: [['Začínáme', '#getting-started'], ['Služby', '#services'], ['Provazování', '#linking'], ['Výsledky', '#evaluation'], ['Data', '#data'], ['Instalace', '#installation'], ['FAQ', '#faq'], ['Tutoriály', '#tutorials']],
+  mission: {
+    eyebrow: 'K čemu aplikace je',
+    title: 'Lehký governance cockpit pro služby, capability a rozhodnutí',
+    paragraphs: [
+      'S3C Manager slouží jako lehký, self-hosted cockpit pro organizace, které potřebují udržet přehled o službách, jejich vlastnících, připravenosti, pokrytí capability/C3/FMN struktur a rozhodnutích bez nasazení těžké enterprise platformy.',
+      'Aplikace propojuje katalog služeb, C3 taxonomy, FMN spirály, TINy, aplikace, data objekty, vazby, audit a provozní signály. Cílem není jen evidovat záznamy, ale ukázat, co je připravené k publikaci, kde chybí vlastník nebo mapování, kde vzniká překryv a jaké rozhodnutí má následovat.',
+      'Typický průchod začíná v katalogu služeb: službu založíte, doplníte business popis, vlastníky, request model, SLA a lifecycle. Potom ji navážete na C3 capability, zkontrolujete coverage a readiness, doplníte TIN/C3 prvky a v Operations Cockpitu řešíte rizika, odpovědnosti a rozhodnutí.',
+    ],
+    benefits: [
+      ['Jeden zdroj pravdy', 'Služba, owner, lifecycle, request path, SLA, C3 mapování a audit jsou pohromadě a lze je filtrovat, exportovat a revidovat.'],
+      ['Readiness místo dojmu', 'Cockpit ukazuje blokery publikace, chybějící vlastníky, mapovací mezery a další signály, které lze přiřadit konkrétním lidem.'],
+      ['Capability governance', 'Služby se dají mapovat na capability/C3/FMN struktury, takže je vidět coverage, gap, overlap a dopad změn na portfolio.'],
+      ['Rozhodnutí s kontextem', 'Decision log, audit a vazby na TIN/data/app prvky pomáhají vysvětlit, proč se služba schválila, odložila, sloučila nebo vyřadila.'],
+    ],
+  },
+  scenarioGuide: {
+    eyebrow: 'Podrobný průchod aplikací',
+    title: 'Kompletní zavedení služby krok za krokem',
+    lead: 'Samostatná stránka vede uživatele od ověření duplicity přes wizard, editor, C3/FMΝ mapování, TINy, readiness, chyby a decision log. Obsahuje screenshoty a vysvětlení dopadů jednotlivých polí.',
+    action: 'Otevřít průvodce zavedením služby',
+  },
   roleSection: {
     eyebrow: 'Role a práva',
     title: 'Jak Help používat podle role',
@@ -175,6 +209,7 @@ const cs: HelpContent = {
         { title: 'Typy vazeb mezi službami', persona: 'editor, analytik', outcome: 'Umí založit správný typ relace a chápe dopad na graf závislostí.', body: 'Nejprve nastavte klienta a eligibility, potom workflow a provozní odkazy, nakonec závislosti. Relace zahrnují depends_on, prerequisite, underlying, uses, provides, replaces, integrates_with a related_to.', next: 'help.linking.graph-navigation' },
         { title: 'Navigace v grafu závislostí', persona: 'analytik, editor', outcome: 'Umí číst graf, filtrovat uzly a sledovat upstream/downstream dopady.', body: 'Globální graf má connector type, line style, C3 Taxonomy overlay, Flavours overlay a PDF export. Detailní graf služby používá hloubku 1-3 podle šíře dopadové analýzy.', next: 'help.linking.c3-mapping' },
         { title: 'Mapování na C3/FMN capability', persona: 'analytik, admin', outcome: 'Umí propojit službu na capability a ověřit konzistenci mapování.', body: 'Služba má mít jednoznačné primární C3 mapování. C3 detail ukazuje hierarchy, classification, data quality, source a linked services; capability mapy Spiral 6/7 ukazují kontext pokrytí.', next: 'help.evaluation.coverage-gaps' },
+        { title: 'TINy, aplikace a data objekty', persona: 'analytik, admin, service owner', outcome: 'Umí doložit, která technologie, aplikace a data podporují službu nebo capability.', body: 'Technology Interactions (TINy) popisují integrační nebo provozní tok mezi službami, aplikacemi a data objekty. U každého TINu zkontrolujte title, typ interakce, mature/operational stav, navázané services, applications a data objects; potom ověřte, že tyto vazby vysvětlují readiness, coverage nebo impact signál v katalogu služeb.', next: 'help.evaluation.operations-cockpit' },
       ],
       evaluation: [
         { title: 'Provozní cockpit a KPI', persona: 'analytik, admin', outcome: 'Umí číst KPI, prioritizovat rizika a připravit akční seznam.', body: 'Operations sleduje neúplná metadata, chybějící vlastníky, pricing coverage, deprecated/retired služby a C3 mapping gaps. Dashboardy nejsou jen počítadla; vedou na problematické položky.', next: 'help.evaluation.readiness' },
@@ -232,6 +267,27 @@ function localize(base: HelpContent, overrides: Partial<HelpContent>): HelpConte
 const en = localize(cs, {
   hero: { eyebrow: 'Application Help', title: 'Help', lead: 'English help for S3C Manager based on the information architecture: roles, service catalogue, linking, C3/FMN evaluation, data management, installation, operations, and FAQ.' },
   quickLinks: [['Getting Started', '#getting-started'], ['Services', '#services'], ['Linking', '#linking'], ['Results', '#evaluation'], ['Data', '#data'], ['Installation', '#installation'], ['FAQ', '#faq'], ['Tutorials', '#tutorials']],
+  mission: {
+    eyebrow: 'What the application is for',
+    title: 'A lightweight governance cockpit for services, capabilities, and decisions',
+    paragraphs: [
+      'S3C Manager is a lightweight, self-hosted cockpit for organizations that need to keep service ownership, readiness, capability/C3/FMN coverage, and decisions under control without deploying a heavy enterprise platform.',
+      'The application connects the service catalogue, C3 taxonomy, FMN spirals, TINs, applications, data objects, relationships, audit, and operational signals. The point is not only to store records; it is to show what is ready to publish, where ownership or mapping is missing, where overlap appears, and what decision should happen next.',
+      'A typical workflow starts in the service catalogue: create a service, add business description, owners, request model, SLA, and lifecycle. Then map it to C3 capability, review coverage and readiness, add TIN/C3 entities, and use Operations Cockpit to manage risks, responsibilities, and decisions.',
+    ],
+    benefits: [
+      ['Single source of truth', 'Service, owner, lifecycle, request path, SLA, C3 mapping, and audit context stay together and can be filtered, exported, and reviewed.'],
+      ['Readiness over opinion', 'The cockpit shows publication blockers, missing owners, mapping gaps, and other signals that can be assigned to concrete people.'],
+      ['Capability governance', 'Services can be mapped to capability/C3/FMN structures, making coverage, gaps, overlap, and portfolio impact visible.'],
+      ['Decisions with context', 'Decision log, audit, and TIN/data/app links help explain why a service was approved, postponed, merged, or retired.'],
+    ],
+  },
+  scenarioGuide: {
+    eyebrow: 'Detailed application walkthrough',
+    title: 'Complete service onboarding step by step',
+    lead: 'A separate guide walks users from duplicate checks through the wizard, editor, C3/FMN mapping, TINs, readiness, errors, and decision log. It includes screenshots and impact explanations for the fields.',
+    action: 'Open service onboarding guide',
+  },
   roleSection: {
     eyebrow: 'Roles and Permissions',
     title: 'How to use Help by role',
@@ -263,6 +319,7 @@ const en = localize(cs, {
         { title: 'Types of service relations', persona: 'editor, analyst', outcome: 'Can create the correct relation type and understand graph impact.', body: 'Set client and eligibility first, then workflow and operational links, then dependencies. Relations include depends_on, prerequisite, underlying, uses, provides, replaces, integrates_with, and related_to.', next: 'help.linking.graph-navigation' },
         { title: 'Dependency graph navigation', persona: 'analyst, editor', outcome: 'Can read the graph, filter nodes, and follow upstream/downstream impact.', body: 'The global graph has connector type, line style, C3 Taxonomy overlay, Flavours overlay, and PDF export. A service graph uses depth 1-3 depending on analysis breadth.', next: 'help.linking.c3-mapping' },
         { title: 'Mapping to C3/FMN capability', persona: 'analyst, admin', outcome: 'Can link a service to capability and validate mapping consistency.', body: 'A service should have one clear primary C3 mapping. C3 detail shows hierarchy, classification, data quality, source, and linked services; Spiral 6/7 maps show coverage context.', next: 'help.evaluation.coverage-gaps' },
+        { title: 'TINs, applications, and data objects', persona: 'analyst, admin, service owner', outcome: 'Can prove which technology, application, and data evidence supports a service or capability.', body: 'Technology Interactions (TINs) describe integration or operational flow across services, applications, and data objects. For each TIN, check title, interaction type, maturity/operational state, linked services, applications, and data objects; then verify that these links explain readiness, coverage, or impact signals in the service catalogue.', next: 'help.evaluation.operations-cockpit' },
       ],
       evaluation: [
         { title: 'Operations cockpit and KPI', persona: 'analyst, admin', outcome: 'Can read KPIs, prioritize risks, and prepare an action list.', body: 'Operations tracks incomplete metadata, missing owners, pricing coverage, deprecated/retired services, and C3 mapping gaps. Dashboards are navigation into problem items, not only counters.', next: 'help.evaluation.readiness' },

@@ -109,6 +109,54 @@ describe('admin routes', () => {
         expect(response.body.error).toMatch(/heslo/i);
     });
 
+    test('POST /users persists permission role and working persona separately', async () => {
+        queryMock.mockResolvedValueOnce({
+            rows: [{
+                id: 8,
+                username: 'cap.manager',
+                display_name: 'Capability Manager',
+                email: 'cap.manager@example.local',
+                role: 'editor',
+                preferred_persona: 'capability_manager',
+                is_active: true,
+                auth_provider: 'local',
+                external_principal: null,
+                last_login_at: null,
+                last_sso_login_at: null,
+                created_at: null,
+                updated_at: null,
+                given_name: 'Capability',
+                surname: 'Manager',
+                department: 'Architecture',
+            }],
+        });
+
+        const response = await request(buildApp())
+            .post('/api/v1/admin/users')
+            .send({
+                username: 'cap.manager',
+                display_name: 'Capability Manager',
+                email: 'cap.manager@example.local',
+                role: 'editor',
+                preferred_persona: 'capability_manager',
+                auth_provider: 'local',
+                password: 'very-secret',
+                given_name: 'Capability',
+                surname: 'Manager',
+                department: 'Architecture',
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body).toEqual(expect.objectContaining({
+            role: 'editor',
+            role_label: 'Content Admin - RW',
+            preferred_persona: 'capability_manager',
+            preferred_persona_label: 'Capability Manager',
+        }));
+        expect(queryMock.mock.calls[0][1][3]).toBe('editor');
+        expect(queryMock.mock.calls[0][1][4]).toBe('capability_manager');
+    });
+
     test('GET /web-settings returns runtime SSO settings', async () => {
         const { getConfigValues } = require('../utils/platform-config');
         getConfigValues.mockResolvedValueOnce({

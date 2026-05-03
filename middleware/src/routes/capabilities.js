@@ -4,6 +4,8 @@ const express = require('express');
 const { getPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { listLevel3Capabilities, resolveSlug } = require('../utils/capability-slug');
+const capabilityGovernanceRepo = require('../db/capability-governance.repo');
+const { parseIntFilter, parseTextFilter } = require('../utils/query-filters');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -16,6 +18,18 @@ async function validateSpiral(pool, spiral) {
 
 function readSpiralQuery(req) {
     return req.query.spiral ?? req.query.spiral_code ?? 'Spiral_7';
+}
+
+function readGovernanceFilters(req) {
+    return {
+        spiral: parseTextFilter(req.query.spiral ?? req.query.spiral_code, { maxLength: 80 }),
+        domain: parseTextFilter(req.query.domain, { maxLength: 120 }),
+        lifecycle: parseTextFilter(req.query.lifecycle, { maxLength: 80 }),
+        owner: parseTextFilter(req.query.owner, { maxLength: 255 }),
+        readiness: parseTextFilter(req.query.readiness, { maxLength: 80 }),
+        limit: parseIntFilter(req.query.limit, { fallback: 100, min: 1, max: 500 }),
+        offset: parseIntFilter(req.query.offset, { fallback: 0, min: 0, max: 100000 }),
+    };
 }
 
 async function loadRequirements(pool, capabilityUuid, spiralCode) {
@@ -183,6 +197,30 @@ async function loadCoveragePayload(pool, slug, requestedSpiral) {
 router.get('/lvl3', async (req, res, next) => {
     try {
         res.json(await listLevel3Capabilities(getPool()));
+    } catch (err) { next(err); }
+});
+
+router.get('/coverage', async (req, res, next) => {
+    try {
+        res.json(await capabilityGovernanceRepo.listCoverage(readGovernanceFilters(req)));
+    } catch (err) { next(err); }
+});
+
+router.get('/gaps', async (req, res, next) => {
+    try {
+        res.json(await capabilityGovernanceRepo.listGaps(readGovernanceFilters(req)));
+    } catch (err) { next(err); }
+});
+
+router.get('/overlaps', async (req, res, next) => {
+    try {
+        res.json(await capabilityGovernanceRepo.listOverlaps(readGovernanceFilters(req)));
+    } catch (err) { next(err); }
+});
+
+router.get('/spirals/:code/readiness', async (req, res, next) => {
+    try {
+        res.json(await capabilityGovernanceRepo.getSpiralReadiness(req.params.code, readGovernanceFilters(req)));
     } catch (err) { next(err); }
 });
 

@@ -1,0 +1,19 @@
+.panel {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 36%, var(--color-border-default));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface));
+}
+
+.panel strong {
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.panel p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}

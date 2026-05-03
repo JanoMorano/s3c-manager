@@ -11,9 +11,9 @@ import Link from '@/app/components/AppLink';
 import styles from '../layout.module.css';
 import AuthGuard from './AuthGuard';
 import SidebarNav from './SidebarNav';
-import NavTopActions from './NavTopActions';
 import NavUser from './NavUser';
 import NavHelpCenter from './NavHelpCenter';
+import TopBar from './TopBar';
 
 // ── Brand mark SVG ─────────────────────────────────────────────────────────
 function BrandMark() {
@@ -77,13 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* ── Right column ────────────────────────────────────────────── */}
         <div className={styles.pageColumn}>
 
-          {/* Slim topbar */}
-          <div className={styles.topBar} role="banner">
-            <div className={styles.topBarSpacer} />
-            <div className={styles.topBarRight}>
-              <NavTopActions />
-            </div>
-          </div>
+          <TopBar />
 
           {/* Page content */}
           <main id="main-content" className={styles.pageContent}>

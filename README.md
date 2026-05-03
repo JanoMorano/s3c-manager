@@ -1,29 +1,43 @@
-# S3C Manager - Service Catalogue & Capability Connector Manager
+# S3C Manager - Service & Capability Governance Cockpit
 
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED)
 
-Enterprise service catalogue for service governance, dependency graphs, pricing/SLA management, and an optional C3 taxonomy module.
+Lightweight, self-hosted service and capability governance cockpit for organizations that need to map services to capability, C3, and FMN structures, manage readiness, coverage, ownership, and decisions without adopting a heavy enterprise platform.
 
 > **Stack:** Next.js 16.2 · React 19.2 · Express 5.2 · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.1.1
+## What's New in V1.1.2 - Governance Cockpit & Layout v2
 
-- dynamic C3 Capability Map creation from the admin builder, including custom maps such as Spiral 99
-- Operations cockpit split into focused views for health, governance, pricing, owners, and C3 mapping
-- capability-driven decision cockpit for Catalogue, Operations, C3, Capabilities, and Spirals
-- generic Level-3 capability coverage, overlap, gap, duplicate coverage, and consolidation evidence views
-- real NATO/C3 import smoke, local-account regression tests, light/dark tokens, and `cs` / `en` / `sk` / `de` i18n support
+- Layout v2 governance shell with persona-oriented sidebar groups, richer top bar, shared page headers, and cleaner cockpit typography.
+- Home now behaves as a daily governance cockpit with personal service ownership, reviews, blockers, requests, and decisions.
+- Service 360 combines business and technical views, a Service Relationship Studio, readiness context, lifecycle signal, C3 mappings, dependencies, and audit context.
+- Operations pages now cover readiness, reviews, decision log, owner load, and impact analysis with manager-readable evidence and admin action queues.
+- C3 and capability areas now expose board/workspace views for coverage, gaps, overlaps, graph relationships, code editing, and C3 entity governance.
+- Administration, import, search, and onboarding flows were aligned to the v1/v2 layout proposals, including user KPIs, saved searches, import wizard flow, and horizontal wizard progress.
+- Runtime, package, Docker Compose, Portainer, install fallback, `.env.example`, release notes, and visible UI version metadata are aligned to `1.1.2`.
+
+See [Governance Cockpit](docs/governance-cockpit.md) for the end-to-end operating model.
+
+## Product Positioning
+
+S3C Manager sits between ITSM/CMDB tools, enterprise architecture repositories, developer/software catalogues, and spreadsheet-based governance. It borrows service catalogue discipline from tools such as iTop and ServiceNow, capability and portfolio thinking from EA repositories, and ownership metadata patterns from developer catalogues such as Backstage.
+
+It is not positioned as "competition-free". The product is intentionally narrower: it focuses on the service-capability governance use case where teams need a practical, self-hosted cockpit without rolling out a full enterprise ITSM or EA platform.
+
+For the detailed product boundary, see [Product Positioning](docs/product-positioning.md) and [Domain Model](docs/domain-model.md).
 
 ## What It Is
 
-Service Catalogue provides:
+S3C Manager provides:
 
-- an IT and business service catalogue
-- relationship graphs between services and C3 entities
-- pricing, flavours, SLA, and ownership management
-- governance review, audit trails, and import pipelines
+- a governed IT, business, technical, and application service catalogue
+- service portfolio, lifecycle, readiness, ownership, and review management
+- service offerings, pricing, SLA, support model, and contract-oriented metadata
+- relationship graphs between services, capabilities, C3 entities, applications, and data objects
+- capability and C3/FMN coverage, gap, overlap, and consolidation analysis
+- governance review, decision history, audit trails, and import pipelines
 - an optional C3 module for Spiral 6, Spiral 7, and custom capability maps
 
 ## Who It Is For
@@ -36,8 +50,11 @@ Service Catalogue provides:
 ## What It Is Not
 
 - not a ticketing system
+- not an incident, problem, or change management suite
 - not a full CMDB autodiscovery platform
 - not a billing engine or procurement workflow
+- not a generic ArchiMate modelling repository
+- not a replacement for enterprise ITSM or EA platforms where those platforms are already the system of record
 
 ## Quick Start in 5 Minutes
 
@@ -86,6 +103,7 @@ INIT_WITH_TEST_SEEDS=true
 INIT_WITH_C3_ENTITY_SEEDS=true
 INIT_WITH_C3_BASELINE_TAXONOMY_SEED=true
 INIT_WITH_C3_CAPABILITY_MAP_SEED=true
+DEMO_SEED_LOCALE=en
 ```
 
 ## Requirements
@@ -126,6 +144,8 @@ Runtime dependency versions are controlled by the committed package manifests an
 - Service Catalogue: list, detail, edit, history, dashboard
 - Service Graph: full catalogue graph and per-service dependency graph
 - Pricing & SLA: flavours, billing model, support windows
+- Service Governance: readiness signals, ownership, review evidence, and decision support
+- Capability Governance: capability coverage, gaps, overlaps, and consolidation evidence
 - Imports: CSV/JSON dry-run + commit + audit trail
 - C3 Taxonomy: Spiral 6 and Spiral 7 capability maps, C3 entities, and C3 dashboard
 - Administration: users, groups, web settings, installation/modules, and reference data
@@ -154,9 +174,9 @@ Minimum required variables:
 
 See the full list in [docs/installation.md](docs/installation.md).
 
-## v1.1 Preview Screenshots
+## v1.1.2 Preview Screenshots
 
-The `screenshots/v1.1-en` folder contains English screenshots from the current v1.1 application. They show the real UI after the capability cockpit redesign, including the installer, service onboarding, operations cockpit, service graph, and dependency flow view.
+The `screenshots/v1.1-en` folder contains English screenshots from the current v1.1 release line. They show the real UI after the capability cockpit redesign, including the installer, service onboarding, operations cockpit, service graph, and dependency flow view.
 
 | Screenshot | What it shows |
 |---|---|
@@ -173,11 +193,15 @@ These screenshots are static preview assets. To interact with the product, run t
 - [User Guide](docs/user-guide.md)
 - [Admin Guide](docs/admin-guide.md)
 - [Installation](docs/installation.md)
+- [Governance Cockpit](docs/governance-cockpit.md)
+- [Product Positioning](docs/product-positioning.md)
+- [Domain Model](docs/domain-model.md)
 - [C3 Module](docs/c3-module.md)
 - [Import Formats](docs/import-formats.md)
 - [Modules](docs/modules.md)
 - [Demo Guide](DEMO.md)
 - [Upgrade Guide](docs/upgrade.md)
+- [V1.1.2 Release Notes](docs/releases/v1.1.2.md)
 
 ## Import Examples
 

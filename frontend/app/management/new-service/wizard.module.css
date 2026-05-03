@@ -112,7 +112,7 @@
 }
 .stepLabelActive {
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: 500;
 }
 .stepLabelDone { color: var(--color-text-secondary); }
 
@@ -172,7 +172,7 @@
   background: var(--color-bg-subtle);
   color: var(--color-text-muted);
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
   justify-content: center;

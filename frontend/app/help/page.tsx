@@ -46,6 +46,31 @@ export default function HelpPage() {
         </nav>
       </header>
 
+      <section className={styles.missionSection}>
+        <div className={styles.sectionIntro}>
+          <span className={styles.eyebrow}>{content.mission.eyebrow}</span>
+          <h2>{content.mission.title}</h2>
+          {content.mission.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </div>
+        <div className={styles.missionGrid}>
+          {content.mission.benefits.map(([title, body]) => (
+            <article key={title} className={styles.missionPanel}>
+              <h3>{title}</h3>
+              <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.guideCallout}>
+        <div>
+          <span className={styles.eyebrow}>{content.scenarioGuide.eyebrow}</span>
+          <h2>{content.scenarioGuide.title}</h2>
+          <p>{content.scenarioGuide.lead}</p>
+        </div>
+        <Link href="/help/service-onboarding">{content.scenarioGuide.action}</Link>
+      </section>
+
       <section className={styles.section}>
         <div className={styles.sectionIntro}>
           <span className={styles.eyebrow}>{content.roleSection.eyebrow}</span>

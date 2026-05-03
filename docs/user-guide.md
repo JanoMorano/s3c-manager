@@ -34,6 +34,25 @@ The quick user dropdown is deliberately small: it contains only **User Info** an
 
 ---
 
+## Governance Cockpit Flow
+
+The governance cockpit flow is the shortest path from a draft service to an auditable decision.
+
+1. Create the service on `/management/new-service`.
+2. Open `/services/{service_id}/edit` and add at least one offering, request channel, SLA/support evidence, and owner.
+3. Map the service to a primary capability or C3 item in the service editor.
+4. Open `/services/{service_id}` and use Service 360 to review readiness blockers, warnings, owners, offerings, dependencies, capability mappings, and audit context.
+5. Open `/operations/readiness` and resolve blockers or request a time-bound exception where governance accepts the risk.
+6. Open `/operations/reviews` and request a governance review for the service.
+7. Use review actions to start the review, then approve, reject, or defer with rationale.
+8. Open `/operations/decisions` to verify the decision log entry.
+9. Open `/capabilities/coverage`, `/capabilities/gaps`, and `/capabilities/overlaps` to inspect coverage impact.
+10. Open `/services/impact` before changing or retiring the service to see upstream and downstream impact paths.
+
+Viewers can inspect the cockpit and decision history. Editors can create and update service data and request reviews. Admins can configure readiness exceptions and record governance decisions.
+
+---
+
 ## Service Catalogue
 
 ### Service List

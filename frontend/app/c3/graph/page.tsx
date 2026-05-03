@@ -10,6 +10,7 @@ import { useC3RelationGraph } from '@/features/services/hooks/useServices';
 import type { C3RelationGraphEdge, C3RelationGraphNode } from '@/features/services/model/service.types';
 import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
 import { C3_ROUTES, readStoredC3TaxonomySort } from '../../lib/c3Routes';
+import { GraphWorkspace } from '@/app/components/layout-v2';
 import styles from '../../graph/overview.module.css';
 
 const NODE_KIND_ORDER: C3RelationGraphNode['node_kind'][] = [
@@ -222,8 +223,11 @@ export default function PublicC3GraphPage() {
   })).filter((entry) => entry.items.length > 0);
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.rail}>
+    <GraphWorkspace
+      title="C3 relation graph"
+      purpose="Capability, TIN, Application, Data Object a C3 Service vazby ve společné pracovní ploše."
+      toolbar={(
+        <>
         <div className={styles.railSection}>
           <div className={styles.filterLabel}>Vyhledávání</div>
           <input
@@ -361,9 +365,10 @@ export default function PublicC3GraphPage() {
             Export do PDF
           </button>
         </div>
-      </aside>
-
-      <main className={styles.main}>
+        </>
+      )}
+      canvas={(
+        <main className={styles.main}>
         <div className={styles.header}>
           <div className={styles.title}>C3 Relation Graph</div>
           <div className={styles.meta}>
@@ -428,69 +433,71 @@ export default function PublicC3GraphPage() {
               />
             )}
           </div>
-
-          <aside className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div className={styles.panelTitle}>Detail</div>
-            </div>
-            <div className={styles.panelBody}>
-              {selectedNode ? (
-                <>
-                  <div className={styles.panelRow}>
-                    <span className={styles.panelKey}>Typ</span>
-                    <span className={styles.panelVal}>{NODE_KIND_LABEL[selectedNode.node_kind]}</span>
-                  </div>
-                  <div className={styles.panelRow}>
-                    <span className={styles.panelKey}>Kód</span>
-                    <span className={styles.panelVal}>{selectedNode.code ?? '—'}</span>
-                  </div>
-                  <div className={styles.panelRow}>
-                    <span className={styles.panelKey}>Název</span>
-                    <span className={styles.panelVal}>{selectedNode.label}</span>
-                  </div>
-                  {selectedNode.item_type && (
-                    <div className={styles.panelRow}>
-                      <span className={styles.panelKey}>Item Type</span>
-                      <span className={styles.panelVal}>{selectedNode.item_type}</span>
-                    </div>
-                  )}
-                  {selectedNode.completeness_status && (
-                    <div className={styles.panelRow}>
-                      <span className={styles.panelKey}>Completeness</span>
-                      <span className={styles.panelVal}>{selectedNode.completeness_status}</span>
-                    </div>
-                  )}
-                  {selectedNode.status && (
-                    <div className={styles.panelRow}>
-                      <span className={styles.panelKey}>Status</span>
-                      <span className={styles.panelVal}>{selectedNode.status}</span>
-                    </div>
-                  )}
-                </>
-              ) : null}
-
-              {selectedEdge ? (
-                <>
-                  <div className={styles.panelRow}>
-                    <span className={styles.panelKey}>Edge</span>
-                    <span className={styles.panelVal}>{selectedEdge.edge_kind}</span>
-                  </div>
-                  <div className={styles.panelRow}>
-                    <span className={styles.panelKey}>Typ vazby</span>
-                    <span className={styles.panelVal}>{selectedEdge.relation_type}</span>
-                  </div>
-                </>
-              ) : null}
-
-              {!selectedNode && !selectedEdge ? (
-                <div className={styles.meta}>
-                  Klikni na uzel nebo hranu. Dvojklik na uzel otevře odpovídající C3 detail nebo seznam.
-                </div>
-              ) : null}
-            </div>
-          </aside>
         </div>
       </main>
-    </div>
+      )}
+      detailPanelContent={(
+        <>
+          <div className={styles.panelHeader}>
+            <div className={styles.panelTitle}>Detail</div>
+          </div>
+          <div className={styles.panelBody}>
+            {selectedNode ? (
+              <>
+                <div className={styles.panelRow}>
+                  <span className={styles.panelKey}>Typ</span>
+                  <span className={styles.panelVal}>{NODE_KIND_LABEL[selectedNode.node_kind]}</span>
+                </div>
+                <div className={styles.panelRow}>
+                  <span className={styles.panelKey}>Kód</span>
+                  <span className={styles.panelVal}>{selectedNode.code ?? '—'}</span>
+                </div>
+                <div className={styles.panelRow}>
+                  <span className={styles.panelKey}>Název</span>
+                  <span className={styles.panelVal}>{selectedNode.label}</span>
+                </div>
+                {selectedNode.item_type && (
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelKey}>Item Type</span>
+                    <span className={styles.panelVal}>{selectedNode.item_type}</span>
+                  </div>
+                )}
+                {selectedNode.completeness_status && (
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelKey}>Completeness</span>
+                    <span className={styles.panelVal}>{selectedNode.completeness_status}</span>
+                  </div>
+                )}
+                {selectedNode.status && (
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelKey}>Status</span>
+                    <span className={styles.panelVal}>{selectedNode.status}</span>
+                  </div>
+                )}
+              </>
+            ) : null}
+
+            {selectedEdge ? (
+              <>
+                <div className={styles.panelRow}>
+                  <span className={styles.panelKey}>Edge</span>
+                  <span className={styles.panelVal}>{selectedEdge.edge_kind}</span>
+                </div>
+                <div className={styles.panelRow}>
+                  <span className={styles.panelKey}>Typ vazby</span>
+                  <span className={styles.panelVal}>{selectedEdge.relation_type}</span>
+                </div>
+              </>
+            ) : null}
+
+            {!selectedNode && !selectedEdge ? (
+              <div className={styles.meta}>
+                Klikni na uzel nebo hranu. Dvojklik na uzel otevře odpovídající C3 detail nebo seznam.
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
+    />
   );
 }

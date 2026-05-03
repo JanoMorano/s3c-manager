@@ -1,12 +1,14 @@
 /**
- * §9.3 Service Editor — Pattern C: editor form + sticky summary rail
- * 9 sections, react-hook-form + zod, PUT /services/:id + /domains + /roles
+ * §9.3 Service Editor — v2 editor form with left sub-navigation + sticky save bar.
+ * Manual save, react-hook-form + zod, PUT /services/:id + /domains + /roles
  */
 'use client';
 
 import { use, useEffect, useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
+import { CodeEditor, ConflictModal, EditorSubNav, FormSection, StickySaveBar, UserPicker, type EditorSubNavSection, type SaveState } from '@/app/components/layout-v2';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,11 +34,6 @@ import type {
   ServiceOperationalLink,
   ServiceSupportModel,
 } from '@/features/services/model/service.types';
-import { StatusPill } from '@/features/services/components/StatusPill';
-import { Button }     from '@/design-system/controls/Button';
-import { TextInput }  from '@/design-system/controls/TextInput';
-import { Select }     from '@/design-system/controls/Select';
-import { Checkbox }   from '@/design-system/controls/Checkbox';
 import { useT } from '@/app/i18n/useI18n';
 import styles from './editor.module.css';
 
@@ -194,8 +191,10 @@ export default function ServiceEditorPage({ params }: Props) {
   );
   const [saving,    setSaving]    = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveConflict, setSaveConflict] = useState<string | null>(null);
   const [saved,     setSaved]     = useState(false);
   const [phase4Saved, setPhase4Saved] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState(EDITOR_SECTION_IDS[0]);
 
   // ── SLA records (Item 17) ─────────────────────────────────────────────────
   const { data: slaData, mutate: mutateSla } = useServiceSla(id);
@@ -327,6 +326,21 @@ export default function ServiceEditorPage({ params }: Props) {
   useEffect(() => { loadAudiencePolicies(); }, [loadAudiencePolicies]);
   useEffect(() => { loadOperationalLinks(); }, [loadOperationalLinks]);
 
+  const sortedOfferings = useMemo(
+    () => [...offerings].sort((a, b) => {
+      const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.title.localeCompare(b.title);
+    }),
+    [offerings],
+  );
+
+  const defaultOffering = useMemo(
+    () => sortedOfferings.find((offering) => offering.is_default) ?? null,
+    [sortedOfferings],
+  );
+
   const handleFlavourSave = async () => {
     setFlavourBusy(true); setFlavourError(null);
     try {
@@ -353,10 +367,23 @@ export default function ServiceEditorPage({ params }: Props) {
   const handleOfferingSave = async () => {
     setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
     try {
+      const body = {
+        ...offeringForm,
+        is_default: offeringForm.is_default ?? offerings.length === 0,
+        display_order: offeringForm.display_order ?? sortedOfferings.length + 1,
+      };
+      let savedOffering: ServiceOffering;
       if (editOfferingId != null) {
-        await updateOffering(id, editOfferingId, offeringForm);
+        savedOffering = await updateOffering(id, editOfferingId, body);
       } else {
-        await createOffering(id, offeringForm);
+        savedOffering = await createOffering(id, body);
+      }
+      if (savedOffering.is_default) {
+        await Promise.all(
+          offerings
+            .filter((item) => item.id !== savedOffering.id && item.is_default)
+            .map((item) => updateOffering(id, item.id, { is_default: false })),
+        );
       }
       setEditOfferingId(null);
       setOfferingForm({});
@@ -366,6 +393,48 @@ export default function ServiceEditorPage({ params }: Props) {
       setPhase4Saved('Offerings saved');
     } catch (e: unknown) {
       setOfferingError(e instanceof Error ? e.message : 'Offering save failed');
+    } finally {
+      setOfferingBusy(false);
+    }
+  };
+
+  const handleOfferingMakeDefault = async (offering: ServiceOffering) => {
+    setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
+    try {
+      await Promise.all(
+        offerings.map((item) => updateOffering(id, item.id, { is_default: item.id === offering.id })),
+      );
+      await loadOfferings();
+      await mutate();
+      setPhase4Saved(`${offering.title} is now the default offering`);
+    } catch (e: unknown) {
+      setOfferingError(e instanceof Error ? e.message : 'Default offering update failed');
+    } finally {
+      setOfferingBusy(false);
+    }
+  };
+
+  const handleOfferingReorder = async (offeringId: number, direction: -1 | 1) => {
+    const currentIndex = sortedOfferings.findIndex((offering) => offering.id === offeringId);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= sortedOfferings.length) return;
+    const reordered = [...sortedOfferings];
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(nextIndex, 0, moved);
+    setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
+    try {
+      await Promise.all(
+        reordered.map((offering, index) => (
+          offering.display_order === index + 1
+            ? Promise.resolve(offering)
+            : updateOffering(id, offering.id, { display_order: index + 1 })
+        )),
+      );
+      await loadOfferings();
+      await mutate();
+      setPhase4Saved('Offering order saved');
+    } catch (e: unknown) {
+      setOfferingError(e instanceof Error ? e.message : 'Offering reorder failed');
     } finally {
       setOfferingBusy(false);
     }
@@ -713,13 +782,103 @@ export default function ServiceEditorPage({ params }: Props) {
   }, [svc, activeRoleMap, isDirty, reset]);
 
   const watchedDomains      = watch('domains') ?? [];
+  const watchedTitle        = watch('title');
+  const watchedServiceType  = watch('service_type');
   const watchedRequestable  = watch('requestable');
   const watchedChannelType  = watch('request_channel_type');
   const watchedChannelUrl   = watch('request_channel_url');
   const dirtyCount          = Object.keys(dirtyFields).length;
+  const currentLifecycle    = svc?.lifecycle_state ?? null;
+  const allowedLifecycleOptions = LIFECYCLE_OPTIONS.filter((state) => {
+    if (!currentLifecycle) return true;
+    return state === currentLifecycle || (LIFECYCLE_TRANSITION_MAP[currentLifecycle] ?? []).includes(state);
+  });
+
+  const publishBlockers = useMemo(() => {
+    const blockers: string[] = [];
+    if (!watchedTitle?.trim()) blockers.push('Title is required before publish.');
+    if (!watchedServiceType?.trim()) blockers.push('Service Type is required before publish.');
+    if (offerings.length === 0) blockers.push('At least one service offering is required.');
+    if (offerings.length > 0 && !defaultOffering) blockers.push('Exactly one default offering must be selected.');
+    if (watchedRequestable && !(watchedChannelType?.trim() || watchedChannelUrl?.trim())) {
+      blockers.push('Requestable service needs a request channel type or URL.');
+    }
+    if (watchedRequestable && supportModels.length === 0) {
+      blockers.push('Requestable service needs a support model.');
+    }
+    if (readiness && !readiness.is_publishable) {
+      blockers.push(...readiness.blockers.map((blocker) => `Readiness: ${blocker}`));
+    }
+    return Array.from(new Set(blockers));
+  }, [
+    defaultOffering,
+    offerings.length,
+    readiness,
+    supportModels.length,
+    watchedChannelType,
+    watchedChannelUrl,
+    watchedRequestable,
+    watchedServiceType,
+    watchedTitle,
+  ]);
+
+  const handleSectionSelect = useCallback((sectionId: string) => {
+    setActiveSection(sectionId);
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const editorSections: EditorSubNavSection[] = useMemo(() => {
+    const errorKeys = new Set(Object.keys(errors));
+    const requestWarning = !!watchedRequestable && !(watchedChannelType?.trim() || watchedChannelUrl?.trim());
+    return EDITOR_SECTION_IDS.map((sectionId) => {
+      const sectionErrors = (SECTION_FIELD_MAP[sectionId] ?? []).filter((field) => errorKeys.has(field)).length;
+      if (sectionErrors > 0) {
+        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: sectionErrors, tone: 'bad' };
+      }
+      if (sectionId === 'catalogue-access' && requestWarning) {
+        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Fix', tone: 'warn' };
+      }
+      if (sectionId === 'offerings' && offerings.length === 0) {
+        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Add', tone: 'orange' };
+      }
+      if (sectionId === 'offerings' && !defaultOffering) {
+        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Default', tone: 'warn' };
+      }
+      if (sectionId === 'support-model' && supportModels.length === 0) {
+        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Add', tone: 'orange' };
+      }
+      if (sectionId === 'c3mapping' && readiness && !readiness.is_publishable) {
+        return {
+          id: sectionId,
+          label: SECTION_LABELS[sectionId] ?? sectionId,
+          badge: readiness.blockers.length || 'Gate',
+          tone: 'warn',
+        };
+      }
+      if (sectionId === 'c3mapping' && c3Mappings.length > 0) {
+        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: c3Mappings.length, tone: 'purple' };
+      }
+      return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId };
+    });
+  }, [c3Mappings.length, defaultOffering, errors, offerings.length, readiness, supportModels.length, watchedChannelType, watchedChannelUrl, watchedRequestable]);
+
+  const saveState: SaveState = saving
+    ? 'saving'
+    : saveError
+      ? 'error'
+      : saved || phase4Saved
+        ? 'saved'
+        : isDirty
+          ? 'dirty'
+          : 'clean';
+
+  const saveMessage = saveError
+    ?? (phase4Saved && !saving ? phase4Saved : null)
+    ?? (!saving && publishBlockers.length > 0 ? `${publishBlockers.length} publish blockers` : null)
+    ?? (isDirty ? `${dirtyCount} změněných polí` : 'Manuální ukládání podle návrhu v2');
 
   const onSubmit = async (data: FormData) => {
-    setSaving(true); setSaveError(null); setSaved(false);
+    setSaving(true); setSaveError(null); setSaveConflict(null); setSaved(false);
     try {
       // 1. Update main service fields
       await updateService(id, {
@@ -786,32 +945,108 @@ export default function ServiceEditorPage({ params }: Props) {
       await mutateReadiness();
       setSaved(true);
     } catch (e: unknown) {
-      setSaveError(e instanceof Error ? e.message : 'Save failed');
+      const message = e instanceof Error ? e.message : 'Save failed';
+      if (isConflictMessage(message)) {
+        setSaveConflict(message);
+      }
+      setSaveError(message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePublish = () => {
+    if (publishBlockers.length > 0) {
+      setSaveError(publishBlockers[0]);
+      const targetSection = publishBlockers[0].startsWith('Readiness')
+        ? 'c3mapping'
+        : publishBlockers[0].includes('offering')
+          ? 'offerings'
+          : publishBlockers[0].includes('support')
+            ? 'support-model'
+            : publishBlockers[0].includes('request')
+              ? 'catalogue-access'
+              : 'identity';
+      handleSectionSelect(targetSection);
+      return;
+    }
+    setValue('lifecycle_state', 'live', { shouldDirty: true, shouldValidate: true });
+    void handleSubmit((data) => onSubmit({ ...data, lifecycle_state: 'live' }))();
   };
 
   if (!svc) return <div className={styles.state}>{t('common.loading')}</div>;
 
   return (
     <form className={styles.shell} onSubmit={handleSubmit(onSubmit)}>
-      {/* ── Editor header ────────────────────────────────────────────── */}
-      <div className={styles.editorHeader}>
-        <div>
-          <span className={styles.serviceId}>{id}</span>
-          <h1 className={styles.editorTitle}>{svc.title}</h1>
-        </div>
-        <StatusPill status={svc.service_status ?? 'draft'} />
+      <div className={styles.stickyHeader}>
+        <PageHeader
+          title={`Editor služby — ${svc.title}`}
+          purpose="Udržujte jen údaje, které rozhodují o katalogu, provozní připravenosti a governance. Detailní technické vazby zůstávají níže ve specializovaných sekcích."
+          chips={[
+            { label: `ID ${id}`, tone: 'neutral' },
+            { label: `Public status: ${svc.service_status ?? 'draft'}`, tone: svc.service_status === 'active' ? 'ok' : 'neutral' },
+            { label: `Lifecycle: ${svc.lifecycle_state ?? '—'}`, tone: svc.lifecycle_state === 'live' ? 'ok' : 'info' },
+            { label: `Completeness ${svc.completeness_score ?? '—'}%`, tone: (svc.completeness_score ?? 0) >= 80 ? 'ok' : 'warn' },
+          ]}
+          primaryAction={{ label: 'Zpět na detail', href: `/services/${id}` }}
+        />
       </div>
 
       <div className={styles.editorBody}>
+        <EditorSubNav
+          title="Service editor"
+          summary="Levý krokový přehled podle layout proposal v2."
+          sections={editorSections}
+          activeId={activeSection}
+          onSelect={handleSectionSelect}
+        />
+
         {/* ── Form sections ─────────────────────────────────────────── */}
         <div className={styles.formArea}>
+          <div className={styles.editorSignals}>
+            <div className={styles.signalCard}>
+              <span className={styles.signalLabel}>Op. readiness</span>
+              <OperationalReadinessPanel
+                requestable={watchedRequestable}
+                channelType={watchedChannelType}
+                channelUrl={watchedChannelUrl}
+                supportModelCount={supportModels.length}
+                offeringsCount={offerings.length}
+                defaultOfferingTitle={defaultOffering?.title ?? null}
+              />
+            </div>
+            <div className={styles.signalCard}>
+              <span className={styles.signalLabel}>Validation</span>
+              {Object.entries(errors).length > 0
+                ? Object.entries(errors).slice(0, 3).map(([field, error]) => (
+                    <div key={field} className={styles.validationError}>
+                      {field}: {(error as { message?: string }).message}
+                    </div>
+                  ))
+                : <div className={styles.validOk}>No field errors</div>
+              }
+            </div>
+          </div>
+          <div className={publishBlockers.length > 0 ? styles.publishGateWarn : styles.publishGateOk}>
+            <div className={styles.publishGateTitle}>
+              <span>Save / Publish gate</span>
+              <strong>{publishBlockers.length > 0 ? `${publishBlockers.length} blockers` : 'Ready to publish'}</strong>
+            </div>
+            {publishBlockers.length > 0 ? (
+              <ul className={styles.publishGateList}>
+                {publishBlockers.slice(0, 5).map((blocker) => <li key={blocker}>{blocker}</li>)}
+              </ul>
+            ) : (
+              <p>Draft can be saved or promoted to live from the sticky bar.</p>
+            )}
+          </div>
 
           {/* §1 Basic identity */}
           <EditorSection id="identity" title="1. Basic Identity">
             <div className={styles.fieldRow}>
+              <Field label="Service ID">
+                <input className={styles.readOnlyInput} value={id} disabled readOnly aria-label="Service ID" />
+              </Field>
               <Field label="Title *" error={errors.title?.message}>
                 <input {...register('title')} className={fieldClass(errors.title)} />
               </Field>
@@ -874,14 +1109,11 @@ export default function ServiceEditorPage({ params }: Props) {
               <Field label="Lifecycle State">
                 <select {...register('lifecycle_state')} className={styles.input}>
                   <option value="">— select —</option>
-                  {LIFECYCLE_OPTIONS.map((state) => {
-                    const current = svc?.lifecycle_state ?? null;
-                    const allowed = LIFECYCLE_TRANSITION_MAP[current ?? ''] ?? LIFECYCLE_OPTIONS;
-                    const isCurrentState = state === current;
-                    const isAllowed = isCurrentState || !current || allowed.includes(state);
+                  {allowedLifecycleOptions.map((state) => {
+                    const isCurrentState = state === currentLifecycle;
                     return (
-                      <option key={state} value={state} disabled={!isAllowed}>
-                        {state}{isCurrentState ? ' (current)' : (!isAllowed ? ' ✗' : '')}
+                      <option key={state} value={state}>
+                        {state}{isCurrentState ? ' (current)' : ''}
                       </option>
                     );
                   })}
@@ -985,9 +1217,16 @@ export default function ServiceEditorPage({ params }: Props) {
               <Field label="Service Owner">
                 <input {...register('service_owner')} className={styles.input} placeholder="Display name" />
               </Field>
-              <Field label="Owner Email" error={errors.service_owner_email?.message}>
-                <input {...register('service_owner_email')} className={fieldClass(errors.service_owner_email)} placeholder="email@example.com" />
-              </Field>
+              <div className={styles.field}>
+                <UserPicker
+                  label="Owner Email"
+                  scope="owners"
+                  value={watch('service_owner_email') ?? ''}
+                  onChange={(value) => setValue('service_owner_email', value, { shouldDirty: true, shouldValidate: true })}
+                  required={false}
+                />
+                {errors.service_owner_email?.message && <span className={styles.fieldError}>{errors.service_owner_email.message}</span>}
+              </div>
             </div>
             <div className={styles.fieldRow}>
               <Field label="Service Area Owner (vlastnik)">
@@ -1265,9 +1504,15 @@ export default function ServiceEditorPage({ params }: Props) {
 
           <EditorSection id="offerings" title="6b. Service Offerings">
             {offeringError && <div className={styles.errorBanner}>{offeringError}</div>}
+            {offerings.length > 0 && !defaultOffering && (
+              <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                <span className={styles.crossFieldAlertIcon}>!</span>
+                Select one default offering before publish. The default is shown first in catalogue and Service 360.
+              </div>
+            )}
             {offerings.length > 0 ? (
               <div className={styles.flavourList}>
-                {offerings.map((offering) => (
+                {sortedOfferings.map((offering, offeringIndex) => (
                   editOfferingId === offering.id ? (
                     <div key={offering.id} className={styles.phase4Card}>
                       <div className={styles.fieldRow}>
@@ -1341,6 +1586,29 @@ export default function ServiceEditorPage({ params }: Props) {
                         {offering.description && <span className={styles.phase4Hint}>{offering.description}</span>}
                       </div>
                       {offering.is_default && <span className={styles.relBadgeGreen}>default</span>}
+                      <div className={styles.rowActions}>
+                        <button
+                          type="button"
+                          className={styles.btnSmall}
+                          onClick={() => handleOfferingReorder(offering.id, -1)}
+                          disabled={offeringBusy || offeringIndex === 0}
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.btnSmall}
+                          onClick={() => handleOfferingReorder(offering.id, 1)}
+                          disabled={offeringBusy || offeringIndex === sortedOfferings.length - 1}
+                        >
+                          Down
+                        </button>
+                        {!offering.is_default && (
+                          <button type="button" className={styles.btnSmall} onClick={() => handleOfferingMakeDefault(offering)} disabled={offeringBusy}>
+                            Make default
+                          </button>
+                        )}
+                      </div>
                       <button type="button" className={styles.btnSmall} onClick={() => {
                         setEditOfferingId(offering.id);
                         setOfferingForm({
@@ -1430,7 +1698,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 </div>
               </div>
             ) : (
-              <button type="button" className={styles.btnSecondary} onClick={() => { setShowOfferingAdd(true); setEditOfferingId(null); setOfferingForm({ status: 'draft', requestable: false, approval_required: false, is_default: false }); }} style={{ marginTop: 'var(--space-3)' }}>
+              <button type="button" className={styles.btnSecondary} onClick={() => { setShowOfferingAdd(true); setEditOfferingId(null); setOfferingForm({ status: 'draft', requestable: false, approval_required: false, is_default: offerings.length === 0, display_order: sortedOfferings.length + 1 }); }} style={{ marginTop: 'var(--space-3)' }}>
                 + Add service offering
               </button>
             )}
@@ -2000,12 +2268,14 @@ export default function ServiceEditorPage({ params }: Props) {
             </Field>
             {/* Item 13: notes_json editable */}
             <Field label="Notes (JSON)">
-              <textarea
-                {...register('notes_json')}
+              <CodeEditor
+                name="notes_json"
+                label="Notes JSON"
+                language="json"
+                value={watch('notes_json') ?? ''}
+                onValueChange={(value) => setValue('notes_json', value, { shouldDirty: true, shouldValidate: true })}
                 rows={4}
-                className={styles.textarea}
                 placeholder={'{\n  "key": "value"\n}'}
-                style={{ fontFamily: 'monospace', fontSize: '12px' }}
               />
               <span className={styles.hint}>Free-form JSON notes (read from import).</span>
             </Field>
@@ -2064,65 +2334,32 @@ export default function ServiceEditorPage({ params }: Props) {
 
         </div>
 
-        {/* ── Sticky rail ───────────────────────────────────────────── */}
-        <aside className={styles.rail}>
-          <div className={styles.railCard}>
-            <div className={styles.railTitle}>Save Status</div>
-            {saving   && <div className={styles.saving}>Saving…</div>}
-            {saved    && !saving && <div className={styles.savedOk}>✓ Saved</div>}
-            {phase4Saved && !saving && <div className={styles.savedOk}>✓ {phase4Saved}</div>}
-            {saveError && <div className={styles.railError}>{saveError}</div>}
-            {isDirty && <div className={styles.dirtyNote}>{dirtyCount} field(s) changed</div>}
-
-            <Button type="submit" loading={saving} style={{ width: '100%', marginBottom: 'var(--space-2)' }}>
-              Save changes
-            </Button>
-            <Button type="button" variant="ghost" size="sm" style={{ width: '100%' }}
-              onClick={() => {
-                if (isDirty && !confirm('You have unsaved changes. Leave anyway?')) return;
-                router.push(`/services/${id}`);
-              }}>
-              Cancel
-            </Button>
-          </div>
-
-          <div className={styles.railCard}>
-            <div className={styles.railTitle}>Sections</div>
-            <nav className={styles.sectionNav}>
-              {['identity','description','catalogue-access','classification','ownership','availability','flavours','offerings','relationships','c3mapping','support-model','audience','operational-links','governance','technical','raw-fields']
-                .map((s, i) => (
-                  <a key={s} href={`#${s}`} className={styles.sectionNavItem}>
-                    {i + 1}. {SECTION_LABELS[s] ?? s}
-                  </a>
-                ))}
-            </nav>
-          </div>
-
-          <div className={styles.railCard}>
-            <div className={styles.railTitle}>Op. Readiness</div>
-            <OperationalReadinessPanel
-              requestable={watchedRequestable}
-              channelType={watchedChannelType}
-              channelUrl={watchedChannelUrl}
-              supportModelCount={supportModels.length}
-              offeringsCount={offerings.length}
-            />
-          </div>
-
-          <div className={styles.railCard}>
-            <div className={styles.railTitle}>Validation</div>
-            <div className={styles.validOk}>Completeness score: {svc.completeness_score ?? '—'}%</div>
-            {Object.entries(errors).length > 0
-              ? Object.entries(errors).map(([f, e]) => (
-                  <div key={f} className={styles.validationError}>
-                    {f}: {(e as { message?: string }).message}
-                  </div>
-                ))
-              : <div className={styles.validOk}>No errors</div>
-            }
-          </div>
-        </aside>
       </div>
+      <StickySaveBar
+        state={saveState}
+        message={saveMessage}
+        disabled={!isDirty || saving}
+        publishDisabled={saving || publishBlockers.length > 0}
+        primaryLabel="Save draft"
+        publishLabel="Save & publish"
+        secondaryLabel="Zahodit a zpět"
+        onSave={() => void handleSubmit(onSubmit)()}
+        onPublish={handlePublish}
+        onDiscard={() => {
+          if (isDirty && !confirm('Máte neuložené změny. Opravdu odejít?')) return;
+          router.push(`/services/${id}`);
+        }}
+      />
+      {saveConflict && (
+        <ConflictModal
+          details={saveConflict}
+          onClose={() => setSaveConflict(null)}
+          onReload={() => {
+            setSaveConflict(null);
+            window.location.reload();
+          }}
+        />
+      )}
     </form>
   );
 }
@@ -2134,15 +2371,18 @@ function OperationalReadinessPanel({
   channelUrl,
   supportModelCount,
   offeringsCount,
+  defaultOfferingTitle,
 }: {
   requestable: boolean | undefined;
   channelType: string | undefined;
   channelUrl: string | undefined;
   supportModelCount: number;
   offeringsCount: number;
+  defaultOfferingTitle: string | null;
 }) {
   const checks: { label: string; ok: boolean }[] = [
     { label: 'Offerings defined',  ok: offeringsCount > 0 },
+    { label: 'Default offering',    ok: offeringsCount === 0 || !!defaultOfferingTitle },
     { label: 'Support model',      ok: supportModelCount > 0 },
     { label: 'Request channel',    ok: !requestable || !!(channelType?.trim() || channelUrl?.trim()) },
   ];
@@ -2168,10 +2408,9 @@ function OperationalReadinessPanel({
 // ── Local helpers ─────────────────────────────────────────────────────────────
 function EditorSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className={styles.section}>
-      <h2 className={styles.sectionTitle}>{title}</h2>
-      <div className={styles.sectionBody}>{children}</div>
-    </section>
+    <FormSection id={id} title={title}>
+      {children}
+    </FormSection>
   );
 }
 
@@ -2188,6 +2427,10 @@ function Field({ label, error, hint, children }: { label: string; error?: string
 
 function fieldClass(error?: { message?: string }) {
   return error ? `${styles.input} ${styles.inputError}` : styles.input;
+}
+
+function isConflictMessage(message: string) {
+  return /\b412\b/.test(message) || /precondition|conflict|etag/i.test(message);
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -2207,6 +2450,34 @@ const SECTION_LABELS: Record<string, string> = {
   governance: 'Governance',
   technical: 'Technical',
   'raw-fields': 'Raw Fields',
+};
+
+const EDITOR_SECTION_IDS = [
+  'identity',
+  'description',
+  'catalogue-access',
+  'classification',
+  'ownership',
+  'availability',
+  'flavours',
+  'offerings',
+  'relationships',
+  'c3mapping',
+  'support-model',
+  'audience',
+  'operational-links',
+  'governance',
+  'technical',
+  'raw-fields',
+];
+
+const SECTION_FIELD_MAP: Record<string, string[]> = {
+  identity: ['title', 'service_type', 'service_status'],
+  'catalogue-access': ['lifecycle_state', 'request_channel_type', 'request_channel_url'],
+  classification: ['portfolio_group_code', 'security_classification', 'service_area'],
+  ownership: ['service_owner', 'service_owner_email', 'vlastnik', 'manager'],
+  availability: ['sla_availability', 'sla_restoration', 'sla_delivery', 'domains'],
+  technical: ['source_url', 'notes_json'],
 };
 
 function emptySupportModel(): ServiceSupportModelBody {

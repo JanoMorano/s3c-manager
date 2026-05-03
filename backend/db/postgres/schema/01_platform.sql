@@ -157,7 +157,7 @@ VALUES
     ('import.parser.version',           '1',                               'number',  'Current CSV import parser version'),
     ('import.store_raw_fields',         'true',                            'boolean', 'Store raw source fields for audit and re-parse'),
     ('graph.default_relation_confidence','1.0',                           'number',  'Default confidence for explicit relations'),
-    ('app.version',                     '1.1.1',                           'string',  'Application version'),
+    ('app.version',                     '1.1.2',                           'string',  'Application version'),
     ('app.default_lang',                'cs',                              'string',  'Default UI language (cz / en)'),
     ('app.default_theme',               'dark',                            'string',  'Default UI theme (dark / light)'),
     ('auth.jwt_expiry_minutes',         '60',                              'number',  'Access token lifetime in minutes'),

@@ -7,6 +7,7 @@ const { canAdmin } = require('../middleware/rbac');
 const { getPool, getPlatformPool } = require('../db/pool');
 const { findAllForExport } = require('../db/services.repo');
 const { applyCacheTags } = require('../utils/cache-tags');
+const { generateBackstageCatalogInfo } = require('../utils/backstage-catalog');
 
 router.use(requireAuth);
 
@@ -111,6 +112,111 @@ router.get('/graph-overview', async (req, res, next) => {
             service_relations: relations.rows,
             taxonomy_mappings: mappings.rows,
         });
+    } catch (err) { next(err); }
+});
+
+router.get('/services', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'service'], ['export:services']);
+        const services = await findAllForExport();
+        res.json({
+            profile_key: 's3c-service-catalogue-json',
+            exported_at: new Date().toISOString(),
+            services,
+        });
+    } catch (err) { next(err); }
+});
+
+router.get('/portfolio', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'portfolio'], ['export:portfolio']);
+        const result = await getPool().query(`
+            SELECT *
+            FROM data.service_portfolio
+            ORDER BY portfolio_code
+        `);
+        res.json({ exported_at: new Date().toISOString(), items: result.rows });
+    } catch (err) { next(err); }
+});
+
+router.get('/capabilities/coverage', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'capabilities'], ['export:capability-coverage']);
+        const result = await getPool().query(`
+            SELECT *
+            FROM data.v_capability_governance_coverage
+            ORDER BY capability_title
+        `);
+        res.json({ exported_at: new Date().toISOString(), items: result.rows });
+    } catch (err) { next(err); }
+});
+
+router.get('/readiness', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'readiness'], ['export:readiness']);
+        const result = await getPool().query(`
+            SELECT *
+            FROM data.v_servicepublishreadiness
+            ORDER BY service_id
+        `);
+        res.json({ exported_at: new Date().toISOString(), items: result.rows });
+    } catch (err) { next(err); }
+});
+
+router.get('/decisions', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'governance'], ['export:decisions']);
+        const result = await getPool().query(`
+            SELECT
+                gd.id,
+                sc.service_id,
+                sc.title AS service_title,
+                gd.decision_type,
+                gd.decision,
+                gd.rationale,
+                gd.decided_by,
+                gd.decided_at,
+                gd.created_at
+            FROM data.governance_decision gd
+            JOIN data.service_catalog sc ON sc.id = gd.service_id
+            WHERE sc.is_deleted = FALSE
+            ORDER BY gd.decided_at DESC, gd.id DESC
+        `);
+        res.json({ exported_at: new Date().toISOString(), items: result.rows });
+    } catch (err) { next(err); }
+});
+
+router.get('/governance-report', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'governance', 'portfolio', 'readiness', 'capabilities'], ['export:governance-report']);
+        const [portfolios, readiness, coverage, decisions] = await Promise.all([
+            getPool().query('SELECT * FROM data.service_portfolio ORDER BY portfolio_code'),
+            getPool().query('SELECT * FROM data.v_servicepublishreadiness ORDER BY service_id'),
+            getPool().query('SELECT * FROM data.v_capability_governance_coverage ORDER BY capability_title'),
+            getPool().query(`
+                SELECT gd.*, sc.service_id, sc.title AS service_title
+                FROM data.governance_decision gd
+                JOIN data.service_catalog sc ON sc.id = gd.service_id
+                WHERE sc.is_deleted = FALSE
+                ORDER BY gd.decided_at DESC, gd.id DESC
+            `),
+        ]);
+        res.json({
+            profile_key: 's3c-governance-report',
+            exported_at: new Date().toISOString(),
+            portfolios: portfolios.rows,
+            readiness: readiness.rows,
+            capability_coverage: coverage.rows,
+            decisions: decisions.rows,
+        });
+    } catch (err) { next(err); }
+});
+
+router.get('/backstage/catalog-info', async (req, res, next) => {
+    try {
+        applyCacheTags(res, ['export', 'service'], ['export:backstage-catalog-info']);
+        const services = await findAllForExport();
+        res.type('text/yaml').send(generateBackstageCatalogInfo(services));
     } catch (err) { next(err); }
 });
 

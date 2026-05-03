@@ -1,7 +1,7 @@
 .shell {
   min-height: 100vh;
   padding: var(--space-5) var(--space-6);
-  background: var(--color-bg-canvas);
+  background: var(--color-bg-workspace);
 }
 
 .header {
@@ -22,7 +22,7 @@
   margin-bottom: var(--space-2);
   color: var(--color-text-muted);
   font: var(--text-label-sm);
-  letter-spacing: .08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -75,6 +75,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-5);
+  margin-top: var(--space-5);
 }
 
 .flowBoard {
@@ -101,8 +102,44 @@
   border-bottom: 1px solid var(--color-border-default);
   color: var(--color-text-muted);
   font: var(--text-label-sm);
-  letter-spacing: .06em;
+  letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.flowBoardCanvas {
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.graphToolStack,
+.graphDetailStack {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.graphToolStack .ghostButton,
+.graphToolStack .linkButton {
+  width: 100%;
+  justify-content: center;
+}
+
+.graphDetailStack strong {
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.detailLink {
+  display: block;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-workspace);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+  text-decoration: none;
 }
 
 .nodeCard {
@@ -163,6 +200,12 @@
   margin: 0 0 var(--space-3);
   color: var(--color-text-primary);
   font: var(--text-title-md);
+}
+
+.outputLead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
 }
 
 .matrix {
@@ -254,6 +297,166 @@
   font: var(--text-label-md);
 }
 
+.impactControls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, .35fr) minmax(120px, .25fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.impactControls label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.impactControls select {
+  min-height: 34px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.impactLayout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+  margin-bottom: var(--space-4);
+}
+
+.impactDual {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+  gap: var(--space-4);
+  align-items: stretch;
+  margin-bottom: var(--space-4);
+}
+
+.impactGraphPanel,
+.impactTextPanel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.impactGraphSvg {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-workspace);
+}
+
+.graphRoot {
+  fill: color-mix(in srgb, var(--color-info) 12%, var(--color-bg-surface));
+  stroke: var(--color-info);
+  stroke-width: 2;
+}
+
+.graphNode {
+  fill: var(--color-bg-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.graphEdge {
+  fill: none;
+  stroke: var(--color-info);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+}
+
+.graphNodeLabel {
+  fill: var(--color-text-muted);
+  font: var(--text-label-sm);
+  text-transform: uppercase;
+}
+
+.graphNodeTitle {
+  fill: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.impactList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.impactSummaryItem {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.impactSummaryItem span {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  text-transform: uppercase;
+}
+
+.impactSummaryItem strong {
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.impactNodeList,
+.pathList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.impactNode,
+.pathItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 86px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font: var(--text-body-sm);
+}
+
+.impactNode strong,
+.pathItem strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.impactNode span,
+.pathItem span {
+  color: var(--color-text-muted);
+}
+
+.impactNodeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -277,7 +480,10 @@
 
 @media (max-width: 1100px) {
   .kpiGrid,
-  .matrixLayout {
+  .matrixLayout,
+  .impactControls,
+  .impactLayout,
+  .impactDual {
     grid-template-columns: 1fr;
   }
 

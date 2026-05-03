@@ -1,0 +1,103 @@
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-display);
+  letter-spacing: 0;
+}
+
+.purpose {
+  max-width: 760px;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font: 400 13.5px/20px var(--font-sans);
+}
+
+.actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.primaryAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--color-info);
+  border-radius: var(--radius-md);
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+  font: var(--text-label-md);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chips {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.chip_ok {
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 36%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
+}
+
+.chip_warn {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 38%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface));
+}
+
+.chip_bad {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 38%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-bg-surface));
+}
+
+.chip_info {
+  color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 38%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
+}
+
+@media (max-width: 760px) {
+  .header {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}

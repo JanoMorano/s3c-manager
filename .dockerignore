@@ -14,7 +14,8 @@ coverage/
 *.bak
 output/
 logs/
-docs/
+docs/superpowers
 testdata/
 dev/
 improvement/
+.superpowers/

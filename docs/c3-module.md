@@ -112,7 +112,7 @@ GET /api/v1/capabilities/by-slug/:slug/duplicate-coverage?spiral=Spiral_5
 GET /api/v1/capabilities/by-slug/:slug/consolidation-candidates?spiral=Spiral_5
 ```
 
-The current implementation deliberately keeps PDF storage/viewer out of v1.1.1 scope. Evidence document rows are generated from imported C3 taxonomy, spiral membership, and service mappings, and they intentionally do not contain developer-local PDF paths. If future FMN PDFs are imported as structured documents, they should be connected through the generic evidence model without reintroducing route-specific constants or route-specific dashboards.
+The current implementation deliberately keeps PDF storage/viewer out of v1.1.2 scope. Evidence document rows are generated from imported C3 taxonomy, spiral membership, and service mappings, and they intentionally do not contain developer-local PDF paths. If future FMN PDFs are imported as structured documents, they should be connected through the generic evidence model without reintroducing route-specific constants or route-specific dashboards.
 
 ## How to Load Your Own Data
 

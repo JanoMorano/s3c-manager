@@ -3,10 +3,13 @@ import { apiFetch } from '@/features/services/api/services.api';
 import type {
   AdvisorFinding,
   ContractOverlapRow,
+  GovernanceDecision,
   GovernanceFilters,
   GovernanceResponse,
+  GovernanceReview,
   OwnerAssignmentRow,
   OwnerLoadRow,
+  ReadinessSummaryResponse,
   RenewalRiskRow,
   ServiceRiskFinding,
 } from '../types';
@@ -17,6 +20,11 @@ function buildUrl(path: string, filters: GovernanceFilters = {}) {
   if (filters.type) q.set('type', filters.type);
   if (filters.owner) q.set('owner', filters.owner);
   if (filters.scope) q.set('scope', filters.scope);
+  if (filters.serviceId) q.set('service_id', filters.serviceId);
+  if (filters.assignedTo) q.set('assigned_to', filters.assignedTo);
+  if (filters.status) q.set('status', filters.status);
+  if (filters.decision) q.set('decision', filters.decision);
+  if (filters.decisionType) q.set('decision_type', filters.decisionType);
   if (filters.q) q.set('q', filters.q);
   if (filters.limit) q.set('limit', String(filters.limit));
   if (filters.offset) q.set('offset', String(filters.offset));
@@ -72,6 +80,36 @@ export function useRenewalCalendar(filters: GovernanceFilters = {}) {
 export function useGovernanceAdvisor(filters: GovernanceFilters = {}) {
   return useSWR<GovernanceResponse<AdvisorFinding>>(
     buildUrl('advisor', filters),
+    apiFetch,
+    swrOptions
+  );
+}
+
+export function useReadinessSummary(filters: Pick<GovernanceFilters, 'limit' | 'offset' | 'owner'> & { lifecycle?: string } = {}) {
+  const q = new URLSearchParams();
+  if (filters.limit) q.set('limit', String(filters.limit));
+  if (filters.offset) q.set('offset', String(filters.offset));
+  if (filters.owner) q.set('owner', filters.owner);
+  if (filters.lifecycle) q.set('lifecycle', filters.lifecycle);
+  const qs = q.toString();
+  return useSWR<ReadinessSummaryResponse>(
+    `/api/v1/readiness/summary${qs ? `?${qs}` : ''}`,
+    apiFetch,
+    swrOptions
+  );
+}
+
+export function useGovernanceReviews(filters: GovernanceFilters = {}) {
+  return useSWR<GovernanceResponse<GovernanceReview>>(
+    buildUrl('reviews', filters),
+    apiFetch,
+    swrOptions
+  );
+}
+
+export function useGovernanceDecisions(filters: GovernanceFilters = {}) {
+  return useSWR<GovernanceResponse<GovernanceDecision>>(
+    buildUrl('decisions', filters),
     apiFetch,
     swrOptions
   );

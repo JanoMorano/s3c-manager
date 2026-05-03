@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, type Resolver } from 'react-hook-form';
 import Link from '@/app/components/AppLink';
@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { authHeaders, apiFetch } from '@/features/services/api/services.api';
+import { CodeEditor, WizardStepTracker } from '@/app/components/layout-v2';
 import { Button } from '@/design-system/controls/Button';
 import styles from '../new-service/editor.module.css';
 
@@ -42,6 +43,41 @@ const schema = z.object({
 
 type FormData = z.output<typeof schema>;
 
+const DRAFT_KEY = 'sc_new_c3_draft';
+
+const DEFAULT_VALUES: Partial<FormData> = {
+  uuid: '',
+  application: '',
+  title: '',
+  description: '',
+  external_id: '',
+  data_qualifier: '',
+  data_source: '',
+  order_num: undefined,
+  ss_overall_status: '',
+  ss_baseline_status: '',
+  item_status: 'draft',
+  source_description: '',
+  revised_description: '',
+  abbreviation: '',
+  synonym: '',
+  script_raw: '',
+  datasets_raw: '',
+  standards_raw: '',
+  references_raw: '',
+  provenance_raw: '',
+  item_type: 'CP',
+  level_num: 3,
+  parent_code: '',
+  parent_uuid: '',
+};
+
+interface WizardDraft {
+  data?: Partial<FormData>;
+  step?: number;
+  savedAt?: string;
+}
+
 interface C3Type { code: string; name: string; }
 interface C3Item {
   uuid: string;
@@ -60,42 +96,64 @@ export default function NewC3Page() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [step, setStep] = useState(1);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
+    trigger,
     formState: { errors, isDirty, dirtyFields },
   } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
-    defaultValues: {
-      uuid: '',
-      application: '',
-      title: '',
-      description: '',
-      external_id: '',
-      data_qualifier: '',
-      data_source: '',
-      order_num: undefined,
-      ss_overall_status: '',
-      ss_baseline_status: '',
-      item_status: 'draft',
-      source_description: '',
-      revised_description: '',
-      abbreviation: '',
-      synonym: '',
-      script_raw: '',
-      datasets_raw: '',
-      standards_raw: '',
-      references_raw: '',
-      provenance_raw: '',
-      item_type: 'CP',
-      level_num: 3,
-      parent_code: '',
-      parent_uuid: '',
-    },
+    defaultValues: DEFAULT_VALUES,
   });
+
+  const stepDefs = useMemo(() => [
+    { id: 'identity', label: 'Identita', hint: 'Title, code, type' },
+    { id: 'hierarchy', label: 'Hierarchie', hint: 'Parent, level, class' },
+    { id: 'status', label: 'Status', hint: 'Source state' },
+    { id: 'raw', label: 'Raw data', hint: 'Import evidence' },
+    { id: 'review', label: 'Review', hint: 'Create and redirect' },
+  ], []);
+
+  const activeStepId = stepDefs[step - 1]?.id ?? 'identity';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as WizardDraft;
+      if (draft.data) reset({ ...DEFAULT_VALUES, ...draft.data });
+      if (draft.step && draft.step >= 1 && draft.step <= stepDefs.length) setStep(draft.step);
+    } catch {
+      window.localStorage.removeItem(DRAFT_KEY);
+    }
+  }, [reset, stepDefs.length]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const subscription = watch((value) => {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        data: value,
+        step,
+        savedAt: new Date().toISOString(),
+      } satisfies WizardDraft));
+    });
+    return () => subscription.unsubscribe();
+  }, [step, watch]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      data: watch(),
+      step,
+      savedAt: new Date().toISOString(),
+    } satisfies WizardDraft));
+  }, [step, watch]);
 
   const watchedTitle = watch('title');
   const watchedExternalId = watch('external_id');
@@ -117,6 +175,18 @@ export default function NewC3Page() {
         .sort((a, b) => String(a.external_id ?? a.title).localeCompare(String(b.external_id ?? b.title))),
     [c3Items],
   );
+
+  async function goNext() {
+    if (step === 1) {
+      const ok = await trigger(['title', 'item_type']);
+      if (!ok) return;
+    }
+    setStep((current) => Math.min(current + 1, stepDefs.length));
+  }
+
+  function goBack() {
+    setStep((current) => Math.max(current - 1, 1));
+  }
 
   const onSubmit = async (data: FormData) => {
     setSaving(true);
@@ -163,6 +233,7 @@ export default function NewC3Page() {
 
       const created = (await res.json()) as { uuid?: string };
       setSaved(true);
+      if (typeof window !== 'undefined') window.localStorage.removeItem(DRAFT_KEY);
       router.push(created.uuid ? `/c3/${created.uuid}` : '/c3/list');
     } catch (error: unknown) {
       setSaveError(error instanceof Error ? error.message : 'Create failed');
@@ -181,9 +252,17 @@ export default function NewC3Page() {
         <span className={styles.savedOk}>{watchedStatus || 'draft'}</span>
       </div>
 
+      <WizardStepTracker
+        activeId={activeStepId}
+        steps={stepDefs.map((item, index) => ({
+          ...item,
+          state: index + 1 < step ? 'done' : 'todo',
+        }))}
+      />
+
       <div className={styles.editorBody}>
         <div className={styles.formArea}>
-          <EditorSection id="identity" title="1. Basic Identity">
+          {step === 1 && <EditorSection id="identity" title="1. Basic Identity">
             <div className={styles.fieldRow}>
               <Field label="Title *" error={errors.title?.message}>
                 <input {...register('title')} className={fieldClass(errors.title)} />
@@ -226,9 +305,9 @@ export default function NewC3Page() {
             <Field label="Description">
               <textarea {...register('description')} rows={4} className={styles.textarea} />
             </Field>
-          </EditorSection>
+          </EditorSection>}
 
-          <EditorSection id="hierarchy" title="2. Hierarchy & Classification">
+          {step === 2 && <EditorSection id="hierarchy" title="2. Hierarchy & Classification">
             <div className={styles.fieldRow}>
               <Field label="Parent UUID">
                 <select
@@ -270,9 +349,9 @@ export default function NewC3Page() {
             <Field label="Synonym">
               <textarea {...register('synonym')} rows={3} className={styles.textarea} />
             </Field>
-          </EditorSection>
+          </EditorSection>}
 
-          <EditorSection id="status" title="3. Status & Source Text">
+          {step === 3 && <EditorSection id="status" title="3. Status & Source Text">
             <div className={styles.fieldRow}>
               <Field label="SS Overall Status">
                 <input {...register('ss_overall_status')} className={styles.input} />
@@ -287,31 +366,84 @@ export default function NewC3Page() {
             <Field label="Revised Description">
               <textarea {...register('revised_description')} rows={4} className={styles.textarea} />
             </Field>
-          </EditorSection>
+          </EditorSection>}
 
-          <EditorSection id="raw" title="4. Raw Source Fields">
+          {step === 4 && <EditorSection id="raw" title="4. Raw Source Fields">
             <Field label="Script Raw">
-              <textarea {...register('script_raw')} rows={4} className={styles.textarea} />
+              <CodeEditor
+                name="script_raw"
+                label="Script Raw"
+                language="plaintext"
+                rows={5}
+                value={watch('script_raw') ?? ''}
+                onValueChange={(value) => setValue('script_raw', value, { shouldDirty: true, shouldValidate: true })}
+              />
             </Field>
             <Field label="Datasets Raw">
-              <textarea {...register('datasets_raw')} rows={4} className={styles.textarea} />
+              <CodeEditor
+                name="datasets_raw"
+                label="Datasets Raw"
+                language="json"
+                rows={5}
+                value={watch('datasets_raw') ?? ''}
+                onValueChange={(value) => setValue('datasets_raw', value, { shouldDirty: true, shouldValidate: true })}
+              />
             </Field>
             <Field label="Standards Raw">
-              <textarea {...register('standards_raw')} rows={4} className={styles.textarea} />
+              <CodeEditor
+                name="standards_raw"
+                label="Standards Raw"
+                language="json"
+                rows={5}
+                value={watch('standards_raw') ?? ''}
+                onValueChange={(value) => setValue('standards_raw', value, { shouldDirty: true, shouldValidate: true })}
+              />
             </Field>
             <Field label="References Raw">
-              <textarea {...register('references_raw')} rows={4} className={styles.textarea} />
+              <CodeEditor
+                name="references_raw"
+                label="References Raw"
+                language="json"
+                rows={5}
+                value={watch('references_raw') ?? ''}
+                onValueChange={(value) => setValue('references_raw', value, { shouldDirty: true, shouldValidate: true })}
+              />
             </Field>
             <Field label="Provenance Raw">
-              <textarea {...register('provenance_raw')} rows={4} className={styles.textarea} />
+              <CodeEditor
+                name="provenance_raw"
+                label="Provenance Raw"
+                language="json"
+                rows={5}
+                value={watch('provenance_raw') ?? ''}
+                onValueChange={(value) => setValue('provenance_raw', value, { shouldDirty: true, shouldValidate: true })}
+              />
             </Field>
-          </EditorSection>
+          </EditorSection>}
 
-          <EditorSection id="review" title="5. Review">
+          {step === 5 && <EditorSection id="review" title="5. Review">
             <p className={styles.hint}>Vytváří se plný C3 záznam se všemi poli podporovanými backend API.</p>
+            <div className={styles.validOk}>Title: {watchedTitle || '—'}</div>
+            <div className={styles.validOk}>External ID: {watchedExternalId || '—'}</div>
+            <div className={styles.validOk}>Status: {watchedStatus || 'draft'}</div>
             {saveError && <div className={styles.errorBanner}>{saveError}</div>}
             {saved && <div className={styles.successBanner}>C3 capability created successfully.</div>}
-          </EditorSection>
+          </EditorSection>}
+
+          <div className={styles.editorActions}>
+            <Button type="button" variant="ghost" size="sm" onClick={goBack} disabled={step === 1 || saving}>
+              Back
+            </Button>
+            {step < stepDefs.length ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => { void goNext(); }} disabled={saving}>
+                Next
+              </Button>
+            ) : (
+              <Button type="submit" loading={saving} disabled={saving}>
+                Create C3 capability
+              </Button>
+            )}
+          </div>
         </div>
 
         <aside className={styles.rail}>
@@ -322,9 +454,7 @@ export default function NewC3Page() {
             {saveError && <div className={styles.railError}>{saveError}</div>}
             {isDirty && <div className={styles.dirtyNote}>{dirtyCount} field(s) changed</div>}
 
-            <Button type="submit" loading={saving} style={{ width: '100%', marginBottom: 'var(--space-2)' }}>
-              Create C3 capability
-            </Button>
+            <div className={styles.validOk}>Draft uložen lokálně.</div>
             <Button
               type="button"
               variant="ghost"

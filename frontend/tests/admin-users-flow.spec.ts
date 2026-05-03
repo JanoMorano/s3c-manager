@@ -49,6 +49,9 @@ test('admin user flow: create or update local user and verify authentication', a
     const roleSelect = page.getByRole('combobox', { name: /^role$/i });
     await roleSelect.selectOption('viewer');
 
+    const personaSelect = page.getByRole('combobox', { name: /working view|pracovní pohled|persona/i });
+    await personaSelect.selectOption('consumer');
+
     const loginTypeSelect = page.getByRole('combobox', { name: /login type/i });
     await loginTypeSelect.selectOption('local');
 
@@ -68,6 +71,9 @@ test('admin user flow: create or update local user and verify authentication', a
 
     const roleSelect = page.getByRole('combobox', { name: /^role$/i });
     await roleSelect.selectOption('viewer');
+
+    const personaSelect = page.getByRole('combobox', { name: /working view|pracovní pohled|persona/i });
+    await personaSelect.selectOption('consumer');
 
     const loginTypeSelect = page.getByRole('combobox', { name: /login type/i });
     await loginTypeSelect.selectOption('local');
@@ -93,6 +99,9 @@ test('admin user flow: create or update local user and verify authentication', a
   const roleSelect = page.getByRole('combobox', { name: /^role$/i });
   await roleSelect.selectOption('editor');
 
+  const personaSelect = page.getByRole('combobox', { name: /working view|pracovní pohled|persona/i });
+  await personaSelect.selectOption('capability_manager');
+
   await page.getByRole('button', { name: /save changes/i }).click();
   await expect(page.getByText(/^User updated\.$|^Uživatel byl upraven\.$/)).toBeVisible({ timeout: 15_000 });
 
@@ -100,6 +109,7 @@ test('admin user flow: create or update local user and verify authentication', a
   const updatedRow = page.getByRole('cell', { name: username }).locator('xpath=ancestor::tr').first();
   await expect(updatedRow).toBeVisible({ timeout: 15_000 });
   await expect(updatedRow.getByText(/^Content Admin - RW$/)).toBeVisible({ timeout: 15_000 });
+  await expect(updatedRow.getByText(/^Capability Manager$|^Správce schopností$/)).toBeVisible({ timeout: 15_000 });
   await expect(updatedRow.getByText(updatedEmail, { exact: false })).toBeVisible({ timeout: 15_000 });
   await expect(updatedRow.getByText(updatedDepartment, { exact: false })).toBeVisible({ timeout: 15_000 });
 
@@ -110,4 +120,5 @@ test('admin user flow: create or update local user and verify authentication', a
   const loginPayload = await loginResponse.json();
   expect(loginPayload.access_token).toBeTruthy();
   expect(loginPayload.user?.username ?? loginPayload.username).toBe(username);
+  expect(loginPayload.user?.preferred_persona ?? loginPayload.preferred_persona).toBe('capability_manager');
 });

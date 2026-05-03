@@ -14,6 +14,8 @@ dev/
 logs/
 output/
 improvement/
+.superpowers/
+docs/superpowers
 
 # Playwright/runtime test artifacts
 frontend/test-results/
@@ -36,3 +38,5 @@ frontend/test-results/
 # Import artefacts that may contain real data
 _c3_import.zip
 sc-images-amd64*.tar
+s3c-manager.v*.tar
+s3c-manager.v*.tar.gz

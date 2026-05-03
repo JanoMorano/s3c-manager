@@ -196,6 +196,7 @@ function buildUserResponse(user, { mustChangePassword = false } = {}) {
         auth_provider: user.auth_provider ?? 'local',
         must_change_password: mustChangePassword,
         preferred_lang: normalizeLocale(user.preferred_lang),
+        preferred_persona: user.preferred_persona ?? 'service_owner',
         preferred_theme: user.preferred_theme || 'dark',
     };
 }
@@ -752,6 +753,90 @@ router.put('/preferences', requireAuth, async (req, res, next) => {
         );
         setLocaleCookie(req, res, normalizedPreferredLang);
         res.json({ message: tReq(req, 'auth.preferences.saved'), preferred_lang: normalizedPreferredLang });
+    } catch (err) {
+        next(err);
+    }
+});
+
+function normalizePreferenceKey(value) {
+    return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_.:-]/g, '_')
+        .slice(0, 120);
+}
+
+function isMissingEnterprisePreferenceStore(err) {
+    return err?.code === '42P01' || err?.code === '42703';
+}
+
+/**
+ * GET /api/v1/auth/preferences/:key
+ * Generic per-user preference lookup. Used by enterprise UI surfaces such as
+ * Business/Technical view persistence and later saved views.
+ */
+router.get('/preferences/:key', requireAuth, async (req, res, next) => {
+    try {
+        const key = normalizePreferenceKey(req.params.key);
+        if (!key) return res.status(400).json({ error: 'Preference key is required' });
+
+        try {
+            const result = await getPlatformPool().query(`
+                SELECT preference_key, preference_value, updated_at
+                FROM platform.user_preferences
+                WHERE user_id = $1
+                  AND preference_key = $2
+            `, [req.user.id, key]);
+
+            res.json({
+                preference_key: key,
+                preference_value: result.rows[0]?.preference_value ?? null,
+                updated_at: result.rows[0]?.updated_at ?? null,
+            });
+        } catch (err) {
+            if (isMissingEnterprisePreferenceStore(err)) {
+                return res.json({ preference_key: key, preference_value: null, updated_at: null, storage: 'local' });
+            }
+            throw err;
+        }
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * PUT /api/v1/auth/preferences/:key
+ */
+router.put('/preferences/:key', requireAuth, async (req, res, next) => {
+    try {
+        const key = normalizePreferenceKey(req.params.key);
+        if (!key) return res.status(400).json({ error: 'Preference key is required' });
+
+        const preferenceValue = req.body?.preference_value ?? req.body?.value ?? req.body ?? {};
+        try {
+            const result = await getPlatformPool().query(`
+                INSERT INTO platform.user_preferences
+                    (user_id, preference_key, preference_value, updated_by)
+                VALUES ($1, $2, $3::jsonb, $4)
+                ON CONFLICT (user_id, preference_key) DO UPDATE
+                SET preference_value = EXCLUDED.preference_value,
+                    updated_by = EXCLUDED.updated_by,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING preference_key, preference_value, updated_at
+            `, [
+                req.user.id,
+                key,
+                JSON.stringify(preferenceValue),
+                req.user.username || req.user.display_name || 'unknown',
+            ]);
+
+            res.json(result.rows[0]);
+        } catch (err) {
+            if (isMissingEnterprisePreferenceStore(err)) {
+                return res.json({ preference_key: key, preference_value: preferenceValue, updated_at: null, storage: 'local' });
+            }
+            throw err;
+        }
     } catch (err) {
         next(err);
     }

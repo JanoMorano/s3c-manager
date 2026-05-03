@@ -121,6 +121,11 @@ run_psql "pg capability abbreviations — Level-3 slugs" /pgdb/schema/19_capabil
 run_psql "pg capability coverage — generic helper views" /pgdb/schema/20_capability_coverage_views.sql
 run_psql "pg contract governance — vendors, contracts, findings" /pgdb/schema/21_contract_governance.sql
 run_psql "pg governance views — risk radar, owner load, overlap advisor" /pgdb/schema/22_governance_views.sql
+run_psql "pg service portfolio — portfolio and lifecycle foundation" /pgdb/schema/23_service_portfolio.sql
+run_psql "pg readiness rules — configurable readiness and exceptions" /pgdb/schema/24_readiness_rules.sql
+run_psql "pg capability governance — coverage cockpit views" /pgdb/schema/25_capability_governance.sql
+run_psql "pg governance workflow — reviews and decisions" /pgdb/schema/26_governance_workflow.sql
+run_psql "pg impact analysis — dependency and capability traversal views" /pgdb/schema/27_impact_analysis.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

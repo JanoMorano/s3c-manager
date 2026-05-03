@@ -41,6 +41,198 @@
   text-decoration: underline;
 }
 
+.relationshipBoard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.relationshipSummary,
+.relationshipQueue,
+.relationshipFlow {
+  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  padding: var(--space-5);
+}
+
+.relationshipSummary h2 {
+  max-width: 760px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-lg);
+  letter-spacing: -0.02em;
+}
+
+.relationshipSummary p {
+  max-width: 74ch;
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-md);
+  line-height: 1.6;
+}
+
+.relationshipMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.relationshipMetric {
+  display: grid;
+  gap: 2px;
+  min-height: 92px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.relationshipMetric strong {
+  color: var(--color-text-primary);
+  font: var(--text-title-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.relationshipMetric span {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.relationshipMetric small {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  overflow-wrap: anywhere;
+}
+
+.relationshipMetric_success { border-left-color: var(--color-success); }
+.relationshipMetric_warning { border-left-color: var(--color-warning); }
+.relationshipMetric_danger { border-left-color: var(--color-danger); }
+
+.relationshipPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.relationshipPanelHeader h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.relationshipTaskList {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.relationshipTask {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: start;
+  min-height: 64px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.relationshipTask:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+
+.relationshipTask strong {
+  display: block;
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.relationshipTask small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.relationshipTask em {
+  color: var(--color-action-primary);
+  font: var(--text-label-sm);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.relationshipDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--color-info);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-info) 12%, transparent);
+}
+
+.relationshipDot_success { background: var(--color-success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 12%, transparent); }
+.relationshipDot_warning { background: var(--color-warning); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-warning) 14%, transparent); }
+.relationshipDot_danger { background: var(--color-danger); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-danger) 12%, transparent); }
+
+.relationshipFlow {
+  grid-column: 1 / -1;
+}
+
+.relationshipFlowGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.relationshipFlowGrid::before {
+  content: "";
+  position: absolute;
+  inset: 50% var(--space-4) auto;
+  height: 1px;
+  background: var(--color-border-default);
+}
+
+.relationshipFlowNode {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  min-height: 92px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.relationshipFlowNode span {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.relationshipFlowNode strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  overflow-wrap: anywhere;
+}
+
 .ghostButton,
 .iconButton {
   border: 1px solid var(--color-border-default);
@@ -792,6 +984,98 @@
 .state      { padding: var(--space-8); text-align: center; color: var(--color-text-muted); }
 .stateError { padding: var(--space-8); text-align: center; color: var(--color-danger); }
 
+.c3KanbanSection {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.c3Kanban {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.c3Lane {
+  display: flex;
+  min-width: 0;
+  min-height: 280px;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+
+.c3Lane h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.c3Lane h3 strong {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.c3LaneCards {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.c3LaneCard {
+  display: grid;
+  gap: 3px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.c3LaneCard:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+
+.c3LaneCard strong {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c3LaneCard span,
+.c3LaneEmpty {
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+@media (max-width: 1180px) {
+  .c3Kanban {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .pageHeader,
   .sectionHeader {
@@ -802,11 +1086,30 @@
   .catalogueGrid,
   .dashboardGrid,
   .decisionLayout,
+  .relationshipBoard,
+  .relationshipMetricGrid,
+  .relationshipFlowGrid,
   .graphPreviewGrid,
   .flowPreview,
   .insightGrid,
   .coverageMiniRow {
     grid-template-columns: 1fr;
+  }
+
+  .relationshipFlowGrid::before {
+    display: none;
+  }
+
+  .relationshipPanelHeader {
+    flex-direction: column;
+  }
+
+  .relationshipTask {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+
+  .relationshipTask em {
+    grid-column: 2;
   }
 
   .workItem {
@@ -818,6 +1121,12 @@
   }
 
   .evidenceRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .c3Kanban {
     grid-template-columns: 1fr;
   }
 }

@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
 import { useI18n } from '@/app/i18n/useI18n';
 import useSWR from 'swr';
 import styles from './user-info.module.css';
@@ -276,7 +277,7 @@ export default function UserInfoPage() {
   if (meError && !me) {
     return (
       <div className={styles.shell}>
-        <h1 className={styles.pageTitle}>{t('user_info.title')}</h1>
+        <PageHeader title={t('user_info.title')} purpose="Profil, pracovní pohled, jazyk a bezpečnost účtu." />
         <div className={styles.card}>
           <div className={styles.noToken}>
             {t('user_info.load_failed')} <Link href="/login">{t('user_info.log_in_again')}</Link>
@@ -288,7 +289,15 @@ export default function UserInfoPage() {
 
   return (
     <div className={styles.shell}>
-      <h1 className={styles.pageTitle}>{t('user_info.title')}</h1>
+      <PageHeader
+        title={t('user_info.title')}
+        purpose="Nastavení účtu, role/persony a osobní pracovní kontext."
+        chips={[
+          { label: me?.role ?? 'role', tone: 'info' },
+          { label: persona, tone: 'neutral' },
+          { label: me?.auth_provider ?? 'local', tone: 'neutral' },
+        ]}
+      />
 
       {/* ── Account card ─────────────────────────────────────────────────── */}
       <section className={styles.card}>
@@ -399,6 +408,7 @@ export default function UserInfoPage() {
                 >
                   <option value="consumer">{t('persona.consumer')}</option>
                   <option value="service_owner">{t('persona.service_owner')}</option>
+                  <option value="capability_manager">{t('persona.capability_manager')}</option>
                   <option value="admin">{t('persona.admin')}</option>
                 </select>
                 <p className={styles.fieldHint}>{t('user_info.persona_desc')}</p>

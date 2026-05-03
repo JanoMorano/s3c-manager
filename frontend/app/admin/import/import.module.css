@@ -38,6 +38,66 @@
   border-color: var(--color-action-primary);
 }
 
+.profilePanel {
+  display: grid;
+  grid-template-columns: minmax(220px, .45fr) minmax(280px, 1fr) minmax(260px, .75fr);
+  gap: var(--space-4);
+  align-items: start;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.profileSelector,
+.profileDetail,
+.profileExports {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.profileSelector span {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.profileSelector select {
+  min-height: 34px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+}
+
+.profileDetail strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.profileDetail span {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.profileFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.profileFields code {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  font: var(--text-mono-sm);
+}
+
 /* ── KPI tiles ───────────────────────────────────────────────────────────── */
 .kpiRow {
   display: grid;
@@ -106,6 +166,12 @@
   transition: color 0.1s;
 }
 .refreshBtn:hover { color: var(--color-text-primary); }
+
+@media (max-width: 960px) {
+  .profilePanel {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ── Table ───────────────────────────────────────────────────────────────── */
 .tableWrap {

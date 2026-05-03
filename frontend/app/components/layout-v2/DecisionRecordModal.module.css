@@ -1,0 +1,157 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+}
+
+.modal {
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-medium);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.title {
+  margin: 0;
+  font: var(--text-title-lg);
+}
+
+.hint {
+  margin: var(--space-1) 0 0;
+  font: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.close {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-3);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field span {
+  font: var(--text-label-sm);
+  color: var(--color-text-secondary);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  padding: var(--space-3);
+  font: var(--text-body-sm);
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.preview,
+.error {
+  display: grid;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font: var(--text-body-sm);
+}
+
+.preview {
+  border: 1px solid color-mix(in srgb, var(--color-purple) 24%, var(--color-border-default));
+  background: var(--color-purple-soft);
+  color: var(--color-text-secondary);
+}
+
+.preview strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.error {
+  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface));
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.secondary,
+.primary {
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+
+.secondary {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+}
+
+.primary {
+  border: 1px solid var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-bg-surface);
+}
+
+.primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .backdrop {
+    align-items: end;
+    padding: var(--space-3);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

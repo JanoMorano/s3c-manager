@@ -7,6 +7,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { AppRole } from '@/features/auth/roles';
+import type { Persona } from '@/features/auth/PersonaContext';
 import styles from './users.module.css';
 
 const USERS_ENDPOINT = '/api/v1/admin/users';
@@ -23,6 +24,8 @@ interface AdminUser {
   role: AppRole
   role_label: string
   access_label: string
+  preferred_persona: Persona
+  preferred_persona_label: string
   is_active: boolean
   auth_provider: AuthProvider
   auth_provider_label: string
@@ -41,6 +44,7 @@ interface UserDraft {
   display_name: string
   email: string
   role: AppRole
+  preferred_persona: Persona
   auth_provider: AuthProvider
   external_principal: string
   password: string
@@ -55,6 +59,7 @@ const EMPTY_DRAFT: UserDraft = {
   display_name: '',
   email: '',
   role: 'viewer',
+  preferred_persona: 'service_owner',
   auth_provider: 'local',
   external_principal: '',
   password: '',
@@ -108,6 +113,12 @@ export default function AdministrationUsersPage() {
       access: t('administration.users.role.admin.access'),
     },
   ];
+  const personaOptions: Array<{ value: Persona; label: string; access: string }> = [
+    { value: 'consumer', label: t('persona.consumer'), access: 'Katalog a request flow bez technického balastu.' },
+    { value: 'service_owner', label: t('persona.service_owner'), access: 'Moje služby, review, blokery a rozhodnutí.' },
+    { value: 'capability_manager', label: t('persona.capability_manager'), access: 'Schopnosti, C3 board, coverage, gaps a overlaps.' },
+    { value: 'admin', label: t('persona.admin'), access: 'Plný pracovní cockpit pro správu systému.' },
+  ];
   const PROVIDER_OPTIONS = [
     { value: 'local', label: t('administration.users.provider.local.label'), help: t('administration.users.provider.local.help') },
     { value: 'ad', label: t('administration.users.provider.ad.label'), help: t('administration.users.provider.ad.help') },
@@ -115,6 +126,7 @@ export default function AdministrationUsersPage() {
   const roleLabelByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.label])) as Record<AppRole, string>;
   const roleAccessByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.access])) as Record<AppRole, string>;
   const providerLabelByValue = Object.fromEntries(PROVIDER_OPTIONS.map((option) => [option.value, option.label])) as Record<AuthProvider, string>;
+  const personaLabelByValue = Object.fromEntries(personaOptions.map((option) => [option.value, option.label])) as Record<Persona, string>;
   const { data, isLoading, error } = useSWR<AdminUser[]>(USERS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -164,6 +176,7 @@ export default function AdministrationUsersPage() {
         user.display_name,
         user.email,
         getRoleLabel(user.role),
+        personaLabelByValue[user.preferred_persona],
         getProviderLabel(user.auth_provider),
         user.external_principal,
         user.given_name,
@@ -171,7 +184,7 @@ export default function AdministrationUsersPage() {
         user.department,
       ].some((value) => String(value ?? '').toLowerCase().includes(query))
     )
-  }, [data, deferredSearch, roleLabelByValue, providerLabelByValue])
+  }, [data, deferredSearch, roleLabelByValue, providerLabelByValue, personaLabelByValue])
 
   const sortedUsers = useMemo(() => {
     const direction = sortDirection === 'asc' ? 1 : -1
@@ -204,6 +217,11 @@ export default function AdministrationUsersPage() {
     })
   }, [filteredUsers, locale, providerLabelByValue, roleLabelByValue, sortDirection, sortKey])
 
+  const users = data ?? []
+  const activeUsers = users.filter((user) => user.is_active).length
+  const localUsers = users.filter((user) => user.auth_provider === 'local').length
+  const adUsers = users.filter((user) => user.auth_provider === 'ad').length
+
   function beginCreate() {
     setEditingId(null)
     setDraft(EMPTY_DRAFT)
@@ -219,6 +237,7 @@ export default function AdministrationUsersPage() {
       display_name: user.display_name ?? '',
       email: user.email ?? '',
       role: user.role,
+      preferred_persona: user.preferred_persona ?? 'service_owner',
       auth_provider: user.auth_provider,
       external_principal: user.external_principal ?? '',
       password: '',
@@ -312,15 +331,48 @@ export default function AdministrationUsersPage() {
         </button>
       </div>
 
-      <div className={styles.roleGrid}>
-        {roleOptions.map((option) => (
-          <article key={option.value} className={styles.roleCard}>
-            <div className={styles.roleTitle}>{option.label}</div>
-            <div className={styles.roleDesc}>{option.access}</div>
-          </article>
-        ))}
-      </div>
+      <section className={styles.kpiGrid} aria-label="User account KPIs">
+        <article className={`${styles.kpiCard} ${styles.kpiInfo}`}>
+          <span>Total</span>
+          <strong>{users.length}</strong>
+          <small>{filteredUsers.length} ve filtru</small>
+        </article>
+        <article className={`${styles.kpiCard} ${styles.kpiSuccess}`}>
+          <span>Active</span>
+          <strong>{activeUsers}</strong>
+          <small>{users.length - activeUsers} disabled</small>
+        </article>
+        <article className={`${styles.kpiCard} ${styles.kpiLocal}`}>
+          <span>Local</span>
+          <strong>{localUsers}</strong>
+          <small>spravováno v S3C</small>
+        </article>
+        <article className={`${styles.kpiCard} ${styles.kpiAd}`}>
+          <span>AD</span>
+          <strong>{adUsers}</strong>
+          <small>federované identity</small>
+        </article>
+      </section>
 
+      <details className={styles.roleGuide}>
+        <summary>{t('administration.users.role_persona_guide')}</summary>
+        <div className={styles.roleGrid}>
+          {roleOptions.map((option) => (
+            <article key={option.value} className={styles.roleCard}>
+              <div className={styles.roleTitle}>{option.label}</div>
+              <div className={styles.roleDesc}>{option.access}</div>
+            </article>
+          ))}
+          {personaOptions.map((option) => (
+            <article key={option.value} className={styles.roleCard}>
+              <div className={styles.roleTitle}>{option.label}</div>
+              <div className={styles.roleDesc}>{option.access}</div>
+            </article>
+          ))}
+        </div>
+      </details>
+
+      <div className={styles.splitWorkspace}>
       <section ref={editPanelRef} className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
@@ -367,6 +419,15 @@ export default function AdministrationUsersPage() {
             <span className={styles.label}>{t('common.role')}</span>
             <select className={styles.select} value={draft.role} onChange={(event) => updateDraft('role', event.target.value as AppRole)}>
               {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            <span className={styles.label}>{t('administration.users.working_view_label')}</span>
+            <select className={styles.select} value={draft.preferred_persona} onChange={(event) => updateDraft('preferred_persona', event.target.value as Persona)}>
+              {personaOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -491,6 +552,7 @@ export default function AdministrationUsersPage() {
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('username')}>{t('common.username')} {sortKey === 'username' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('display_name')}>{t('common.user')} {sortKey === 'display_name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('role')}>{t('common.role')} {sortKey === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
+                  <th>{t('administration.users.working_view_label')}</th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('auth_provider')}>{t('common.login')} {sortKey === 'auth_provider' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('is_active')}>{t('common.status')} {sortKey === 'is_active' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('last_login_at')}>{t('common.last_login')} {sortKey === 'last_login_at' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
@@ -512,6 +574,12 @@ export default function AdministrationUsersPage() {
                       <div className={styles.stack}>
                         <span className={styles.rolePill}>{getRoleLabel(user.role)}</span>
                         <span>{getRoleAccess(user.role)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className={styles.stack}>
+                        <span className={styles.personaPill}>{personaLabelByValue[user.preferred_persona] ?? user.preferred_persona}</span>
+                        <span>{personaOptions.find((option) => option.value === user.preferred_persona)?.access ?? ''}</span>
                       </div>
                     </td>
                     <td>
@@ -543,6 +611,7 @@ export default function AdministrationUsersPage() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }

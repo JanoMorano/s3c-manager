@@ -1,0 +1,73 @@
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+}
+
+.text strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.text span {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.state_done .index {
+  background: color-mix(in srgb, var(--color-success) 13%, var(--color-bg-surface));
+  color: var(--color-success);
+}
+
+.state_active {
+  border-color: color-mix(in srgb, var(--color-info) 34%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-info) 6%, var(--color-bg-surface));
+}
+
+.state_active .index {
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+}
+
+.state_blocked .index {
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-bg-surface));
+  color: var(--color-danger);
+}
+
+@media (max-width: 760px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}

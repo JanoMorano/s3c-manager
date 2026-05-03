@@ -18,6 +18,14 @@ interface ExportManifestResponse {
   schema_version: string;
 }
 
+interface ImportProfile {
+  key: string;
+  label: string;
+  mode: string;
+  required_fields: string[];
+  description?: string;
+}
+
 interface ImportContractReport {
   source_name: string;
   source_hash_sha256?: string;
@@ -58,8 +66,14 @@ interface C3EntityImportRunSummary {
 export default function ImportReviewPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showStubOnly, setShowStubOnly] = useState(false);
+  const [selectedProfileKey, setSelectedProfileKey] = useState('s3c-service-catalogue-json');
   const { data: manifest } = useSWR<ExportManifestResponse>(
     '/api/v1/export/manifest?scope=import',
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+  const { data: profiles } = useSWR<{ items: ImportProfile[] }>(
+    '/api/v1/import/profiles',
     apiFetch,
     { revalidateOnFocus: false }
   );
@@ -89,6 +103,13 @@ export default function ImportReviewPage() {
     { revalidateOnFocus: false }
   );
   const stubServiceIds = new Set((stubServices ?? []).map((item) => item.service_id));
+  const selectedProfile = (profiles?.items ?? []).find((profile) => profile.key === selectedProfileKey) ?? profiles?.items?.[0];
+  const latestC3Run = c3EntityRuns?.[0];
+  const latestBatch = batches?.[0];
+  const dryRunCreated = latestC3Run?.inserted_count ?? 0;
+  const dryRunUpdated = latestC3Run?.updated_count ?? latestBatch?.ok_count ?? 0;
+  const dryRunFailed = latestC3Run?.failed_count ?? latestBatch?.error_count ?? 0;
+  const dryRunSuggestions = (preflight?.stub_count ?? 0) + (preflight?.unresolved_ref_count ?? 0);
 
   return (
     <div className={styles.shell}>
@@ -103,6 +124,77 @@ export default function ImportReviewPage() {
           <a href="/import/upload" className={styles.uploadBtn}>Upload CSV →</a>
         </div>
       </div>
+
+      <section className={styles.profilePanel}>
+        <label className={styles.profileSelector}>
+          <span>Import profile</span>
+          <select
+            aria-label="Import profile"
+            value={selectedProfileKey}
+            onChange={(event) => setSelectedProfileKey(event.target.value)}
+          >
+            {(profiles?.items ?? []).map((profile) => (
+              <option key={profile.key} value={profile.key}>{profile.label}</option>
+            ))}
+          </select>
+        </label>
+        <div className={styles.profileDetail}>
+          <strong>{selectedProfile?.label ?? 'S3C service catalogue JSON'}</strong>
+          <span>{selectedProfile?.description ?? 'Native import/export profile.'}</span>
+          <div className={styles.profileFields}>
+            {(selectedProfile?.required_fields ?? ['service_id', 'title']).map((field) => (
+              <code key={field}>{field}</code>
+            ))}
+          </div>
+        </div>
+        <div className={styles.profileExports}>
+          <a href="/api/v1/export/governance-report" className={styles.uploadBtn}>Governance report</a>
+          <a href="/api/v1/export/capabilities/coverage" className={styles.uploadBtn}>Capability coverage</a>
+          <a href="/api/v1/export/backstage/catalog-info" className={styles.uploadBtn}>Backstage YAML</a>
+          <Link href="/help#data" className={styles.uploadBtn}>Integration mappings</Link>
+        </div>
+      </section>
+
+      <section className={styles.importWizard} aria-label="Import workspace">
+        <ol className={styles.importSteps}>
+          {['Profile', 'Upload', 'Dry run', 'Validate', 'Commit', 'Review'].map((step, index) => (
+            <li key={step} className={index <= 2 ? styles.stepDone : index === 3 ? styles.stepActive : styles.stepTodo}>
+              <span>{index + 1}</span>
+              <strong>{step}</strong>
+            </li>
+          ))}
+        </ol>
+
+        <div className={styles.dryRunGrid}>
+          <article className={`${styles.dryRunCard} ${styles.dryRunInfo}`}>
+            <span>New records</span>
+            <strong>{dryRunCreated}</strong>
+            <small>server-side dry run</small>
+          </article>
+          <article className={`${styles.dryRunCard} ${styles.dryRunSuccess}`}>
+            <span>Updated records</span>
+            <strong>{dryRunUpdated}</strong>
+            <small>safe to commit after validation</small>
+          </article>
+          <article className={`${styles.dryRunCard} ${dryRunFailed ? styles.dryRunDanger : styles.dryRunSuccess}`}>
+            <span>Failed rows</span>
+            <strong>{dryRunFailed}</strong>
+            <small>{dryRunFailed ? 'fix before commit' : 'no blocking errors'}</small>
+          </article>
+          <article className={`${styles.dryRunCard} ${dryRunSuggestions ? styles.dryRunWarning : styles.dryRunInfo}`}>
+            <span>Mapping suggestions</span>
+            <strong>{dryRunSuggestions}</strong>
+            <small>stubs and unresolved references</small>
+          </article>
+        </div>
+
+        <div className={styles.governanceImpact}>
+          <strong>Governance impact</strong>
+          <span>
+            Import profile {selectedProfile?.label ?? 'S3C service catalogue JSON'} can affect service ownership, C3 mapping, readiness and decision evidence. Commit is intentionally separated from dry run.
+          </span>
+        </div>
+      </section>
 
       {preflight && (
         <div className={styles.preflightBar}>

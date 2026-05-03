@@ -31,13 +31,7 @@ export default function CapabilityDetailPage() {
   const tabs = ['overview', 'requirements', 'services', 'overlap', 'documents', 'gaps'];
   return (
     <main className={styles.shell}>
-      <header className={styles.header}>
-        <div>
-          <p className={styles.lead}>Capabilities / {data.capability.parent?.title ?? 'Level 2'} / {data.capability.page_id}</p>
-          <h1 className={styles.title}>{data.capability.title}</h1>
-        </div>
-        <div className={styles.pills}>{['Spiral_4', 'Spiral_5', 'Spiral_6', 'Spiral_7'].map((code) => <Link key={code} href={`/capabilities/${slug}?spiral=${code}`} className={`${styles.pill} ${code === spiral ? styles.activePill : ''}`}>{code.replace('Spiral_', 'S')}</Link>)}</div>
-      </header>
+      <CapabilityDetailStudioHero data={data} slug={slug} spiral={spiral} />
       <section className={styles.kpiGrid}>
         <KpiCard label="Coverage" value={`${data.summary.coverage_percent}%`} hint={<ProgressBar value={data.summary.coverage_percent} tone={coverageTone(data.summary.coverage_percent)} />} />
         <KpiCard label="Requirements" value={data.summary.total_requirements} hint={`${data.summary.covered_count} covered`} />
@@ -63,6 +57,129 @@ export default function CapabilityDetailPage() {
         </aside>
       </section>
     </main>
+  );
+}
+
+function CapabilityDetailStudioHero({ data, slug, spiral }: { data: CoverageResponse; slug: string; spiral: string }) {
+  const coverage = data.summary.coverage_percent;
+  const tasks = [
+    {
+      tone: coverage >= 80 ? 'success' : coverage >= 50 ? 'warning' : 'danger',
+      title: 'Coverage confidence',
+      detail: `${data.summary.covered_count} of ${data.summary.total_requirements} requirements are backed by evidence for ${data.spiral}.`,
+      href: `/capabilities/${slug}?spiral=${spiral}&tab=requirements`,
+      label: 'Requirements',
+    },
+    {
+      tone: data.gaps.length ? 'warning' : 'success',
+      title: data.gaps.length ? 'Gaps need service evidence' : 'No open gaps',
+      detail: data.gaps.length ? `${data.gaps.length} uncovered requirements remain.` : 'Managers can treat this spiral as covered by current mappings.',
+      href: `/capabilities/${slug}?spiral=${spiral}&tab=gaps`,
+      label: 'Gaps',
+    },
+    {
+      tone: data.consolidation_candidates.length ? 'warning' : 'success',
+      title: data.consolidation_candidates.length ? 'Overlap needs owner review' : 'No material overlap',
+      detail: data.consolidation_candidates.length ? `${data.consolidation_candidates.length} service pairs may duplicate coverage.` : 'No consolidation candidates are detected.',
+      href: `/capabilities/${slug}?spiral=${spiral}&tab=overlap`,
+      label: 'Overlap',
+    },
+  ];
+  const flowNodes = [
+    { label: 'Requirements', value: String(data.summary.total_requirements), detail: `${data.summary.covered_count} covered` },
+    { label: 'Services', value: String(data.services.length), detail: data.services[0]?.title ?? 'No service evidence' },
+    { label: 'Gaps', value: String(data.gaps.length), detail: data.gaps[0]?.requirement.code ?? 'No open gap' },
+    { label: 'Documents', value: String(data.documents.length), detail: data.documents[0]?.title ?? 'Generated evidence' },
+  ];
+
+  return (
+    <section className={styles.studioHero} aria-label="Capability relationship detail">
+      <div className={styles.studioSummary}>
+        <div className={styles.studioTopline}>
+          <div>
+            <p className={styles.lead}>Capabilities / {data.capability.parent?.title ?? 'Level 2'} / {data.capability.page_id}</p>
+            <h1 className={styles.studioTitle}>{data.capability.title}</h1>
+          </div>
+          <div className={styles.pills}>{['Spiral_4', 'Spiral_5', 'Spiral_6', 'Spiral_7'].map((code) => <Link key={code} href={`/capabilities/${slug}?spiral=${code}`} className={`${styles.pill} ${code === spiral ? styles.activePill : ''}`}>{code.replace('Spiral_', 'S')}</Link>)}</div>
+        </div>
+        <p className={styles.studioLead}>
+          Manager view for {data.spiral}: see whether the capability is covered,
+          which services prove it, and what an admin must fix before the story is defensible.
+        </p>
+        <div className={styles.studioMetricGrid}>
+          <StudioMetric value={`${coverage}%`} label="Coverage" detail={`${data.summary.covered_count}/${data.summary.total_requirements} requirements`} tone={coverage >= 80 ? 'success' : coverage >= 50 ? 'warning' : 'danger'} />
+          <StudioMetric value={String(data.services.length)} label="Services" detail={data.services[0]?.title ?? 'No service evidence'} tone={data.services.length ? 'success' : 'warning'} />
+          <StudioMetric value={String(data.gaps.length)} label="Gaps" detail={data.gaps[0]?.requirement.title ?? 'No uncovered requirement'} tone={data.gaps.length ? 'warning' : 'success'} />
+        </div>
+      </div>
+
+      <div className={styles.studioQueue}>
+        <div className={styles.studioPanelHeader}>
+          <div>
+            <span className={styles.eyebrow}>Admin queue</span>
+            <h2>Make this capability explainable</h2>
+          </div>
+          <Badge variant={data.gaps.length ? 'warning' : 'success'}>{data.gaps.length ? 'Action' : 'Covered'}</Badge>
+        </div>
+        <div className={styles.studioTaskList}>
+          {tasks.map((task) => (
+            <Link key={task.title} href={task.href} className={styles.studioTask}>
+              <span className={`${styles.studioDot} ${styles[`studioDot_${task.tone}`]}`} />
+              <span>
+                <strong>{task.title}</strong>
+                <small>{task.detail}</small>
+              </span>
+              <em>{task.label}</em>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.capabilityMapPreview}>
+        <div className={styles.studioPanelHeader}>
+          <div>
+            <span className={styles.eyebrow}>Relationship map</span>
+            <h2>Coverage story</h2>
+          </div>
+          <Link href={`/spirals/${spiral}?tab=fulfillment`} className={styles.inlineLink}>Fulfillment plan</Link>
+        </div>
+        <div className={styles.capabilityFlow}>
+          {flowNodes.map((node) => (
+            <div key={node.label} className={styles.capabilityFlowNode}>
+              <span>{node.label}</span>
+              <strong>{node.value}</strong>
+              <small>{node.detail}</small>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.parentStack}>
+        <span className={styles.eyebrow}>Plain readout</span>
+        <div className={styles.parentRow}>
+          <span>Coverage</span>
+          <strong>{coverage >= 80 ? 'Strong' : coverage >= 50 ? 'Partial' : 'Weak'}</strong>
+        </div>
+        <div className={styles.parentRow}>
+          <span>Overlap candidates</span>
+          <strong>{data.consolidation_candidates.length}</strong>
+        </div>
+        <div className={styles.parentRow}>
+          <span>Evidence documents</span>
+          <strong>{data.documents.length}</strong>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudioMetric({ value, label, detail, tone }: { value: string; label: string; detail: string; tone: 'success' | 'warning' | 'danger' }) {
+  return (
+    <div className={`${styles.studioMetric} ${styles[`studioMetric_${tone}`]}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+      <small>{detail}</small>
+    </div>
   );
 }
 

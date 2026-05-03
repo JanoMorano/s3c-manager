@@ -14,6 +14,9 @@ jest.mock('../db/offerings.repo', () => ({}));
 jest.mock('../db/support-model.repo', () => ({}));
 jest.mock('../db/audience.repo', () => ({}));
 jest.mock('../db/operational-links.repo', () => ({}));
+jest.mock('../db/service-overview.repo', () => ({
+    getServiceOverview: jest.fn(),
+}));
 jest.mock('../db/audit.repo', () => ({}));
 jest.mock('../services/validation', () => ({
     validateCreate: () => [],
@@ -80,6 +83,31 @@ describe('services routes', () => {
         }));
     });
 
+    test('GET /services forwards portfolio governance filters', async () => {
+        const repo = require('../db/services.repo');
+        repo.findAllDirect.mockResolvedValue({
+            items: [],
+            total: 0,
+            page: 1,
+            limit: 50,
+        });
+
+        const router = require('../routes/services');
+        const app = express();
+        app.use('/api/v1/services', router);
+
+        const response = await request(app)
+            .get('/api/v1/services?portfolio_code=APP&lifecycle_stage_code=active&criticality_code=mission_critical&review_due=overdue');
+
+        expect(response.status).toBe(200);
+        expect(repo.findAllDirect).toHaveBeenCalledWith(expect.objectContaining({
+            portfolioCode: 'APP',
+            lifecycleStageCode: 'active',
+            criticalityCode: 'mission_critical',
+            reviewDue: 'overdue',
+        }));
+    });
+
     test('GET /services/export/csv returns filtered server-side csv', async () => {
         const repo = require('../db/services.repo');
         repo.findAllDirect.mockResolvedValue({
@@ -115,5 +143,40 @@ describe('services routes', () => {
         expect(lines[0]).toContain('"service_id","title","service_type"');
         expect(lines[1]).toContain('"SVC-1","\'=SUM(1,1) Service One","CF"');
         expect(lines[1]).not.toContain('\n');
+    });
+
+    test('GET /services/:id/overview returns Service 360 aggregate', async () => {
+        const overviewRepo = require('../db/service-overview.repo');
+        overviewRepo.getServiceOverview.mockResolvedValue({
+            service: { service_id: 'SVC-1', title: 'Service One' },
+            missing_actions: [],
+        });
+
+        const router = require('../routes/services');
+        const app = express();
+        app.use('/api/v1/services', router);
+
+        const response = await request(app).get('/api/v1/services/SVC-1/overview');
+
+        expect(response.status).toBe(200);
+        expect(response.body.item.service).toEqual(expect.objectContaining({
+            service_id: 'SVC-1',
+            title: 'Service One',
+        }));
+        expect(overviewRepo.getServiceOverview).toHaveBeenCalledWith('SVC-1');
+    });
+
+    test('GET /services/:id/overview returns 404 for unknown service', async () => {
+        const overviewRepo = require('../db/service-overview.repo');
+        overviewRepo.getServiceOverview.mockResolvedValue(null);
+
+        const router = require('../routes/services');
+        const app = express();
+        app.use('/api/v1/services', router);
+
+        const response = await request(app).get('/api/v1/services/MISSING/overview');
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({ error: 'Služba nenalezena' });
     });
 });

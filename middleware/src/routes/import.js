@@ -34,6 +34,8 @@ const relRepo = require('../db/relations.repo');
 const audit = require('../db/audit.repo');
 const { parseFlavours } = require('../parsers/flavourParser');
 const { parseSla }      = require('../parsers/slaParser');
+const { getProfile, listProfiles } = require('../utils/service-catalogue-profile');
+const { parseBackstageCatalogInfo } = require('../utils/backstage-catalog');
 
 const { requireAuth } = require('../middleware/auth');
 const { canEdit } = require('../middleware/rbac');
@@ -55,6 +57,10 @@ const importLimiter = rateLimit({
 const csvTextParser = require('express').text({ type: ['text/csv', 'text/plain'], limit: '5mb' });
 
 router.use(requireAuth);
+
+router.get('/profiles', async (req, res) => {
+  res.json({ items: listProfiles() });
+});
 
 /**
  * Safely parses a date and returns Date or null.
@@ -447,6 +453,52 @@ function _extractImportPayload(body) {
   return _mapThreeTableImportPayload(body);
 }
 
+function _profileKeyFromReq(req, fallback = 's3c-service-catalogue-json') {
+  return req.query.profile || req.query.profile_key || req.body?.profile || req.body?.profile_key || fallback;
+}
+
+function _extractProfileImportPayload(req, fallback = 's3c-service-catalogue-json') {
+  const profile = getProfile(_profileKeyFromReq(req, fallback), fallback);
+  if (profile.mode !== 'direct') {
+    const err = new Error(`Unsupported import profile: ${profile.key} is reference-only`);
+    err.status = 400;
+    throw err;
+  }
+
+  if (profile.key === 'backstage-catalog-info') {
+    const yaml = req.body?.catalog_info_yaml || req.body?.catalogInfoYaml || req.body?.yaml || req.body?.content;
+    if (!yaml) {
+      const err = new Error('catalog_info_yaml is required for backstage-catalog-info');
+      err.status = 400;
+      throw err;
+    }
+    return {
+      profile,
+      payload: parseBackstageCatalogInfo(yaml),
+    };
+  }
+
+  return {
+    profile,
+    payload: _extractImportPayload(req.body),
+  };
+}
+
+function _csvProfileFromReq(req) {
+  const profile = getProfile(_profileKeyFromReq(req, 's3c-service-catalogue-csv'), 's3c-service-catalogue-csv');
+  if (profile.key !== 's3c-service-catalogue-csv') {
+    const err = new Error(`Unsupported CSV import profile: ${profile.key}`);
+    err.status = 400;
+    throw err;
+  }
+  return profile;
+}
+
+function _missingRequiredFields(actualFields = [], requiredFields = []) {
+  const normalizedActual = new Set(actualFields.map((field) => String(field).trim().toLowerCase()).filter(Boolean));
+  return requiredFields.filter((field) => !normalizedActual.has(String(field).trim().toLowerCase()));
+}
+
 async function _ensureServiceStub(serviceId, username) {
   if (!serviceId) return;
   if (await repo.serviceIdExists(serviceId)) return;
@@ -525,7 +577,7 @@ function _parseCsvText(csvText, translate = (key) => key) {
     return obj;
   });
 
-  return { items, normalized };
+  return { items, normalized, headers };
 }
 
 function _buildImportDryRun(items, relations, taxonomyMaps, sourceKind = 'json-items', sourceName = 'api-import') {
@@ -963,19 +1015,20 @@ async function _upsertC3Mapping(serviceId, data) {
 // ─── POST /api/v1/import/services ─────────────────────────────────────────────
 router.post('/services/dry-run', canEdit, importLimiter, async (req, res, next) => {
   try {
-    const payload = _extractImportPayload(req.body);
+    const { profile, payload } = _extractProfileImportPayload(req);
     if (!payload || !Array.isArray(payload.items)) {
       return res.status(400).json({ error: tReq(req, 'import.errors.payload_required') });
     }
     const sourceName = req.body?.source_name || 'api-import.json';
     const sourceHashSha256 = _hashSha256(JSON.stringify(req.body ?? {}));
+    const sourceKind = profile.key === 's3c-service-catalogue-json' ? payload.source : profile.key;
 
     const taxonomyMaps = await _loadTaxonomyMaps();
     const report = _buildImportDryRun(
       payload.items,
       payload.relations,
       taxonomyMaps,
-      payload.source,
+      sourceKind,
       sourceName
     );
 
@@ -996,8 +1049,9 @@ router.post('/services/dry-run', canEdit, importLimiter, async (req, res, next) 
       summaryJson: _serializeSafe(report),
     });
 
-    res.json({ ok: true, report_id: reportId, source_hash_sha256: sourceHashSha256, ...report });
+    res.json({ ok: true, profile_key: profile.key, report_id: reportId, source_hash_sha256: sourceHashSha256, ...report });
   } catch (err) {
+    if (err.status || err.statusCode) return res.status(err.status || err.statusCode).json({ error: err.message });
     logger.error({ err }, 'Import dry-run failed');
     next(err);
   }
@@ -1051,7 +1105,7 @@ router.get('/stubs', async (req, res, next) => {
 
 router.post('/services', canEdit, importLimiter, async (req, res, next) => {
   try {
-    const payload = _extractImportPayload(req.body);
+    const { profile, payload } = _extractProfileImportPayload(req);
     if (!payload || !Array.isArray(payload.items)) {
       return res.status(400).json({ error: tReq(req, 'import.errors.payload_required') });
     }
@@ -1060,6 +1114,7 @@ router.post('/services', canEdit, importLimiter, async (req, res, next) => {
     const result = await _runImport(payload.items, req.user.username, {
       sourceName,
       sourceHashSha256,
+      sourceProfile: profile.key,
       translate: (key, params) => tReq(req, key, params),
     });
 
@@ -1084,8 +1139,26 @@ router.post('/services', canEdit, importLimiter, async (req, res, next) => {
       }
     }
 
-    return res.json({ ok: true, source: payload.source, source_hash_sha256: sourceHashSha256, ...result });
+    await audit.log({
+      tableName: 'ImportProfile',
+      recordId: result.batchId,
+      recordLabel: profile.key,
+      action: 'IMPORT',
+      newValues: {
+        profile_key: profile.key,
+        source: payload.source,
+        inserted: result.inserted,
+        updated: result.updated,
+        failed: result.failed,
+      },
+      performedBy: req.user?.username ?? 'system',
+      clientIp: req.ip,
+      userAgent: req.get?.('user-agent'),
+    });
+
+    return res.json({ ok: true, profile_key: profile.key, source: payload.source, source_hash_sha256: sourceHashSha256, ...result });
   } catch (err) {
+    if (err.status || err.statusCode) return res.status(err.status || err.statusCode).json({ error: err.message });
     logger.error({ err }, 'Service import failed');
     next(err);
   }
@@ -1099,11 +1172,12 @@ router.post('/services', canEdit, importLimiter, async (req, res, next) => {
 async function _runImport(items, username, options = {}) {
   const sourceName = options.sourceName || 'api-import';
   const sourceHashSha256 = options.sourceHashSha256 || null;
+  const sourceProfile = options.sourceProfile || 's3c-service-catalogue-json';
   const translate = typeof options.translate === 'function' ? options.translate : ((key) => key);
   const batchId = await importRepo.createBatch({
     filename: sourceName,
     importedBy: username,
-    parserVersion: '2.1',
+    parserVersion: `2.1:${sourceProfile}`,
     sourceHashSha256,
   });
 
@@ -1395,6 +1469,7 @@ async function _runImport(items, username, options = {}) {
     rowCount: items.length,
     notes: [
       sourceHashSha256 ? `source_hash_sha256=${sourceHashSha256}` : null,
+      sourceProfile ? `import_profile=${sourceProfile}` : null,
       errors.length > 0 ? errors.slice(0, 10).join('; ') : null,
     ].filter(Boolean).join(' | ') || null,
   });
@@ -1421,8 +1496,13 @@ function _parseCsvLine(line, delim) {
 // Content-Type: text/csv or text/plain; delimiter may be ; or ,.
 router.post('/services/csv/dry-run', canEdit, importLimiter, csvTextParser, async (req, res, next) => {
   try {
+    const profile = _csvProfileFromReq(req);
     const parsed = _parseCsvText(req.body, (key, params) => tReq(req, key, params));
     if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const missingFields = _missingRequiredFields(parsed.headers, profile.required_fields);
+    if (missingFields.length > 0) {
+      return res.status(400).json({ error: `Missing required fields for ${profile.key}: ${missingFields.join(', ')}` });
+    }
 
     const sourceName = req.query.source_name || 'csv-import.csv';
     const sourceHashSha256 = _hashSha256(parsed.normalized);
@@ -1431,7 +1511,7 @@ router.post('/services/csv/dry-run', canEdit, importLimiter, csvTextParser, asyn
       parsed.items,
       [],
       taxonomyMaps,
-      'csv',
+      profile.key,
       sourceName
     );
 
@@ -1452,8 +1532,9 @@ router.post('/services/csv/dry-run', canEdit, importLimiter, csvTextParser, asyn
       summaryJson: _serializeSafe(report),
     });
 
-    res.json({ ok: true, report_id: reportId, source_hash_sha256: sourceHashSha256, ...report });
+    res.json({ ok: true, profile_key: profile.key, report_id: reportId, source_hash_sha256: sourceHashSha256, ...report });
   } catch (err) {
+    if (err.status || err.statusCode) return res.status(err.status || err.statusCode).json({ error: err.message });
     logger.error({ err }, 'CSV dry-run failed');
     next(err);
   }
@@ -1461,17 +1542,40 @@ router.post('/services/csv/dry-run', canEdit, importLimiter, csvTextParser, asyn
 
 router.post('/services/csv', canEdit, importLimiter, csvTextParser, async (req, res, next) => {
   try {
+    const profile = _csvProfileFromReq(req);
     const parsed = _parseCsvText(req.body, (key, params) => tReq(req, key, params));
     if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const missingFields = _missingRequiredFields(parsed.headers, profile.required_fields);
+    if (missingFields.length > 0) {
+      return res.status(400).json({ error: `Missing required fields for ${profile.key}: ${missingFields.join(', ')}` });
+    }
 
     const sourceName = req.query.source_name || 'csv-import.csv';
     const sourceHashSha256 = _hashSha256(parsed.normalized);
     const result = await _runImport(parsed.items, req.user.username, {
       sourceName,
       sourceHashSha256,
+      sourceProfile: profile.key,
     });
-    res.json({ ok: true, source: 'csv', rowsParsed: parsed.items.length, source_hash_sha256: sourceHashSha256, ...result });
+    await audit.log({
+      tableName: 'ImportProfile',
+      recordId: result.batchId,
+      recordLabel: profile.key,
+      action: 'IMPORT',
+      newValues: {
+        profile_key: profile.key,
+        source: 'csv',
+        inserted: result.inserted,
+        updated: result.updated,
+        failed: result.failed,
+      },
+      performedBy: req.user?.username ?? 'system',
+      clientIp: req.ip,
+      userAgent: req.get?.('user-agent'),
+    });
+    res.json({ ok: true, profile_key: profile.key, source: 'csv', rowsParsed: parsed.items.length, source_hash_sha256: sourceHashSha256, ...result });
   } catch (err) {
+    if (err.status || err.statusCode) return res.status(err.status || err.statusCode).json({ error: err.message });
     logger.error({ err }, 'CSV import failed');
     next(err);
   }

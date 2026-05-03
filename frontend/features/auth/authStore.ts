@@ -11,6 +11,7 @@ export interface AuthSnapshot {
   role: string | null;
   auth_provider: string | null;
   preferred_lang: string | null;
+  preferred_persona: string | null;
   must_change_password: boolean;
 }
 
@@ -53,6 +54,7 @@ function snapshotFromUser(user: AuthUserShape): AuthSnapshot {
     role: typeof user.role === 'string' ? user.role : null,
     auth_provider: typeof user.auth_provider === 'string' ? user.auth_provider : null,
     preferred_lang: typeof user.preferred_lang === 'string' ? user.preferred_lang : null,
+    preferred_persona: typeof user.preferred_persona === 'string' ? user.preferred_persona : null,
     must_change_password: user.must_change_password === true,
   };
 }

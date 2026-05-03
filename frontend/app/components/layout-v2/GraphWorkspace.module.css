@@ -1,0 +1,127 @@
+.workspace {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  min-height: calc(100vh - 184px);
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.workspaceDetailClosed {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.toolbar,
+.detail {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow: auto;
+  background: var(--color-bg-surface);
+}
+
+.toolbar {
+  border-right: 1px solid var(--color-border-default);
+  padding: 14px;
+}
+
+.detail {
+  border-left: 1px solid var(--color-border-default);
+  padding: 14px;
+}
+
+.closeButton {
+  justify-self: end;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-3);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.toolbarHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.toolbarHeader strong,
+.toolbarHeader span {
+  display: block;
+}
+
+.toolbarHeader strong {
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.toolbarHeader span {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.detailToggle,
+.floatingDetailToggle {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-3);
+  font: var(--text-label-sm);
+  cursor: pointer;
+}
+
+.detailToggle[aria-expanded="true"] {
+  border-color: var(--color-action-primary);
+  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
+  color: var(--color-action-primary);
+}
+
+.canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--color-bg-workspace);
+}
+
+.canvas > * {
+  height: 100%;
+  min-height: 100%;
+}
+
+.floatingDetailToggle {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 5;
+  box-shadow: var(--shadow-low);
+}
+
+@media (max-width: 1120px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .detail {
+    border: 0;
+    border-bottom: 1px solid var(--color-border-default);
+  }
+
+  .canvas {
+    min-height: 480px;
+  }
+
+  .floatingDetailToggle {
+    position: static;
+    margin: var(--space-3);
+  }
+}

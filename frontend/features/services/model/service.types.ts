@@ -27,6 +27,11 @@ export interface ServiceListItem {
   vlastnik: string | null;
   manager: string | null;
   updated_at: string;
+  completeness_score?: number | null;
+  has_c3_mapping?: number | boolean | null;
+  c3_mapping_count?: number | null;
+  primary_capability_title?: string | null;
+  primary_capability_code?: string | null;
 }
 
 export interface ServiceListResponse {
@@ -34,6 +39,213 @@ export interface ServiceListResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface ServiceOverviewRole {
+  id: number | null;
+  role_code: string;
+  role_name?: string | null;
+  display_name: string;
+  email: string | null;
+  organization_name?: string | null;
+  valid_from?: string | null;
+  valid_to?: string | null;
+}
+
+export interface ServiceOverviewAction {
+  key: string;
+  title: string;
+  description: string;
+  href: string;
+  severity: 'blocker' | 'warning' | 'info' | string;
+}
+
+export interface ServiceCapabilityMapping {
+  mapping_id: number | null;
+  c3_uuid: string;
+  code: string | null;
+  title: string;
+  mapping_type_code: string | null;
+  mapping_type_name: string | null;
+  pace_code: string | null;
+  pace_name: string | null;
+  c3_level: number | string | null;
+  c3_domain: string | null;
+  is_primary: boolean;
+  status: string | null;
+}
+
+export interface ServiceOverview {
+  service: {
+    id: number;
+    service_id: string;
+    title: string;
+    summary: string | null;
+    service_type: string | null;
+    service_type_name: string | null;
+    service_status: string | null;
+    service_status_name: string | null;
+    updated_at: string | null;
+  };
+  portfolio: {
+    id: number | null;
+    code: string | null;
+    title: string | null;
+    group_code: string | null;
+    group_name: string | null;
+  };
+  lifecycle: {
+    stage_code: string | null;
+    state: string | null;
+    service_status: string | null;
+    service_status_name: string | null;
+    criticality_code: string | null;
+    requestable: boolean | null;
+    review_due_at: string | null;
+  };
+  owners: {
+    primary: ServiceOverviewRole | null;
+    steward: ServiceOverviewRole | null;
+    delivery_manager: ServiceOverviewRole | null;
+    reviewer: ServiceOverviewRole | null;
+    review_owner_user_id: number | string | null;
+    assignments: ServiceOverviewRole[];
+  };
+  offerings: {
+    count: number;
+    requestable_count: number;
+    primary: Partial<ServiceOffering> | null;
+    items: ServiceOffering[];
+  };
+  flavours: ServiceFlavour[];
+  audience_policies: ServiceAudiencePolicy[];
+  support_model: ServiceSupportModel[];
+  operational_links: ServiceOperationalLink[];
+  sla: {
+    availability_pct: number | null;
+    restoration_hours: number | null;
+    delivery_days: number | null;
+    restoration_text?: string | null;
+    delivery_text?: string | null;
+    record_count: number;
+    has_sla: boolean;
+    records: SlaRecord[];
+  };
+  pricing: {
+    has_prices: boolean;
+    requestable_without_price: boolean;
+    flavour_count: number;
+    active_flavour_count: number;
+    priced_flavour_count: number;
+    currency_codes: string[];
+    billing_period_codes: string[];
+    service_cost_raw?: string | null;
+    pricing_note_raw?: string | null;
+    flavours: ServiceFlavour[];
+  };
+  dependencies: {
+    total_count: number;
+    incoming_count: number;
+    outgoing_count: number;
+    mandatory_count: number;
+    unverified_count: number;
+    incoming: Array<ServiceRelation & { direction?: string }>;
+    outgoing: Array<ServiceRelation & { direction?: string }>;
+    items: ServiceRelation[];
+    raw_dependencies: unknown[];
+  };
+  capability_mappings: ServiceCapabilityMapping[];
+  c3_mappings: unknown[];
+  readiness: ServiceReadiness | null;
+  governance_risks: {
+    count: number;
+    high_count: number;
+    items: Array<Record<string, unknown>>;
+  };
+  audit_summary: {
+    count: number;
+    last_action: ServiceHistoryEntry | null;
+    recent: ServiceHistoryEntry[];
+  };
+  missing_actions: ServiceOverviewAction[];
+}
+
+export interface ServiceOverviewResponse {
+  item: ServiceOverview;
+}
+
+export interface ServicePortfolio {
+  id: number;
+  portfolio_code: string;
+  title: string;
+  description: string | null;
+  status_code: string;
+  owner_group_id: number | null;
+  owner_group_name: string | null;
+  service_count: number;
+  draft_service_count: number;
+  active_service_count: number;
+  retiring_service_count: number;
+  retired_service_count: number;
+  requestable_service_count: number;
+  overdue_review_count: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PortfolioListResponse {
+  items: ServicePortfolio[];
+  count: number;
+}
+
+export interface ImpactNode {
+  node_id: string;
+  node_kind: 'service' | 'c3_capability' | 'c3_application' | 'c3_data_object' | 'c3_tin' | 'c3_service' | string;
+  node_key: string | null;
+  node_uuid?: string | null;
+  title: string;
+  status?: string | null;
+  url?: string | null;
+  lifecycle_stage?: string | null;
+  criticality?: string | null;
+  depth: number;
+  path?: string[];
+  relation_path?: string[];
+}
+
+export interface ImpactEdge {
+  edge_id?: string;
+  edge_kind?: string;
+  source_node_id: string;
+  source_kind?: string;
+  source_key?: string | null;
+  source_title?: string | null;
+  target_node_id: string;
+  target_kind?: string;
+  target_key?: string | null;
+  target_title?: string | null;
+  relation_kind: string;
+  relation_label?: string | null;
+  impact_level?: string | null;
+  risk_hint?: string | null;
+}
+
+export interface ImpactPath {
+  node_id: string;
+  depth: number;
+  path: string[];
+  relation_path: string[];
+}
+
+export interface ImpactResponse {
+  root: ImpactNode;
+  direction: 'downstream' | 'upstream';
+  max_depth: number;
+  depth_reached: number;
+  total_impacted: number;
+  nodes: ImpactNode[];
+  edges: ImpactEdge[];
+  paths: ImpactPath[];
 }
 
 // ── Detail (GET /api/v1/services/:id) ────────────────────────────────────────
@@ -141,6 +353,8 @@ export interface ServiceDetail {
   consumer_value: string | null;
   requestable: boolean | null;
   lifecycle_state: string | null;
+  lifecycle_stage_code?: string | null;
+  criticality_code?: string | null;
   target_audience_summary: string | null;
   request_channel_type: string | null;
   request_channel_url: string | null;
@@ -374,6 +588,32 @@ export interface ServiceC3Mapping {
   c3_sync_status: string | null;
 }
 
+export interface ReadinessRuleException {
+  id?: number | null;
+  rule_key?: string;
+  reason: string | null;
+  expires_at: string | null;
+  approved_by?: string | null;
+  created_at?: string | null;
+  expired?: boolean;
+}
+
+export interface ReadinessRuleResult {
+  rule_key: string;
+  title: string;
+  description?: string | null;
+  title_text?: string | null;
+  why_text?: string | null;
+  howto_text?: string | null;
+  evidence_hint?: string | null;
+  status: 'passed' | 'failed' | 'exception' | 'disabled' | 'skipped' | string;
+  severity: 'P0' | 'P1' | 'P2' | 'info' | string;
+  blocking: boolean;
+  enabled?: boolean;
+  message: string;
+  exception: ReadinessRuleException | null;
+}
+
 export interface ServiceReadiness {
   service_pk: number;
   service_id: string;
@@ -398,6 +638,7 @@ export interface ServiceReadiness {
   is_publishable: boolean;
   blockers: string[];
   warnings: string[];
+  rules?: ReadinessRuleResult[];
 }
 
 // ── Graph (GET /api/v1/services/:id/graph) ───────────────────────────────────
@@ -647,7 +888,7 @@ export interface DashboardHeadlineResponse {
 
 export interface DashboardInboxItem {
   id: string;
-  type: 'service_review' | 'c3_mapping_gap' | 'pricing_gap';
+  type: 'service_review' | 'c3_mapping_gap' | 'pricing_gap' | string;
   title: string;
   description: string;
   href: string;
@@ -655,8 +896,128 @@ export interface DashboardInboxItem {
   created_at: string | null;
 }
 
+export interface DashboardOwnedService {
+  service_id: string;
+  title: string;
+  service_status: string | null;
+  lifecycle_stage_code: string | null;
+  completeness_score: number | null;
+  next_review_due_at: string | null;
+  updated_at: string | null;
+}
+
+export interface DashboardReviewAssignment {
+  id: number;
+  service_id: string;
+  service_title: string;
+  review_type: string;
+  status: string;
+  assigned_to: string | null;
+  due_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface DashboardDecisionItem {
+  id: number;
+  service_id: string;
+  service_title: string;
+  decision_type: string;
+  decision: string;
+  rationale: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+}
+
 export interface DashboardInboxResponse {
   items: DashboardInboxItem[];
+  my_owned_services?: DashboardOwnedService[];
+  my_reviews?: DashboardReviewAssignment[];
+  my_blockers?: DashboardInboxItem[];
+  my_decisions?: DashboardDecisionItem[];
+}
+
+export interface NotificationItem {
+  id: number;
+  notification_type: string;
+  severity: 'info' | 'success' | 'warning' | 'danger' | string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  created_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  dismissed_at: string | null;
+}
+
+export interface NotificationsResponse {
+  items: NotificationItem[];
+  unread_count: number;
+  total: number;
+  generated_at: string;
+}
+
+export interface ServiceRequestItem {
+  id: number;
+  request_number: string;
+  service_id: string | null;
+  service_pk: number | null;
+  service_title: string | null;
+  offering_id: number | null;
+  offering_title: string | null;
+  status: string;
+  request_channel_type: string | null;
+  request_channel_url: string | null;
+  external_ticket_ref: string | null;
+  external_ticket_url: string | null;
+  request_note: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ServiceRequestResponse {
+  item: ServiceRequestItem;
+  external_redirect_url: string | null;
+}
+
+export interface Service360Response {
+  service: ServiceDetail | null;
+  overview: ServiceOverview | null;
+  relationships: {
+    relations: ServiceRelation[];
+    c3_mappings: unknown[];
+    dependency_summary: ServiceOverview['dependencies'] | null;
+    capability_mappings: ServiceOverview['capability_mappings'];
+  };
+  readiness: ServiceReadiness | null;
+  lifecycle: ServiceOverview['lifecycle'];
+  generated_at: string;
+}
+
+export interface DashboardDecisionSummary {
+  total_services: number;
+  services_ready_for_publish: number;
+  services_blocked_by_readiness: number;
+  overdue_reviews: number;
+  uncovered_capabilities: number;
+  over_covered_capabilities: number;
+  active_governance_reviews: number;
+  recent_decisions: number;
+}
+
+export interface DashboardDecisionSummaryResponse {
+  generated_at?: string;
+  summary: DashboardDecisionSummary;
+  links: {
+    governance_health: string;
+    readiness_queue: string;
+    capability_coverage: string;
+    review_deadlines: string;
+    owner_load: string;
+    recent_decisions: string;
+  };
 }
 
 export interface OperationsResponse {

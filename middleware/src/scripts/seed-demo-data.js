@@ -7,11 +7,13 @@ async function main() {
     await initDb();
     try {
         const pool = getPlatformPool();
-        const result = await seedDemoData(pool);
+        const result = await seedDemoData(pool, {
+            locale: process.env.DEMO_SEED_LOCALE || process.env.APP_DEFAULT_LOCALE,
+        });
         if (!result?.ok) {
             throw new Error(result?.error || 'Demo data seed failed without details.');
         }
-        console.log('✅ Demo test seeds applied successfully.');
+        console.log('✅ Demo governance cockpit seeds applied successfully.');
     } finally {
         await closePools().catch(() => {});
     }
