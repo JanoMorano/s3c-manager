@@ -33,6 +33,7 @@ export default function ImpactAnalysisPage() {
   const [selectedServiceId, setSelectedServiceId] = useState('');
   const [direction, setDirection] = useState<'downstream' | 'upstream'>('downstream');
   const [depth, setDepth] = useState(3);
+  const [hasRun, setHasRun] = useState(false);
   const { data: servicesData, isLoading: servicesLoading } = useServices({ limit: 100 });
   const serviceOptions = servicesData?.items ?? [];
   const effectiveServiceId = selectedServiceId || serviceOptions[0]?.service_id || '';
@@ -45,8 +46,11 @@ export default function ImpactAnalysisPage() {
   });
   const grouped = useMemo(() => groupNodes(impact.data?.nodes ?? []), [impact.data?.nodes]);
   const impactedNodes = Math.max(0, (impact.data?.nodes.length ?? 0) - 1);
+  const selectedService = serviceOptions.find((service) => service.service_id === effectiveServiceId);
+  const shouldShowOutput = hasRun || Boolean(impact.data);
 
   function runAnalysis() {
+    setHasRun(true);
     void impact.mutate();
   }
 
@@ -72,7 +76,10 @@ export default function ImpactAnalysisPage() {
           <select
             aria-label="Root service"
             value={effectiveServiceId}
-            onChange={(event) => setSelectedServiceId(event.target.value)}
+            onChange={(event) => {
+              setSelectedServiceId(event.target.value);
+              setHasRun(false);
+            }}
             disabled={servicesLoading || serviceOptions.length === 0}
           >
             {serviceOptions.map((service) => (
@@ -87,7 +94,10 @@ export default function ImpactAnalysisPage() {
           <select
             aria-label="Direction"
             value={direction}
-            onChange={(event) => setDirection(event.target.value as 'downstream' | 'upstream')}
+            onChange={(event) => {
+              setDirection(event.target.value as 'downstream' | 'upstream');
+              setHasRun(false);
+            }}
           >
             <option value="downstream">Downstream</option>
             <option value="upstream">Upstream</option>
@@ -98,7 +108,10 @@ export default function ImpactAnalysisPage() {
           <select
             aria-label="Depth"
             value={depth}
-            onChange={(event) => setDepth(Number(event.target.value))}
+            onChange={(event) => {
+              setDepth(Number(event.target.value));
+              setHasRun(false);
+            }}
           >
             {[1, 2, 3, 4, 5].map((value) => (
               <option key={value} value={value}>{value}</option>
@@ -110,13 +123,20 @@ export default function ImpactAnalysisPage() {
         </button>
       </section>
 
-      {impact.isLoading && <div className={styles.state}>Loading impact analysis…</div>}
+      {!shouldShowOutput && (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>Analysis output</h2>
+          <p className={styles.outputLead}>Vyber root službu a spusť analýzu. Výstup se zobrazí jako grafický dopad a textový rozhodovací seznam.</p>
+        </section>
+      )}
+
+      {shouldShowOutput && impact.isLoading && <div className={styles.state}>Loading impact analysis…</div>}
       {impact.error && <div className={styles.stateError}>Impact analysis unavailable.</div>}
-      {!impact.isLoading && !impact.error && !impact.data && (
+      {shouldShowOutput && !impact.isLoading && !impact.error && !impact.data && (
         <EmptyState title="No service selected" />
       )}
 
-      {impact.data && (
+      {shouldShowOutput && impact.data && (
         <>
           <section className={styles.kpiGrid}>
             <KpiCard label="Impacted nodes" value={impactedNodes} hint={`${impact.data.direction} · depth ${impact.data.depth_reached}`} />
@@ -128,6 +148,27 @@ export default function ImpactAnalysisPage() {
             <ImpactColumn title="Services" nodes={grouped.services} />
             <ImpactColumn title="Capabilities" nodes={grouped.capabilities} />
             <ImpactColumn title="C3 evidence" nodes={grouped.entities} />
+          </section>
+
+          <section className={styles.impactDual}>
+            <article className={styles.impactGraphPanel}>
+              <div>
+                <h2 className={styles.panelTitle}>Impact graph</h2>
+                <p className={styles.outputLead}>{selectedService?.title ?? effectiveServiceId} jako root a první vrstvy dopadu.</p>
+              </div>
+              <ImpactMiniGraph rootTitle={selectedService?.title ?? effectiveServiceId} nodes={impact.data.nodes.slice(1, 7)} />
+            </article>
+
+            <article className={styles.impactTextPanel}>
+              <h2 className={styles.panelTitle}>Management impact summary</h2>
+              <div className={styles.impactList}>
+                <ImpactSummaryItem title="Direct impact" value={`${grouped.services.length} services, ${grouped.capabilities.length} capabilities`} />
+                <ImpactSummaryItem title={`Downstream depth ${impact.data.depth_reached}`} value={`${impact.data.edges.length} traversed relationships`} />
+                <ImpactSummaryItem title="Affected capabilities / C3" value={`${grouped.capabilities.length + grouped.entities.length} architecture objects`} />
+                <ImpactSummaryItem title="Services needing review" value={`${Math.max(0, grouped.services.length - 1)} service owner checks`} />
+                <ImpactSummaryItem title="Recommended actions" value="Open service detail, review dependencies, record decision if risk is accepted." />
+              </div>
+            </article>
           </section>
 
           <section className={styles.panel}>
@@ -148,6 +189,44 @@ export default function ImpactAnalysisPage() {
         </>
       )}
     </main>
+  );
+}
+
+function ImpactMiniGraph({ rootTitle, nodes }: { rootTitle: string; nodes: ImpactNode[] }) {
+  const visibleNodes = nodes.length ? nodes : [
+    { node_id: 'placeholder-review', node_kind: 'service', node_key: null, title: 'No downstream dependency found', depth: 1 },
+  ];
+  return (
+    <svg className={styles.impactGraphSvg} viewBox="0 0 680 260" role="img" aria-label="Impact graph preview">
+      <rect x="24" y="96" width="180" height="68" rx="8" className={styles.graphRoot} />
+      <text x="42" y="124" className={styles.graphNodeLabel}>Root service</text>
+      <text x="42" y="148" className={styles.graphNodeTitle}>{shortGraphTitle(rootTitle, 18)}</text>
+      {visibleNodes.slice(0, 6).map((node, index) => {
+        const x = 300 + (index % 2) * 190;
+        const y = 18 + Math.floor(index / 2) * 80;
+        return (
+          <g key={node.node_id}>
+            <path d={`M204 130 C248 130 250 ${y + 34} ${x} ${y + 34}`} className={styles.graphEdge} />
+            <rect x={x} y={y} width="154" height="58" rx="8" className={styles.graphNode} />
+            <text x={x + 14} y={y + 23} className={styles.graphNodeLabel}>{kindLabel(node.node_kind)}</text>
+            <text x={x + 14} y={y + 44} className={styles.graphNodeTitle}>{shortGraphTitle(node.title, 10)}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function shortGraphTitle(value: string, length: number) {
+  return value.length > length ? `${value.slice(0, length)}...` : value;
+}
+
+function ImpactSummaryItem({ title, value }: { title: string; value: string }) {
+  return (
+    <div className={styles.impactSummaryItem}>
+      <span>{title}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

@@ -119,6 +119,8 @@
   "administration.users.role.editor.access": "Read/write access plus Content Admin",
   "administration.users.role.admin.label": "Admin - ALL",
   "administration.users.role.admin.access": "Full access plus Administration",
+  "administration.users.working_view_label": "Working view",
+  "administration.users.role_persona_guide": "Role controls permissions, working view controls navigation",
   "administration.users.new_button": "New user",
   "administration.users.edit_title": "Editing user #{{id}}",
   "administration.users.new_title": "New user",

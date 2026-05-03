@@ -10,7 +10,7 @@
 
 .studioHero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .44fr);
   gap: var(--space-4);
   padding: var(--space-5);
   background: color-mix(in srgb, var(--color-bg-surface) 94%, var(--color-action-primary) 6%);
@@ -28,6 +28,7 @@
 }
 
 .studioSummary {
+  grid-column: 1 / -1;
   padding: var(--space-5);
 }
 
@@ -35,6 +36,16 @@
 .relationshipPanel,
 .studioFactsPanel {
   padding: var(--space-4);
+}
+
+.studioTaskPanel,
+.studioFactsPanel {
+  grid-column: 2;
+}
+
+.relationshipPanel {
+  grid-column: 1;
+  grid-row: 2 / span 2;
 }
 
 .studioTopline,
@@ -69,6 +80,125 @@
   color: var(--color-text-secondary);
   font: var(--text-body-md);
   line-height: 1.65;
+}
+
+.lifecycleBar {
+  display: flex;
+  gap: 4px;
+  margin: var(--space-4) 0;
+}
+
+.lifecycleHint {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.lifecycleStep {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.lifecycleStepDone {
+  background: color-mix(in srgb, var(--color-success) 12%, var(--color-bg-surface));
+  color: var(--color-success);
+}
+
+.lifecycleStepNow {
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+}
+
+.lifecycleStepNow::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--color-info);
+}
+
+.lifecycleStepDeprecated {
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg-surface));
+  color: var(--color-warning);
+}
+
+.lifecycleStepRetired {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.questionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.questionCard {
+  display: flex;
+  min-height: 150px;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+
+.questionCard h2 {
+  margin: 0 0 2px;
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.questionRows {
+  display: grid;
+}
+
+.questionRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 5px 0;
+  border-top: 1px dashed var(--color-border-default);
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.questionRow:first-child {
+  border-top: 0;
+}
+
+.questionRow span {
+  color: var(--color-text-muted);
+}
+
+.questionRow strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.questionLink {
+  margin-top: auto;
+  color: var(--color-info);
+  font: var(--text-label-md);
+  text-decoration: none;
 }
 
 .studioActions {
@@ -502,6 +632,43 @@
   text-align: right;
 }
 
+/* ── SLA hero strip ──────────────────────────────────────────────────────── */
+.heroSlaStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.heroSlaChip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.heroSlaChip_success { border-left-color: var(--color-success); }
+.heroSlaChip_warning { border-left-color: var(--color-warning); }
+.heroSlaChip_muted   { border-left-color: var(--color-border-default); }
+
+.heroSlaChip strong {
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+}
+
+.heroSlaChip small {
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ── Summary strip ────────────────���──────────────────────────────────────── */
 .summaryStrip {
   display: flex;
@@ -573,6 +740,22 @@
   color: var(--color-text-primary);
   font-weight: 500;
   border-bottom-color: var(--color-action-primary);
+}
+
+.viewTabTechnical {
+  color: var(--color-text-muted);
+}
+
+.techBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
 }
 
 /* Hide the old card-style hint text — tabs are just labels now */
@@ -877,6 +1060,64 @@
 .readinessRule_exception { color: var(--color-info); border-color: color-mix(in srgb, var(--color-info) 42%, var(--color-border-default)); }
 .readinessRule_disabled,
 .readinessRule_skipped { color: var(--color-text-muted); }
+
+.readinessExplainDetails {
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+.readinessExplainDetails summary {
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.readinessExplainDetails .readinessExplainGrid {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.readinessExplainGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.readinessExplainCard {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.readinessExplainCard strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.readinessExplainCard span,
+.readinessExplainCard small {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.45;
+}
+
+.readinessExplainCard code {
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
+  font: var(--text-mono-sm);
+  overflow-wrap: anywhere;
+}
 
 .service360Workflow {
   margin-top: var(--space-4);
@@ -1439,6 +1680,13 @@
 /* ── Responsive ───────────────────────────���─────────────────────────��────── */
 @media (max-width: 1024px) {
   .studioHero       { grid-template-columns: 1fr; }
+  .studioSummary,
+  .studioTaskPanel,
+  .relationshipPanel,
+  .studioFactsPanel { grid-column: auto; grid-row: auto; }
+  .questionGrid     { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lifecycleBar     { flex-wrap: wrap; }
+  .lifecycleStep    { flex: 1 1 30%; }
   .relationshipMap  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .relationshipMap::before { display: none; }
   .mapNodePrimary,
@@ -1465,8 +1713,10 @@
   .studioTopline,
   .studioPanelHeader { flex-direction: column; align-items: stretch; }
   .studioMetricGrid,
+  .questionGrid,
   .relationshipMap,
   .summaryMiniRow { grid-template-columns: 1fr; }
+  .lifecycleStep { flex-basis: 100%; }
   .studioTask { grid-template-columns: 18px minmax(0, 1fr); }
   .studioTask em { grid-column: 2; }
   .header, .hero, .summaryStrip, .viewNav, .body { padding-left: var(--space-4); padding-right: var(--space-4); }

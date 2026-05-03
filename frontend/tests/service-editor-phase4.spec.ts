@@ -97,9 +97,9 @@ test('phase 4 editor manages request model, offerings, support, audience and lin
   await page.locator('#catalogue-access').locator('label', { hasText: /approval required/i }).locator('input[type="checkbox"]').check();
   await Promise.all([
     waitForApiOk(page, `/api/v1/services/${serviceId}`, 'PUT'),
-    page.getByRole('button', { name: /save changes/i }).click(),
+    page.getByRole('button', { name: /save draft/i }).click(),
   ]);
-  await expect(page.getByText(/saved/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/saved|uloženo/i)).toBeVisible({ timeout: 15_000 });
 
   const offeringsSection = page.locator('#offerings');
   await offeringsSection.getByRole('button', { name: /\+ add service offering/i }).click();
@@ -155,13 +155,13 @@ test('phase 4 editor manages request model, offerings, support, audience and lin
   await expect(linksSection.getByText(`Knowledge Base ${suffix}`, { exact: false })).toBeVisible({ timeout: 15_000 });
 
   await page.goto(`/services/${serviceId}`);
-  await expect(page.getByText('Business view')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('heading', { name: `Business-first summary ${suffix}` })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: serviceTitle })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(`Business-first summary ${suffix}`, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('button', { name: /offerings/i }).click();
   await expect(page.getByRole('heading', { name: offeringTitle })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: /request & support/i }).click();
+  await page.getByRole('button', { name: /^support$/i }).click();
   await expect(page.locator('#support').getByText('Playwright Support', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Internal engineering teams', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 

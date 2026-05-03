@@ -27,6 +27,11 @@ export interface ServiceListItem {
   vlastnik: string | null;
   manager: string | null;
   updated_at: string;
+  completeness_score?: number | null;
+  has_c3_mapping?: number | boolean | null;
+  c3_mapping_count?: number | null;
+  primary_capability_title?: string | null;
+  primary_capability_code?: string | null;
 }
 
 export interface ServiceListResponse {
@@ -348,6 +353,8 @@ export interface ServiceDetail {
   consumer_value: string | null;
   requestable: boolean | null;
   lifecycle_state: string | null;
+  lifecycle_stage_code?: string | null;
+  criticality_code?: string | null;
   target_audience_summary: string | null;
   request_channel_type: string | null;
   request_channel_url: string | null;
@@ -595,6 +602,10 @@ export interface ReadinessRuleResult {
   rule_key: string;
   title: string;
   description?: string | null;
+  title_text?: string | null;
+  why_text?: string | null;
+  howto_text?: string | null;
+  evidence_hint?: string | null;
   status: 'passed' | 'failed' | 'exception' | 'disabled' | 'skipped' | string;
   severity: 'P0' | 'P1' | 'P2' | 'info' | string;
   blocking: boolean;
@@ -877,7 +888,7 @@ export interface DashboardHeadlineResponse {
 
 export interface DashboardInboxItem {
   id: string;
-  type: 'service_review' | 'c3_mapping_gap' | 'pricing_gap';
+  type: 'service_review' | 'c3_mapping_gap' | 'pricing_gap' | string;
   title: string;
   description: string;
   href: string;
@@ -885,8 +896,104 @@ export interface DashboardInboxItem {
   created_at: string | null;
 }
 
+export interface DashboardOwnedService {
+  service_id: string;
+  title: string;
+  service_status: string | null;
+  lifecycle_stage_code: string | null;
+  completeness_score: number | null;
+  next_review_due_at: string | null;
+  updated_at: string | null;
+}
+
+export interface DashboardReviewAssignment {
+  id: number;
+  service_id: string;
+  service_title: string;
+  review_type: string;
+  status: string;
+  assigned_to: string | null;
+  due_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface DashboardDecisionItem {
+  id: number;
+  service_id: string;
+  service_title: string;
+  decision_type: string;
+  decision: string;
+  rationale: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+}
+
 export interface DashboardInboxResponse {
   items: DashboardInboxItem[];
+  my_owned_services?: DashboardOwnedService[];
+  my_reviews?: DashboardReviewAssignment[];
+  my_blockers?: DashboardInboxItem[];
+  my_decisions?: DashboardDecisionItem[];
+}
+
+export interface NotificationItem {
+  id: number;
+  notification_type: string;
+  severity: 'info' | 'success' | 'warning' | 'danger' | string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  created_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  dismissed_at: string | null;
+}
+
+export interface NotificationsResponse {
+  items: NotificationItem[];
+  unread_count: number;
+  total: number;
+  generated_at: string;
+}
+
+export interface ServiceRequestItem {
+  id: number;
+  request_number: string;
+  service_id: string | null;
+  service_pk: number | null;
+  service_title: string | null;
+  offering_id: number | null;
+  offering_title: string | null;
+  status: string;
+  request_channel_type: string | null;
+  request_channel_url: string | null;
+  external_ticket_ref: string | null;
+  external_ticket_url: string | null;
+  request_note: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ServiceRequestResponse {
+  item: ServiceRequestItem;
+  external_redirect_url: string | null;
+}
+
+export interface Service360Response {
+  service: ServiceDetail | null;
+  overview: ServiceOverview | null;
+  relationships: {
+    relations: ServiceRelation[];
+    c3_mappings: unknown[];
+    dependency_summary: ServiceOverview['dependencies'] | null;
+    capability_mappings: ServiceOverview['capability_mappings'];
+  };
+  readiness: ServiceReadiness | null;
+  lifecycle: ServiceOverview['lifecycle'];
+  generated_at: string;
 }
 
 export interface DashboardDecisionSummary {

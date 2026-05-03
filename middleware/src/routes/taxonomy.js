@@ -1427,7 +1427,7 @@ router.get('/c3/fmn-air-c2/coverage', requireAuth, async (req, res, next) => {
 
 router.get('/c3/dashboard', requireAuth, async (req, res, next) => {
     try {
-        const cacheKey = 'c3_dashboard_aggregate:v2';
+        const cacheKey = 'c3_dashboard_aggregate:v3';
         const cached = cache.get(cacheKey);
         if (cached) return res.json(cached);
 
@@ -1635,6 +1635,66 @@ router.get('/c3/dashboard', requireAuth, async (req, res, next) => {
             `),
         ]);
 
+        let boardLaneResult = [];
+        try {
+            boardLaneResult = await selectRows(getPool(), `
+                WITH counts AS (
+                    SELECT board_state, COUNT(*)::INT AS value
+                    FROM data.v_c3_board_lane
+                    GROUP BY board_state
+                ),
+                cards AS (
+                    SELECT
+                        board_state,
+                        uuid,
+                        title,
+                        item_type,
+                        validation_status,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY board_state
+                            ORDER BY updated_at DESC NULLS LAST, title ASC NULLS LAST, uuid ASC
+                        ) AS rn
+                    FROM data.v_c3_board_lane
+                )
+                SELECT
+                    state.board_state,
+                    COALESCE(counts.value, 0)::INT AS value,
+                    COALESCE(
+                        JSONB_AGG(
+                            JSONB_BUILD_OBJECT(
+                                'uuid', cards.uuid,
+                                'title', cards.title,
+                                'item_type', cards.item_type,
+                                'validation_status', cards.validation_status
+                            )
+                            ORDER BY cards.rn
+                        ) FILTER (WHERE cards.uuid IS NOT NULL),
+                        '[]'::jsonb
+                    ) AS cards
+                FROM (
+                    VALUES
+                        ('imported'::text),
+                        ('validated'::text),
+                        ('mapped'::text),
+                        ('used'::text),
+                        ('reviewed'::text)
+                ) AS state(board_state)
+                LEFT JOIN counts ON counts.board_state = state.board_state
+                LEFT JOIN cards ON cards.board_state = state.board_state AND cards.rn <= 4
+                GROUP BY state.board_state, counts.value
+                ORDER BY CASE state.board_state
+                    WHEN 'imported' THEN 1
+                    WHEN 'validated' THEN 2
+                    WHEN 'mapped' THEN 3
+                    WHEN 'used' THEN 4
+                    WHEN 'reviewed' THEN 5
+                    ELSE 99
+                END
+            `);
+        } catch {
+            boardLaneResult = [];
+        }
+
         const payload = {
             summary: summaryResult ?? null,
             by_status: byStatusResult,
@@ -1659,6 +1719,7 @@ router.get('/c3/dashboard', requireAuth, async (req, res, next) => {
             },
             link_health: linkHealthResult,
             review_validation: reviewValidationResult,
+            board_lanes: boardLaneResult,
         };
         cache.set(cacheKey, payload, config.cache.c3DashboardTtl);
         res.json(payload);

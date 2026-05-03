@@ -1,0 +1,32 @@
+.wrap {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-code-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-code-bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-code-border);
+  color: var(--color-code-muted);
+  font: var(--text-label-sm);
+}
+
+.header strong {
+  color: var(--color-sidebar-text);
+  font: var(--text-label-md);
+}
+
+.hiddenTextarea {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

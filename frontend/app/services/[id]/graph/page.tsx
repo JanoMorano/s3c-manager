@@ -28,6 +28,7 @@ import { applyLineStyleMode, resolveServiceGraphEdgeVisual, type GraphEdgeType, 
 import { useServiceGraph, useServices } from '@/features/services/hooks/useServices';
 import type { ServiceGraphV2Response, ServiceGraphV2Node, ServiceGraphV2Edge } from '@/features/services/model/service.types';
 import { StatusPill } from '@/features/services/components/StatusPill';
+import { GraphWorkspace } from '@/app/components/layout-v2';
 import shellStyles from '../../../graph/overview.module.css';
 import localStyles from './graph.module.css';
 import { compareText } from '@/app/i18n/format';
@@ -306,8 +307,11 @@ export default function GraphPage({ params }: Props) {
   const typedSelectedEdge = selectedEdge as (ServiceGraphV2Edge & { mapping_type_code?: string | null }) | null;
 
   return (
-    <div className={shellStyles.shell}>
-      <aside className={shellStyles.rail}>
+    <GraphWorkspace
+      title="Service graph"
+      purpose="Vazby služby, offeringů, C3 prvků a readiness kontext v jedné pracovní ploše."
+      toolbar={(
+        <>
         <FilterGroup label="Hloubka">
           <div className={shellStyles.meta}>
             `1` = jen přímé vazby služby.
@@ -404,9 +408,10 @@ export default function GraphPage({ params }: Props) {
             Export do PDF
           </button>
         </FilterGroup>
-      </aside>
-
-      <main className={shellStyles.main}>
+        </>
+      )}
+      canvas={(
+        <main className={shellStyles.main}>
         <div className={shellStyles.header}>
           <div className={shellStyles.title}>Service Graph</div>
           <div className={shellStyles.meta}>
@@ -455,78 +460,80 @@ export default function GraphPage({ params }: Props) {
               <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'} />
             </ReactFlow>
           </div>
-
-          <aside className={shellStyles.panel}>
-            <div className={shellStyles.panelHeader}>
-              <div className={shellStyles.panelTitle}>Detail</div>
-            </div>
-            <div className={shellStyles.panelBody}>
-              {selectedNode ? (
-                <>
-                  <PanelRow label="Typ">{NODE_KIND_LABEL[selectedNode.node_kind]}</PanelRow>
-                  <PanelRow label="Kód">{selectedNode.code ?? '—'}</PanelRow>
-                  <PanelRow label="Název">{selectedNode.label}</PanelRow>
-                  {selectedNode.status && <PanelRow label="Status">{selectedNode.status}</PanelRow>}
-                  {selectedNode.service_type && <PanelRow label="Service type">{selectedNode.service_type}</PanelRow>}
-                  {selectedNode.portfolio_group && <PanelRow label="Portfolio">{selectedNode.portfolio_group}</PanelRow>}
-                  {selectedNode.item_type && <PanelRow label="Item type">{selectedNode.item_type}</PanelRow>}
-                  {selectedNode.completeness_status && <PanelRow label="Completeness">{selectedNode.completeness_status}</PanelRow>}
-                  {selectedNodeHref ? (
-                    <Link href={selectedNodeHref} className={shellStyles.panelLink}>
-                      Otevřít detail →
-                    </Link>
-                  ) : null}
-                </>
-              ) : null}
-
-              {typedSelectedEdge ? (
-                <>
-                  <PanelRow label="Edge">{typedSelectedEdge.edge_kind}</PanelRow>
-                  <PanelRow label="Typ">{typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}</PanelRow>
-                  {typedSelectedEdge.relation_label ? <PanelRow label="Label">{typedSelectedEdge.relation_label}</PanelRow> : null}
-                  {typedSelectedEdge.pace_code ? <PanelRow label="PACE">{typedSelectedEdge.pace_code}</PanelRow> : null}
-                  {typedSelectedEdge.impact_level ? <PanelRow label="Impact">{typedSelectedEdge.impact_level}</PanelRow> : null}
-                  {typedSelectedEdge.is_primary != null ? <PanelRow label="Primary">{typedSelectedEdge.is_primary ? 'Ano' : 'Ne'}</PanelRow> : null}
-                  {typedSelectedEdge.is_mandatory != null ? <PanelRow label="Mandatory">{typedSelectedEdge.is_mandatory ? 'Ano' : 'Ne'}</PanelRow> : null}
-                  {typedSelectedEdge.relation_note ? <PanelRow label="Poznámka">{typedSelectedEdge.relation_note}</PanelRow> : null}
-                </>
-              ) : null}
-
-              {!selectedNode && !typedSelectedEdge && graphData.readiness ? (
-                <>
-                  <div className={shellStyles.meta}>
-                    Klikni na uzel nebo hranu. Dvojklik na uzel otevře detail služby nebo C3 entity.
-                  </div>
-                  <PanelRow label="Primary C3">
-                    {graphData.readiness.primary_c3_code ?? '—'} {graphData.readiness.primary_c3_title ?? ''}
-                  </PanelRow>
-                  <PanelRow label="Capability">
-                    {graphData.readiness.primary_c3_completeness_status ?? '—'}
-                  </PanelRow>
-                  <PanelRow label="Flavours">{graphData.readiness.active_flavour_count}</PanelRow>
-                  {graphData.readiness.blockers.length > 0 ? (
-                    <div className={localStyles.edgePanelBlock}>
-                      <strong>Blockers</strong>
-                      <ul className={localStyles.edgePanelList}>
-                        {graphData.readiness.blockers.map((item) => <li key={item}>{item}</li>)}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {graphData.readiness.warnings.length > 0 ? (
-                    <div className={localStyles.edgePanelBlock}>
-                      <strong>Warnings</strong>
-                      <ul className={localStyles.edgePanelList}>
-                        {graphData.readiness.warnings.map((item) => <li key={item}>{item}</li>)}
-                      </ul>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-            </div>
-          </aside>
         </div>
       </main>
-    </div>
+      )}
+      detailPanelContent={(
+        <>
+          <div className={shellStyles.panelHeader}>
+            <div className={shellStyles.panelTitle}>Detail</div>
+          </div>
+          <div className={shellStyles.panelBody}>
+            {selectedNode ? (
+              <>
+                <PanelRow label="Typ">{NODE_KIND_LABEL[selectedNode.node_kind]}</PanelRow>
+                <PanelRow label="Kód">{selectedNode.code ?? '—'}</PanelRow>
+                <PanelRow label="Název">{selectedNode.label}</PanelRow>
+                {selectedNode.status && <PanelRow label="Status">{selectedNode.status}</PanelRow>}
+                {selectedNode.service_type && <PanelRow label="Service type">{selectedNode.service_type}</PanelRow>}
+                {selectedNode.portfolio_group && <PanelRow label="Portfolio">{selectedNode.portfolio_group}</PanelRow>}
+                {selectedNode.item_type && <PanelRow label="Item type">{selectedNode.item_type}</PanelRow>}
+                {selectedNode.completeness_status && <PanelRow label="Completeness">{selectedNode.completeness_status}</PanelRow>}
+                {selectedNodeHref ? (
+                  <Link href={selectedNodeHref} className={shellStyles.panelLink}>
+                    Otevřít detail →
+                  </Link>
+                ) : null}
+              </>
+            ) : null}
+
+            {typedSelectedEdge ? (
+              <>
+                <PanelRow label="Edge">{typedSelectedEdge.edge_kind}</PanelRow>
+                <PanelRow label="Typ">{typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}</PanelRow>
+                {typedSelectedEdge.relation_label ? <PanelRow label="Label">{typedSelectedEdge.relation_label}</PanelRow> : null}
+                {typedSelectedEdge.pace_code ? <PanelRow label="PACE">{typedSelectedEdge.pace_code}</PanelRow> : null}
+                {typedSelectedEdge.impact_level ? <PanelRow label="Impact">{typedSelectedEdge.impact_level}</PanelRow> : null}
+                {typedSelectedEdge.is_primary != null ? <PanelRow label="Primary">{typedSelectedEdge.is_primary ? 'Ano' : 'Ne'}</PanelRow> : null}
+                {typedSelectedEdge.is_mandatory != null ? <PanelRow label="Mandatory">{typedSelectedEdge.is_mandatory ? 'Ano' : 'Ne'}</PanelRow> : null}
+                {typedSelectedEdge.relation_note ? <PanelRow label="Poznámka">{typedSelectedEdge.relation_note}</PanelRow> : null}
+              </>
+            ) : null}
+
+            {!selectedNode && !typedSelectedEdge && graphData.readiness ? (
+              <>
+                <div className={shellStyles.meta}>
+                  Klikni na uzel nebo hranu. Dvojklik na uzel otevře detail služby nebo C3 entity.
+                </div>
+                <PanelRow label="Primary C3">
+                  {graphData.readiness.primary_c3_code ?? '—'} {graphData.readiness.primary_c3_title ?? ''}
+                </PanelRow>
+                <PanelRow label="Capability">
+                  {graphData.readiness.primary_c3_completeness_status ?? '—'}
+                </PanelRow>
+                <PanelRow label="Flavours">{graphData.readiness.active_flavour_count}</PanelRow>
+                {graphData.readiness.blockers.length > 0 ? (
+                  <div className={localStyles.edgePanelBlock}>
+                    <strong>Blockers</strong>
+                    <ul className={localStyles.edgePanelList}>
+                      {graphData.readiness.blockers.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
+                {graphData.readiness.warnings.length > 0 ? (
+                  <div className={localStyles.edgePanelBlock}>
+                    <strong>Warnings</strong>
+                    <ul className={localStyles.edgePanelList}>
+                      {graphData.readiness.warnings.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </>
+      )}
+    />
   );
 }
 

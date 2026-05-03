@@ -7,9 +7,11 @@
 :root {
   /* ── Base neutrals ────────────────────────────────────────────────────── */
   --color-bg-canvas:           #f9f9f9;   /* page background */
+  --color-bg-workspace:        #f4f6f9;   /* v2 workspace background */
   --color-bg-surface:          #ffffff;   /* card / panel surface */
   --color-bg-surface-raised:   #ffffff;
   --color-bg-subtle:           #f4f4f5;   /* hover background */
+  --color-readonly-field:       #f1f5f9;
   --color-border-default:      #e4e4e7;   /* subtle border (zinc-200) */
   --color-border-strong:       #d4d4d8;   /* hover / active border */
   --color-text-primary:        #18181b;   /* near-black (zinc-900) */
@@ -26,12 +28,21 @@
   --color-sidebar-muted:        #b8c7dc;
   --color-sidebar-active:       #0f5bd7;
   --color-sidebar-active-text:  #ffffff;
+  --color-code-bg:              #0f172a;
+  --color-code-border:          #263244;
+  --color-code-text:            #e2e8f0;
+  --color-code-muted:           #cbd5e1;
 
   /* ── Semantic ─────────────────────────────────────────────────────────── */
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-danger:  #dc2626;
   --color-info:    #2563eb;
+  --color-accent:  #2563eb;
+  --color-purple:  #7c3aed;
+  --color-purple-soft: #f2ebff;
+  --color-orange:  #f97316;
+  --color-orange-soft: #fff2e8;
 
   /* ── Status (pill) ────────────────────────────────────────────────────── */
   --color-status-active:      #16a34a;
@@ -100,9 +111,11 @@
 
 :root[data-theme="dark"] {
   --color-bg-canvas:           #09090b;
+  --color-bg-workspace:        #0f172a;
   --color-bg-surface:          #18181b;
   --color-bg-surface-raised:   #1f1f23;
   --color-bg-subtle:           #27272a;
+  --color-readonly-field:       #1e293b;
   --color-border-default:      #3f3f46;
   --color-border-strong:       #52525b;
   --color-text-primary:        #fafafa;
@@ -118,11 +131,20 @@
   --color-sidebar-muted:        #9fb1ca;
   --color-sidebar-active:       #1d4ed8;
   --color-sidebar-active-text:  #ffffff;
+  --color-code-bg:              #020617;
+  --color-code-border:          #334155;
+  --color-code-text:            #e2e8f0;
+  --color-code-muted:           #cbd5e1;
 
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger:  #f87171;
   --color-info:    #60a5fa;
+  --color-accent:  #60a5fa;
+  --color-purple:  #a78bfa;
+  --color-purple-soft: #251a3f;
+  --color-orange:  #fb923c;
+  --color-orange-soft: #3b2113;
 
   --color-status-active:      #22c55e;
   --color-status-planned:     #60a5fa;

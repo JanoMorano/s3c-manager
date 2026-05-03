@@ -2,10 +2,16 @@
 
 import type { ReactNode } from 'react';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
 import { useSearchParams } from 'next/navigation';
 import { Badge, EmptyState, KpiCard, ProgressBar } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
-import { useDashboardSummary, useOperationsDashboard } from '@/features/services/hooks/useServices';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  ScatterChart, Scatter,
+  ResponsiveContainer, CartesianGrid,
+} from 'recharts';
+import { useDashboardSummary, useOperationsDashboard, useCompleteness } from '@/features/services/hooks/useServices';
 import type { CompletenessItem } from '@/features/services/hooks/useServices';
 import {
   useContractOverlap,
@@ -51,7 +57,7 @@ const OPERATIONS_TABS: Array<{ key: OperationsTab; labelKey: string; href: strin
 ];
 
 const DEFAULT_SUMMARY_LINKS = {
-  governance_health: '/operations',
+  governance_health: '/operations?tab=health',
   readiness_queue: '/operations/readiness',
   capability_coverage: '/capabilities/coverage',
   review_deadlines: '/operations/reviews',
@@ -109,6 +115,152 @@ function ServiceRows({ items, empty }: { items: CompletenessItem[]; empty: strin
 
 function PanelState({ label }: { label: string }) {
   return <div className={govStyles.stateLine}>{label}</div>;
+}
+
+// ── Chart colour constants (no CSS vars — recharts / SVG need hex) ─────────
+const CHART_COLORS = {
+  active:     '#1D9E75',
+  draft:      '#378ADD',
+  deprecated: '#EF9F27',
+  retired:    '#888780',
+  success:    '#1D9E75',
+  warning:    '#EF9F27',
+  danger:     '#E24B4A',
+  info:       '#378ADD',
+  neutral:    '#B4B2A9',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  active:     CHART_COLORS.active,
+  live:       CHART_COLORS.active,
+  draft:      CHART_COLORS.draft,
+  deprecated: CHART_COLORS.deprecated,
+  retired:    CHART_COLORS.retired,
+  planned:    CHART_COLORS.info,
+};
+
+const RECORD_AGE_REFERENCE_TIME = Date.now();
+const RECORD_AGE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+// ── Catalogue health gauge — custom SVG arc ──────────────────────────────
+function CatalogueHealthGauge({ services }: { services: CompletenessItem[] }) {
+  if (services.length === 0) return null;
+
+  const ready      = services.filter(s => (s.completeness_score ?? 0) >= 80).length;
+  const incomplete = services.filter(s => { const sc = s.completeness_score ?? 0; return sc >= 50 && sc < 80; }).length;
+  const blocked    = services.filter(s => (s.completeness_score ?? 0) < 50).length;
+  const total      = services.length;
+
+  const cx = 100, cy = 100, r = 68, sw = 13;
+  const START_DEG = 198, TOTAL_DEG = 144, GAP_DEG = 3;
+
+  function toXY(deg: number) {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function arcD(startDeg: number, endDeg: number): string {
+    const s = toXY(startDeg);
+    const e = toXY(endDeg);
+    return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${(endDeg - startDeg) > 180 ? 1 : 0} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+  }
+
+  const segs = [
+    { value: ready,      color: CHART_COLORS.active    },
+    { value: incomplete, color: CHART_COLORS.deprecated },
+    { value: blocked,    color: CHART_COLORS.danger     },
+  ];
+
+  const healthPct = Math.round((ready / total) * 100);
+  let rawDeg = START_DEG;
+
+  const arcPaths = segs.map((seg, i) => {
+    const sweep = (seg.value / total) * TOTAL_DEG;
+    const s = rawDeg + (i === 0 ? 0 : GAP_DEG / 2);
+    const e = rawDeg + sweep - (i === segs.length - 1 ? 0 : GAP_DEG / 2);
+    rawDeg += sweep;
+    if (seg.value === 0 || e - s < 1) return null;
+    return <path key={i} d={arcD(s, e)} fill="none" stroke={seg.color} strokeWidth={sw} strokeLinecap="round" />;
+  });
+
+  return (
+    <svg viewBox="15 25 170 135" style={{ width: '100%', height: '100%' }} role="img"
+      aria-label={`Catalogue health: ${healthPct}% of services are ready`}>
+      <path d={arcD(START_DEG, START_DEG + TOTAL_DEG)} fill="none"
+        stroke="rgba(128,128,128,0.15)" strokeWidth={sw} strokeLinecap="round" />
+      {arcPaths}
+      <text x={cx} y={cy + 10} textAnchor="middle"
+        style={{ fontSize: 28, fontWeight: 500, fill: 'var(--color-text-primary)' } as React.CSSProperties}>
+        {healthPct}%
+      </text>
+      <text x={cx} y={cy + 28} textAnchor="middle"
+        style={{ fontSize: 10, fill: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' } as React.CSSProperties}>
+        health score
+      </text>
+    </svg>
+  );
+}
+
+// ── Completeness vs. record age — scatter ────────────────────────────────
+interface ScatterPoint { x: number; y: number; name: string }
+
+function CompletenessScatterChart({ services }: { services: CompletenessItem[] }) {
+  if (services.length === 0) return null;
+
+  const groups: Record<string, ScatterPoint[]> = {};
+
+  services.forEach(s => {
+    const ageMonths = Math.round((RECORD_AGE_REFERENCE_TIME - new Date(s.updated_at).getTime()) / RECORD_AGE_MONTH_MS);
+    const key = s.service_status ?? 'draft';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ x: Math.min(ageMonths, 60), y: s.completeness_score ?? 0, name: s.title });
+  });
+
+  const entries = Object.entries(groups);
+  if (entries.length === 0) return null;
+
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <ScatterChart margin={{ top: 8, right: 8, left: -12, bottom: 22 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,.1)" />
+        <XAxis dataKey="x" type="number" name="Stáří (měs.)" domain={[0, 60]}
+          tick={{ fontSize: 10 }} axisLine={false} tickLine={false}
+          label={{ value: 'Stáří záznamu (měsíce)', position: 'insideBottom', offset: -12,
+            style: { fontSize: 10, fill: 'rgba(128,128,128,.7)' } }} />
+        <YAxis dataKey="y" type="number" name="Completeness %" domain={[0, 100]}
+          tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+        <Tooltip contentStyle={{ fontSize: 11, borderRadius: 6, border: '1px solid rgba(128,128,128,.2)' }}
+          cursor={{ strokeDasharray: '3 3' }} />
+        {entries.map(([status, pts]) => (
+          <Scatter key={status} name={status} data={pts}
+            fill={STATUS_COLORS[status] ?? CHART_COLORS.neutral} fillOpacity={0.75} r={4} />
+        ))}
+      </ScatterChart>
+    </ResponsiveContainer>
+  );
+}
+
+function C3CoverageBarChart({ rows }: { rows: Array<{ label: string; value: number; total: number }> }) {
+  const data = rows.map(r => ({
+    name: r.label.length > 14 ? `${r.label.slice(0, 14)}…` : r.label,
+    mapped: r.value,
+    gap: Math.max(0, r.total - r.value),
+  }));
+
+  if (data.length === 0) return null;
+
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(160, data.length * 36 + 60)}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,.12)" horizontal={false} />
+        <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={90} />
+        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+        <Bar dataKey="mapped" fill={CHART_COLORS.active} radius={[0, 2, 2, 0]} stackId="a" />
+        <Bar dataKey="gap"    fill={CHART_COLORS.deprecated} radius={[0, 2, 2, 0]} stackId="a" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
 
 function GovernancePanel({
@@ -318,6 +470,7 @@ export default function OperationsPage() {
   const contractOverlap = useContractOverlap({ limit: 5 });
   const renewalCalendar = useRenewalCalendar({ limit: 5 });
   const advisor = useGovernanceAdvisor({ limit: 5 });
+  const completenessData = useCompleteness();
 
   if (isLoading) return <div className={styles.state}>{t('operations.loading')}</div>;
   if (error || !data) return <div className={styles.stateError}>{t('operations.unavailable')}</div>;
@@ -336,6 +489,14 @@ export default function OperationsPage() {
   const governanceError = riskRadar.error || ownerLoad.error || contractOverlap.error || renewalCalendar.error || advisor.error;
   const requestedTab = searchParams?.get('tab') as OperationsTab | null;
   const activeTab = OPERATIONS_TABS.some((tab) => tab.key === requestedTab) ? requestedTab! : 'governance';
+  // Chart data — derived from completeness endpoint (service_status, lifecycle_state)
+  const allServices = Array.isArray(completenessData.data) ? completenessData.data : [];
+  // Unique statuses with counts for legend
+  const statusCounts = allServices.reduce<Record<string, number>>((acc, s) => {
+    const k = s.service_status ?? 'draft';
+    acc[k] = (acc[k] ?? 0) + 1;
+    return acc;
+  }, {});
   const c3CoverageRows = data.sections.c3_mapping_gap.map((row) => ({
     label: row.item_type,
     value: row.mapped_count,
@@ -353,21 +514,15 @@ export default function OperationsPage() {
 
   return (
     <main className={styles.shell}>
-      <header className={styles.pageHeader}>
-        <div>
-          <span className={styles.pageEyebrow}>{t('operations.eyebrow')}</span>
-          <h1 className={styles.pageTitle}>{t('operations.title')}</h1>
-          <p className={styles.pageLead}>{t('operations.lead')}</p>
-        </div>
-        <div className={styles.headerActions}>
-          <span className={styles.cachedBadge}>{t('operations.badge.governance')}</span>
-          <span className={styles.cachedBadge}>{t('operations.badge.evidence')}</span>
-          <Link href="/operations/readiness" className={styles.secondaryLink}>Readiness</Link>
-          <Link href="/operations/reviews" className={styles.secondaryLink}>Reviews</Link>
-          <Link href="/operations/decisions" className={styles.secondaryLink}>Decisions</Link>
-          <Link href="/catalogue" className={styles.secondaryLink}>{t('operations.link.catalogue')}</Link>
-        </div>
-      </header>
+      <PageHeader
+        title={t('operations.title')}
+        purpose={t('operations.lead')}
+        chips={[
+          { label: t('operations.badge.governance'), tone: 'neutral' },
+          { label: t('operations.badge.evidence'),   tone: 'neutral' },
+        ]}
+        primaryAction={{ label: 'Readiness', href: '/operations/readiness' }}
+      />
 
       <section className={cockpitStyles.cockpitSummary} aria-label="Decision cockpit summary">
         <div className={cockpitStyles.cockpitIntro}>
@@ -422,10 +577,69 @@ export default function OperationsPage() {
       </section>
 
       <section className={styles.kpiThree} aria-label="Operations headline KPIs">
-        <KpiCard label={t('operations.kpi.metadata')} value={incomplete.length} hint={<span className={styles.kpiHint}><Badge variant={incomplete.length ? 'warning' : 'success'}>{incomplete.length ? t('common.action') : t('common.clean')}</Badge><span>{t('operations.kpi.metadata_hint')}</span></span>} />
-        <KpiCard label={t('operations.kpi.owner_gaps')} value={missingOwners.length} hint={<span className={styles.kpiHint}><Badge variant={missingOwners.length ? 'warning' : 'success'}>{missingOwners.length ? t('operations.assign') : t('operations.covered')}</Badge><span>{t('operations.kpi.owner_hint')}</span></span>} />
-        <KpiCard label={t('operations.kpi.c3_gaps')} value={c3GapTotal} hint={<span className={styles.kpiHint}><Badge variant={c3GapTotal ? 'warning' : 'success'}>{c3GapTotal ? t('operations.map') : t('operations.covered')}</Badge><span>{t('operations.kpi.c3_hint')}</span></span>} />
+        <KpiCard
+          label={t('operations.kpi.metadata')}
+          value={incomplete.length}
+          tone={incomplete.length ? 'warning' : 'success'}
+          trend={incomplete.length ? 'down' : 'neutral'}
+          hint={<span className={styles.kpiHint}><Badge variant={incomplete.length ? 'warning' : 'success'}>{incomplete.length ? t('common.action') : t('common.clean')}</Badge><span>{t('operations.kpi.metadata_hint')}</span></span>}
+        />
+        <KpiCard
+          label={t('operations.kpi.owner_gaps')}
+          value={missingOwners.length}
+          tone={missingOwners.length ? 'danger' : 'success'}
+          trend={missingOwners.length ? 'down' : 'neutral'}
+          hint={<span className={styles.kpiHint}><Badge variant={missingOwners.length ? 'warning' : 'success'}>{missingOwners.length ? t('operations.assign') : t('operations.covered')}</Badge><span>{t('operations.kpi.owner_hint')}</span></span>}
+        />
+        <KpiCard
+          label={t('operations.kpi.c3_gaps')}
+          value={c3GapTotal}
+          tone={c3GapTotal ? 'warning' : 'success'}
+          hint={<span className={styles.kpiHint}><Badge variant={c3GapTotal ? 'warning' : 'success'}>{c3GapTotal ? t('operations.map') : t('operations.covered')}</Badge><span>{t('operations.kpi.c3_hint')}</span></span>}
+        />
       </section>
+
+      {/* ── Chart overview row — catalogue health gauge + completeness scatter ─ */}
+      {allServices.length > 0 && (
+        <section className={cockpitStyles.chartsRow} aria-label="Catalogue health overview">
+          <div className={cockpitStyles.chartCard}>
+            <h2 className={cockpitStyles.chartTitle}>Catalogue health</h2>
+            <p className={cockpitStyles.chartHint}>Podíl služeb dle completeness score (ready / incomplete / blocked)</p>
+            <div className={cockpitStyles.chartWrap}>
+              <CatalogueHealthGauge services={allServices} />
+            </div>
+            <div className={cockpitStyles.chartLegend}>
+              <span className={cockpitStyles.chartLegendItem}>
+                <span className={cockpitStyles.chartLegendDot} style={{ background: CHART_COLORS.active }} />
+                Ready (≥80%) {allServices.filter(s => (s.completeness_score ?? 0) >= 80).length}
+              </span>
+              <span className={cockpitStyles.chartLegendItem}>
+                <span className={cockpitStyles.chartLegendDot} style={{ background: CHART_COLORS.deprecated }} />
+                Incomplete (50–79%) {allServices.filter(s => { const sc = s.completeness_score ?? 0; return sc >= 50 && sc < 80; }).length}
+              </span>
+              <span className={cockpitStyles.chartLegendItem}>
+                <span className={cockpitStyles.chartLegendDot} style={{ background: CHART_COLORS.danger }} />
+                Blocked (&lt;50%) {allServices.filter(s => (s.completeness_score ?? 0) < 50).length}
+              </span>
+            </div>
+          </div>
+          <div className={cockpitStyles.chartCard}>
+            <h2 className={cockpitStyles.chartTitle}>Completeness vs. stáří záznamu</h2>
+            <p className={cockpitStyles.chartHint}>Outliers: staré záznamy s nízkým skóre potřebují pozornost</p>
+            <div className={cockpitStyles.chartWrap}>
+              <CompletenessScatterChart services={allServices} />
+            </div>
+            <div className={cockpitStyles.chartLegend}>
+              {Object.entries(statusCounts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([status, count]) => (
+                <span key={status} className={cockpitStyles.chartLegendItem}>
+                  <span className={cockpitStyles.chartLegendDot} style={{ background: STATUS_COLORS[status] ?? CHART_COLORS.neutral }} />
+                  {status} {count}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <nav className={styles.tabs} aria-label="Operations sections">
         {OPERATIONS_TABS.map((tab) => (
@@ -476,19 +690,25 @@ export default function OperationsPage() {
               </div>
               <Link href="/services/list" className={styles.secondaryLink}>{t('operations.open_service_list')}</Link>
             </div>
-            <div className={styles.insightGrid}>
-              <div className={styles.insightTile}>
-                <strong>{pricing.coverage_percent}%</strong>
-                <span>{t('operations.insight.pricing')}</span>
-              </div>
-              <div className={styles.insightTile}>
-                <strong>{data.sections.top_completeness.length}</strong>
-                <span>{t('operations.insight.references')}</span>
-              </div>
-              <div className={styles.insightTile}>
-                <strong>{data.sections.deprecated_retired.length}</strong>
-                <span>{t('operations.insight.lifecycle')}</span>
-              </div>
+            <div className={cockpitStyles.grid3} style={{ marginBottom: 0 }}>
+              <KpiCard
+                label={t('operations.insight.pricing')}
+                value={`${pricing.coverage_percent}%`}
+                tone={pricing.coverage_percent >= 80 ? 'success' : pricing.coverage_percent >= 50 ? 'warning' : 'danger'}
+                hint={`${pricing.with_pricing} / ${pricing.total_services} services`}
+              />
+              <KpiCard
+                label={t('operations.insight.references')}
+                value={data.sections.top_completeness.length}
+                tone="info"
+                hint="Services with high completeness"
+              />
+              <KpiCard
+                label={t('operations.insight.lifecycle')}
+                value={data.sections.deprecated_retired.length}
+                tone={data.sections.deprecated_retired.length ? 'warning' : 'success'}
+                hint="Deprecated or retired services"
+              />
             </div>
           </article>
 
@@ -516,7 +736,23 @@ export default function OperationsPage() {
 
           <article className={styles.railCard}>
             <h2 className={styles.railTitle}>{t('operations.c3_gap.title')}</h2>
-            <CoverageMetricRows rows={c3CoverageRows.slice(0, 5)} empty={t('operations.c3_gap.empty')} />
+            {c3CoverageRows.length > 0 ? (
+              <>
+                <C3CoverageBarChart rows={c3CoverageRows.slice(0, 6)} />
+                <div className={cockpitStyles.chartLegend} style={{ marginTop: 'var(--space-2)' }}>
+                  <span className={cockpitStyles.chartLegendItem}>
+                    <span className={cockpitStyles.chartLegendDot} style={{ background: CHART_COLORS.active }} />
+                    Mapped
+                  </span>
+                  <span className={cockpitStyles.chartLegendItem}>
+                    <span className={cockpitStyles.chartLegendDot} style={{ background: CHART_COLORS.deprecated }} />
+                    Gap
+                  </span>
+                </div>
+              </>
+            ) : (
+              <CoverageMetricRows rows={c3CoverageRows.slice(0, 5)} empty={t('operations.c3_gap.empty')} />
+            )}
           </article>
         </aside>
       </section>}

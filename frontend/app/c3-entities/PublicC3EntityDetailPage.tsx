@@ -1,9 +1,19 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { use, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import PageHeader from '@/app/components/PageHeader';
+import { use, useCallback, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { mutate as globalMutate } from 'swr';
+import {
+  C3EntityWorkspace,
+  CodeEditor,
+  EditorSubNav,
+  FormSection,
+  StickySaveBar,
+  type EditorSubNavSection,
+  type SaveState,
+} from '@/app/components/layout-v2';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
@@ -91,15 +101,6 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Section({ title, id, children }: { title: string; id: string; children: ReactNode }) {
-  return (
-    <section id={id} className={editorStyles.section}>
-      <h2 className={editorStyles.sectionTitle}>{title}</h2>
-      <div className={editorStyles.sectionBody}>{children}</div>
-    </section>
-  );
-}
-
 function ReadonlyField({ label, value, mono = false }: { label: string; value: unknown; mono?: boolean }) {
   return (
     <div className={entityStyles.editField}>
@@ -141,6 +142,19 @@ function renderEditControl(
   setDraft: Dispatch<SetStateAction<Record<string, unknown> | null>>,
 ) {
   if (field.type === 'textarea') {
+    if (isCodeLikeField(field)) {
+      const value = String(draft[field.key] ?? '');
+      return (
+        <CodeEditor
+          label={field.label}
+          language={inferEditorLanguage(field, value)}
+          value={value}
+          rows={6}
+          placeholder={field.placeholder}
+          onValueChange={(nextValue) => setDraft((current) => ({ ...(current ?? {}), [field.key]: nextValue }))}
+        />
+      );
+    }
     return (
       <textarea
         className={entityStyles.editTextarea}
@@ -186,6 +200,19 @@ function renderEditControl(
   );
 }
 
+function isCodeLikeField(field: EditFieldDef) {
+  const key = field.key.toLowerCase();
+  const label = field.label.toLowerCase();
+  return key.endsWith('_raw') || key.includes('_json') || label.includes('raw') || label.includes('json');
+}
+
+function inferEditorLanguage(field: EditFieldDef, value: string) {
+  const key = field.key.toLowerCase();
+  const text = value.trim();
+  if (key.includes('json') || text.startsWith('{') || text.startsWith('[')) return 'json';
+  return 'plaintext';
+}
+
 export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Props) {
   const { code } = use(params);
   const router = useRouter();
@@ -196,6 +223,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const canEdit = hasRoleAccess(role, 'editor');
   const isAdmin = hasRoleAccess(role, 'admin');
@@ -203,9 +231,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
   const { data: item, isLoading, error } = useSWR<Record<string, unknown>>(
     `${config.detailEndpointBase}/${encodeURIComponent(decodedCode)}`,
     apiFetch,
-    {
-      revalidateOnFocus: false,
-    }
+    { revalidateOnFocus: false },
   );
 
   useEffect(() => {
@@ -220,6 +246,15 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     }, {});
     setDraft(nextDraft);
   }, [config.editFields, draft, isEdit, item]);
+
+  // Wrapper that marks the form as dirty on every draft change
+  const setDraftAndDirty: Dispatch<SetStateAction<Record<string, unknown> | null>> = useCallback(
+    (action) => {
+      setDraft(action);
+      setIsDirty(true);
+    },
+    [],
+  );
 
   const descriptionKeySet = useMemo(
     () => new Set(uniqueKeys(['title', ...config.descriptionKeys])),
@@ -288,8 +323,18 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     [config.linkFields, item],
   );
 
-  async function handleSave(event: React.FormEvent) {
-    event.preventDefault();
+  // Save state for StickySaveBar
+  const saveState: SaveState = saving
+    ? 'saving'
+    : saved
+      ? 'saved'
+      : saveError
+        ? 'error'
+        : isDirty
+          ? 'dirty'
+          : 'clean';
+
+  async function doSave() {
     if (!item || !draft) return;
     const entityId = Number(item.id);
     if (!entityId || Number.isNaN(entityId)) {
@@ -337,6 +382,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
       ]);
 
       setSaved(true);
+      setIsDirty(false);
       if (nextCode && nextCode !== decodedCode) {
         router.replace(`${config.editBasePath}/${encodeURIComponent(nextCode)}/edit`);
       }
@@ -345,6 +391,11 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    await doSave();
   }
 
   function handleReset() {
@@ -356,6 +407,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     setDraft(nextDraft);
     setSaveError(null);
     setSaved(false);
+    setIsDirty(false);
   }
 
   if (isLoading) return <div className={detailStyles.state}>Načítám…</div>;
@@ -366,220 +418,240 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
   const codeValue = normalize(item[config.codeKey]) || normalize(item.uuid);
   const titleValue = normalize(item.title) || codeValue;
   const editHref = buildEntityEditHref(config, item);
-  const sectionLinks = [
-    { id: 'classification', label: '0. Klasifikace & identifikace' },
-    { id: 'description', label: '1. Popis' },
-    { id: 'source', label: '2. Zdroj & stav' },
-    { id: 'links', label: '3. Vazby & návaznosti' },
-    { id: 'raw', label: '4. Strukturovaná data (raw JSON/text)' },
+
+  // EditorSubNav sections — same 5 content groups for both view and edit
+  const editorSections: EditorSubNavSection[] = [
+    { id: 'classification', label: 'Klasifikace & identifikace' },
+    { id: 'description',    label: 'Popis' },
+    { id: 'source',         label: 'Zdroj & stav' },
+    { id: 'links',          label: 'Vazby & návaznosti', badge: linkSections.length || undefined },
+    { id: 'raw',            label: 'Raw JSON / text',    badge: rawFields.length || undefined },
   ];
 
   return (
-    <div className={editorStyles.shell}>
-      <div className={editorStyles.editorHeader}>
-        <div>
-          <nav className={adminStyles.breadcrumb}>
-            {isEdit ? <Link href="/administration">Administration</Link> : <Link href={config.listPath}>C3 Taxonomie</Link>}
-            <span className={adminStyles.breadcrumbSep}>/</span>
-            <Link href={config.listPath}>{config.title}</Link>
-            <span className={adminStyles.breadcrumbSep}>/</span>
-            <span>{titleValue}</span>
-          </nav>
-          <span className={editorStyles.serviceId}>{codeValue}</span>
-          <h1 className={editorStyles.editorTitle}>{titleValue}</h1>
+    <>
+      {/* ── Standard PageHeader (spec v2 §8) ─────────────────────────── */}
+      <PageHeader
+        title={titleValue}
+        purpose={`${config.title} · ${config.codeLabel}: ${codeValue}`}
+        chips={[
+          { label: isEdit ? 'Edit' : 'View',              tone: isEdit ? 'warn' : 'neutral' },
+          { label: formatValue(item.item_status),          tone: 'neutral' },
+          ...(validationIssues.length > 0
+            ? [{ label: `${validationIssues.length} chyb`, tone: 'bad' as const }]
+            : [{ label: 'Valid', tone: 'ok' as const }]),
+        ]}
+        primaryAction={
+          isEdit
+            ? { label: 'Náhled', href: `${config.detailBasePath}/${encodeURIComponent(codeValue)}` }
+            : canEdit
+              ? { label: 'Edit', href: editHref }
+              : undefined
+        }
+      />
+
+      <C3EntityWorkspace className={editorStyles.shell}>
+        {/* ── Summary strip ────────────────────────────────────────── */}
+        <div className={detailStyles.summaryStrip}>
+          <SummaryItem label={config.codeLabel} value={codeValue} />
+          {isAdmin && <SummaryItem label="UUID" value={formatValue(item.uuid)} />}
+          <SummaryItem label="Status" value={formatValue(item.item_status)} />
+          <SummaryItem label="Modified" value={formatDate(item.modification_date)} />
         </div>
 
-        <div style={{ display: 'grid', gap: '0.75rem', justifyItems: 'end' }}>
-          {!isEdit && canEdit && (
-            <Link href={editHref} className={detailStyles.editBtn}>
-              Edit
-            </Link>
-          )}
-          {isEdit && (
-            <Link href={`${config.detailBasePath}/${encodeURIComponent(codeValue)}`} className={detailStyles.editBtn}>
-              Náhled
-            </Link>
-          )}
-          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>
-            Modified: {formatDate(item.modification_date)}<br />
-            {item.item_status ? <>Status: {formatValue(item.item_status)}</> : <>Status: —</>}
-          </div>
-        </div>
-      </div>
+        {/* ── Editor body: SubNav + content (spec v2 §8 pattern) ────── */}
+        <div className={editorStyles.editorBody}>
+          {/* Left-side section navigation — EditorSubNav (spec v2 §8) */}
+          <EditorSubNav
+            title={config.title}
+            summary="Přejděte na sekci kliknutím nebo posuňte stránku."
+            sections={editorSections}
+            onSelect={(id) => {
+              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          />
 
-      <div className={detailStyles.summaryStrip}>
-        <SummaryItem label={config.codeLabel} value={codeValue} />
-        {isAdmin && <SummaryItem label="UUID" value={formatValue(item.uuid)} />}
-        <SummaryItem label="Status" value={formatValue(item.item_status)} />
-        <SummaryItem label="Modified" value={formatDate(item.modification_date)} />
-      </div>
-
-      <div className={editorStyles.editorBody}>
-        {isEdit ? (
-          <form id="c3-entity-detail-form" onSubmit={handleSave} className={editorStyles.formArea}>
-            <Section id="classification" title="0. Klasifikace & identifikace">
-              <div className={entityStyles.editGrid}>
-                {classificationFields.map((field) => (
-                  <FieldBlock key={field.key} label={field.label} wide={field.type === 'textarea'}>
-                    {renderEditControl(field, draft ?? {}, setDraft)}
-                  </FieldBlock>
-                ))}
-              </div>
-            </Section>
-
-            <Section id="description" title="1. Popis">
-              <div className={entityStyles.cellStack}>
-                {descriptionFields.map((field) => (
-                  <FieldBlock key={field.key} label={field.label} wide>
-                    {renderEditControl(field, draft ?? {}, setDraft)}
-                  </FieldBlock>
-                ))}
-              </div>
-            </Section>
-
-            <Section id="source" title="2. Zdroj & stav">
-              <div className={entityStyles.editGrid}>
-                {sourceFields.map((field) => (
-                  <FieldBlock key={field.key} label={field.label} wide={field.type === 'textarea'}>
-                    {renderEditControl(field, draft ?? {}, setDraft)}
-                  </FieldBlock>
-                ))}
-              </div>
-            </Section>
-
-            <Section id="links" title="3. Vazby & návaznosti">
-              {linkSections.length > 0 ? (
-                <div className={entityStyles.cellStack}>
-                  {linkSections.map((field) => (
-                    <div key={field.key} className={entityStyles.editFieldWide}>
-                      <span className={entityStyles.fieldLabel}>{field.label}</span>
-                      {renderLinkedJsonList(item[field.key], field.target) ?? <div className={entityStyles.cellText}>—</div>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className={editorStyles.validOk}>Žádné odvozené vazby nejsou dostupné.</div>
-              )}
-            </Section>
-
-            <Section id="raw" title="4. Strukturovaná data (raw JSON/text)">
-              <div className={entityStyles.cellStack}>
-                {rawFields.length > 0 ? rawFields.map((field) => (
-                  <FieldBlock key={field.key} label={field.label} wide>
-                    {renderEditControl(field, draft ?? {}, setDraft)}
-                  </FieldBlock>
-                )) : <div className={editorStyles.validOk}>Tato entita nemá raw pole k editaci.</div>}
-              </div>
-            </Section>
-          </form>
-        ) : (
+          {/* ── Main form / view area ─────────────────────────────── */}
           <div className={editorStyles.formArea}>
-            <Section id="classification" title="0. Klasifikace & identifikace">
-              <div className={entityStyles.editGrid}>
-                {classificationKeys.map((key) => (
-                  <ReadonlyField key={key} label={config.labels[key] ?? key} value={item[key]} mono={key === 'uuid' || key === config.codeKey || key === 'external_id'} />
-                ))}
-              </div>
-            </Section>
+            {isEdit ? (
+              <form id="c3-entity-detail-form" onSubmit={handleSave}>
+                {/* 0. Klasifikace & identifikace */}
+                <FormSection id="classification" title="0. Klasifikace & identifikace">
+                  <div className={entityStyles.editGrid}>
+                    {classificationFields.map((field) => (
+                      <FieldBlock key={field.key} label={field.label} wide={field.type === 'textarea'}>
+                        {renderEditControl(field, draft ?? {}, setDraftAndDirty)}
+                      </FieldBlock>
+                    ))}
+                  </div>
+                </FormSection>
 
-            <Section id="description" title="1. Popis">
-              <div className={entityStyles.cellStack}>
-                {config.descriptionKeys.some((key) => normalize(item[key])) ? (
-                  config.descriptionKeys.map((key) => (
-                    <ReadonlyArea key={key} label={config.labels[key] ?? key} value={item[key]} />
-                  ))
-                ) : (
-                  <div className={editorStyles.validOk}>Žádný popis není dostupný.</div>
-                )}
-              </div>
-            </Section>
+                {/* 1. Popis */}
+                <FormSection id="description" title="1. Popis">
+                  <div className={entityStyles.cellStack}>
+                    {descriptionFields.map((field) => (
+                      <FieldBlock key={field.key} label={field.label} wide>
+                        {renderEditControl(field, draft ?? {}, setDraftAndDirty)}
+                      </FieldBlock>
+                    ))}
+                  </div>
+                </FormSection>
 
-            <Section id="source" title="2. Zdroj & stav">
-              <div className={entityStyles.editGrid}>
-                {sourceKeys.length > 0 ? (
-                  sourceKeys.map((key) => (
-                    <ReadonlyField key={key} label={config.labels[key] ?? key} value={item[key]} mono={key === 'external_id'} />
-                  ))
-                ) : (
-                  <ReadonlyField label="Status" value={item.item_status} />
-                )}
-              </div>
-            </Section>
+                {/* 2. Zdroj & stav */}
+                <FormSection id="source" title="2. Zdroj & stav">
+                  <div className={entityStyles.editGrid}>
+                    {sourceFields.map((field) => (
+                      <FieldBlock key={field.key} label={field.label} wide={field.type === 'textarea'}>
+                        {renderEditControl(field, draft ?? {}, setDraftAndDirty)}
+                      </FieldBlock>
+                    ))}
+                  </div>
+                </FormSection>
 
-            <Section id="links" title="3. Vazby & návaznosti">
-              {linkSections.length > 0 ? (
-                <div className={entityStyles.cellStack}>
-                  {linkSections.map((field) => (
-                    <div key={field.key} className={entityStyles.editFieldWide}>
-                      <span className={entityStyles.fieldLabel}>{field.label}</span>
-                      {renderLinkedJsonList(item[field.key], field.target) ?? <div className={entityStyles.cellText}>—</div>}
+                {/* 3. Vazby & návaznosti */}
+                <FormSection id="links" title="3. Vazby & návaznosti">
+                  {linkSections.length > 0 ? (
+                    <div className={entityStyles.cellStack}>
+                      {linkSections.map((field) => (
+                        <div key={field.key} className={entityStyles.editFieldWide}>
+                          <span className={entityStyles.fieldLabel}>{field.label}</span>
+                          {renderLinkedJsonList(item[field.key], field.target) ?? (
+                            <div className={entityStyles.cellText}>—</div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className={editorStyles.validOk}>Žádné odvozené vazby nejsou dostupné.</div>
-              )}
-            </Section>
+                  ) : (
+                    <div className={editorStyles.validOk}>Žádné odvozené vazby nejsou dostupné.</div>
+                  )}
+                </FormSection>
 
-            <Section id="raw" title="4. Strukturovaná data (raw JSON/text)">
-              <div className={entityStyles.cellStack}>
-                {config.rawKeys.length > 0 ? (
-                  config.rawKeys.map((key) => (
-                    <ReadonlyArea key={key} label={config.labels[key] ?? key} value={item[key]} />
-                  ))
-                ) : (
-                  <div className={editorStyles.validOk}>Tato entita nemá raw pole.</div>
-                )}
-              </div>
-            </Section>
-          </div>
-        )}
-
-        <aside className={editorStyles.rail}>
-          {isEdit && (
-            <div className={editorStyles.railCard}>
-              {saveError && <div className={editorStyles.railError}>{saveError}</div>}
-              {saved && <div className={editorStyles.savedOk}>✓ Uloženo</div>}
-              <button type="submit" form="c3-entity-detail-form" className={editorStyles.saveBtn} disabled={saving}>
-                {saving ? 'Ukládám…' : 'Uložit'}
-              </button>
-              <button type="button" className={editorStyles.cancelBtn} onClick={handleReset} disabled={saving}>
-                Zahodit změny
-              </button>
-            </div>
-          )}
-
-          <div className={editorStyles.railCard}>
-            <div className={editorStyles.railTitle}>Souhrn</div>
-            {isAdmin && <div className={editorStyles.validOk}>UUID: {formatValue(item.uuid)}</div>}
-            <div className={editorStyles.validOk}>{config.codeLabel}: {codeValue}</div>
-            <div className={editorStyles.validOk}>Status: {formatValue(isEdit ? draft?.item_status : item.item_status)}</div>
-            <div className={editorStyles.validOk}>Modified: {formatDate(item.modification_date)}</div>
-          </div>
-
-          <div className={editorStyles.railCard}>
-            <div className={editorStyles.railTitle}>Sekce</div>
-            <div className={editorStyles.sectionNav}>
-              {sectionLinks.map((section) => (
-                <a key={section.id} href={`#${section.id}`} className={editorStyles.sectionNavItem}>
-                  {section.label}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <div className={editorStyles.railCard}>
-            <div className={editorStyles.railTitle}>Validation</div>
-            {validationIssues.length > 0 ? (
-              validationIssues.map((issue) => (
-                <div key={issue} className={editorStyles.validationError}>{issue}</div>
-              ))
+                {/* 4. Raw JSON / text */}
+                <FormSection id="raw" title="4. Strukturovaná data (raw JSON/text)">
+                  <div className={entityStyles.cellStack}>
+                    {rawFields.length > 0 ? (
+                      rawFields.map((field) => (
+                        <FieldBlock key={field.key} label={field.label} wide>
+                          {renderEditControl(field, draft ?? {}, setDraftAndDirty)}
+                        </FieldBlock>
+                      ))
+                    ) : (
+                      <div className={editorStyles.validOk}>Tato entita nemá raw pole k editaci.</div>
+                    )}
+                  </div>
+                </FormSection>
+              </form>
             ) : (
-              <div className={editorStyles.validOk}>No errors</div>
+              /* ── Read-only view ──────────────────────────────────── */
+              <div>
+                <FormSection id="classification" title="0. Klasifikace & identifikace">
+                  <div className={entityStyles.editGrid}>
+                    {classificationKeys.map((key) => (
+                      <ReadonlyField
+                        key={key}
+                        label={config.labels[key] ?? key}
+                        value={item[key]}
+                        mono={key === 'uuid' || key === config.codeKey || key === 'external_id'}
+                      />
+                    ))}
+                  </div>
+                </FormSection>
+
+                <FormSection id="description" title="1. Popis">
+                  <div className={entityStyles.cellStack}>
+                    {config.descriptionKeys.some((key) => normalize(item[key])) ? (
+                      config.descriptionKeys.map((key) => (
+                        <ReadonlyArea key={key} label={config.labels[key] ?? key} value={item[key]} />
+                      ))
+                    ) : (
+                      <div className={editorStyles.validOk}>Žádný popis není dostupný.</div>
+                    )}
+                  </div>
+                </FormSection>
+
+                <FormSection id="source" title="2. Zdroj & stav">
+                  <div className={entityStyles.editGrid}>
+                    {sourceKeys.length > 0 ? (
+                      sourceKeys.map((key) => (
+                        <ReadonlyField
+                          key={key}
+                          label={config.labels[key] ?? key}
+                          value={item[key]}
+                          mono={key === 'external_id'}
+                        />
+                      ))
+                    ) : (
+                      <ReadonlyField label="Status" value={item.item_status} />
+                    )}
+                  </div>
+                </FormSection>
+
+                <FormSection id="links" title="3. Vazby & návaznosti">
+                  {linkSections.length > 0 ? (
+                    <div className={entityStyles.cellStack}>
+                      {linkSections.map((field) => (
+                        <div key={field.key} className={entityStyles.editFieldWide}>
+                          <span className={entityStyles.fieldLabel}>{field.label}</span>
+                          {renderLinkedJsonList(item[field.key], field.target) ?? (
+                            <div className={entityStyles.cellText}>—</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={editorStyles.validOk}>Žádné odvozené vazby nejsou dostupné.</div>
+                  )}
+                </FormSection>
+
+                <FormSection id="raw" title="4. Strukturovaná data (raw JSON/text)">
+                  <div className={entityStyles.cellStack}>
+                    {config.rawKeys.length > 0 ? (
+                      config.rawKeys.map((key) => (
+                        <ReadonlyArea key={key} label={config.labels[key] ?? key} value={item[key]} />
+                      ))
+                    ) : (
+                      <div className={editorStyles.validOk}>Tato entita nemá raw pole.</div>
+                    )}
+                  </div>
+                </FormSection>
+              </div>
             )}
           </div>
-        </aside>
-      </div>
-    </div>
+
+          {/* ── Right rail: validation summary only (save moved to StickySaveBar) ── */}
+          <aside className={editorStyles.rail}>
+            <div className={editorStyles.railCard}>
+              <div className={editorStyles.railTitle}>Validation</div>
+              {validationIssues.length > 0 ? (
+                validationIssues.map((issue) => (
+                  <div key={issue} className={editorStyles.validationError}>{issue}</div>
+                ))
+              ) : (
+                <div className={editorStyles.validOk}>No errors</div>
+              )}
+            </div>
+
+            {!isEdit && canEdit && (
+              <div className={editorStyles.railCard}>
+                <Link href={editHref} className={detailStyles.editBtn}>Edit</Link>
+              </div>
+            )}
+          </aside>
+        </div>
+      </C3EntityWorkspace>
+
+      {/* ── StickySaveBar — only in edit mode (spec v2 §8) ─────────────── */}
+      {isEdit && (
+        <StickySaveBar
+          state={saveState}
+          message={saveError ?? undefined}
+          primaryLabel="Uložit změny"
+          secondaryLabel="Zahodit"
+          disabled={!isDirty || validationIssues.length > 0}
+          onSave={() => void doSave()}
+          onDiscard={handleReset}
+        />
+      )}
+    </>
   );
 }

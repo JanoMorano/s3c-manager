@@ -8,12 +8,13 @@
  */
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import Link from '@/app/components/AppLink';
 import { useSWRConfig } from 'swr';
 import { useInstallStatus } from '@/features/install/installStatus';
+import { VIEW_MODE_EVENT, VIEW_MODE_STORAGE_KEY, type ViewMode } from '@/app/components/ViewModeSwitch';
 import {
-  useService, useServiceOverview, useServiceSla, useServiceScore, useServiceRoles, useServiceC3Mappings,
+  useService, useService360, useServiceOverview, useServiceSla, useServiceScore, useServiceRoles, useServiceC3Mappings,
   useServiceFrameworks,
   type ServiceC3Mapping,
 } from '@/features/services/hooks/useServices';
@@ -36,18 +37,20 @@ import type {
   ServiceFrameworkCoverage,
   ServiceOverview,
   ServiceDetail,
+  ServiceRelation,
 } from '@/features/services/model/service.types';
 import { authHeaders } from '@/features/services/api/services.api';
 import { safeHref } from '@/shared/utils/safeHref';
 import styles from './detail.module.css';
 
 interface Props { params: Promise<{ id: string }> }
-type DetailView = 'overview' | 'offerings' | 'request' | 'coverage' | 'governance';
+type DetailView = 'overview' | 'offerings' | 'request' | 'support' | 'dependencies' | 'coverage' | 'governance' | 'lifecycle' | 'audit';
 
 export default function ServiceDetailPage({ params }: Props) {
   const { id } = use(params);
   const { c3Visible } = useInstallStatus();
   const { data: svc, isLoading, error } = useService(id);
+  const { data: service360Data } = useService360(id);
   const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useServiceOverview(id);
   const { data: slaData } = useServiceSla(id);
   const { data: scoreData } = useServiceScore(id);
@@ -58,6 +61,32 @@ export default function ServiceDetailPage({ params }: Props) {
   const [rolesOpen,   setRolesOpen]   = useState(false);
   const [extDataOpen, setExtDataOpen] = useState(false);
   const [activeView,  setActiveView]  = useState<DetailView>('overview');
+  const [viewMode, setViewMode] = useState<ViewMode>('business');
+
+  useEffect(() => {
+    function readMode(): ViewMode {
+      return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'technical' ? 'technical' : 'business';
+    }
+
+    setViewMode(readMode());
+    function syncMode(event: Event) {
+      const custom = event as CustomEvent<{ mode?: ViewMode }>;
+      setViewMode(custom.detail?.mode ?? readMode());
+    }
+
+    window.addEventListener(VIEW_MODE_EVENT, syncMode);
+    window.addEventListener('storage', syncMode);
+    return () => {
+      window.removeEventListener(VIEW_MODE_EVENT, syncMode);
+      window.removeEventListener('storage', syncMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === 'business' && TECHNICAL_DETAIL_VIEW_IDS.has(activeView)) {
+      setActiveView('overview');
+    }
+  }, [activeView, viewMode]);
 
   if (isLoading) return <div className={styles.state}>Loading…</div>;
   if (error)     return <div className={styles.stateError}>Service not found or API unreachable.</div>;
@@ -66,7 +95,7 @@ export default function ServiceDetailPage({ params }: Props) {
   const summarySourceUrl = safeHref(svc.source_url);
   const footerSourceUrl = safeHref(svc.source_url);
   const businessView = svc.business_view;
-  const overview = overviewData?.item ?? null;
+  const overview = service360Data?.overview ?? overviewData?.item ?? null;
   const technicalView = svc.technical_view;
   const businessSummary = businessView?.business_summary ?? svc.business_summary ?? svc.summary;
   const consumerValue = businessView?.consumer_value ?? svc.consumer_value ?? null;
@@ -74,16 +103,19 @@ export default function ServiceDetailPage({ params }: Props) {
   const supportModels = businessView?.support_model ?? svc.support_model ?? [];
   const audiencePolicies = businessView?.audience_policies ?? svc.audience_policies ?? [];
   const operationalLinks = businessView?.operational_links ?? svc.operational_links ?? [];
-  const requestHref = safeHref(
+  const externalRequestHref = safeHref(
     primaryOffering?.request_channel_url ??
     businessView?.request_channel_url ??
     svc.request_channel_url
   );
+  const requestHref = (businessView?.requestable ?? svc.requestable) || externalRequestHref
+    ? `/services/${id}/request`
+    : null;
   const supportAnchor = '#support';
   const governanceAnchor = '#governance';
   const overviewFacts = [
     { label: 'Requestable', value: formatBool(businessView?.requestable ?? svc.requestable) },
-    { label: 'Lifecycle', value: businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status_name ?? svc.service_status ?? '—' },
+    { label: 'Lifecycle', value: overview?.lifecycle.stage_code ?? svc.lifecycle_stage_code ?? businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status_name ?? svc.service_status ?? '—' },
     { label: 'Primary offering', value: primaryOffering?.title ?? primaryOffering?.offering_code ?? 'Not defined yet' },
     { label: 'Support', value: supportModels[0]?.support_owner_name ?? svc.vlastnik ?? '—' },
     { label: 'Audience', value: businessView?.target_audience_summary ?? svc.target_audience_summary ?? audiencePolicies[0]?.audience_type ?? '—' },
@@ -93,26 +125,35 @@ export default function ServiceDetailPage({ params }: Props) {
   // JSON extended data presence check
   const hasExtData = svc.customer_type != null || svc.options != null || svc.notes != null || svc.training_refs != null || svc.prerequisites_json != null || svc.dependencies_json != null;
 
-  const lifecycleState = businessView?.lifecycle_state ?? svc.lifecycle_state ?? null;
+  const lifecycleState = overview?.lifecycle.stage_code ?? svc.lifecycle_stage_code ?? businessView?.lifecycle_state ?? svc.lifecycle_state ?? null;
+  const lifecycleWorkflowState = overview?.lifecycle.state ?? businessView?.lifecycle_state ?? svc.lifecycle_state ?? null;
+  const normalizedLifecycleStage = normalizeLifecycleState(lifecycleState);
+  const visibleViews = viewMode === 'technical' ? DETAIL_VIEWS : BUSINESS_DETAIL_VIEWS;
 
   return (
     <div className={styles.shell}>
 
       {/* ── Phase 7: Lifecycle banner for deprecated/retired ─────────────── */}
-      {(lifecycleState === 'deprecated' || lifecycleState === 'retired') && (
-        <div className={`${styles.lifecycleBanner} ${lifecycleState === 'retired' ? styles.lifecycleBannerRetired : styles.lifecycleBannerDeprecated}`}>
-          <span className={styles.lifecycleBannerIcon}>
-            {lifecycleState === 'retired' ? '🚫' : '⚠️'}
-          </span>
+      {(normalizedLifecycleStage === 'deprecated' || normalizedLifecycleStage === 'retired') && (
+        <div className={`${styles.lifecycleBanner} ${normalizedLifecycleStage === 'retired' ? styles.lifecycleBannerRetired : styles.lifecycleBannerDeprecated}`}>
+          <span className={styles.lifecycleBannerIcon}>!</span>
           <span>
-            {lifecycleState === 'retired'
+            {normalizedLifecycleStage === 'retired'
               ? 'This service has been retired and is no longer available.'
               : 'This service is deprecated. Please check for a replacement or contact the service owner.'}
           </span>
-          <Link href={`/services/${id}/edit`} className={styles.lifecycleBannerLink}>View details →</Link>
+          <Link href={`/services/${id}/edit`} className={styles.lifecycleBannerLink}>View details</Link>
         </div>
       )}
 
+      {/*
+       * Design exception (LAYOUT_PROPOSAL §11):
+       * Service 360 uses RelationshipStudioHero as a full-canvas hero
+       * instead of the standard <PageHeader>. RelationshipStudioHero
+       * provides the 4-question-card pattern (What / Who / Ready / Depends)
+       * specified in §11 and is the intentional top-of-page anchoring element.
+       * Do NOT add a generic PageHeader above this component.
+       */}
       <RelationshipStudioHero
         id={id}
         service={svc}
@@ -126,18 +167,20 @@ export default function ServiceDetailPage({ params }: Props) {
         governanceAnchor={governanceAnchor}
         summarySourceUrl={summarySourceUrl}
         lifecycleState={lifecycleState}
+        lifecycleWorkflowState={lifecycleWorkflowState}
         overviewFacts={overviewFacts}
       />
 
       <nav className={styles.viewNav} aria-label="Service detail views">
-        {DETAIL_VIEWS.map((view) => (
+        {visibleViews.map((view) => (
           <button
             key={view.id}
             type="button"
-            className={`${styles.viewTab} ${activeView === view.id ? styles.viewTabActive : ''}`}
+            className={`${styles.viewTab} ${view.technical ? styles.viewTabTechnical : ''} ${activeView === view.id ? styles.viewTabActive : ''}`}
             onClick={() => setActiveView(view.id)}
           >
             <span className={styles.viewTabLabel}>{view.label}</span>
+            {view.technical && <span className={styles.techBadge}>Tech</span>}
             <span className={styles.viewTabHint}>{view.hint}</span>
           </button>
         ))}
@@ -259,10 +302,25 @@ export default function ServiceDetailPage({ params }: Props) {
                   audiencePolicies={audiencePolicies}
                 />
               </Section>
+            </>
+          )}
 
+          {activeView === 'support' && (
+            <>
               <Section title="Support" id="support">
                 <SupportModelPanel supportModels={supportModels} svc={svc} />
               </Section>
+
+              {(operationalLinks.length > 0 || svc.next_review_due_at || svc.review_owner_user_id) && (
+                <Section title="Operations">
+                  <OperationsPanel
+                    links={operationalLinks}
+                    nextReviewDueAt={svc.next_review_due_at ?? null}
+                    reviewOwnerId={svc.review_owner_user_id ?? null}
+                    serviceId={id}
+                  />
+                </Section>
+              )}
 
               {(svc.prerequisites_json || svc.request_process_raw || svc.operational_notes_raw) && (
                 <Section title="Fulfillment Notes">
@@ -281,6 +339,10 @@ export default function ServiceDetailPage({ params }: Props) {
                 </Section>
               )}
             </>
+          )}
+
+          {activeView === 'dependencies' && (
+            <DependenciesPanel serviceId={id} relations={svc.relations ?? []} overview={overview} />
           )}
 
           {activeView === 'governance' && (
@@ -399,6 +461,27 @@ export default function ServiceDetailPage({ params }: Props) {
               )}
             </div>
           )}
+
+          {activeView === 'lifecycle' && (
+            <LifecyclePanel service={svc} overview={overview} serviceId={id} />
+          )}
+
+          {activeView === 'audit' && (
+            <>
+              <Section title="Audit">
+                <MetadataGrid columns={3}>
+                  <MetadataItem label="Version" value={svc.catalogue_version} />
+                  <MetadataItem label="Created" value={svc.created_at} kind="date" />
+                  <MetadataItem label="Updated" value={svc.updated_at} kind="date" />
+                  <MetadataItem label="Created by" value={svc.created_by} />
+                  <MetadataItem label="Updated by" value={svc.updated_by} />
+                  <MetadataItem label="Source updated" value={svc.modified_at_source} kind="date" />
+                </MetadataGrid>
+                <Link href={`/services/${id}/history`} className={styles.graphLink}>Open full audit history →</Link>
+              </Section>
+              <RawExtSection svc={svc} />
+            </>
+          )}
         </div>
 
         <aside className={styles.rail} aria-label="Service detail side panels">
@@ -429,7 +512,7 @@ export default function ServiceDetailPage({ params }: Props) {
               <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
                 <div className={styles.railTitle}>Actions</div>
                 <div className={styles.quickLinks}>
-                  {requestHref && <a href={requestHref} target="_blank" rel="noreferrer">Request service ↗</a>}
+                  {requestHref && <Link href={requestHref}>Request service</Link>}
                   <a href={supportAnchor}>Jump to support</a>
                   <a href={governanceAnchor}>Open governance</a>
                   <Link href={`/services/${id}/edit`}>Edit service</Link>
@@ -575,6 +658,7 @@ function RelationshipStudioHero({
   governanceAnchor,
   summarySourceUrl,
   lifecycleState,
+  lifecycleWorkflowState,
   overviewFacts,
 }: {
   id: string;
@@ -589,6 +673,7 @@ function RelationshipStudioHero({
   governanceAnchor: string;
   summarySourceUrl: string | null;
   lifecycleState: string | null;
+  lifecycleWorkflowState: string | null;
   overviewFacts: Array<{ label: string; value: string }>;
 }) {
   const blockers = overview?.readiness?.blockers ?? [];
@@ -598,11 +683,25 @@ function RelationshipStudioHero({
   const capabilityCount = overview?.capability_mappings.length ?? (service.c3_uuid ? 1 : 0);
   const primaryCapability = overview?.capability_mappings.find((item) => item.is_primary) ?? overview?.capability_mappings[0] ?? null;
   const completeness = service.completeness_score ?? (overview?.readiness?.is_publishable ? 100 : null);
+  const portfolioTitle = overview?.portfolio.title ?? overview?.portfolio.code ?? service.portfolio_group_name ?? service.portfolio_group ?? 'Portfolio missing';
+  const audience = service.business_view?.target_audience_summary ?? service.target_audience_summary ?? 'Audience policy missing';
+  const owner = overview?.owners.primary?.display_name ?? service.service_owner ?? service.vlastnik ?? 'Owner missing';
+  const resolverGroup = supportModels[0]?.resolver_group ?? 'Resolver group missing';
+  const steward = overview?.owners.steward?.display_name ?? service.manager ?? 'Steward missing';
+  const reviewCadence = supportModels[0]?.review_cadence ?? (service.next_review_due_at ? `Review ${formatDate(service.next_review_due_at)}` : 'Review cadence missing');
+  const downstreamCount = overview?.dependencies.outgoing_count ?? service.relation_count ?? 0;
+  const upstreamCount = overview?.dependencies.incoming_count ?? 0;
+  const criticalChains = overview?.dependencies.mandatory_count ?? service.relations?.filter((item) => item.is_mandatory).length ?? 0;
+  const topDependencies = (overview?.dependencies.items ?? service.relations ?? [])
+    .slice(0, 3)
+    .map((item) => item.to_title ?? item.to_service_id)
+    .filter(Boolean)
+    .join(', ') || 'No dependency list';
   const managerSummary = consumerValue ?? businessSummary ?? service.value_proposition ?? service.business_purpose ?? service.summary ?? 'Service record is ready for business-facing enrichment.';
   const readinessLabel = blockers.length
-    ? `${blockers.length} blocker${blockers.length === 1 ? '' : 's'}`
+    ? `${blockers.length} open blocker${blockers.length === 1 ? '' : 's'}`
     : warnings.length
-      ? `${warnings.length} warning${warnings.length === 1 ? '' : 's'}`
+      ? `${warnings.length} open warning${warnings.length === 1 ? '' : 's'}`
       : 'Ready to run';
   const taskQueue = buildStudioTasks({
     id,
@@ -651,24 +750,99 @@ function RelationshipStudioHero({
         <h1 className={styles.studioTitle}>{service.title}</h1>
         <p className={styles.studioLead}>{managerSummary}</p>
 
+        <LifecycleBar state={lifecycleState ?? service.service_status ?? null} />
+        <p className={styles.lifecycleHint}>
+          Stage: {normalizeLifecycleState(lifecycleState ?? null).replace('_', ' ')} · workflow: {lifecycleWorkflowState ?? service.service_status ?? 'not set'}
+        </p>
+
+        <div className={styles.questionGrid} aria-label="Service 360 questions">
+          <QuestionCard
+            question="What is this?"
+            rows={[
+              ['Purpose', businessSummary ?? service.summary ?? 'Purpose missing'],
+              ['Portfolio', portfolioTitle],
+              ['Audience', audience],
+            ]}
+            href="#overview"
+            linkLabel="Read full"
+          />
+          <QuestionCard
+            question="Who owns it?"
+            rows={[
+              ['Service owner', owner],
+              ['Resolver group', resolverGroup],
+              ['Steward', steward],
+              ['Review cadence', reviewCadence],
+            ]}
+            href="/operations/owner-load"
+            linkLabel="Owner load"
+          />
+          <QuestionCard
+            question="Is it ready?"
+            rows={[
+              ['Readiness', completeness != null ? `${completeness}%` : 'Unknown'],
+              ['Blockers', String(blockers.length)],
+              ['Warnings', String(warnings.length)],
+              ['Exceptions', overview?.readiness?.rules?.some((rule) => rule.status === 'exception') ? 'active' : 'none'],
+            ]}
+            href="#readiness"
+            linkLabel="Otevřít readiness"
+          />
+          <QuestionCard
+            question="What depends on it?"
+            rows={[
+              ['Downstream', countLabel(downstreamCount, 'service')],
+              ['Upstream', countLabel(upstreamCount, 'service')],
+              ['Critical chains', String(criticalChains)],
+              ['Top', topDependencies],
+            ]}
+            href={`/services/impact?service=${encodeURIComponent(id)}`}
+            linkLabel="Run impact"
+          />
+        </div>
+
         <div className={styles.studioActions}>
           {requestHref ? (
-            <a href={requestHref} target="_blank" rel="noreferrer" className={styles.primaryAction}>
-              Request service
-            </a>
+            <Link href={requestHref} className={styles.primaryAction}>Request access →</Link>
           ) : (
             <button type="button" className={styles.primaryActionMuted} disabled>
-              Request path missing
+              Not requestable
             </button>
           )}
+          {(service.service_owner || service.vlastnik) && (
+            <a
+              href={`mailto:${service.service_owner ?? service.vlastnik}`}
+              className={styles.secondaryAction}
+              title={`Contact ${service.service_owner ?? service.vlastnik}`}
+            >
+              Contact owner
+            </a>
+          )}
           <a href={supportAnchor} className={styles.secondaryAction}>Support</a>
-          <a href={governanceAnchor} className={styles.secondaryAction}>Governance</a>
+          <Link href={`/services/${id}/edit`} className={styles.secondaryAction}>Edit</Link>
           {summarySourceUrl && (
             <a href={summarySourceUrl} target="_blank" rel="noreferrer" className={styles.secondaryAction}>
-              Source page
+              Source ↗
             </a>
           )}
         </div>
+
+        {(service.sla_availability != null || service.sla_restoration != null || service.sla_delivery != null) && (
+          <div className={styles.heroSlaStrip} aria-label="SLA commitments">
+            <div className={`${styles.heroSlaChip} ${service.sla_availability != null ? styles.heroSlaChip_success : styles.heroSlaChip_muted}`}>
+              <strong>{service.sla_availability != null ? `${service.sla_availability}%` : 'N/A'}</strong>
+              <small>Availability</small>
+            </div>
+            <div className={`${styles.heroSlaChip} ${service.sla_restoration != null ? styles.heroSlaChip_warning : styles.heroSlaChip_muted}`}>
+              <strong>{service.sla_restoration_text ?? (service.sla_restoration != null ? `${service.sla_restoration}h` : 'N/A')}</strong>
+              <small>Restoration</small>
+            </div>
+            <div className={`${styles.heroSlaChip} ${service.sla_delivery != null ? styles.heroSlaChip_warning : styles.heroSlaChip_muted}`}>
+              <strong>{service.sla_delivery_text ?? (service.sla_delivery != null ? `${service.sla_delivery}d` : 'N/A')}</strong>
+              <small>Delivery</small>
+            </div>
+          </div>
+        )}
 
         <div className={styles.studioMetricGrid} aria-label="Service headline metrics">
           <StudioMetric value={completeness != null ? `${completeness}%` : 'N/A'} label="Completeness" detail={readinessLabel} tone={blockers.length ? 'danger' : warnings.length ? 'warning' : 'success'} />
@@ -752,7 +926,7 @@ function buildStudioTasks({
     tasks.push({
       tone: 'danger',
       title: 'Publish blockers',
-      detail: blockers[0],
+      detail: `${blockers.length} readiness blocker${blockers.length === 1 ? '' : 's'} need attention before publish.`,
       href: `/services/${id}/edit`,
       label: 'Fix record',
     });
@@ -804,7 +978,7 @@ function buildStudioTasks({
   if (missingAction) {
     tasks.push({
       tone: missingAction.severity === 'blocker' ? 'danger' : missingAction.severity === 'warning' ? 'warning' : 'info',
-      title: missingAction.title,
+      title: 'Governance action',
       detail: missingAction.description,
       href: missingAction.href || `/services/${id}/edit`,
       label: 'Open',
@@ -898,6 +1072,82 @@ function RelationshipMap({
   );
 }
 
+const LIFECYCLE_STEPS = [
+  ['draft',        'Draft'],
+  ['under_review', 'Under review'],
+  ['approved',     'Approved'],
+  ['live',         'Live'],
+  ['deprecated',   'Deprecated'],
+  ['retired',      'Retired'],
+] as const;
+
+type LifecycleStepCode = typeof LIFECYCLE_STEPS[number][0];
+
+function normalizeLifecycleState(state: string | null): LifecycleStepCode {
+  if (!state) return 'draft';
+  // Legacy → canonical mapping
+  if (state === 'design' || state === 'planned' || state === 'under_review') return 'under_review';
+  if (state === 'active' || state === 'published') return 'live';
+  if (state === 'retiring') return 'deprecated';
+  const valid: LifecycleStepCode[] = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
+  return (valid.includes(state as LifecycleStepCode) ? state : 'draft') as LifecycleStepCode;
+}
+
+function LifecycleBar({ state }: { state: string | null }) {
+  const normalized = normalizeLifecycleState(state);
+  const currentIndex = Math.max(0, LIFECYCLE_STEPS.findIndex(([code]) => code === normalized));
+
+  return (
+    <div className={styles.lifecycleBar} aria-label="Service lifecycle">
+      {LIFECYCLE_STEPS.map(([code, label], index) => {
+        const isPast = index < currentIndex;
+        const isCurrent = index === currentIndex;
+        return (
+          <span
+            key={code}
+            className={[
+              styles.lifecycleStep,
+              isPast ? styles.lifecycleStepDone : '',
+              isCurrent ? styles.lifecycleStepNow : '',
+              code === 'deprecated' ? styles.lifecycleStepDeprecated : '',
+              code === 'retired' ? styles.lifecycleStepRetired : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function QuestionCard({
+  question,
+  rows,
+  href,
+  linkLabel,
+}: {
+  question: string;
+  rows: Array<[string, string]>;
+  href: string;
+  linkLabel: string;
+}) {
+  return (
+    <article className={styles.questionCard}>
+      <h2>{question}</h2>
+      <div className={styles.questionRows}>
+        {rows.map(([key, value]) => (
+          <div key={key} className={styles.questionRow}>
+            <span>{key}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
+      </div>
+      <Link href={href} className={styles.questionLink}>{linkLabel} →</Link>
+    </article>
+  );
+}
+
 function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
   return (
     <section className={styles.section} id={id}>
@@ -961,6 +1211,9 @@ function Service360Panel({
   const ruleBadges = (overview.readiness?.rules ?? [])
     .filter((rule) => ['failed', 'exception', 'disabled', 'skipped'].includes(rule.status))
     .slice(0, 8);
+  const ruleExplanations = (overview.readiness?.rules ?? [])
+    .filter((rule) => rule.status === 'failed')
+    .slice(0, 3);
   const primaryCapability = overview.capability_mappings.find((item) => item.is_primary) ?? overview.capability_mappings[0] ?? null;
   const ownerName = overview.owners.primary?.display_name ?? 'Missing';
   const lifecycle = overview.lifecycle.stage_code ?? overview.lifecycle.state ?? overview.lifecycle.service_status ?? 'Missing';
@@ -1012,11 +1265,30 @@ function Service360Panel({
         {ruleBadges.length > 0 && (
           <div className={styles.readinessRuleBadges} aria-label="Readiness rules">
             {ruleBadges.map((rule) => (
-              <span key={rule.rule_key} className={`${styles.readinessRuleBadge} ${styles[`readinessRule_${rule.status}`] ?? ''}`}>
-                {rule.severity} {rule.title}
+              <span
+                key={rule.rule_key}
+                className={`${styles.readinessRuleBadge} ${styles[`readinessRule_${rule.status}`] ?? ''}`}
+                title={[rule.why_text, rule.howto_text, rule.evidence_hint].filter(Boolean).join(' ')}
+              >
+                {rule.severity} {rule.title_text ?? rule.title}
               </span>
             ))}
           </div>
+        )}
+        {ruleExplanations.length > 0 && (
+          <details className={styles.readinessExplainDetails}>
+            <summary>Proč je to blocker a jak ho opravit</summary>
+            <div className={styles.readinessExplainGrid} aria-label="Readiness explanations">
+              {ruleExplanations.map((rule) => (
+                <div key={`explain-${rule.rule_key}`} className={styles.readinessExplainCard}>
+                  <strong>{rule.title_text ?? rule.title}</strong>
+                  {rule.why_text && <span>{rule.why_text}</span>}
+                  {rule.howto_text && <small>{rule.howto_text}</small>}
+                  {rule.evidence_hint && <code>{rule.evidence_hint}</code>}
+                </div>
+              ))}
+            </div>
+          </details>
         )}
       </div>
 
@@ -1027,7 +1299,7 @@ function Service360Panel({
         <Service360Metric label="Offerings" value={countLabel(overview.offerings.count, 'offering')} detail={overview.offerings.primary?.title ?? overview.offerings.primary?.offering_code ?? 'Primary missing'} />
         <Service360Metric label="SLA & Pricing" value={overview.sla.has_sla && overview.pricing.has_prices ? 'Covered' : 'Incomplete'} detail={`${overview.sla.record_count} SLA records / ${overview.pricing.priced_flavour_count} priced`} />
         <Service360Metric label="Dependencies" value={`${overview.dependencies.outgoing_count} out / ${overview.dependencies.incoming_count} in`} detail={`${overview.dependencies.mandatory_count} mandatory`} />
-        <Service360Metric label="Capabilities" value={countLabel(overview.capability_mappings.length, 'mapping')} detail={primaryCapability?.title ?? 'Primary missing'} />
+        <Service360Metric label="Capabilities" value={countLabel(overview.capability_mappings.length, 'mapping')} detail={primaryCapability?.code ? `Primary ${primaryCapability.code}` : 'Primary missing'} />
         <Service360Metric label="C3 Mapping" value={primaryCapability?.code ?? primaryCapability?.c3_uuid ?? 'Missing'} detail={primaryCapability?.status ?? primaryCapability?.mapping_type_code ?? 'Unclassified'} />
         <Service360Metric label="Governance" value={countLabel(overview.governance_risks.count, 'risk')} detail={`${overview.governance_risks.high_count} high priority`} />
         <Service360Metric label="Audit" value={countLabel(overview.audit_summary.count, 'change')} detail={overview.audit_summary.last_action?.performed_at ? formatDate(overview.audit_summary.last_action.performed_at) : 'No recent changes'} />
@@ -1201,7 +1473,8 @@ function RequestabilityPanel({
   audiencePolicies: ServiceAudiencePolicy[];
 }) {
   const requestable = primaryOffering?.requestable ?? service.requestable;
-  const requestHref = safeHref(primaryOffering?.request_channel_url ?? service.request_channel_url);
+  const externalRequestHref = safeHref(primaryOffering?.request_channel_url ?? service.request_channel_url);
+  const requestHref = requestable || externalRequestHref ? `/services/${service.service_id}/request` : null;
   const requestChannel = primaryOffering?.request_channel_type ?? service.request_channel_type;
   const leadTime = primaryOffering?.lead_time_text ?? service.fulfillment_lead_time_text;
   const approval = primaryOffering?.approval_required ?? service.approval_required;
@@ -1217,9 +1490,7 @@ function RequestabilityPanel({
           <MiniFact label="Lead time" value={leadTime ?? '—'} />
         </div>
         {requestHref ? (
-          <a href={requestHref} target="_blank" rel="noreferrer" className={styles.inlineActionLink}>
-            Open request form ↗
-          </a>
+          <Link href={requestHref} className={styles.inlineActionLink}>Open request flow</Link>
         ) : (
           <p className={styles.emptyState}>No request URL is configured yet.</p>
         )}
@@ -1422,18 +1693,23 @@ function OperationalLinksList({ links }: { links: ServiceOperationalLink[] }) {
 const LIFECYCLE_BADGE_CLASS: Record<string, string> = {
   draft:        'lifecycleDraft',
   under_review: 'lifecycleUnderReview',
-  approved:     'lifecycleApproved',
+  approved:     'lifecycleUnderReview',
   live:         'lifecycleLive',
   deprecated:   'lifecycleDeprecated',
   retired:      'lifecycleRetired',
+  // legacy aliases
+  design:       'lifecycleUnderReview',
+  active:       'lifecycleLive',
+  retiring:     'lifecycleDeprecated',
 };
 
 function LifecycleBadge({ state, fallback }: { state: string | null; fallback: string }) {
   if (!state) return <span className={styles.heroFactValue}>{fallback}</span>;
-  const cls = LIFECYCLE_BADGE_CLASS[state] ?? 'lifecycleDraft';
+  const normalized = normalizeLifecycleState(state);
+  const cls = LIFECYCLE_BADGE_CLASS[normalized] ?? 'lifecycleDraft';
   return (
     <span className={`${styles.lifecycleBadge} ${styles[cls]}`}>
-      {state.replace('_', ' ')}
+      {normalized.replace('_', ' ')}
     </span>
   );
 }
@@ -1723,6 +1999,119 @@ function RawExtSection({ svc }: { svc: import('@/features/services/model/service
   );
 }
 
+function DependenciesPanel({
+  serviceId,
+  relations,
+  overview,
+}: {
+  serviceId: string;
+  relations: ServiceRelation[];
+  overview: ServiceOverview | null;
+}) {
+  const incoming = overview?.dependencies.incoming ?? [];
+  const outgoing = overview?.dependencies.outgoing ?? relations;
+  const mandatoryCount = overview?.dependencies.mandatory_count ?? relations.filter((item) => item.is_mandatory).length;
+
+  return (
+    <>
+      <Section title="Dependencies">
+        <p className={styles.sectionIntro}>
+          Co tato služba potřebuje, co je na ní závislé a kde změna vyžaduje review.
+        </p>
+        <div className={styles.dualPanel}>
+          <div className={styles.infoCard}>
+            <div className={styles.infoCardLabel}>Co služba potřebuje</div>
+            {outgoing.length ? (
+              <div className={styles.relationList}>
+                {outgoing.slice(0, 8).map((relation) => (
+                  <RelationRow key={`out-${relation.id}`} relation={relation} />
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>Žádné odchozí vazby nejsou evidované.</p>
+            )}
+          </div>
+          <div className={styles.infoCard}>
+            <div className={styles.infoCardLabel}>Co závisí na službě</div>
+            {incoming.length ? (
+              <div className={styles.relationList}>
+                {incoming.slice(0, 8).map((relation) => (
+                  <RelationRow key={`in-${relation.id}`} relation={relation} />
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>Žádné příchozí vazby nejsou evidované.</p>
+            )}
+          </div>
+        </div>
+      </Section>
+      <Section title="Dependency conclusion">
+        <p className={styles.prose}>
+          Evidence obsahuje {countLabel(outgoing.length, 'outgoing relation')} a {countLabel(incoming.length, 'incoming relation')}.
+          {mandatoryCount > 0 ? ` ${countLabel(mandatoryCount, 'mandatory dependency')} má dopad na change/release plán.` : ' Žádná mandatory dependency není zvýrazněná.'}
+        </p>
+        <div className={styles.heroActions}>
+          <Link href={`/services/${serviceId}/graph`} className={styles.secondaryAction}>Service graph</Link>
+          <Link href={`/services/impact?service=${encodeURIComponent(serviceId)}`} className={styles.secondaryAction}>Run impact analysis</Link>
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function RelationRow({ relation }: { relation: ServiceRelation }) {
+  return (
+    <div className={styles.relationRow}>
+      <span className={styles.relType}>{relation.relation_type}</span>
+      <Link href={`/services/${relation.to_service_id}`} className={styles.relLink}>
+        {relation.to_title ?? relation.to_service_id}
+      </Link>
+      {relation.is_mandatory && <span className={styles.relBadgeDanger}>mandatory</span>}
+      {relation.impact_level && <span className={styles.relBadge}>{relation.impact_level}</span>}
+      {relation.is_verified && <span className={styles.relBadgeGreen}>verified</span>}
+    </div>
+  );
+}
+
+function LifecyclePanel({
+  service,
+  overview,
+  serviceId,
+}: {
+  service: ServiceDetail;
+  overview: ServiceOverview | null;
+  serviceId: string;
+}) {
+  const state = service.lifecycle_state ?? overview?.lifecycle.state ?? service.service_status ?? null;
+  return (
+    <>
+      <Section title="Lifecycle">
+        <p className={styles.sectionIntro}>
+          Stav služby od návrhu po vyřazení. Live stav má dávat smysl až po readiness a governance review.
+        </p>
+        <LifecycleBar state={state} />
+        <MetadataGrid columns={3}>
+          <MetadataItem label="Lifecycle state" value={state} />
+          <MetadataItem label="Service status" value={service.service_status_name ?? service.service_status} />
+          <MetadataItem label="Criticality" value={overview?.lifecycle.criticality_code ?? service.security_classification} />
+          <MetadataItem label="Requestable" value={formatBool(service.requestable)} />
+          <MetadataItem label="Next review" value={service.next_review_due_at ?? overview?.lifecycle.review_due_at} kind="date" />
+          <MetadataItem label="Review owner" value={service.review_owner_user_id != null ? String(service.review_owner_user_id) : null} />
+        </MetadataGrid>
+      </Section>
+      <Section title="Transition guard">
+        <p className={styles.prose}>
+          Před přechodem do Live musí být vidět owner, request path, SLA/support model a capability/C3 vazba. Deprecated nebo retired služba má mít náhradu, výjimku nebo retirement note.
+        </p>
+        <div className={styles.heroActions}>
+          <Link href={`/services/${serviceId}/edit#governance`} className={styles.secondaryAction}>Update lifecycle</Link>
+          <Link href="/operations/readiness" className={styles.secondaryAction}>Open readiness gate</Link>
+        </div>
+      </Section>
+    </>
+  );
+}
+
 // ── C3 Taxonomy Mapping Table ─────────────────────────────────────────────────
 const C3_ITEM_TYPE_LABELS: Record<string, string> = {
   BP: 'Business Process',
@@ -1794,13 +2183,23 @@ function C3MappingTable({ mappings }: { mappings: ServiceC3Mapping[] }) {
   );
 }
 
-const DETAIL_VIEWS: Array<{ id: DetailView; label: string; hint: string }> = [
+const BUSINESS_DETAIL_VIEWS: Array<{ id: DetailView; label: string; hint: string; technical?: boolean }> = [
   { id: 'overview', label: 'Overview', hint: 'Value, scope, commitments' },
   { id: 'offerings', label: 'Offerings', hint: 'Catalogue packages and variants' },
-  { id: 'request', label: 'Request & Support', hint: 'Eligibility, approvals, support path' },
-  { id: 'coverage', label: 'Coverage', hint: 'Framework requirements and gaps' },
-  { id: 'governance', label: 'Governance', hint: 'Metadata, relationships, architecture' },
+  { id: 'request', label: 'Request & Eligibility', hint: 'Eligibility, approvals, ordering path' },
+  { id: 'support', label: 'Support', hint: 'Support owner, hours, escalation' },
+  { id: 'dependencies', label: 'Dependencies', hint: 'What this service needs and affects' },
 ];
+
+const TECHNICAL_DETAIL_VIEWS: Array<{ id: DetailView; label: string; hint: string; technical?: boolean }> = [
+  { id: 'coverage', label: 'Coverage', hint: 'Framework requirements and gaps', technical: true },
+  { id: 'governance', label: 'Governance', hint: 'Metadata, relationships, architecture', technical: true },
+  { id: 'lifecycle', label: 'Lifecycle', hint: 'Transition, review and retirement', technical: true },
+  { id: 'audit', label: 'Audit', hint: 'Raw fields, history and import evidence', technical: true },
+];
+
+const DETAIL_VIEWS = [...BUSINESS_DETAIL_VIEWS, ...TECHNICAL_DETAIL_VIEWS];
+const TECHNICAL_DETAIL_VIEW_IDS = new Set<DetailView>(TECHNICAL_DETAIL_VIEWS.map((view) => view.id));
 
 function CoveragePanel({ frameworks, serviceId }: { frameworks: ServiceFrameworkCoverage[]; serviceId: string }) {
   if (!frameworks.length) {

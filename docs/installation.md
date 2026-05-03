@@ -17,6 +17,7 @@ Current application package baseline:
 
 | Area | Version baseline |
 |---|---|
+| Application release | 1.1.2 |
 | Frontend runtime | Next.js 16.2, React 19.2, TypeScript 6.0 |
 | Frontend styling | Tailwind CSS 4.2, `@tailwindcss/postcss` 4.2, CSS Modules |
 | Middleware runtime | Express 5.2, PostgreSQL `pg` 8.20 |
@@ -249,6 +250,7 @@ Recommended cadence:
 
 | Variable | Default | Description |
 |---|---|---|
+| `APP_VERSION` | `1.1.2` | Application release version used by install/upgrade detection and visible release metadata |
 | `PORT` | `4000` | Express middleware port |
 | `NEXT_PORT` | `3000` | Next.js port |
 | `CORS_ORIGINS` | `http://localhost:8080` | Allowed CORS origins |
@@ -354,6 +356,7 @@ SQL file order:
 25_capability_governance.sql — coverage, gap, and overlap views
 26_governance_workflow.sql — reviews and decision log
 27_impact_analysis.sql — recursive service/capability impact analysis
+28_enterprise_governance_contracts.sql — notifications, preferences, request log, C3 board state
 ```
 
 ---

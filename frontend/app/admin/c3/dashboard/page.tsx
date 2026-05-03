@@ -21,6 +21,11 @@ interface CountRow { name: string; value: number }
 interface CoverageRow extends CountRow { mapped: number }
 interface SpiralCoverageRow extends CountRow { mapped: number; unmapped: number }
 interface ItemRow { uuid: string; title: string | null; item_type?: string | null; mapping_count?: number }
+interface BoardLaneRow {
+  board_state: 'imported' | 'validated' | 'mapped' | 'used' | 'reviewed' | string;
+  value: number;
+  cards: Array<{ uuid: string; title: string | null; item_type?: string | null; validation_status?: string | null }>;
+}
 interface CapabilityMapHealth { total_nodes: number; mapped_nodes: number; unmapped_nodes: number }
 interface ImportSyncDrift {
   latest_import_target: string | null;
@@ -47,6 +52,7 @@ interface C3DashboardResponse {
   import_sync_drift: ImportSyncDrift;
   link_health: CountRow[];
   review_validation: CountRow[];
+  board_lanes?: BoardLaneRow[];
 }
 interface ExportManifestResponse { contract_version: string; schema_version: string }
 
@@ -138,6 +144,7 @@ export default function C3DashboardPage() {
       </div>
 
       <C3RelationshipBoard data={data} locale={locale} />
+      <C3BoardKanban data={data} locale={locale} />
 
       <section className={dashboardStyles.kpiThree} aria-label="C3 headline KPIs">
         <KpiCard label={t('c3.dashboard.kpi.items')} value={data.summary.total_items.toLocaleString(locale)} hint={t('c3.dashboard.kpi.item_types', { count: data.summary.item_type_count })} />
@@ -266,6 +273,107 @@ function C3RelationshipBoard({ data, locale }: { data: C3DashboardResponse; loca
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function C3BoardKanban({ data, locale }: { data: C3DashboardResponse; locale: string }) {
+  const boardLaneByState = new Map((data.board_lanes ?? []).map((lane) => [lane.board_state, lane]));
+  const managedLanes = [
+    { state: 'imported', title: 'Imported', fallbackCount: data.summary.total_items },
+    { state: 'validated', title: 'Validated', fallbackCount: data.summary.total_items - data.import_sync_drift.unsynced_mapping_count },
+    { state: 'mapped', title: 'Mapped', fallbackCount: data.summary.mapped_items },
+    { state: 'used', title: 'Used by service', fallbackCount: data.coverage_by_application.reduce((sum, item) => sum + item.mapped, 0) },
+    { state: 'reviewed', title: 'Reviewed', fallbackCount: data.review_validation.reduce((sum, item) => sum + item.value, 0) },
+  ];
+  const lanes = data.board_lanes?.length ? managedLanes.map((lane) => {
+    const source = boardLaneByState.get(lane.state);
+    return {
+      title: lane.title,
+      count: source?.value ?? lane.fallbackCount,
+      cards: (source?.cards ?? []).map((item) => ({
+        title: item.title ?? item.uuid,
+        meta: `${item.item_type ?? 'C3'} · ${item.validation_status ?? lane.state}`,
+        href: `/c3/${item.uuid}`,
+      })),
+    };
+  }) : [
+    {
+      title: 'Imported',
+      count: data.summary.total_items,
+      cards: data.needs_mapping.slice(0, 4).map((item) => ({
+        title: item.title ?? item.uuid,
+        meta: `${item.item_type ?? 'C3'} · needs mapping`,
+        href: `/c3/${item.uuid}`,
+      })),
+    },
+    {
+      title: 'Validated',
+      count: data.summary.total_items - data.import_sync_drift.unsynced_mapping_count,
+      cards: data.by_status.slice(0, 4).map((item) => ({
+        title: item.name,
+        meta: `${item.value.toLocaleString(locale)} records by status`,
+        href: `/c3/list?status=${encodeURIComponent(item.name)}`,
+      })),
+    },
+    {
+      title: 'Mapped',
+      count: data.summary.mapped_items,
+      cards: data.most_mapped.slice(0, 4).map((item) => ({
+        title: item.title ?? item.uuid,
+        meta: `${item.mapping_count ?? 0} mappings`,
+        href: `/c3/${item.uuid}`,
+      })),
+    },
+    {
+      title: 'Used by service',
+      count: data.coverage_by_application.reduce((sum, item) => sum + item.mapped, 0),
+      cards: data.coverage_by_application.slice(0, 4).map((item) => ({
+        title: item.name,
+        meta: `${item.mapped}/${item.value} mapped`,
+        href: `/c3/list?application=${encodeURIComponent(item.name)}`,
+      })),
+    },
+    {
+      title: 'Reviewed',
+      count: data.review_validation.reduce((sum, item) => sum + item.value, 0),
+      cards: data.review_validation.slice(0, 4).map((item) => ({
+        title: item.name,
+        meta: `${item.value.toLocaleString(locale)} validation findings`,
+        href: '/c3/dashboard?tab=review',
+      })),
+    },
+  ];
+
+  return (
+    <section className={dashboardStyles.c3KanbanSection} aria-label="C3 Board status lanes">
+      <div className={dashboardStyles.decisionCardHeader}>
+        <div>
+          <h2 className={dashboardStyles.decisionTitle}>C3 Board</h2>
+          <p className={dashboardStyles.decisionLead}>Imported to Validated to Mapped to Used by service to Reviewed.</p>
+        </div>
+        <Link href="/admin/new-c3" className={dashboardStyles.secondaryLink}>New C3 item</Link>
+      </div>
+      <div className={dashboardStyles.c3Kanban}>
+        {lanes.map((lane) => (
+          <article key={lane.title} className={dashboardStyles.c3Lane}>
+            <h3>
+              <span>{lane.title}</span>
+              <strong>{lane.count.toLocaleString(locale)}</strong>
+            </h3>
+            <div className={dashboardStyles.c3LaneCards}>
+              {lane.cards.length ? lane.cards.map((card) => (
+                <Link key={`${lane.title}-${card.title}`} href={card.href} className={dashboardStyles.c3LaneCard}>
+                  <strong>{card.title}</strong>
+                  <span>{card.meta}</span>
+                </Link>
+              )) : (
+                <p className={dashboardStyles.c3LaneEmpty}>No items in this lane.</p>
+              )}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

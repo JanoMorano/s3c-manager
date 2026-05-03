@@ -29,6 +29,7 @@ import useSWR from 'swr';
 import { apiFetch } from '@/features/services/api/services.api';
 import { useC3RelationGraph } from '@/features/services/hooks/useServices';
 import type { C3RelationGraphNode, C3RelationGraphEdge } from '@/features/services/model/service.types';
+import { GraphWorkspace } from '@/app/components/layout-v2';
 import styles from './c3graph.module.css';
 
 type GraphMode = 'hierarchy' | 'relations';
@@ -342,7 +343,11 @@ export default function C3GraphPage() {
   const filtered = search.trim().length > 0;
 
   return (
-    <div className={styles.shell}>
+    <GraphWorkspace
+      title="C3 taxonomy graph"
+      purpose="Admin workspace pro hierarchy a relation mód C3 taxonomy."
+      toolbar={(
+        <>
       <div className={styles.header}>
         <span className={styles.title}>C3 Taxonomy — Graf vazeb</span>
         <span className={styles.meta}>
@@ -394,7 +399,9 @@ export default function C3GraphPage() {
           {TYPE_LABEL[selectedType]} {mode === 'relations' ? '· relation mode' : ''}
         </span>
       </div>
-
+        </>
+      )}
+      canvas={(
       <div className={styles.canvas}>
         {currentError && <div className={styles.state} style={{ color: 'var(--color-danger)' }}>Chyba při načítání C3 dat</div>}
         {currentLoading && <div className={styles.state}>Načítám C3 data…</div>}
@@ -429,7 +436,8 @@ export default function C3GraphPage() {
           </ReactFlow>
         )}
       </div>
-
+      )}
+      detailPanelContent={(
       <div className={styles.legend}>
         {mode === 'hierarchy' ? (
           ALL_TYPES.map((type) => (
@@ -447,6 +455,7 @@ export default function C3GraphPage() {
           ))
         )}
       </div>
-    </div>
+      )}
+    />
   );
 }

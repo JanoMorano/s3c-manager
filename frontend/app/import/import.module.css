@@ -83,6 +83,156 @@
   padding: 3px 8px;
 }
 
+.importWizard {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-4) var(--space-6) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.importSteps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.importSteps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 54px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+
+.importSteps li span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.importSteps li strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.stepDone {
+  border-color: color-mix(in srgb, var(--color-success) 34%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
+}
+
+.stepDone span {
+  background: var(--color-success);
+  color: var(--color-bg-surface);
+}
+
+.stepActive {
+  border-color: color-mix(in srgb, var(--color-info) 34%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
+}
+
+.stepActive span {
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+}
+
+.stepTodo {
+  opacity: .72;
+}
+
+.dryRunGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.dryRunCard {
+  display: grid;
+  gap: var(--space-1);
+  min-height: 104px;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-left: 4px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.dryRunCard span {
+  color: var(--color-text-secondary);
+  font: var(--text-label-md);
+}
+
+.dryRunCard strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 30px;
+  font-weight: 760;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dryRunCard small {
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+.dryRunInfo {
+  border-left-color: var(--color-info);
+  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
+}
+
+.dryRunSuccess {
+  border-left-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
+}
+
+.dryRunWarning {
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-surface));
+}
+
+.dryRunDanger {
+  border-left-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface));
+}
+
+.governanceImpact {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--color-purple) 26%, var(--color-border-default));
+  border-radius: var(--radius-md);
+  background: var(--color-purple-soft);
+}
+
+.governanceImpact strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.governanceImpact span {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
 .stubPanel {
   margin: var(--space-4) var(--space-6) 0;
   background: var(--color-bg-surface);
@@ -227,8 +377,8 @@
 .batchSource { font: var(--text-label-sm); color: var(--color-text-secondary); }
 
 .batchBadge  { font: var(--text-label-sm); border-radius: var(--radius-pill); padding: 1px var(--space-2); margin-left: auto; }
-.badgeFailed { background: var(--color-bg-surface)3f3; color: var(--color-danger); border: 1px solid var(--color-danger); }
-.badgeWarn   { background: var(--color-bg-surface)ae6; color: var(--color-warning); border: 1px solid var(--color-warning); }
+.badgeFailed { background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface)); color: var(--color-danger); border: 1px solid var(--color-danger); }
+.badgeWarn   { background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-surface)); color: var(--color-warning); border: 1px solid var(--color-warning); }
 .badgeOk     { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); border: 1px solid var(--color-success); }
 
 /* Detail */
@@ -246,7 +396,7 @@
 .meta_blue  { color: var(--color-action-primary); }
 
 /* Errors */
-.errorSection      { background: var(--color-bg-surface)3f3; border: 1px solid var(--color-danger); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
+.errorSection      { background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface)); border: 1px solid var(--color-danger); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
 .errorSectionTitle { font: var(--text-label-md); color: var(--color-danger); margin-bottom: var(--space-2); }
 .errorRow          { font: var(--text-body-sm); color: var(--color-text-primary); padding: var(--space-1) 0; border-top: 1px solid rgba(222,53,11,.15); }
 
@@ -262,7 +412,7 @@
 .issueHeader { font: var(--text-label-sm); color: var(--color-text-muted); text-transform: uppercase; background: var(--color-bg-canvas); }
 .issueRow    { border-top: 1px solid var(--color-border-default); }
 .issueRow_mono { font: var(--text-mono-sm); color: var(--color-text-secondary); }
-.issueType   { font: var(--text-label-sm); background: var(--color-bg-surface)7d6; color: var(--color-warning); border-radius: var(--radius-pill); padding: 1px var(--space-2); white-space: nowrap; }
+.issueType   { font: var(--text-label-sm); background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-surface)); color: var(--color-warning); border-radius: var(--radius-pill); padding: 1px var(--space-2); white-space: nowrap; }
 
 .noIssues { padding: var(--space-4); text-align: center; color: var(--color-success); font: var(--text-body-sm); }
 .state      { padding: var(--space-5) var(--space-4); color: var(--color-text-muted); font: var(--text-body-sm); }
@@ -327,6 +477,12 @@
 
 @media (max-width: 980px) {
   .profilePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .importSteps,
+  .dryRunGrid,
+  .governanceImpact {
     grid-template-columns: 1fr;
   }
 

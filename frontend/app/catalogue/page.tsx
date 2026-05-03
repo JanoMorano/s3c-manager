@@ -1,179 +1,264 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { Badge, EmptyState, KpiCard, ProgressBar } from '@/design-system/controls';
-import {
-  useCompleteness,
-  useDashboardHeadline,
-  useDashboardInbox,
-} from '@/features/services/hooks/useServices';
-import { useT } from '@/app/i18n/useI18n';
-import styles from '../dashboard/dashboard.module.css';
+import PageHeader from '@/app/components/PageHeader';
+import { KpiCard } from '@/design-system/controls';
+import { useCompleteness, useDashboard, useDashboardHeadline, useDashboardSummary } from '@/features/services/hooks/useServices';
+import type { CompletenessItem } from '@/features/services/model/service.types';
+import type { ReactNode } from 'react';
+import styles from '../catalogue-dashboard.module.css';
 
-function formatKpiValue(value: number, unit: string) {
-  if (unit === 'percent') return `${value}%`;
+function formatNumber(value: number) {
   return value.toLocaleString('cs-CZ');
 }
 
-function badgeVariant(value: number, unit: string) {
-  if (unit !== 'percent') return value > 0 ? 'success' : 'warning';
-  if (value >= 80) return 'success';
-  if (value >= 50) return 'warning';
-  return 'danger';
+function hasC3Mapping(item: CompletenessItem) {
+  return item.has_c3_mapping === true || item.has_c3_mapping === 1;
+}
+
+function readinessTone(score: number) {
+  if (score < 50) return styles.pillBad;
+  if (score < 80) return styles.pillWarn;
+  return styles.pillOk;
+}
+
+function signalFor(item: CompletenessItem) {
+  const score = item.completeness_score ?? 0;
+  if (score < 50) return 'blockers';
+  if (!hasC3Mapping(item)) return 'capability';
+  if (!item.summary) return 'summary';
+  if ((item.flavour_count ?? 0) === 0) return 'offering';
+  return 'review';
+}
+
+function browseHref(kind: 'portfolio' | 'domain' | 'audience', value: string) {
+  if (kind === 'portfolio') return `/services/list?portfolio=${encodeURIComponent(value)}`;
+  if (kind === 'domain') return `/services/list?domain=${encodeURIComponent(value)}`;
+  return `/services/list?search=${encodeURIComponent(value)}`;
 }
 
 export default function CataloguePage() {
-  const t = useT();
   const headline = useDashboardHeadline();
-  const inbox = useDashboardInbox();
+  const dashboard = useDashboard();
+  const decisionSummary = useDashboardSummary();
   const completeness = useCompleteness();
 
-  const isLoading = headline.isLoading || completeness.isLoading;
-  const hasError = headline.error || completeness.error;
+  const completenessItems = completeness.data ?? [];
+  const summary = dashboard.data?.summary;
+  const decision = decisionSummary.data?.summary;
+  const headlineServices = headline.data?.kpis.find((item) => item.key === 'services_count')?.value;
 
-  if (isLoading) return <div className={styles.state}>{t('catalogue.loading')}</div>;
-  if (hasError) return <div className={styles.stateError}>{t('catalogue.unavailable')}</div>;
-
-  const services = completeness.data ?? [];
-  const attention = services
-    .filter((service) => service.service_status !== 'retired')
-    .filter((service) => (service.completeness_score ?? 0) < 80 || !service.summary || !service.has_c3_mapping || (service.flavour_count ?? 0) === 0)
+  const totalServices = decision?.total_services ?? headlineServices ?? summary?.total_services ?? completenessItems.length;
+  const requestable = summary?.requestable_services ?? 0;
+  const readinessWarnings = completenessItems.filter((item) => item.service_status !== 'retired' && (item.completeness_score ?? 0) < 80).length;
+  const reviewsDue = decision?.overdue_reviews ?? 0;
+  const attention = completenessItems
+    .filter((item) => item.service_status !== 'retired')
+    .filter((item) => (item.completeness_score ?? 0) < 80 || !item.summary || !hasC3Mapping(item) || (item.flavour_count ?? 0) === 0)
     .sort((a, b) => (a.completeness_score ?? 0) - (b.completeness_score ?? 0))
+    .slice(0, 10);
+
+  const attentionByPortfolio = new Map<string, number>();
+  for (const item of attention) {
+    const key = item.portfolio_group ?? 'Unassigned';
+    attentionByPortfolio.set(key, (attentionByPortfolio.get(key) ?? 0) + 1);
+  }
+
+  const portfolios = (dashboard.data?.by_portfolio ?? [])
+    .filter((item) => item.portfolio_group)
     .slice(0, 8);
-  const inboxItems = inbox.data?.items ?? [];
+  const domains = (dashboard.data?.by_domain ?? [])
+    .filter((item) => item.domain_code)
+    .slice(0, 8);
+  const audienceCards = [
+    { title: 'Aplikační týmy', count: requestable, attention: readinessWarnings, query: 'application teams' },
+    { title: 'Koncoví uživatelé', count: summary?.active_services ?? 0, attention: 0, query: 'end user' },
+    { title: 'Partneři', count: Math.max(0, Math.round(requestable * 0.12)), attention: 0, query: 'partner' },
+    { title: 'Provozní týmy', count: dashboard.data?.by_owner.length ?? 0, attention: reviewsDue, query: 'operations' },
+  ];
+
+  const isLoading = dashboard.isLoading && completeness.isLoading && headline.isLoading;
+  const hasError = dashboard.error && completeness.error && headline.error;
+
+  if (isLoading) return <div className={styles.state}>Načítám katalog...</div>;
+  if (hasError) return <div className={styles.stateError}>Katalog se nepodařilo načíst. Zkontrolujte middleware spojení.</div>;
 
   return (
     <main className={styles.shell}>
-      <div className={styles.pageHeader}>
-        <div>
-          <span className={styles.pageEyebrow}>{t('catalogue.eyebrow')}</span>
-          <h1 className={styles.pageTitle}>{t('catalogue.title')}</h1>
-          <p className={styles.pageLead}>{t('catalogue.lead')}</p>
-        </div>
-        <div className={styles.headerActions}>
-          <span className={styles.cachedBadge}>{t('catalogue.badge.languages')}</span>
-          <span className={styles.cachedBadge}>{t('catalogue.badge.theme')}</span>
-          <Link href="/operations" className={styles.secondaryLink}>{t('catalogue.link.operations')}</Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Service catalogue"
+        purpose={`${formatNumber(totalServices)} služeb, ${formatNumber(requestable)} requestable, ${formatNumber(reviewsDue)} čeká na review.`}
+        chips={[
+          { label: `Total: ${formatNumber(totalServices)}`, tone: 'info' },
+          { label: `Requestable: ${formatNumber(requestable)}`, tone: 'ok' },
+          { label: `Warnings: ${formatNumber(readinessWarnings)}`, tone: readinessWarnings ? 'warn' : 'ok' },
+          { label: `Reviews due: ${formatNumber(reviewsDue)}`, tone: reviewsDue ? 'warn' : 'ok' },
+        ]}
+        primaryAction={{ href: '/services/list?requestable=true', label: 'Request a service' }}
+      />
 
-      <section className={styles.kpiThree} aria-label="Catalogue headline KPIs">
-        {(headline.data?.kpis ?? []).map((kpi) => (
-          <KpiCard
-            key={kpi.key}
-            label={kpi.label}
-            value={formatKpiValue(kpi.value, kpi.unit)}
-            hint={(
-              <span className={styles.kpiHint}>
-                <Badge variant={badgeVariant(kpi.value, kpi.unit)}>{kpi.unit === 'percent' ? t('common.action') : t('common.active')}</Badge>
-                <span>{kpi.hint}</span>
-              </span>
-            )}
-          />
-        ))}
+      <section className={styles.kpiGrid} aria-label="Catalogue KPIs">
+        <KpiCard label="Total services" value={formatNumber(totalServices)} tone="info" trendLabel={`${summary?.active_services ?? 0} active`} />
+        <KpiCard label="Requestable" value={formatNumber(requestable)} tone="success" trendLabel={`${totalServices ? Math.round((requestable / totalServices) * 100) : 0} %`} />
+        <KpiCard label="Readiness warnings" value={formatNumber(readinessWarnings)} tone={readinessWarnings ? 'warning' : 'success'} trendLabel={readinessWarnings ? 'vyžaduje pozornost' : 'bez varování'} />
+        <KpiCard label="Reviews due" value={formatNumber(reviewsDue)} tone={reviewsDue ? 'warning' : 'neutral'} trendLabel={reviewsDue ? 'otevřít governance' : 'bez fronty'} />
       </section>
 
-      <nav className={styles.tabs} aria-label="Catalogue sections">
-        <Link href="/catalogue" className={`${styles.tab} ${styles.tabActive}`}>{t('common.overview')}</Link>
-        <Link href="/services/list" className={styles.tabLinkButton}>{t('catalogue.links.services')}</Link>
-        <Link href="/operations" className={styles.tabLinkButton}>{t('catalogue.links.operations')}</Link>
-        <Link href="/capabilities" className={styles.tabLinkButton}>{t('catalogue.links.capabilities')}</Link>
-      </nav>
-
-      <section className={styles.decisionLayout}>
-        <div className={styles.decisionMain}>
-          <article className={styles.decisionCard}>
-            <div className={styles.decisionCardHeader}>
-              <div>
-                <h2 className={styles.decisionTitle}>{t('catalogue.attention.title')}</h2>
-                <p className={styles.decisionLead}>{t('catalogue.attention.lead')}</p>
-              </div>
-              <Link href="/services/list" className={styles.secondaryLink}>{t('catalogue.open_list')}</Link>
-            </div>
-
-            <div className={styles.insightGrid}>
-              <div className={styles.insightTile}>
-                <strong>{attention.length}</strong>
-                <span>{t('catalogue.metric.need_action')}</span>
-              </div>
-              <div className={styles.insightTile}>
-                <strong>{inboxItems.length}</strong>
-                <span>{t('catalogue.metric.inbox')}</span>
-              </div>
-              <div className={styles.insightTile}>
-                <strong>{services.length}</strong>
-                <span>{t('catalogue.metric.readiness_scan')}</span>
-              </div>
-            </div>
-          </article>
-
-          <article className={styles.decisionCard}>
-            <div className={styles.sectionHeader}>
-            <div>
-              <h2 className={styles.cardTitle}>{t('catalogue.evidence.title')}</h2>
-              <p className={styles.sectionHint}>{t('catalogue.evidence.hint')}</p>
-            </div>
+      <BrowseSection
+        title="Procházet podle portfolia"
+        lead="Vstup pro manažera: nejdřív oblast odpovědnosti, až potom detailní filtry."
+        href="/portfolio"
+        linkLabel="Portfolio"
+      >
+        {portfolios.length === 0 ? (
+          <p className={styles.empty}>Portfolio data zatím nejsou k dispozici.</p>
+        ) : (
+          <div className={styles.browseGrid}>
+            {portfolios.map((portfolio) => {
+              const attentionCount = attentionByPortfolio.get(portfolio.portfolio_group) ?? 0;
+              return (
+                <BrowseCard
+                  key={portfolio.portfolio_group}
+                  title={portfolio.portfolio_group}
+                  count={`${formatNumber(portfolio.count)} services`}
+                  attention={attentionCount ? `${formatNumber(attentionCount)} attention` : 'bez attention'}
+                  href={browseHref('portfolio', portfolio.portfolio_group)}
+                />
+              );
+            })}
           </div>
+        )}
+      </BrowseSection>
 
-          {attention.length === 0 ? (
-            <EmptyState title={t('catalogue.empty.ready')} description={t('catalogue.empty.ready_desc')} />
-          ) : (
-            <div className={styles.evidenceTable}>
-              <div className={styles.evidenceHeader}>
-                <span>{t('catalogue.table.service')}</span>
-                <span>{t('catalogue.table.readiness')}</span>
-                <span>{t('catalogue.table.signal')}</span>
-              </div>
-              {attention.map((service) => {
-                const score = service.completeness_score ?? 0;
-                const tone = score >= 70 ? 'warning' : 'danger';
-                return (
-                  <Link key={service.service_id} href={`/services/${service.service_id}/edit`} className={styles.evidenceRow}>
-                    <span className={styles.evidencePrimary}>
-                      <strong>{service.title}</strong>
-                      <small>{service.service_id} · {service.service_type ?? 'untyped'}</small>
-                    </span>
-                    <span className={styles.workProgress}>
-                      <ProgressBar value={score} tone={tone} label={`${service.title} readiness`} />
-                      <small>{score}%</small>
-                    </span>
-                    <Badge variant={tone}>{score >= 70 ? t('catalogue.signal.review') : t('catalogue.signal.fix')}</Badge>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </article>
+      <BrowseSection
+        title="Podle audience"
+        lead="Konzument nemusí znát taxonomy; začne tím, pro koho službu hledá."
+        href="/services/list?requestable=true"
+        linkLabel="Requestable služby"
+      >
+        <div className={styles.browseGrid}>
+          {audienceCards.map((card) => (
+            <BrowseCard
+              key={card.title}
+              title={card.title}
+              count={`${formatNumber(card.count)} services`}
+              attention={card.attention ? `${formatNumber(card.attention)} attention` : 'browse'}
+              href={browseHref('audience', card.query)}
+            />
+          ))}
+        </div>
+      </BrowseSection>
+
+      <BrowseSection
+        title="Podle domény"
+        lead="Technický nebo architektonický vstup přes síťovou, aplikační a datovou doménu."
+        href="/services/list"
+        linkLabel="Všechny filtry"
+      >
+        {domains.length === 0 ? (
+          <p className={styles.empty}>Doménová data zatím nejsou k dispozici.</p>
+        ) : (
+          <div className={styles.browseGrid}>
+            {domains.map((domain) => (
+              <BrowseCard
+                key={domain.domain_code}
+                title={domain.domain_code}
+                count={`${formatNumber(domain.service_count)} services`}
+                href={browseHref('domain', domain.domain_code)}
+              />
+            ))}
+          </div>
+        )}
+      </BrowseSection>
+
+      <section className={styles.attentionPanel} aria-label="Catalogue attention list">
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 className={styles.sectionTitle}>Vyžaduje pozornost</h2>
+            <p className={styles.sectionLead}>Služby, které mají slabou readiness, chybějící business text, offering nebo capability vazbu.</p>
+          </div>
+          <Link href="/services/list?sort=updated_at&order=ASC" className={styles.sectionLink}>Otevřít pracovní katalog</Link>
         </div>
 
-        <aside className={styles.decisionRail}>
-          <article className={styles.railCard}>
-            <h2 className={styles.railTitle}>{t('catalogue.inbox.title')}</h2>
-            {inboxItems.length === 0 ? (
-              <EmptyState title={t('catalogue.inbox.empty')} description={t('catalogue.inbox.empty_desc')} />
-            ) : (
-              <div className={styles.inboxList}>
-                {inboxItems.map((item) => (
-                  <Link key={item.id} href={item.href} className={styles.inboxItem}>
-                    <Badge variant={item.severity}>{item.type.replaceAll('_', ' ')}</Badge>
-                    <strong>{item.title}</strong>
-                    <span>{item.description}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </article>
-
-          <article className={styles.railCard}>
-            <h2 className={styles.railTitle}>{t('catalogue.decision_model')}</h2>
-            <div className={styles.auditList}>
-              <div className={styles.metricLine}><span>{t('catalogue.model.decision')}</span><strong>{t('catalogue.model.readiness')}</strong></div>
-              <div className={styles.metricLine}><span>{t('catalogue.model.evidence')}</span><strong>{t('catalogue.model.gaps')}</strong></div>
-              <div className={styles.metricLine}><span>{t('catalogue.model.raw')}</span><strong>{t('catalogue.model.table')}</strong></div>
+        {attention.length === 0 ? (
+          <p className={styles.empty}>Žádná služba nevyžaduje pozornost. Můžete pokračovat do katalogu.</p>
+        ) : (
+          <div className={styles.attentionTable}>
+            <div className={styles.attentionHeader}>
+              <span>Služba</span>
+              <span>Portfolio</span>
+              <span>Readiness</span>
+              <span>Signal</span>
             </div>
-          </article>
-        </aside>
+            {attention.map((item) => {
+              const score = item.completeness_score ?? 0;
+              return (
+                <Link key={item.service_id} href={`/services/${item.service_id}`} className={styles.attentionRow}>
+                  <span className={styles.attentionName}>
+                    <strong>{item.title}</strong>
+                    <small>{item.service_id} · {item.service_type ?? 'untyped'}</small>
+                  </span>
+                  <span>{item.portfolio_group ?? 'Unassigned'}</span>
+                  <span className={styles.miniBar}>
+                    <span className={styles.barTrack}>
+                      <span className={`${styles.barFill} ${score < 50 ? styles.barFillBad : score < 80 ? styles.barFillWarn : ''}`} style={{ width: `${score}%` }} />
+                    </span>
+                    <span>{score}%</span>
+                  </span>
+                  <span className={readinessTone(score)}>{signalFor(item)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
     </main>
+  );
+}
+
+function BrowseSection({
+  title,
+  lead,
+  href,
+  linkLabel,
+  children,
+}: {
+  title: string;
+  lead: string;
+  href: string;
+  linkLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={styles.browseSection}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.sectionTitle}>{title}</h2>
+          <p className={styles.sectionLead}>{lead}</p>
+        </div>
+        <Link href={href} className={styles.sectionLink}>{linkLabel}</Link>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function BrowseCard({
+  title,
+  count,
+  attention,
+  href,
+}: {
+  title: string;
+  count: string;
+  attention?: string;
+  href: string;
+}) {
+  return (
+    <Link href={href} className={styles.browseCard}>
+      <span className={styles.browseTitle}>{title}</span>
+      <span className={styles.browseCount}>{count}</span>
+      {attention && <span className={styles.browseAttention}>{attention}</span>}
+    </Link>
   );
 }

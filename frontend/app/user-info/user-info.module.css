@@ -5,6 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  background: var(--color-bg-workspace);
 }
 
 .pageTitle {
@@ -16,7 +17,7 @@
 /* ── Account card ──────────────────────────────────────────────────────────── */
 .card {
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -26,7 +27,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-5) var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 .avatar {
@@ -88,7 +89,7 @@
   padding: 1px 8px;
   font: var(--text-label-sm);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0;
 }
 
 .expired { color: var(--color-danger, var(--color-danger)); }
@@ -102,7 +103,7 @@
 
 .cardFooter {
   padding: var(--space-3) var(--space-5);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: 1px solid var(--color-border-default);
   background: var(--color-bg-subtle);
   display: flex;
   justify-content: flex-end;
@@ -126,7 +127,7 @@
 /* ── Owned services section ────────────────────────────────────────────────── */
 .section {
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -136,7 +137,7 @@
   align-items: baseline;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
   background: var(--color-bg-subtle);
 }
 
@@ -176,11 +177,11 @@
   font: var(--text-label-sm);
   text-align: left;
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
 }
 .table td {
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
   color: var(--color-text-primary);
 }
 .table tr:last-child td { border-bottom: none; }
@@ -207,7 +208,7 @@
   font: var(--text-label-sm);
   background: var(--color-bg-subtle);
   color: var(--color-text-muted);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-default);
 }
 .statusPill[data-status="active"]     { background: rgba(54,179,126,.12); color: var(--color-success); border-color: rgba(54,179,126,.3); }
 .statusPill[data-status="draft"]      { background: rgba(0,101,255,.08);  color: var(--color-action-primary); border-color: rgba(0,101,255,.2); }
@@ -244,14 +245,14 @@
   font: var(--text-label-sm);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0;
 }
 
 .input {
   font: var(--text-body-md);
   color: var(--color-text-primary);
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   outline: none;
@@ -359,14 +360,14 @@
   font: var(--text-title-sm);
   color: var(--color-text-primary);
   padding: var(--space-4) var(--space-5) var(--space-2);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: 1px solid var(--color-border-default);
   margin-top: var(--space-1);
 }
 
 /* ── Token info (collapsed dl) ──────────────────────────────────────────────── */
 .tokenSection {
   padding: var(--space-4) var(--space-5);
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: 1px solid var(--color-border-default);
   background: var(--color-bg-subtle);
 }
 
@@ -410,7 +411,7 @@
   border-radius: 50%;
   color: var(--color-bg-surface);
   font-size: 1.6rem;
-  font-weight: 700;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -296,6 +296,7 @@ describe('auth routes', () => {
                     is_active: true,
                     auth_provider: 'local',
                     preferred_lang: 'cz',
+                    preferred_persona: 'admin',
                     preferred_theme: 'dark',
                 }],
             });
@@ -309,6 +310,7 @@ describe('auth routes', () => {
             username: 'localadmin',
             role: 'admin',
             preferred_lang: 'cs',
+            preferred_persona: 'admin',
         }));
         expect(response.headers['set-cookie']).toEqual(expect.arrayContaining([
             expect.stringMatching(/^sc_access_token=.*HttpOnly.*SameSite=Lax/i),

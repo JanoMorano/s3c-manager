@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
 import { apiFetch } from '@/features/services/api/services.api';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import { useT } from '@/app/i18n/useI18n';
@@ -18,6 +19,13 @@ export default function CapabilitiesHubPage() {
   const spiralCount = new Set(capabilities.flatMap((capability) => capability.available_spirals)).size;
   return (
     <main className={styles.shell}>
+      <PageHeader
+        title={t('capabilities.title')}
+        purpose={t('capabilities.lead')}
+        chips={[{ label: `${capabilities.length} capabilities`, tone: capabilities.length ? 'ok' : 'warn' }]}
+        primaryAction={{ label: 'Coverage', href: '/capabilities/coverage' }}
+      />
+
       <CapabilityStudioHero capabilities={capabilities} spiralCount={spiralCount} />
 
       <section className={styles.kpiGrid} aria-label="Capability headline KPIs">

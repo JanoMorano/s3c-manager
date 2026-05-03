@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { restoreAuthSession } from '@/features/auth/authStore';
-import { hasRoleAccess, requiredRoleForPath } from '@/features/auth/roles';
+import { hasRoleAccess, requiredRoleForPath, ROLE_LABELS, type AppRole } from '@/features/auth/roles';
 import {
   fetchInstallStatusSnapshot,
   isModuleUiVisible,
   invalidateInstallStatusCache,
   markInstallReady,
 } from '@/features/install/installStatus';
+import { PermissionGate } from './layout-v2';
 
 // Install wizard route: always available without authentication.
 const INSTALL_PATH = '/install';
@@ -45,12 +46,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
   const pathname = usePathname() ?? '/';
   const [ready, setReady] = useState(false);
+  const [forbiddenRole, setForbiddenRole] = useState<AppRole | null>(null);
 
   useEffect(() => {
     // The install page is always available.
-    if (pathname.startsWith(INSTALL_PATH)) { setReady(true); return; }
+    if (pathname.startsWith(INSTALL_PATH)) {
+      setForbiddenRole(null);
+      setReady(true);
+      return;
+    }
 
     let cancelled = false;
+    setReady(false);
+    setForbiddenRole(null);
 
     async function check() {
       // Check install status first; systems that are not READY go back to the wizard.
@@ -95,7 +103,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
       const requiredRole = requiredRoleForPath(pathname);
       if (requiredRole && !hasRoleAccess(session.role, requiredRole)) {
-        router.replace('/');
+        setForbiddenRole(requiredRole);
+        setReady(true);
         return;
       }
 
@@ -107,5 +116,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   if (!ready) return null;
+  if (forbiddenRole) {
+    return (
+      <PermissionGate
+        allowed={false}
+        title="Nemáte oprávnění"
+        message={`Tato stránka vyžaduje roli ${ROLE_LABELS[forbiddenRole]}. Pokud ji potřebujete spravovat, požádejte administrátora o přiřazení role.`}
+      >
+        {children}
+      </PermissionGate>
+    );
+  }
   return <>{children}</>;
 }

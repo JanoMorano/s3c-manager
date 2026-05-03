@@ -32,6 +32,39 @@ docker compose up -d
 
 ---
 
+## Upgrade to 1.1.2
+
+Version `1.1.2` is an additive governance cockpit and Layout v2 release. It does
+not replace the existing service catalogue data model, but it adds the contracts
+needed for the new UI behavior:
+
+- per-user notification inbox and read/unread state
+- user preferences for view mode and future saved UI settings
+- lightweight service request log
+- readiness rule explanation fields for human-readable remediation
+- C3 board state separate from imported/source taxonomy status
+
+Before upgrading:
+
+1. Back up PostgreSQL.
+2. Pull or build the `v1.1.2` application image.
+3. Confirm `.env` or deployment variables use `APP_VERSION=1.1.2`.
+4. Start the stack and let the install/upgrade flow apply migration `28_enterprise_governance_contracts.sql`.
+
+After upgrading, verify:
+
+- `/api/v1/install/status`
+- `/api/v1/install/summary`
+- `/operations/readiness`
+- `/operations/reviews`
+- `/operations/decisions`
+- `/services/impact`
+- `/services/graph`
+- `/import`
+- `/administration/users`
+
+---
+
 ## Schema Migrations
 
 Schema migrations are tracked in `platform.schema_migrations`. Each SQL file creates a corresponding record:
@@ -60,6 +93,7 @@ ORDER BY applied_at;
 | `25_capability_governance.sql` | Adds coverage, gap, and overlap governance views |
 | `26_governance_workflow.sql` | Adds `governance_review` and `governance_decision` |
 | `27_impact_analysis.sql` | Adds recursive service impact analysis views |
+| `28_enterprise_governance_contracts.sql` | Adds per-user notifications, user preferences, service request log, readiness explanations, and C3 board state |
 
 ### What Migration 15 Adds
 
@@ -147,5 +181,5 @@ curl http://localhost:8080/api/health/ready
 
 # Verify ITIL migrations applied
 psql -c "SELECT migration_name, status FROM platform.schema_migrations ORDER BY applied_at" 
-# Should include migrations 15 through 27 with status = 'applied'
+# Should include migrations 15 through 28 with status = 'applied'
 ```

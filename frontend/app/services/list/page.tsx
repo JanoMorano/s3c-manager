@@ -6,9 +6,11 @@
 'use client';
 
 import { useCallback, useMemo, Suspense } from 'react';
+import Link from '@/app/components/AppLink';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useServices, usePortfolioGroups, useServiceTypes, useNetworkDomains } from '@/features/services/hooks/useServices';
 import { ServiceListRow, ServiceListHeader } from '@/features/services/components/ServiceListRow';
+import { ServiceCard } from '@/features/services/components/ServiceCard';
 import { Button } from '@/design-system/controls/Button';
 import { Select } from '@/design-system/controls/Select';
 import { Checkbox } from '@/design-system/controls/Checkbox';
@@ -46,6 +48,7 @@ function CatalogueInner() {
   const type       = getSearchParam('type')      ?? '';
   const lifecycles = getSearchParam('lifecycle') ? getSearchParam('lifecycle')!.split(',') : [];
   const requestableParam = getSearchParam('requestable'); // 'true' | 'false' | null
+  const view      = (getSearchParam('view')    ?? 'list') as 'list' | 'grid';
   const density   = (getSearchParam('density') ?? 'comfortable') as 'comfortable' | 'compact';
   const sort      = (getSearchParam('sort')    ?? 'service_id') as SortField;
   const order     = (getSearchParam('order')   ?? 'ASC') as SortOrder;
@@ -264,6 +267,22 @@ function CatalogueInner() {
 
       {/* ── List area (Pattern A right) ───────────────────────────────── */}
       <main className={styles.content} aria-label="Service list">
+        <header className={styles.listPageHeader}>
+          <div>
+            <h1 className={styles.listPageTitle}>Services</h1>
+            <p className={styles.listPagePurpose}>Pracovní katalog služeb pro správu, review a export.</p>
+          </div>
+          <Link href="/management/new-service" className={styles.headerPrimaryAction}>New service</Link>
+        </header>
+
+        <div className={styles.savedViewChips} aria-label="Saved views">
+          <Link href="/services/list" className={styles.savedViewChipActive}>All</Link>
+          <Link href="/services/list?status=draft&view=list" className={styles.savedViewChip}>Blocked</Link>
+          <Link href="/services/list?search=owner&view=list" className={styles.savedViewChip}>Missing owner</Link>
+          <Link href="/services/list?lifecycle=under_review&view=list" className={styles.savedViewChip}>Ready for review</Link>
+          <Link href="/services/list?lifecycle=deprecated&view=list" className={styles.savedViewChip}>Deprecated</Link>
+          <button type="button" className={styles.savedViewChipDashed} onClick={saveCurrentView}>Save view as...</button>
+        </div>
 
         {/* Toolbar */}
         <div className={styles.toolbar}>
@@ -284,46 +303,63 @@ function CatalogueInner() {
             <Button variant="ghost" size="sm" onClick={() => { void exportFilteredCsv(); }} disabled={!data?.total}>
               Export CSV
             </Button>
-            <DensityToggle
-              value={density}
-              onChange={d => pushParams({ density: d })}
-            />
+            {view === 'list' && (
+              <DensityToggle
+                value={density}
+                onChange={d => pushParams({ density: d })}
+              />
+            )}
+            <ViewToggle value={view} onChange={v => pushParams({ view: v })} />
+            <Link href="/services/dependency-flow" className={styles.exportBtn}>Dependency</Link>
           </div>
         </div>
 
-        {/* List */}
-        <div className={styles.list}>
-          {!isLoading && !error && (data?.items?.length ?? 0) > 0 && (
-            <ServiceListHeader
-              density={density}
-              sort={sort}
-              order={order}
-              onSort={(field) => {
-                if (field === sort) {
-                  pushParams({ order: order === 'ASC' ? 'DESC' : 'ASC', page: undefined });
-                  return;
-                }
-                pushParams({ sort: field, order: 'ASC', page: undefined });
-              }}
-            />
-          )}
+        {/* List / Grid */}
+        {view === 'grid' ? (
+          <div className={styles.cardGrid}>
+            {isLoading && <div className={styles.state} style={{ gridColumn: '1/-1' }}>Loading services…</div>}
+            {error && <div className={styles.stateError} style={{ gridColumn: '1/-1' }}>Failed to load services. Check middleware connection.</div>}
+            {!isLoading && !error && (data?.items?.length ?? 0) === 0 && (
+              <div className={styles.state} style={{ gridColumn: '1/-1' }}>No services match the current filters.</div>
+            )}
+            {data?.items?.map(svc => (
+              <ServiceCard key={svc.service_id} service={svc} />
+            ))}
+          </div>
+        ) : (
+          <div className={styles.list}>
+            {!isLoading && !error && (data?.items?.length ?? 0) > 0 && (
+              <ServiceListHeader
+                density={density}
+                sort={sort}
+                order={order}
+                onSort={(field) => {
+                  if (field === sort) {
+                    pushParams({ order: order === 'ASC' ? 'DESC' : 'ASC', page: undefined });
+                    return;
+                  }
+                  pushParams({ sort: field, order: 'ASC', page: undefined });
+                }}
+              />
+            )}
 
-          {isLoading && <div className={styles.state}>Loading services…</div>}
+            {isLoading && <div className={styles.state}>Loading services…</div>}
 
-          {error && (
-            <div className={styles.stateError}>
-              Failed to load services. Check middleware connection.
-            </div>
-          )}
+            {error && (
+              <div className={styles.stateError}>
+                Failed to load services. Check middleware connection.
+              </div>
+            )}
 
-          {!isLoading && !error && (data?.items?.length ?? 0) === 0 && (
-            <div className={styles.state}>No services match the current filters.</div>
-          )}
+            {!isLoading && !error && (data?.items?.length ?? 0) === 0 && (
+              <div className={styles.state}>No services match the current filters.</div>
+            )}
 
-          {data?.items?.map(svc => (
-            <ServiceListRow key={svc.service_id} service={svc} density={density} />
-          ))}
-        </div>
+            {data?.items?.map(svc => (
+              <ServiceListRow key={svc.service_id} service={svc} density={density} />
+            ))}
+          </div>
+        )}
 
         {!isLoading && !error && (data?.total ?? 0) > 0 && (
           <div className={styles.paginationBar}>
@@ -369,6 +405,29 @@ function DensityToggle({ value, onChange }: { value: 'comfortable' | 'compact'; 
     <div className={styles.densityToggle}>
       <Button variant={value === 'comfortable' ? 'secondary' : 'ghost'} size="sm" onClick={() => onChange('comfortable')} title="Comfortable">≡</Button>
       <Button variant={value === 'compact'     ? 'secondary' : 'ghost'} size="sm" onClick={() => onChange('compact')}     title="Compact">☰</Button>
+    </div>
+  );
+}
+
+function ViewToggle({ value, onChange }: { value: 'list' | 'grid'; onChange: (v: 'list' | 'grid') => void }) {
+  return (
+    <div className={styles.densityToggle} title="Switch view">
+      <Button
+        variant={value === 'list' ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={() => onChange('list')}
+        title="List view"
+      >
+        ☰
+      </Button>
+      <Button
+        variant={value === 'grid' ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={() => onChange('grid')}
+        title="Grid view"
+      >
+        ⊞
+      </Button>
     </div>
   );
 }

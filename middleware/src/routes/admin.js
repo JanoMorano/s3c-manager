@@ -32,6 +32,13 @@ const ACCESS_LABELS = {
     admin: 'ALL + přístup do Administration',
 };
 
+const PERSONA_LABELS = {
+    consumer: 'Consumer',
+    service_owner: 'Service Owner',
+    capability_manager: 'Capability Manager',
+    admin: 'Admin',
+};
+
 const AUTH_PROVIDER_LABELS = {
     local: 'Local login',
     ad: 'AD / SSO',
@@ -53,6 +60,7 @@ const USER_RESPONSE_FIELDS = [
     'display_name',
     'email',
     'role',
+    'preferred_persona',
     'is_active',
     'auth_provider',
     'external_principal',
@@ -101,6 +109,11 @@ function normalizeAuthProvider(value) {
     return ['local', 'ad'].includes(provider) ? provider : null;
 }
 
+function normalizePersona(value) {
+    const persona = normalizeString(value).toLowerCase();
+    return ['consumer', 'service_owner', 'capability_manager', 'admin'].includes(persona) ? persona : null;
+}
+
 function normalizeBoolean(value, fallback = true) {
     if (typeof value === 'boolean') return value;
     if (typeof value === 'number') return value !== 0;
@@ -128,6 +141,8 @@ function buildUserResponse(row) {
         role: row.role,
         role_label: ROLE_LABELS[row.role] ?? row.role,
         access_label: ACCESS_LABELS[row.role] ?? '',
+        preferred_persona: row.preferred_persona ?? 'service_owner',
+        preferred_persona_label: PERSONA_LABELS[row.preferred_persona] ?? PERSONA_LABELS.service_owner,
         is_active: Boolean(row.is_active),
         auth_provider: row.auth_provider ?? 'local',
         auth_provider_label: AUTH_PROVIDER_LABELS[row.auth_provider] ?? row.auth_provider ?? 'local',
@@ -381,6 +396,7 @@ router.post('/users', canAdmin, async (req, res, next) => {
     try {
         const username = normalizeString(req.body.username).toLowerCase();
         const role = normalizeRole(req.body.role);
+        const preferredPersona = normalizePersona(req.body.preferred_persona ?? req.body.preferredPersona ?? 'service_owner');
         const authProvider = normalizeAuthProvider(req.body.auth_provider ?? 'local');
         const isActive = normalizeBoolean(req.body.is_active, true);
         const givenName = normalizeNullableString(req.body.given_name);
@@ -398,6 +414,7 @@ router.post('/users', canAdmin, async (req, res, next) => {
 
         if (!username) return res.status(400).json({ error: 'Username je povinný.' });
         if (!role) return res.status(400).json({ error: 'Role je povinná.' });
+        if (!preferredPersona) return res.status(400).json({ error: 'Pracovní pohled je povinný.' });
         if (!authProvider) return res.status(400).json({ error: 'Typ přihlášení je povinný.' });
         if (authProvider === 'local' && password.length < 8) {
             return res.status(400).json({ error: 'Lokální účet musí mít heslo alespoň o 8 znacích.' });
@@ -411,6 +428,7 @@ router.post('/users', canAdmin, async (req, res, next) => {
                 display_name,
                 email,
                 role,
+                preferred_persona,
                 is_active,
                 auth_provider,
                 external_principal,
@@ -419,13 +437,14 @@ router.post('/users', canAdmin, async (req, res, next) => {
                 surname,
                 department
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING
                 id,
                 username,
                 display_name,
                 email,
                 role,
+                preferred_persona,
                 is_active,
                 auth_provider,
                 external_principal,
@@ -441,6 +460,7 @@ router.post('/users', canAdmin, async (req, res, next) => {
             displayName,
             email,
             role,
+            preferredPersona,
             isActive,
             authProvider,
             externalPrincipal,
@@ -472,6 +492,7 @@ router.put('/users/:id', canAdmin, async (req, res, next) => {
 
         const username = normalizeString(req.body.username || existingUser.username).toLowerCase();
         const role = normalizeRole(req.body.role ?? existingUser.role);
+        const preferredPersona = normalizePersona(req.body.preferred_persona ?? req.body.preferredPersona ?? existingUser.preferred_persona ?? 'service_owner');
         const authProvider = normalizeAuthProvider(req.body.auth_provider ?? existingUser.auth_provider ?? 'local');
         const isActive = normalizeBoolean(req.body.is_active, Boolean(existingUser.is_active));
         const givenName = normalizeNullableString(req.body.given_name ?? existingUser.given_name);
@@ -491,6 +512,7 @@ router.put('/users/:id', canAdmin, async (req, res, next) => {
 
         if (!username) return res.status(400).json({ error: 'Username je povinný.' });
         if (!role) return res.status(400).json({ error: 'Role je povinná.' });
+        if (!preferredPersona) return res.status(400).json({ error: 'Pracovní pohled je povinný.' });
         if (!authProvider) return res.status(400).json({ error: 'Typ přihlášení je povinný.' });
         if (authProvider === 'local' && !existingUser.password_hash && password.length < 8) {
             return res.status(400).json({ error: 'Při převodu na lokální účet musíš zadat heslo alespoň o 8 znacích.' });
@@ -510,13 +532,14 @@ router.put('/users/:id', canAdmin, async (req, res, next) => {
                 display_name = $3,
                 email = $4,
                 role = $5,
-                is_active = $6,
-                auth_provider = $7,
-                external_principal = $8,
-                password_hash = $9,
-                given_name = $10,
-                surname = $11,
-                department = $12,
+                preferred_persona = $6,
+                is_active = $7,
+                auth_provider = $8,
+                external_principal = $9,
+                password_hash = $10,
+                given_name = $11,
+                surname = $12,
+                department = $13,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $1
             RETURNING
@@ -525,6 +548,7 @@ router.put('/users/:id', canAdmin, async (req, res, next) => {
                 display_name,
                 email,
                 role,
+                preferred_persona,
                 is_active,
                 auth_provider,
                 external_principal,
@@ -541,6 +565,7 @@ router.put('/users/:id', canAdmin, async (req, res, next) => {
             displayName,
             email,
             role,
+            preferredPersona,
             isActive,
             authProvider,
             externalPrincipal,

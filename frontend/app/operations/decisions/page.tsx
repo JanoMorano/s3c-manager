@@ -1,7 +1,9 @@
 'use client';
 
-import { type FormEvent } from 'react';
+import { useState } from 'react';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
+import { DecisionRecordModal, type DecisionRecordValue } from '@/app/components/layout-v2';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import { authHeaders } from '@/features/services/api/services.api';
 import { useGovernanceDecisions } from '@/features/governance/hooks/useGovernance';
@@ -22,20 +24,45 @@ function formatDate(value: string | null | undefined) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB');
 }
 
-function DecisionRow({ item }: { item: GovernanceDecision }) {
+function optionalDecisionField(item: GovernanceDecision, key: 'evidence' | 'expires_at' | 'affected_summary') {
+  return (item as GovernanceDecision & Partial<Record<typeof key, string | null>>)[key] ?? null;
+}
+
+function DecisionCard({ item }: { item: GovernanceDecision }) {
+  const evidence = optionalDecisionField(item, 'evidence');
+  const expiresAt = optionalDecisionField(item, 'expires_at');
+  const affectedSummary = optionalDecisionField(item, 'affected_summary') ?? `Service ${item.service_id}`;
+
   return (
-    <article className={govStyles.workflowRow}>
-      <div className={govStyles.workflowMain}>
-        <Link href={`/services/${item.service_id}`} className={govStyles.workflowTitle}>
+    <article className={govStyles.decisionCard}>
+      <div className={govStyles.decisionCardHeader}>
+        <Link href={`/services/${item.service_id}`} className={govStyles.decisionCardTitle}>
           <strong>{item.service_title}</strong>
-          <span>{item.service_id} · {item.decision_type}</span>
+          <span>{item.service_id} · {item.decision_type} · {formatDate(item.decided_at)}</span>
         </Link>
-        <div className={govStyles.workflowMeta}>
-          <Badge variant={decisionVariant(item.decision)}>{item.decision}</Badge>
-          <span>{formatDate(item.decided_at)}</span>
-          <span>{item.decided_by ?? 'unknown'}</span>
+        <Badge variant={decisionVariant(item.decision)}>{item.decision}</Badge>
+      </div>
+      <div className={govStyles.decisionFactGrid}>
+        <div className={govStyles.decisionFact}>
+          <span>What</span>
+          <strong>{item.decision_type.replace(/_/g, ' ')}</strong>
         </div>
-        {item.rationale ? <p className={govStyles.workflowRationale}>{item.rationale}</p> : null}
+        <div className={govStyles.decisionFact}>
+          <span>Why</span>
+          <strong>{item.rationale || 'Bez odůvodnění v záznamu.'}</strong>
+        </div>
+        <div className={govStyles.decisionFact}>
+          <span>Affects</span>
+          <strong>{affectedSummary}</strong>
+        </div>
+        <div className={govStyles.decisionFact}>
+          <span>Expires</span>
+          <strong>{formatDate(expiresAt)}</strong>
+        </div>
+      </div>
+      <div className={govStyles.workflowMeta}>
+        <span>Evidence: {evidence || 'not provided'}</span>
+        <span>Recorded by {item.decided_by ?? 'unknown'}</span>
       </div>
     </article>
   );
@@ -43,34 +70,39 @@ function DecisionRow({ item }: { item: GovernanceDecision }) {
 
 export default function GovernanceDecisionsPage() {
   const { data, isLoading, error, mutate } = useGovernanceDecisions({ limit: 200 });
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordError, setRecordError] = useState<string | null>(null);
+  const [recordBusy, setRecordBusy] = useState(false);
   const decisions = data?.items ?? [];
   const approved = decisions.filter((item) => item.decision === 'approved').length;
   const deferred = decisions.filter((item) => item.decision === 'deferred').length;
+  const rejected = decisions.filter((item) => item.decision === 'rejected' || item.decision === 'cancelled').length;
 
-  async function recordDecision(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const serviceId = String(formData.get('service_id') ?? '').trim();
-    const decision = String(formData.get('decision') ?? '').trim();
-    const rationale = String(formData.get('rationale') ?? '').trim();
-    if (!serviceId || !decision) return;
-    if ((decision === 'rejected' || decision === 'deferred') && !rationale) return;
-
-    const response = await fetch('/api/v1/governance/decisions', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({
-        service_id: serviceId,
-        decision_type: String(formData.get('decision_type') ?? 'publish_approval'),
-        decision,
-        rationale: rationale || null,
-      }),
-    });
-    if (!response.ok) throw new Error(`API ${response.status}`);
-    form.reset();
-    await mutate();
+  async function recordDecision(value: DecisionRecordValue) {
+    setRecordBusy(true);
+    setRecordError(null);
+    try {
+      const response = await fetch('/api/v1/governance/decisions', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          service_id: value.service_id,
+          decision_type: value.decision_type,
+          decision: value.decision,
+          rationale: value.rationale || null,
+          evidence: value.evidence || null,
+          expires_at: value.expires_at ? `${value.expires_at}T00:00:00Z` : null,
+        }),
+      });
+      if (!response.ok) throw new Error(`API ${response.status}`);
+      setRecordOpen(false);
+      await mutate();
+    } catch (err) {
+      setRecordError(err instanceof Error ? err.message : 'Decision could not be recorded');
+    } finally {
+      setRecordBusy(false);
+    }
   }
 
   if (isLoading) return <div className={styles.state}>Loading decision log...</div>;
@@ -78,72 +110,65 @@ export default function GovernanceDecisionsPage() {
 
   return (
     <main className={styles.shell}>
-      <header className={styles.pageHeader}>
-        <div>
-          <span className={styles.pageEyebrow}>Operations</span>
-          <h1 className={styles.pageTitle}>Decision Log</h1>
-          <p className={styles.pageLead}>Auditable approval, rejection, deferral, and cancellation decisions for governed services.</p>
-        </div>
-        <div className={styles.headerActions}>
-          <Link href="/operations" className={styles.secondaryLink}>Operations</Link>
-          <Link href="/operations/reviews" className={styles.secondaryLink}>Reviews</Link>
-        </div>
-      </header>
+      <PageHeader
+        title="Decision Log"
+        purpose="Auditní znalostní báze rozhodnutí: co bylo schváleno, proč, čeho se to týká, kdy končí a jaký existuje důkaz."
+        chips={[
+          { label: `${decisions.length} decisions`, tone: 'info' },
+          { label: `${approved} approved`, tone: 'ok' },
+          { label: `${deferred} deferred`, tone: deferred ? 'warn' : 'neutral' },
+        ]}
+        primaryAction={{ label: 'Record decision', onClick: () => setRecordOpen(true) }}
+      />
 
-      <section className={styles.kpiThree} aria-label="Governance decision KPIs">
-        <KpiCard label="Decisions" value={decisions.length} hint="Recorded decisions" />
-        <KpiCard label="Approved" value={approved} hint="Ready decisions" />
-        <KpiCard label="Deferred" value={deferred} hint="Accepted with follow-up" />
+      <section className={govStyles.decisionKpiGrid} aria-label="Governance decision KPIs">
+        <KpiCard label="Decisions" value={decisions.length} hint="Recorded governance decisions" tone="info" />
+        <KpiCard label="Approved" value={approved} hint="Accepted decisions" tone="success" />
+        <KpiCard label="Deferred" value={deferred} hint="Accepted with follow-up" tone={deferred ? 'warning' : 'neutral'} />
+        <KpiCard label="Rejected" value={rejected} hint="Rejected or cancelled" tone={rejected ? 'danger' : 'neutral'} />
       </section>
+
+      <div className={govStyles.decisionFilters} aria-label="Decision filters">
+        <span className={govStyles.decisionFilterChip}>All decisions</span>
+        <span className={govStyles.decisionFilterChip}>Publish approval</span>
+        <span className={govStyles.decisionFilterChip}>Risk acceptance</span>
+        <span className={govStyles.decisionFilterChip}>Exceptions</span>
+      </div>
 
       <section className={govStyles.workflowGrid}>
         <article className={govStyles.governancePanel}>
           <div className={govStyles.panelHeader}>
             <div>
               <h2 className={govStyles.panelTitle}>Decision history</h2>
-              <p className={govStyles.panelHint}>Every decision stays linked to its service and rationale.</p>
+              <p className={govStyles.panelHint}>Každá karta ukazuje What, Why, Affects, Expires a Evidence jako v review modalu.</p>
             </div>
             <span className={govStyles.panelCount}>{decisions.length}</span>
           </div>
           {decisions.length === 0 ? <EmptyState title="No governance decisions." /> : (
-            <div className={govStyles.governanceList}>
-              {decisions.map((item) => <DecisionRow key={item.id} item={item} />)}
+            <div className={govStyles.decisionCardGrid}>
+              {decisions.map((item) => <DecisionCard key={item.id} item={item} />)}
             </div>
           )}
         </article>
 
         <aside className={govStyles.governancePanel}>
           <h2 className={govStyles.panelTitle}>Record Decision</h2>
-          <form className={govStyles.workflowForm} onSubmit={recordDecision}>
-            <label>
-              <span>Decision service ID</span>
-              <input name="service_id" type="text" required placeholder="SVC-IAM" />
-            </label>
-            <label>
-              <span>Decision type</span>
-              <select name="decision_type" defaultValue="publish_approval">
-                <option value="publish_approval">Publish approval</option>
-                <option value="deferral">Deferral</option>
-                <option value="risk_acceptance">Risk acceptance</option>
-              </select>
-            </label>
-            <label>
-              <span>Decision</span>
-              <select name="decision" defaultValue="approved">
-                <option value="approved">approved</option>
-                <option value="rejected">rejected</option>
-                <option value="deferred">deferred</option>
-                <option value="cancelled">cancelled</option>
-              </select>
-            </label>
-            <label>
-              <span>Rationale</span>
-              <textarea name="rationale" rows={4} placeholder="Required for rejected or deferred decisions" />
-            </label>
-            <button type="submit">Record decision</button>
-          </form>
+          <p className={govStyles.panelHint}>
+            Decisions are recorded through the shared modal so the same What, Why, Affects, Expires and Evidence pattern is used in reviews and standalone governance work.
+          </p>
+          <button type="button" className={govStyles.primaryAction} onClick={() => setRecordOpen(true)}>Record decision</button>
         </aside>
       </section>
+
+      {recordOpen && (
+        <DecisionRecordModal
+          requireService
+          busy={recordBusy}
+          error={recordError}
+          onClose={() => setRecordOpen(false)}
+          onSubmit={recordDecision}
+        />
+      )}
     </main>
   );
 }

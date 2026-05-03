@@ -1,0 +1,266 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 100vh;
+  padding: 22px 24px;
+  background: var(--color-bg-canvas);
+}
+
+.state,
+.stateError {
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+  font: var(--text-body-md);
+  text-align: center;
+}
+
+.stateError {
+  color: var(--color-danger);
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.browseSection,
+.attentionPanel {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.sectionLead {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.sectionLink {
+  color: var(--color-info);
+  font: var(--text-label-md);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sectionLink:hover {
+  text-decoration: underline;
+}
+
+.browseGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.browseCard {
+  display: grid;
+  gap: 3px;
+  min-height: 70px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background .1s, border-color .1s, transform .1s;
+}
+
+.browseCard:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  transform: translateY(-1px);
+}
+
+.browseTitle {
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+}
+
+.browseCount {
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+.browseAttention {
+  color: var(--color-warning);
+  font: var(--text-label-sm);
+}
+
+.attentionTable {
+  display: grid;
+}
+
+.attentionHeader,
+.attentionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 150px 160px 130px;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.attentionHeader {
+  padding: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.attentionRow {
+  min-height: 54px;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+  font: var(--text-body-sm);
+  text-decoration: none;
+}
+
+.attentionRow:hover {
+  background: var(--color-bg-subtle);
+}
+
+.attentionName {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.attentionName strong {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attentionName small {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.barTrack {
+  width: 82px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-subtle);
+}
+
+.barFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-success);
+}
+
+.barFillWarn {
+  background: var(--color-warning);
+}
+
+.barFillBad {
+  background: var(--color-danger);
+}
+
+.pill,
+.pillWarn,
+.pillBad,
+.pillOk {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+  white-space: nowrap;
+}
+
+.pillWarn {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 38%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface));
+}
+
+.pillBad {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 38%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-bg-surface));
+}
+
+.pillOk {
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 36%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
+}
+
+.empty {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+@media (max-width: 1160px) {
+  .kpiGrid,
+  .browseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attentionHeader,
+  .attentionRow {
+    grid-template-columns: minmax(0, 1fr) 120px 150px;
+  }
+
+  .attentionHeader span:nth-child(3),
+  .attentionRow span:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: var(--space-4);
+  }
+
+  .kpiGrid,
+  .browseGrid,
+  .attentionHeader,
+  .attentionRow {
+    grid-template-columns: 1fr;
+  }
+
+  .attentionHeader {
+    display: none;
+  }
+}

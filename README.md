@@ -8,26 +8,17 @@ Lightweight, self-hosted service and capability governance cockpit for organizat
 
 > **Stack:** Next.js 16.2 · React 19.2 · Express 5.2 · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.1.2 Governance Cockpit
+## What's New in V1.1.2 - Governance Cockpit & Layout v2
 
-- Service 360 view with portfolio, offerings, owners, readiness, governance decisions, C3 mappings, dependencies, and audit context
-- Decision Cockpit on `/operations` with readiness queue, capability coverage, review deadlines, owner load, and recent decisions
-- configurable readiness rules and auditable exceptions for publishability decisions
-- governance review queue and decision log for approve, reject, defer, retirement, and publish workflows
-- capability coverage, gap, and overlap cockpit for C3/FMN structures, including uncovered and over-covered capability signals
-- impact analysis for service and capability changes across dependencies, C3 entities, applications, and data objects
-- import/export profiles for S3C JSON/CSV and Backstage catalog-info, with documented mappings for iTop, ServiceNow CSDM, and ArchiMate
-- richer demo data: 8 lifecycle-diverse services, 12 offerings, portfolios, owners, readiness blockers, exceptions, governance reviews, decisions, coverage gaps, overlaps, and a 3-level dependency chain
+- Layout v2 governance shell with persona-oriented sidebar groups, richer top bar, shared page headers, and cleaner cockpit typography.
+- Home now behaves as a daily governance cockpit with personal service ownership, reviews, blockers, requests, and decisions.
+- Service 360 combines business and technical views, a Service Relationship Studio, readiness context, lifecycle signal, C3 mappings, dependencies, and audit context.
+- Operations pages now cover readiness, reviews, decision log, owner load, and impact analysis with manager-readable evidence and admin action queues.
+- C3 and capability areas now expose board/workspace views for coverage, gaps, overlaps, graph relationships, code editing, and C3 entity governance.
+- Administration, import, search, and onboarding flows were aligned to the v1/v2 layout proposals, including user KPIs, saved searches, import wizard flow, and horizontal wizard progress.
+- Runtime, package, Docker Compose, Portainer, install fallback, `.env.example`, release notes, and visible UI version metadata are aligned to `1.1.2`.
 
 See [Governance Cockpit](docs/governance-cockpit.md) for the end-to-end operating model.
-
-## What's New in V1.1.2
-
-- Service detail now opens with a relationship studio that explains value, owner, support path, C3 links, readiness, and admin actions in one readable view
-- C3 Dashboard adds a manager/admin board for map coverage, unmapped evidence, import sync drift, validation findings, and taxonomy-to-impact story
-- Capability hub and capability detail pages now show coverage, gaps, services, spirals, overlaps, and next admin actions as a plain-language decision layer
-- Help and page documentation were expanded for onboarding, service management, and frontend route descriptions
-- runtime, package, Docker, Portainer, install, and visible UI version metadata aligned to `1.1.2`
 
 ## Product Positioning
 
@@ -183,9 +174,9 @@ Minimum required variables:
 
 See the full list in [docs/installation.md](docs/installation.md).
 
-## v1.1 Preview Screenshots
+## v1.1.2 Preview Screenshots
 
-The `screenshots/v1.1-en` folder contains English screenshots from the current v1.1 application. They show the real UI after the capability cockpit redesign, including the installer, service onboarding, operations cockpit, service graph, and dependency flow view.
+The `screenshots/v1.1-en` folder contains English screenshots from the current v1.1 release line. They show the real UI after the capability cockpit redesign, including the installer, service onboarding, operations cockpit, service graph, and dependency flow view.
 
 | Screenshot | What it shows |
 |---|---|
@@ -210,6 +201,7 @@ These screenshots are static preview assets. To interact with the product, run t
 - [Modules](docs/modules.md)
 - [Demo Guide](DEMO.md)
 - [Upgrade Guide](docs/upgrade.md)
+- [V1.1.2 Release Notes](docs/releases/v1.1.2.md)
 
 ## Import Examples
 

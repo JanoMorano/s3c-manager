@@ -294,10 +294,26 @@ async function findAllDirect({
     if (search) {
         const searchPlaceholder = bind(`%${search}%`);
         filters.push(`(
-            sc.title ILIKE ${searchPlaceholder}
-            OR sc.service_id ILIKE ${searchPlaceholder}
-            OR sc.short_description ILIKE ${searchPlaceholder}
-            OR sc.description ILIKE ${searchPlaceholder}
+            sc.title                      ILIKE ${searchPlaceholder}
+            OR sc.service_id              ILIKE ${searchPlaceholder}
+            OR sc.short_description       ILIKE ${searchPlaceholder}
+            OR sc.description             ILIKE ${searchPlaceholder}
+            OR sc.target_audience_summary ILIKE ${searchPlaceholder}
+            OR sc.business_summary        ILIKE ${searchPlaceholder}
+            OR sc.consumer_value          ILIKE ${searchPlaceholder}
+            OR sc.value_proposition       ILIKE ${searchPlaceholder}
+            OR sc.business_purpose        ILIKE ${searchPlaceholder}
+            OR sc.service_area_raw        ILIKE ${searchPlaceholder}
+            OR sc.service_line_code       ILIKE ${searchPlaceholder}
+            OR sc.portfolio_group_code    ILIKE ${searchPlaceholder}
+            OR sc.service_type_code       ILIKE ${searchPlaceholder}
+            OR COALESCE(sc.customer_type_json::text, '') ILIKE ${searchPlaceholder}
+            OR EXISTS (
+                SELECT 1
+                FROM data.service_audience_policy sap_s
+                WHERE sap_s.service_id = sc.id
+                  AND sap_s.audience_type ILIKE ${searchPlaceholder}
+            )
         )`);
     }
     if (ownerName) {

@@ -1,0 +1,123 @@
+.wrap {
+  position: sticky;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 12px 0 0;
+  background: var(--color-bg-workspace);
+}
+
+.panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-medium);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.status strong {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.state_clean,
+.state_saved {
+  background: var(--color-success);
+}
+
+.state_dirty {
+  background: var(--color-warning);
+}
+
+.state_saving {
+  background: var(--color-info);
+}
+
+.state_error {
+  background: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.primary,
+.secondary,
+.publish {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: var(--radius-md);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+
+.primary {
+  border: 1px solid var(--color-info);
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+}
+
+.publish {
+  border: 1px solid var(--color-success);
+  background: var(--color-success);
+  color: var(--color-bg-surface);
+}
+
+.secondary {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+}
+
+.primary:disabled,
+.secondary:disabled,
+.publish:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primary,
+  .secondary,
+  .publish {
+    flex: 1;
+  }
+}

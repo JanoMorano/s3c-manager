@@ -1,9 +1,10 @@
 .shell {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
   display: grid;
   gap: var(--space-6);
+  background: var(--color-bg-workspace);
 }
 
 .breadcrumb {
@@ -24,7 +25,7 @@
 }
 
 .sep {
-  color: var(--color-border-subtle);
+  color: var(--color-border-default);
 }
 
 .pageHeader {
@@ -48,21 +49,114 @@
   max-width: 760px;
 }
 
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.kpiCard {
+  display: grid;
+  gap: var(--space-1);
+  min-height: 104px;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-left: 4px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.kpiCard span {
+  color: var(--color-text-secondary);
+  font: var(--text-label-md);
+}
+
+.kpiCard strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 32px;
+  font-weight: 760;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiCard small {
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+.kpiInfo {
+  border-left-color: var(--color-info);
+  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
+}
+
+.kpiSuccess {
+  border-left-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
+}
+
+.kpiLocal {
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-surface));
+}
+
+.kpiAd {
+  border-left-color: var(--color-purple);
+  background: color-mix(in srgb, var(--color-purple) 9%, var(--color-bg-surface));
+}
+
+.roleGuide {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.roleGuide summary {
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+}
+
 .roleGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
 }
 
-.roleCard,
 .panel,
 .tableCard {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-low);
+}
+
+.splitWorkspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, .7fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.splitWorkspace .tableCard {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.splitWorkspace .panel {
+  position: sticky;
+  top: var(--space-4);
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .roleCard {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
   padding: var(--space-4);
   display: grid;
   gap: var(--space-2);
@@ -208,14 +302,14 @@
 }
 
 .errorBox {
-  background: rgba(222, 53, 11, .08);
-  border: 1px solid rgba(222, 53, 11, .24);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface));
+  border: 1px solid color-mix(in srgb, var(--color-danger) 24%, var(--color-border-default));
   color: var(--color-danger, var(--color-danger));
 }
 
 .successBox {
-  background: rgba(31, 122, 70, .08);
-  border: 1px solid rgba(31, 122, 70, .24);
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
+  border: 1px solid color-mix(in srgb, var(--color-success) 24%, var(--color-border-default));
   color: var(--color-success, var(--color-success));
 }
 
@@ -278,6 +372,7 @@
 }
 
 .rolePill,
+.personaPill,
 .providerPill,
 .statusActive,
 .statusInactive {
@@ -285,34 +380,51 @@
   align-items: center;
   justify-content: center;
   width: fit-content;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 10px;
   font: var(--text-label-sm);
 }
 
 .rolePill {
-  background: rgba(0, 82, 204, .08);
+  background: color-mix(in srgb, var(--color-info) 10%, var(--color-bg-surface));
   color: var(--color-action-primary);
 }
 
+.personaPill {
+  background: color-mix(in srgb, var(--color-success) 9%, var(--color-bg-surface));
+  color: var(--color-success);
+}
+
 .providerPill {
-  background: rgba(66, 82, 110, .10);
+  background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
 }
 
 .statusActive {
-  background: rgba(31, 122, 70, .10);
+  background: color-mix(in srgb, var(--color-success) 9%, var(--color-bg-surface));
   color: var(--color-success, var(--color-success));
 }
 
 .statusInactive {
-  background: rgba(222, 53, 11, .10);
+  background: color-mix(in srgb, var(--color-danger) 9%, var(--color-bg-surface));
   color: var(--color-danger, var(--color-danger));
 }
 
 @media (max-width: 920px) {
   .roleGrid,
-  .formGrid {
+  .formGrid,
+  .kpiGrid,
+  .splitWorkspace {
     grid-template-columns: 1fr;
+  }
+
+  .splitWorkspace .tableCard,
+  .splitWorkspace .panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .splitWorkspace .panel {
+    position: static;
   }
 }

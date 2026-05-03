@@ -1,32 +1,32 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { use, useEffect, useMemo, useState, type ReactNode } from 'react';
+import PageHeader from '@/app/components/PageHeader';
+import { use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
-import adminStyles from '../../../app/admin/admin.module.css';
-import styles from '../../../app/admin/c3/c3.module.css';
-import editorStyles from '../../../app/services/[id]/edit/editor.module.css';
-import detailStyles from '../../../app/services/[id]/detail.module.css';
+import {
+  C3EntityWorkspace,
+  CodeEditor,
+  EditorSubNav,
+  FormSection,
+  StickySaveBar,
+  type EditorSubNavSection,
+  type SaveState,
+} from '@/app/components/layout-v2';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { CapabilityLinksPanel } from '@/features/c3/components/CapabilityLinksPanel';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
 import { useLocale } from '@/app/i18n/useI18n';
 import { formatCapabilityTimestamp, sortCapabilityParentItems } from '../locale-utils';
+import styles from '../../../app/admin/c3/c3.module.css';
+import editorStyles from '../../../app/services/[id]/edit/editor.module.css';
+import detailStyles from '../../../app/services/[id]/detail.module.css';
 
 const BASE = '/api/v1/taxonomy';
 
-interface C3Type {
-  code: string;
-  name: string;
-}
-
-interface C3ListItem {
-  uuid: string;
-  external_id: string | null;
-  title: string;
-  item_type?: string | null;
-}
+interface C3Type { code: string; name: string }
+interface C3ListItem { uuid: string; external_id: string | null; title: string; item_type?: string | null }
 
 interface C3Item {
   id: number;
@@ -71,29 +71,29 @@ interface Props {
 
 function itemToForm(item: C3Item): FormState {
   return {
-    title: item.title,
-    application: item.application ?? '',
-    item_status: item.item_status ?? '',
-    description: item.description ?? '',
-    external_id: item.external_id ?? '',
-    data_qualifier: item.data_qualifier ?? '',
-    data_source: item.data_source ?? '',
-    order_num: item.order_num,
-    ss_overall_status: item.ss_overall_status ?? '',
-    ss_baseline_status: item.ss_baseline_status ?? '',
-    source_description: item.source_description ?? '',
-    revised_description: item.revised_description ?? '',
-    revised: item.revised ?? '',
-    abbreviation: item.abbreviation ?? '',
-    synonym: item.synonym ?? '',
-    script_raw: item.script_raw ?? '',
-    datasets_raw: item.datasets_raw ?? '',
-    standards_raw: item.standards_raw ?? '',
-    references_raw: item.references_raw ?? '',
-    provenance_raw: item.provenance_raw ?? '',
-    item_type: item.item_type ?? '',
-    parent_uuid: item.parent_uuid ?? '',
-    parent_code: item.parent_code ?? '',
+    title:              item.title,
+    application:        item.application        ?? '',
+    item_status:        item.item_status         ?? '',
+    description:        item.description         ?? '',
+    external_id:        item.external_id         ?? '',
+    data_qualifier:     item.data_qualifier      ?? '',
+    data_source:        item.data_source         ?? '',
+    order_num:          item.order_num,
+    ss_overall_status:  item.ss_overall_status   ?? '',
+    ss_baseline_status: item.ss_baseline_status  ?? '',
+    source_description: item.source_description  ?? '',
+    revised_description:item.revised_description ?? '',
+    revised:            item.revised             ?? '',
+    abbreviation:       item.abbreviation        ?? '',
+    synonym:            item.synonym             ?? '',
+    script_raw:         item.script_raw          ?? '',
+    datasets_raw:       item.datasets_raw        ?? '',
+    standards_raw:      item.standards_raw       ?? '',
+    references_raw:     item.references_raw      ?? '',
+    provenance_raw:     item.provenance_raw      ?? '',
+    item_type:          item.item_type           ?? '',
+    parent_uuid:        item.parent_uuid         ?? '',
+    parent_code:        item.parent_code         ?? '',
   };
 }
 
@@ -125,12 +125,23 @@ function FieldBlock({ label, children }: { label: string; children: ReactNode })
   );
 }
 
+function rawLanguage(value: string | null | undefined) {
+  const text = String(value ?? '').trim();
+  return text.startsWith('{') || text.startsWith('[') ? 'json' : 'plaintext';
+}
+
 export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props) {
   const resolvedParams = params ? use(params) : null;
   const uuid = initialUuid ?? resolvedParams?.uuid ?? '';
   const isEdit = mode === 'edit';
   const locale = useLocale();
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole]           = useState<string | null>(null);
+  const [form, setForm]           = useState<FormState | null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saved, setSaved]         = useState(false);
+  const [isDirty, setIsDirty]     = useState(false);
+
   const canEdit = hasRoleAccess(role, 'editor');
   const isAdmin = hasRoleAccess(role, 'admin');
 
@@ -139,39 +150,23 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
     apiFetch,
     { revalidateOnFocus: false },
   );
-  const { data: c3Types } = useSWR<C3Type[]>(
-    isEdit ? `${BASE}/c3/types` : null,
-    apiFetch,
-    { revalidateOnFocus: false },
-  );
-  const { data: c3Statuses } = useSWR<string[]>(
-    isEdit ? `${BASE}/c3/statuses` : null,
-    apiFetch,
-    { revalidateOnFocus: false },
-  );
+  const { data: c3Types }    = useSWR<C3Type[]>(isEdit ? `${BASE}/c3/types`    : null, apiFetch, { revalidateOnFocus: false });
+  const { data: c3Statuses } = useSWR<string[]>(isEdit ? `${BASE}/c3/statuses` : null, apiFetch, { revalidateOnFocus: false });
   const { data: c3AllItems } = useSWR<C3ListItem[]>(`${BASE}/c3`, apiFetch, { revalidateOnFocus: false });
 
-  const [form, setForm] = useState<FormState | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  useEffect(() => { if (isEdit && item && !form) setForm(itemToForm(item)); }, [form, isEdit, item]);
+  useEffect(() => { setRole(getAuthSnapshot()?.role ?? null); }, []);
 
-  useEffect(() => {
-    if (isEdit && item && !form) setForm(itemToForm(item));
-  }, [form, isEdit, item]);
-
-  useEffect(() => {
-    setRole(getAuthSnapshot()?.role ?? null);
+  // Mark form dirty on every field change
+  const set = useCallback((key: keyof FormState, value: string | number | null) => {
+    setForm((current) => (current ? { ...current, [key]: value } : current));
+    setIsDirty(true);
   }, []);
 
-  const set = (key: keyof FormState, value: string | number | null) =>
-    setForm((current) => (current ? { ...current, [key]: value } : current));
-
-  const parentItem = useMemo(() => {
-    if (!item) return null;
-    return (c3AllItems ?? []).find((entry) => entry.uuid === item.parent_uuid) ?? null;
-  }, [c3AllItems, item]);
-
+  const parentItem = useMemo(
+    () => (c3AllItems ?? []).find((entry) => entry.uuid === item?.parent_uuid) ?? null,
+    [c3AllItems, item?.parent_uuid],
+  );
   const sortedParentItems = useMemo(
     () => sortCapabilityParentItems(locale, c3AllItems ?? [], uuid),
     [c3AllItems, locale, uuid],
@@ -186,13 +181,12 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
       !String(source.item_type ?? '').trim() ? 'Item Type by měl být vyplněný.' : null,
       !String(externalId ?? '').trim() ? 'External ID / Page zatím není vyplněné.' : null,
       item?.level_num && item.level_num > 1 && !String(source.parent_uuid ?? source.parent_code ?? '').trim()
-        ? 'Capability nad kořenem by měla mít vyplněný Parent.'
-        : null,
+        ? 'Capability nad kořenem by měla mít vyplněný Parent.' : null,
     ].filter(Boolean) as string[];
   }, [form, isEdit, item]);
 
-  async function handleSave(event: React.FormEvent) {
-    event.preventDefault();
+  // ── Save / discard ────────────────────────────────────────────────────
+  async function doSave() {
     if (!form) return;
     setSaving(true);
     setSaveError(null);
@@ -216,7 +210,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
         globalMutate(`${BASE}/c3`),
       ]);
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setIsDirty(false);
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Chyba při ukládání');
     } finally {
@@ -224,324 +218,313 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
     }
   }
 
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    await doSave();
+  }
+
   function handleReset() {
     if (item) setForm(itemToForm(item));
     setSaveError(null);
     setSaved(false);
+    setIsDirty(false);
   }
 
+  // ── Guards ────────────────────────────────────────────────────────────
   if (isLoading) return <div className={editorStyles.state}>Načítám…</div>;
-  if (error) return <div className={editorStyles.state}>Chyba: {error.message}</div>;
-  if (!item) return null;
+  if (error)     return <div className={editorStyles.state}>Chyba: {error.message}</div>;
+  if (!item)     return null;
   if (isEdit && !form) return <div className={editorStyles.state}>Načítám formulář…</div>;
 
-  const displayCode = item.external_id ?? item.uuid;
-  const editForm = form ?? itemToForm(item);
+  const displayCode  = item.external_id ?? item.uuid;
+  const editForm     = form ?? itemToForm(item);
   const parentDisplay = parentItem
     ? `${item.parent_code ?? parentItem.external_id ?? (isAdmin ? parentItem.uuid : parentItem.title)} — ${parentItem.title}`
     : item.parent_code;
-  const sectionLinks = [
+
+  const saveState: SaveState = saving ? 'saving' : saved ? 'saved' : saveError ? 'error' : isDirty ? 'dirty' : 'clean';
+
+  const editorSections: EditorSubNavSection[] = [
     { id: 'classification', label: '0. Klasifikace & hierarchie' },
-    { id: 'identity', label: '1. Identifikace' },
-    { id: 'description', label: '2. Popis' },
-    { id: 'source', label: '3. Zdroj & kvalita dat' },
-    { id: 'links', label: '4. Vazby & úplnost capability' },
-    { id: 'raw', label: '5. Strukturovaná data (raw JSON/text)' },
+    { id: 'identity',       label: '1. Identifikace' },
+    { id: 'description',    label: '2. Popis' },
+    { id: 'source',         label: '3. Zdroj & kvalita dat' },
+    { id: 'links',          label: '4. Vazby & úplnost', badge: undefined },
+    { id: 'raw',            label: '5. Raw JSON / text' },
   ];
 
   return (
-    <div className={editorStyles.shell}>
-      <div className={editorStyles.editorHeader}>
-        <div>
-          <nav className={adminStyles.breadcrumb}>
-            {isEdit ? <Link href="/administration">Administration</Link> : <Link href="/c3/list">C3 Taxonomie</Link>}
-            {isEdit && (
-              <>
-                <span className={adminStyles.breadcrumbSep}>/</span>
-                <Link href="/c3/list">C3 Taxonomie</Link>
-              </>
-            )}
-            <span className={adminStyles.breadcrumbSep}>/</span>
-            <span>{item.title}</span>
-          </nav>
-          <span className={editorStyles.serviceId}>{displayCode}</span>
-          <h1 className={editorStyles.editorTitle}>{item.title}</h1>
-        </div>
-        <div style={{ display: 'grid', gap: '0.75rem', justifyItems: 'end' }}>
-          {!isEdit && canEdit && (
-            <Link href={`/c3/${uuid}/edit`} className={detailStyles.editBtn}>
-              Edit
-            </Link>
+    <>
+      {/* ── PageHeader (spec v2 §8) ───────────────────────────────────── */}
+      <PageHeader
+        title={item.title}
+        purpose={`C3 Capability · ${item.item_type ?? 'CP'} · ${displayCode}`}
+        chips={[
+          { label: isEdit ? 'Edit' : 'View',        tone: isEdit ? 'warn' : 'neutral' },
+          { label: item.item_status ?? 'unknown',   tone: 'neutral' },
+          ...(validationIssues.length > 0
+            ? [{ label: `${validationIssues.length} chyb`, tone: 'bad' as const }]
+            : [{ label: 'Valid', tone: 'ok' as const }]),
+        ]}
+        primaryAction={
+          isEdit
+            ? { label: 'Náhled', href: `/c3/${encodeURIComponent(uuid)}` }
+            : canEdit
+              ? { label: 'Edit', href: `/c3/${encodeURIComponent(uuid)}/edit` }
+              : undefined
+        }
+      />
+
+      <C3EntityWorkspace className={editorStyles.shell}>
+        {/* ── Summary strip ─────────────────────────────────────────── */}
+        <div className={detailStyles.summaryStrip}>
+          <div className={detailStyles.summaryItem}>
+            <span className={detailStyles.summaryLabel}>External ID</span>
+            <span className={detailStyles.summaryValue}>{displayCode}</span>
+          </div>
+          {isAdmin && (
+            <div className={detailStyles.summaryItem}>
+              <span className={detailStyles.summaryLabel}>UUID</span>
+              <span className={detailStyles.summaryValue}>{item.uuid}</span>
+            </div>
           )}
-          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>
-            Synced: {formatCapabilityTimestamp(locale, item.synced_at)}<br />
-            Modified: {formatCapabilityTimestamp(locale, item.modification_date)}
+          <div className={detailStyles.summaryItem}>
+            <span className={detailStyles.summaryLabel}>Parent</span>
+            <span className={detailStyles.summaryValue}>{parentItem?.title ?? item.parent_title ?? item.parent_code ?? '—'}</span>
+          </div>
+          <div className={detailStyles.summaryItem}>
+            <span className={detailStyles.summaryLabel}>Modified</span>
+            <span className={detailStyles.summaryValue}>{formatCapabilityTimestamp(locale, item.modification_date)}</span>
           </div>
         </div>
-      </div>
 
-      <div className={editorStyles.editorBody}>
-        {isEdit ? (
-          <form id="c3-detail-form" onSubmit={handleSave} className={editorStyles.formArea}>
-            <section id="classification" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>0. Klasifikace &amp; hierarchie</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldGrid}>
-                  <FieldBlock label="Item Type">
-                    <select className={styles.editInput} value={editForm.item_type ?? ''} onChange={(e) => set('item_type', e.target.value)}>
-                      <option value="">— neurčeno —</option>
-                      {(c3Types ?? []).map((type) => (
-                        <option key={type.code} value={type.code}>{type.code}</option>
-                      ))}
-                    </select>
-                  </FieldBlock>
-                  <FieldBlock label="Nadřazená schopnost (Parent)">
-                    <select className={styles.editInput} value={editForm.parent_uuid ?? ''} onChange={(e) => set('parent_uuid', e.target.value)}>
-                      <option value="">— žádný (kořenová schopnost) —</option>
-                      {sortedParentItems.map((entry) => (
+        {/* ── EditorSubNav + content (spec v2 §8) ──────────────────── */}
+        <div className={editorStyles.editorBody}>
+          <EditorSubNav
+            title="Capability editor"
+            summary="Přejděte na sekci kliknutím nebo posuňte stránku."
+            sections={editorSections}
+            onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+
+          <div className={editorStyles.formArea}>
+            {isEdit ? (
+              <form id="c3-detail-form" onSubmit={handleSave}>
+
+                {/* 0. Klasifikace & hierarchie */}
+                <FormSection id="classification" title="0. Klasifikace & hierarchie">
+                  <div className={styles.editFieldGrid}>
+                    <FieldBlock label="Item Type">
+                      <select className={styles.editInput} value={editForm.item_type ?? ''} onChange={(e) => set('item_type', e.target.value)}>
+                        <option value="">— neurčeno —</option>
+                        {(c3Types ?? []).map((type) => (
+                          <option key={type.code} value={type.code}>{type.code}</option>
+                        ))}
+                      </select>
+                    </FieldBlock>
+                    <FieldBlock label="Nadřazená schopnost (Parent)">
+                      <select className={styles.editInput} value={editForm.parent_uuid ?? ''} onChange={(e) => set('parent_uuid', e.target.value)}>
+                        <option value="">— žádný (kořenová schopnost) —</option>
+                        {sortedParentItems.map((entry) => (
                           <option key={entry.uuid} value={entry.uuid}>
                             {entry.external_id ? `[${entry.external_id}] ` : ''}{entry.title}
                           </option>
-                      ))}
-                    </select>
-                  </FieldBlock>
-                </div>
-              </div>
-            </section>
+                        ))}
+                      </select>
+                    </FieldBlock>
+                  </div>
+                </FormSection>
 
-            <section id="identity" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>1. Identifikace</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldGrid}>
-                  <FieldBlock label="Title *">
-                    <input className={styles.editInput} required value={editForm.title} onChange={(e) => set('title', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Application (domain)">
-                    <input className={styles.editInput} value={editForm.application ?? ''} onChange={(e) => set('application', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Item status">
-                    <select className={styles.editInput} value={editForm.item_status ?? ''} onChange={(e) => set('item_status', e.target.value)}>
-                      <option value="">— neurčeno —</option>
-                      {(c3Statuses ?? []).map((status) => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  </FieldBlock>
-                  <FieldBlock label="External ID">
-                    <input className={styles.editInput} value={editForm.external_id ?? ''} onChange={(e) => set('external_id', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Order #">
-                    <input className={styles.editInput} type="number" value={editForm.order_num ?? ''} onChange={(e) => set('order_num', e.target.value ? parseInt(e.target.value, 10) : null)} />
-                  </FieldBlock>
-                  <FieldBlock label="Abbreviation">
-                    <input className={styles.editInput} value={editForm.abbreviation ?? ''} onChange={(e) => set('abbreviation', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Synonym">
-                    <input className={styles.editInput} value={editForm.synonym ?? ''} onChange={(e) => set('synonym', e.target.value)} />
-                  </FieldBlock>
-                </div>
-              </div>
-            </section>
+                {/* 1. Identifikace */}
+                <FormSection id="identity" title="1. Identifikace">
+                  <div className={styles.editFieldGrid}>
+                    <FieldBlock label="Title *">
+                      <input className={styles.editInput} required value={editForm.title} onChange={(e) => set('title', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Application (domain)">
+                      <input className={styles.editInput} value={editForm.application ?? ''} onChange={(e) => set('application', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Item status">
+                      <select className={styles.editInput} value={editForm.item_status ?? ''} onChange={(e) => set('item_status', e.target.value)}>
+                        <option value="">— neurčeno —</option>
+                        {(c3Statuses ?? []).map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </FieldBlock>
+                    <FieldBlock label="External ID">
+                      <input className={styles.editInput} value={editForm.external_id ?? ''} onChange={(e) => set('external_id', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Order #">
+                      <input className={styles.editInput} type="number" value={editForm.order_num ?? ''} onChange={(e) => set('order_num', e.target.value ? parseInt(e.target.value, 10) : null)} />
+                    </FieldBlock>
+                    <FieldBlock label="Abbreviation">
+                      <input className={styles.editInput} value={editForm.abbreviation ?? ''} onChange={(e) => set('abbreviation', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Synonym">
+                      <input className={styles.editInput} value={editForm.synonym ?? ''} onChange={(e) => set('synonym', e.target.value)} />
+                    </FieldBlock>
+                  </div>
+                </FormSection>
 
-            <section id="description" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>2. Popis</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldStack}>
-                  <FieldBlock label="Description">
-                    <textarea className={styles.editTextarea} rows={4} value={editForm.description ?? ''} onChange={(e) => set('description', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Source description">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.source_description ?? ''} onChange={(e) => set('source_description', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Revised description">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.revised_description ?? ''} onChange={(e) => set('revised_description', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Revised (note)">
-                    <input className={styles.editInput} value={editForm.revised ?? ''} onChange={(e) => set('revised', e.target.value)} />
-                  </FieldBlock>
-                </div>
-              </div>
-            </section>
+                {/* 2. Popis */}
+                <FormSection id="description" title="2. Popis">
+                  <div className={styles.editFieldStack}>
+                    <FieldBlock label="Description">
+                      <textarea className={styles.editTextarea} rows={4} value={editForm.description ?? ''} onChange={(e) => set('description', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Source description">
+                      <textarea className={styles.editTextarea} rows={3} value={editForm.source_description ?? ''} onChange={(e) => set('source_description', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Revised description">
+                      <textarea className={styles.editTextarea} rows={3} value={editForm.revised_description ?? ''} onChange={(e) => set('revised_description', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Revised (note)">
+                      <input className={styles.editInput} value={editForm.revised ?? ''} onChange={(e) => set('revised', e.target.value)} />
+                    </FieldBlock>
+                  </div>
+                </FormSection>
 
-            <section id="source" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>3. Zdroj &amp; kvalita dat</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldGrid}>
-                  <FieldBlock label="Data qualifier">
-                    <input className={styles.editInput} value={editForm.data_qualifier ?? ''} onChange={(e) => set('data_qualifier', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Data source">
-                    <input className={styles.editInput} value={editForm.data_source ?? ''} onChange={(e) => set('data_source', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="SS overall status">
-                    <input className={styles.editInput} value={editForm.ss_overall_status ?? ''} onChange={(e) => set('ss_overall_status', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="SS baseline status">
-                    <input className={styles.editInput} value={editForm.ss_baseline_status ?? ''} onChange={(e) => set('ss_baseline_status', e.target.value)} />
-                  </FieldBlock>
-                </div>
-              </div>
-            </section>
+                {/* 3. Zdroj & kvalita dat */}
+                <FormSection id="source" title="3. Zdroj & kvalita dat">
+                  <div className={styles.editFieldGrid}>
+                    <FieldBlock label="Data qualifier">
+                      <input className={styles.editInput} value={editForm.data_qualifier ?? ''} onChange={(e) => set('data_qualifier', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="Data source">
+                      <input className={styles.editInput} value={editForm.data_source ?? ''} onChange={(e) => set('data_source', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="SS overall status">
+                      <input className={styles.editInput} value={editForm.ss_overall_status ?? ''} onChange={(e) => set('ss_overall_status', e.target.value)} />
+                    </FieldBlock>
+                    <FieldBlock label="SS baseline status">
+                      <input className={styles.editInput} value={editForm.ss_baseline_status ?? ''} onChange={(e) => set('ss_baseline_status', e.target.value)} />
+                    </FieldBlock>
+                  </div>
+                </FormSection>
 
-            <section id="links" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>4. Vazby &amp; úplnost capability</h2>
-              <div className={editorStyles.sectionBody}>
-                <CapabilityLinksPanel capabilityUuid={uuid} />
-              </div>
-            </section>
+                {/* 4. Vazby & úplnost capability */}
+                <FormSection id="links" title="4. Vazby & úplnost capability">
+                  <CapabilityLinksPanel capabilityUuid={uuid} />
+                </FormSection>
 
-            <section id="raw" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>5. Strukturovaná data (raw JSON/text)</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldStack}>
-                  <FieldBlock label="Script (raw)">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.script_raw ?? ''} onChange={(e) => set('script_raw', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Datasets (raw)">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.datasets_raw ?? ''} onChange={(e) => set('datasets_raw', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Standards (raw)">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.standards_raw ?? ''} onChange={(e) => set('standards_raw', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="References (raw)">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.references_raw ?? ''} onChange={(e) => set('references_raw', e.target.value)} />
-                  </FieldBlock>
-                  <FieldBlock label="Provenance (raw)">
-                    <textarea className={styles.editTextarea} rows={3} value={editForm.provenance_raw ?? ''} onChange={(e) => set('provenance_raw', e.target.value)} />
-                  </FieldBlock>
-                </div>
-              </div>
-            </section>
-          </form>
-        ) : (
-          <div className={editorStyles.formArea}>
-            <section id="classification" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>0. Klasifikace &amp; hierarchie</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldGrid}>
-                  <ReadonlyField label="Item Type" value={item.item_type} />
-                  <ReadonlyField label="Application / doména" value={item.application} />
-                  <ReadonlyField label="Level" value={item.level_num} />
-                  <ReadonlyField label="Item status" value={item.item_status} />
-                  <ReadonlyField label="Parent capability" value={parentDisplay} />
-                  {isAdmin && <ReadonlyField label="Parent UUID" value={item.parent_uuid} mono />}
-                </div>
-              </div>
-            </section>
+                {/* 5. Raw JSON / text */}
+                <FormSection id="raw" title="5. Strukturovaná data (raw JSON/text)">
+                  <div className={styles.editFieldStack}>
+                    <FieldBlock label="Script (raw)">
+                      <CodeEditor label="Script (raw)" language={rawLanguage(editForm.script_raw)} rows={5} value={editForm.script_raw ?? ''} onValueChange={(v) => set('script_raw', v)} />
+                    </FieldBlock>
+                    <FieldBlock label="Datasets (raw)">
+                      <CodeEditor label="Datasets (raw)" language={rawLanguage(editForm.datasets_raw)} rows={5} value={editForm.datasets_raw ?? ''} onValueChange={(v) => set('datasets_raw', v)} />
+                    </FieldBlock>
+                    <FieldBlock label="Standards (raw)">
+                      <CodeEditor label="Standards (raw)" language={rawLanguage(editForm.standards_raw)} rows={5} value={editForm.standards_raw ?? ''} onValueChange={(v) => set('standards_raw', v)} />
+                    </FieldBlock>
+                    <FieldBlock label="References (raw)">
+                      <CodeEditor label="References (raw)" language={rawLanguage(editForm.references_raw)} rows={5} value={editForm.references_raw ?? ''} onValueChange={(v) => set('references_raw', v)} />
+                    </FieldBlock>
+                    <FieldBlock label="Provenance (raw)">
+                      <CodeEditor label="Provenance (raw)" language={rawLanguage(editForm.provenance_raw)} rows={5} value={editForm.provenance_raw ?? ''} onValueChange={(v) => set('provenance_raw', v)} />
+                    </FieldBlock>
+                  </div>
+                </FormSection>
 
-            <section id="identity" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>1. Identifikace</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldGrid}>
-                  {isAdmin && <ReadonlyField label="UUID" value={item.uuid} mono />}
-                  <ReadonlyField label="Page / External ID" value={item.external_id} mono />
-                  <ReadonlyField label="Source External ID" value={item.source_external_id} mono />
-                  <ReadonlyField label="Order" value={item.order_num} />
-                  <ReadonlyField label="Abbreviation" value={item.abbreviation} />
-                  <ReadonlyField label="Synonym" value={item.synonym} />
-                </div>
-              </div>
-            </section>
-
-            <section id="description" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>2. Popis</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldStack}>
-                  <ReadonlyArea label="Description" value={item.description} />
-                  <ReadonlyArea label="Source description" value={item.source_description} />
-                  <ReadonlyArea label="Revised description" value={item.revised_description} />
-                  <ReadonlyField label="Revised" value={item.revised} />
-                </div>
-              </div>
-            </section>
-
-            <section id="source" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>3. Zdroj &amp; kvalita dat</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldGrid}>
-                  <ReadonlyField label="Data qualifier" value={item.data_qualifier} />
-                  <ReadonlyField label="Data source" value={item.data_source} />
-                  <ReadonlyField label="SS overall status" value={item.ss_overall_status} />
-                  <ReadonlyField label="SS baseline status" value={item.ss_baseline_status} />
-                  <ReadonlyField
-                    label="Modification date"
-                    value={formatCapabilityTimestamp(locale, item.modification_date)}
-                  />
-                  <ReadonlyField
-                    label="Synced at"
-                    value={formatCapabilityTimestamp(locale, item.synced_at)}
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section id="links" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>4. Vazby &amp; úplnost capability</h2>
-              <div className={editorStyles.sectionBody}>
-                <CapabilityLinksPanel capabilityUuid={uuid} readOnly />
-              </div>
-            </section>
-
-            <section id="raw" className={editorStyles.section}>
-              <h2 className={editorStyles.sectionTitle}>5. Strukturovaná data (raw JSON/text)</h2>
-              <div className={editorStyles.sectionBody}>
-                <div className={styles.editFieldStack}>
-                  <ReadonlyArea label="Script (raw)" value={item.script_raw} />
-                  <ReadonlyArea label="Datasets (raw)" value={item.datasets_raw} />
-                  <ReadonlyArea label="Standards (raw)" value={item.standards_raw} />
-                  <ReadonlyArea label="References (raw)" value={item.references_raw} />
-                  <ReadonlyArea label="Provenance (raw)" value={item.provenance_raw} />
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
-
-        <aside className={editorStyles.rail}>
-          {isEdit && (
-            <div className={editorStyles.railCard}>
-              {saveError && <div className={editorStyles.railError}>{saveError}</div>}
-              {saved && <div className={editorStyles.savedOk}>✓ Uloženo</div>}
-              <button type="submit" form="c3-detail-form" className={editorStyles.saveBtn} disabled={saving}>
-                {saving ? 'Ukládám…' : 'Uložit'}
-              </button>
-              <button type="button" className={editorStyles.cancelBtn} onClick={handleReset} disabled={saving}>
-                Zahodit změny
-              </button>
-            </div>
-          )}
-
-          <div className={editorStyles.railCard}>
-            <div className={editorStyles.railTitle}>Souhrn</div>
-            {isAdmin && <div className={editorStyles.validOk}>UUID: {item.uuid}</div>}
-            <div className={editorStyles.validOk}>Item Type: {isEdit ? editForm.item_type ?? '—' : item.item_type ?? '—'}</div>
-            <div className={editorStyles.validOk}>Parent: {parentItem?.title ?? item.parent_title ?? item.parent_code ?? '—'}</div>
-            <div className={editorStyles.validOk}>Status: {isEdit ? editForm.item_status ?? '—' : item.item_status ?? '—'}</div>
-          </div>
-
-          <div className={editorStyles.railCard}>
-            <div className={editorStyles.railTitle}>Sekce</div>
-            <div className={editorStyles.sectionNav}>
-              {sectionLinks.map((section) => (
-                <a key={section.id} href={`#${section.id}`} className={editorStyles.sectionNavItem}>
-                  {section.label}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <div className={editorStyles.railCard}>
-            <div className={editorStyles.railTitle}>Validation</div>
-            {validationIssues.length > 0 ? (
-              validationIssues.map((issue) => (
-                <div key={issue} className={editorStyles.validationError}>{issue}</div>
-              ))
+              </form>
             ) : (
-              <div className={editorStyles.validOk}>No errors</div>
+              /* ── Read-only view ────────────────────────────────────── */
+              <div>
+                <FormSection id="classification" title="0. Klasifikace & hierarchie">
+                  <div className={styles.editFieldGrid}>
+                    <ReadonlyField label="Item Type"          value={item.item_type} />
+                    <ReadonlyField label="Application / doména" value={item.application} />
+                    <ReadonlyField label="Level"              value={item.level_num} />
+                    <ReadonlyField label="Item status"        value={item.item_status} />
+                    <ReadonlyField label="Parent capability"  value={parentDisplay} />
+                    {isAdmin && <ReadonlyField label="Parent UUID" value={item.parent_uuid} mono />}
+                  </div>
+                </FormSection>
+
+                <FormSection id="identity" title="1. Identifikace">
+                  <div className={styles.editFieldGrid}>
+                    {isAdmin && <ReadonlyField label="UUID"           value={item.uuid} mono />}
+                    <ReadonlyField label="Page / External ID"         value={item.external_id} mono />
+                    <ReadonlyField label="Source External ID"         value={item.source_external_id} mono />
+                    <ReadonlyField label="Order"                      value={item.order_num} />
+                    <ReadonlyField label="Abbreviation"               value={item.abbreviation} />
+                    <ReadonlyField label="Synonym"                    value={item.synonym} />
+                  </div>
+                </FormSection>
+
+                <FormSection id="description" title="2. Popis">
+                  <div className={styles.editFieldStack}>
+                    <ReadonlyArea label="Description"         value={item.description} />
+                    <ReadonlyArea label="Source description"  value={item.source_description} />
+                    <ReadonlyArea label="Revised description" value={item.revised_description} />
+                    <ReadonlyField label="Revised"            value={item.revised} />
+                  </div>
+                </FormSection>
+
+                <FormSection id="source" title="3. Zdroj & kvalita dat">
+                  <div className={styles.editFieldGrid}>
+                    <ReadonlyField label="Data qualifier"     value={item.data_qualifier} />
+                    <ReadonlyField label="Data source"        value={item.data_source} />
+                    <ReadonlyField label="SS overall status"  value={item.ss_overall_status} />
+                    <ReadonlyField label="SS baseline status" value={item.ss_baseline_status} />
+                    <ReadonlyField label="Modification date"  value={formatCapabilityTimestamp(locale, item.modification_date)} />
+                    <ReadonlyField label="Synced at"          value={formatCapabilityTimestamp(locale, item.synced_at)} />
+                  </div>
+                </FormSection>
+
+                <FormSection id="links" title="4. Vazby & úplnost capability">
+                  <CapabilityLinksPanel capabilityUuid={uuid} readOnly />
+                </FormSection>
+
+                <FormSection id="raw" title="5. Strukturovaná data (raw JSON/text)">
+                  <div className={styles.editFieldStack}>
+                    <ReadonlyArea label="Script (raw)"     value={item.script_raw} />
+                    <ReadonlyArea label="Datasets (raw)"   value={item.datasets_raw} />
+                    <ReadonlyArea label="Standards (raw)"  value={item.standards_raw} />
+                    <ReadonlyArea label="References (raw)" value={item.references_raw} />
+                    <ReadonlyArea label="Provenance (raw)" value={item.provenance_raw} />
+                  </div>
+                </FormSection>
+              </div>
             )}
           </div>
-        </aside>
-      </div>
-    </div>
+
+          {/* ── Right rail: validation only ────────────────────────── */}
+          <aside className={editorStyles.rail}>
+            <div className={editorStyles.railCard}>
+              <div className={editorStyles.railTitle}>Validation</div>
+              {validationIssues.length > 0 ? (
+                validationIssues.map((issue) => (
+                  <div key={issue} className={editorStyles.validationError}>{issue}</div>
+                ))
+              ) : (
+                <div className={editorStyles.validOk}>No errors</div>
+              )}
+            </div>
+            {!isEdit && canEdit && (
+              <div className={editorStyles.railCard}>
+                <Link href={`/c3/${encodeURIComponent(uuid)}/edit`} className={detailStyles.editBtn}>Edit</Link>
+              </div>
+            )}
+          </aside>
+        </div>
+      </C3EntityWorkspace>
+
+      {/* ── StickySaveBar — only in edit mode (spec v2 §8) ──────────────── */}
+      {isEdit && (
+        <StickySaveBar
+          state={saveState}
+          message={saveError ?? undefined}
+          primaryLabel="Uložit změny"
+          secondaryLabel="Zahodit"
+          disabled={!isDirty || validationIssues.length > 0}
+          onSave={() => void doSave()}
+          onDiscard={handleReset}
+        />
+      )}
+    </>
   );
 }

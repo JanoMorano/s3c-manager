@@ -11,21 +11,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 No unreleased changes yet.
 
-## [1.1.2] — 2026-05-01
+## [1.1.2] — 2026-05-03
 
 ### Added
-- Service relationship studio on service detail pages with manager summary, readiness status, admin action queue, relationship map, C3 links, support path, and key service facts.
-- C3 dashboard relationship board with mapped coverage, unmapped evidence queue, import sync drift, validation findings, and taxonomy-to-impact story.
-- Capability hub and capability detail relationship views for coverage, gaps, services, spirals, overlaps, evidence documents, and plain-language next actions.
+- Layout v2 governance shell based on `LAYOUT_PROPOSAL.md`, `LAYOUT_PROPOSAL2.md`, `layout-mockup.html`, and `layout-mockup-v2.html`.
+- Service 360 Relationship Studio with business/technical views, readiness context, lifecycle signal, C3 mappings, dependencies, support path, and audit context.
+- Operations cockpit pages for readiness, reviews, decision log, owner load, impact analysis, and personal task queues.
+- C3 and capability workspaces for board-style governance, graph exploration, entity detail/edit/code-edit flows, coverage, gaps, overlaps, and spiral context.
+- Administration, import, search, and onboarding refinements, including user KPI counters, saved searches, import wizard flow, and horizontal new-service progress.
 - Frontend route documentation under `docs/desctiption/` for the application page surface.
 
 ### Changed
-- Service, C3, and capability pages now use a shared B/C hybrid UX: manager-readable context first, admin work queue second, detailed tabs preserved underneath.
-- Product/runtime defaults, visible Help badge, package metadata, Docker Compose, Portainer stack, install fallback, and platform seed version aligned to `1.1.2`.
-- README release highlights now describe the Service Relationship Studio and capability governance UX.
+- Service, C3, capability, operations, import, and administration pages now use the governance cockpit UX: manager-readable context first, admin action queues second, detailed evidence preserved underneath.
+- Service editor behavior now follows the v2 rules for sticky save states, publish gates, read-only Service ID styling, requestable warnings, lifecycle transitions, and collection editing.
+- Reviews use modal-driven status changes with rationale, evidence, defer expiry, side-effect-free readiness pre-flight, and decision log preview.
+- Product/runtime defaults, visible Help badge, package metadata, Docker Compose, Portainer stack, install fallback, `.env.example`, release notes, and platform seed version aligned to `1.1.2`.
+- README release highlights now describe the full Layout v2 Governance Cockpit release.
 
 ### Fixed
-- Kept the redesign within the existing API/data model and verified the affected Next.js routes compile in the production build.
+- Restored functional routes and outputs for `/operations/readiness`, `/services/impact`, `/services/graph`, `/import`, `/operations/reviews`, `/administration/users`, `/management/new-service`, C3 entity detail, and `/operations/decisions`.
+- Fixed token/style-rule regressions and production TypeScript build blockers introduced during the UI refresh.
+- Kept the redesign within the existing API/data model where possible and verified the release candidate with production build, style lint, Docker health smoke, HTTP route smoke, and focused Playwright coverage.
 
 ## [1.1.1] — 2026-04-28
 

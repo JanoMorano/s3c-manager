@@ -27,6 +27,8 @@ import type {
   ServiceAudiencePolicy,
   ServiceOperationalLink,
   ImpactResponse,
+  Service360Response,
+  ServiceRequestItem,
 } from '../model/service.types';
 
 // ── Services list ────────────────────────────────────────────────────────────
@@ -57,6 +59,14 @@ export function useService(id: string | null) {
 export function useServiceOverview(id: string | null) {
   return useSWR<ServiceOverviewResponse>(
     id ? `/api/v1/services/${id}/overview` : null,
+    apiFetch,
+    { revalidateOnFocus: false }
+  );
+}
+
+export function useService360(id: string | null) {
+  return useSWR<Service360Response>(
+    id ? `/api/v1/services/${id}/360` : null,
     apiFetch,
     { revalidateOnFocus: false }
   );
@@ -223,6 +233,13 @@ export function useDashboardInbox() {
 
 export function useDashboardSummary() {
   return useSWR<DashboardDecisionSummaryResponse>('/api/v1/dashboard/summary', apiFetch, {
+    refreshInterval: 60_000,
+    revalidateOnFocus: false,
+  });
+}
+
+export function useMyServiceRequests() {
+  return useSWR<{ items: ServiceRequestItem[]; count: number }>('/api/v1/service-requests/mine', apiFetch, {
     refreshInterval: 60_000,
     revalidateOnFocus: false,
   });

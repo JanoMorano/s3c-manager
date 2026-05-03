@@ -984,6 +984,98 @@
 .state      { padding: var(--space-8); text-align: center; color: var(--color-text-muted); }
 .stateError { padding: var(--space-8); text-align: center; color: var(--color-danger); }
 
+.c3KanbanSection {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.c3Kanban {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.c3Lane {
+  display: flex;
+  min-width: 0;
+  min-height: 280px;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+
+.c3Lane h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.c3Lane h3 strong {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+}
+
+.c3LaneCards {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.c3LaneCard {
+  display: grid;
+  gap: 3px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.c3LaneCard:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+
+.c3LaneCard strong {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c3LaneCard span,
+.c3LaneEmpty {
+  color: var(--color-text-muted);
+  font: var(--text-body-sm);
+}
+
+@media (max-width: 1180px) {
+  .c3Kanban {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .pageHeader,
   .sectionHeader {
@@ -1029,6 +1121,12 @@
   }
 
   .evidenceRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .c3Kanban {
     grid-template-columns: 1fr;
   }
 }

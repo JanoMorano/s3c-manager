@@ -1,6 +1,8 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
+import { GraphWorkspace } from '@/app/components/layout-v2';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import { useGraphOverview } from '@/features/services/hooks/useServices';
 import type { GraphOverviewEdge, GraphOverviewNode } from '@/features/services/model/service.types';
@@ -69,20 +71,16 @@ export default function DependencyFlowPage() {
 
   return (
     <main className={styles.shell}>
-      <header className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>Service graph · dependency flow</span>
-          <h1 className={styles.title}>Dependency flow</h1>
-          <p className={styles.lead}>
-            Decision-first view across consumer need, business service, enabling services, C3 capability and FMN/C3 requirement evidence.
-          </p>
-        </div>
-        <div className={styles.actions}>
-          <Link className={styles.ghostButton} href="/services/impact">Impact analysis</Link>
-          <Link className={styles.ghostButton} href="/services/graph">Open graph canvas</Link>
-          <Link className={styles.linkButton} href="/services/consolidation-matrix">Consolidation matrix</Link>
-        </div>
-      </header>
+      <PageHeader
+        title="Dependency Flow"
+        purpose="Rozhodovací mapa od potřeby konzumenta přes business službu, podpůrné služby, C3 capability až po požadavek."
+        chips={[
+          { label: `${services.length} services`, tone: 'info' },
+          { label: `${serviceRelations.length} dependencies`, tone: serviceRelations.length ? 'warn' : 'ok' },
+          { label: `${c3Mappings.length} C3 mappings`, tone: c3Mappings.length ? 'ok' : 'warn' },
+        ]}
+        primaryAction={{ label: 'Graph canvas', href: '/services/graph' }}
+      />
 
       <section className={styles.kpiGrid}>
         <KpiCard label="Services" value={services.length} hint="Business/service catalogue nodes" />
@@ -90,38 +88,61 @@ export default function DependencyFlowPage() {
         <KpiCard label="C3 mappings" value={c3Mappings.length} hint="Evidence links into taxonomy" />
       </section>
 
-      <section className={styles.flowBoard} aria-label="Dependency flow map">
-        <FlowColumn title="Consumer need">
-          {needs.length ? needs.map((need) => <NodeCard key={need.id} title={need.title} subtitle="Portfolio or service type signal" />) : <EmptyState title="No needs" />}
-        </FlowColumn>
-        <FlowColumn title="Business service">
-          {topServices.map((service) => (
-            <NodeCard
-              key={service.id}
-              href={`/services/${service.service_id}`}
-              title={service.title}
-              subtitle={service.service_id ?? 'service'}
-              meta={service.service_status ?? undefined}
-              variant="service"
-            />
-          ))}
-        </FlowColumn>
-        <FlowColumn title="Enabling service">
-          {enablingNodes.length ? enablingNodes.map((node) => (
-            <NodeCard key={node.id} href={node.service_id ? `/services/${node.service_id}` : undefined} title={node.title} subtitle={node.service_id ?? node.code ?? 'dependency'} variant="service" />
-          )) : <EmptyState title="No upstream dependencies" />}
-        </FlowColumn>
-        <FlowColumn title="C3 capability">
-          {capabilityNodes.length ? capabilityNodes.map((node) => (
-            <NodeCard key={node.id} href={node.c3_uuid ? `/c3/${node.c3_uuid}` : undefined} title={node.title} subtitle={node.code ?? node.item_type ?? 'C3'} variant="capability" />
-          )) : <EmptyState title="No C3 mapping" />}
-        </FlowColumn>
-        <FlowColumn title="FMN requirement">
-          {capabilityNodes.length ? capabilityNodes.map((node) => (
-            <NodeCard key={`req:${node.id}`} title={node.code ?? node.title} subtitle="Derived from mapped C3 evidence" variant="requirement" />
-          )) : <EmptyState title="No requirement evidence" />}
-        </FlowColumn>
-      </section>
+      <GraphWorkspace
+        title="Dependency workspace"
+        purpose="Use this when explaining impact and service dependencies."
+        toolbar={
+          <div className={styles.graphToolStack}>
+            <Link className={styles.ghostButton} href="/services/impact">Impact analysis</Link>
+            <Link className={styles.ghostButton} href="/services/graph">Open graph canvas</Link>
+            <Link className={styles.linkButton} href="/services/consolidation-matrix">Consolidation matrix</Link>
+          </div>
+        }
+        canvas={
+          <section className={`${styles.flowBoard} ${styles.flowBoardCanvas}`} aria-label="Dependency flow map">
+            <FlowColumn title="Consumer need">
+              {needs.length ? needs.map((need) => <NodeCard key={need.id} title={need.title} subtitle="Portfolio or service type signal" />) : <EmptyState title="No needs" />}
+            </FlowColumn>
+            <FlowColumn title="Business service">
+              {topServices.map((service) => (
+                <NodeCard
+                  key={service.id}
+                  href={`/services/${service.service_id}`}
+                  title={service.title}
+                  subtitle={service.service_id ?? 'service'}
+                  meta={service.service_status ?? undefined}
+                  variant="service"
+                />
+              ))}
+            </FlowColumn>
+            <FlowColumn title="Enabling service">
+              {enablingNodes.length ? enablingNodes.map((node) => (
+                <NodeCard key={node.id} href={node.service_id ? `/services/${node.service_id}` : undefined} title={node.title} subtitle={node.service_id ?? node.code ?? 'dependency'} variant="service" />
+              )) : <EmptyState title="No upstream dependencies" />}
+            </FlowColumn>
+            <FlowColumn title="C3 capability">
+              {capabilityNodes.length ? capabilityNodes.map((node) => (
+                <NodeCard key={node.id} href={node.c3_uuid ? `/c3/${node.c3_uuid}` : undefined} title={node.title} subtitle={node.code ?? node.item_type ?? 'C3'} variant="capability" />
+              )) : <EmptyState title="No C3 mapping" />}
+            </FlowColumn>
+            <FlowColumn title="FMN requirement">
+              {capabilityNodes.length ? capabilityNodes.map((node) => (
+                <NodeCard key={`req:${node.id}`} title={node.code ?? node.title} subtitle="Derived from mapped C3 evidence" variant="requirement" />
+              )) : <EmptyState title="No requirement evidence" />}
+            </FlowColumn>
+          </section>
+        }
+        detail={
+          <div className={styles.graphDetailStack}>
+            <strong>Top services</strong>
+            {topServices.map((service) => (
+              <Link key={service.id} href={`/services/${service.service_id}`} className={styles.detailLink}>
+                {service.title}
+              </Link>
+            ))}
+          </div>
+        }
+      />
     </main>
   );
 }

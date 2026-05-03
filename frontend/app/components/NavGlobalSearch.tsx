@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { useT } from '@/app/i18n/useI18n';
 import { authHeaders } from '@/features/services/api/services.api';
 import styles from '../layout.module.css';
@@ -99,11 +100,12 @@ export default function NavGlobalSearch() {
   return (
     <div className={styles.navSearchWrap}>
       <form className={styles.navSearchForm} onSubmit={handleSubmit} role="search" aria-label={t('nav.global_search_aria')}>
+        <Search className={styles.navSearchIcon} size={14} aria-hidden="true" />
         <input
           ref={inputRef}
           className={styles.navSearchInput}
           type="search"
-          placeholder={t('nav.global_search_placeholder')}
+          placeholder="Search services, capabilities, decisions..."
           value={query}
           onFocus={() => setPaletteOpen(true)}
           onChange={(event) => {
@@ -112,7 +114,8 @@ export default function NavGlobalSearch() {
           }}
           aria-label={t('nav.global_search_aria')}
         />
-        <button type="submit" className={styles.navSearchButton}>
+        <kbd className={styles.navSearchKbd}>⌘K</kbd>
+        <button type="submit" className={styles.navSearchSubmit}>
           {t('nav.global_search_submit')}
         </button>
       </form>

@@ -27,7 +27,9 @@ describe('dashboard routes', () => {
 
     test('GET /inbox returns empty state', async () => {
         const { __query } = require('../db/pool');
-        __query.mockResolvedValueOnce({ rows: [] });
+        __query
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValue({ rows: [] });
 
         const router = require('../routes/dashboard');
         const app = express();
@@ -40,19 +42,21 @@ describe('dashboard routes', () => {
 
     test('GET /inbox returns top actionable items filtered by current user', async () => {
         const { __query } = require('../db/pool');
-        __query.mockResolvedValueOnce({
-            rows: [
-                {
-                    id: 'review-SVC-1',
-                    type: 'service_review',
-                    title: 'ABC Planner',
-                    description: 'Metadata readiness is below publishable threshold',
-                    href: '/services/SVC-1/edit',
-                    severity: 'warning',
-                    created_at: '2026-04-26T10:00:00Z',
-                },
-            ],
-        });
+        __query
+            .mockResolvedValueOnce({
+                rows: [
+                    {
+                        id: 'review-SVC-1',
+                        type: 'service_review',
+                        title: 'ABC Planner',
+                        description: 'Metadata readiness is below publishable threshold',
+                        href: '/services/SVC-1/edit',
+                        severity: 'warning',
+                        created_at: '2026-04-26T10:00:00Z',
+                    },
+                ],
+            })
+            .mockResolvedValue({ rows: [] });
 
         const router = require('../routes/dashboard');
         const app = express();

@@ -31,6 +31,7 @@ import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
 import { applyLineStyleMode, resolveServiceGraphEdgeVisual, SERVICE_RELATION_VISUAL } from '@/features/graph/graphVisuals';
 import { compareText } from '@/app/i18n/format';
 import { useLocale } from '@/app/i18n/useI18n';
+import { GraphWorkspace } from '@/app/components/layout-v2';
 import styles from '../../graph/overview.module.css';
 
 const GROUP_COLOR: Record<string, string> = {
@@ -409,16 +410,13 @@ function SwimlaneNodeCard({ data }: { data: Record<string, unknown> }) {
 
 function FlavourNodeCard({ data }: { data: Record<string, unknown> }) {
   return (
-    <div style={{
-      background: 'var(--color-bg-surface)ae6', border: '1px solid var(--color-warning)', borderRadius: 6,
-      padding: '4px 8px', fontSize: '0.7rem', minWidth: 110, textAlign: 'center',
-    }}>
+    <div className={styles.flavourNode}>
       <Handle type="target" position={Position.Top} />
-      <div style={{ fontWeight: 600, color: 'var(--color-warning)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+      <div className={styles.flavourNodeTitle}>
         {String(data.label ?? '')}
       </div>
       {data.price != null && (
-        <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.65rem' }}>{String(data.price)}</div>
+        <div className={styles.flavourNodePrice}>{String(data.price)}</div>
       )}
     </div>
   );
@@ -938,8 +936,11 @@ export default function GlobalGraphPage() {
   if (error) return <div className={styles.stateError}>Graf nedostupný — zkontroluj middleware.</div>;
 
   return (
-    <div className={styles.shell}>
-      <aside className={styles.rail}>
+    <GraphWorkspace
+      title="Dependency graph"
+      purpose="Služby, pricing flavours, C3 capability a technické entity ve společném canvasu."
+      toolbar={(
+        <>
         <div className={styles.railSection}>
           <input
             className={styles.searchInput}
@@ -1089,9 +1090,10 @@ export default function GlobalGraphPage() {
           {performanceMode && <div className={styles.performanceNote}>Výkonový režim: edge labels a MiniMap jsou při hustém grafu omezené.</div>}
           {saveMsg && <div className={styles.saveMsg}>{saveMsg}</div>}
         </FilterGroup>
-      </aside>
-
-      <main className={styles.main}>
+        </>
+      )}
+      canvas={(
+        <main className={styles.main}>
         <div className={styles.header}>
           <h1 className={styles.title}>Dependency Graph</h1>
           <nav className={styles.graphTabs} aria-label="Service graph views">
@@ -1148,58 +1150,66 @@ export default function GlobalGraphPage() {
               </ReactFlow>
             </div>
           </div>
-
-          {(selectedNode || selectedEdge) && (
-            <div className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <span className={styles.panelTitle}>{selectedNode ? 'Detail uzlu' : 'Detail vazby'}</span>
-                <button className={styles.panelClose} onClick={() => { setSelectedNode(null); setSelectedEdge(null); }}>✕</button>
-              </div>
-              <div className={styles.panelBody}>
-                {selectedNode && selectedNode.node_kind === 'service' && (
-                  <>
-                    <PanelRow label="Service ID">{selectedNode.service_id ?? '—'}</PanelRow>
-                    <PanelRow label="Title">{selectedNode.title}</PanelRow>
-                    <PanelRow label="Status"><StatusPill status={selectedNode.service_status ?? 'draft'} size="sm" /></PanelRow>
-                    <PanelRow label="Type">{selectedNode.service_type ?? '—'}</PanelRow>
-                    <PanelRow label="Portfolio">{selectedNode.portfolio_group ?? '—'}</PanelRow>
-                    <PanelRow label="Domains">{selectedNode.available_on ?? '—'}</PanelRow>
-                    <a href={`/services/${selectedNode.service_id}`} className={styles.panelLink}>Detail služby →</a>
-                  </>
-                )}
-
-                {selectedNode && selectedNode.node_kind !== 'service' && (
-                  <>
-                    <PanelRow label="Typ">{selectedNode.node_kind.replace('c3_', '').replace(/_/g, ' ')}</PanelRow>
-                    <PanelRow label="Kód">{selectedNode.code ?? '—'}</PanelRow>
-                    <PanelRow label="Title">{selectedNode.title}</PanelRow>
-                    {selectedNode.item_type ? <PanelRow label="Item Type">{selectedNode.item_type}</PanelRow> : null}
-                    {selectedNode.parent_uuid ? <PanelRow label="Parent">{selectedNode.parent_uuid}</PanelRow> : null}
-                    {selectedNode.completeness_status ? <PanelRow label="Completeness">{selectedNode.completeness_status}</PanelRow> : null}
-                    {selectedNode.c3_uuid && <a href={`/c3/${selectedNode.c3_uuid}`} className={styles.panelLink}>Detail C3 →</a>}
-                    {selectedNode.node_kind === 'c3_application' && selectedNode.code && <a href={`/c3/applications/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail Application →</a>}
-                    {selectedNode.node_kind === 'c3_tin' && selectedNode.code && <a href={`/c3/technology-interactions/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail TIN →</a>}
-                    {selectedNode.node_kind === 'c3_data_object' && selectedNode.code && <a href={`/c3/data-objects/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail Data Object →</a>}
-                    {selectedNode.node_kind === 'c3_service' && selectedNode.code && <a href={`/c3/services/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail C3 Service →</a>}
-                  </>
-                )}
-
-                {selectedEdge && (
-                  <>
-                    <PanelRow label="Source">{selectedEdge.source}</PanelRow>
-                    <PanelRow label="Target">{selectedEdge.target}</PanelRow>
-                    <PanelRow label="Typ">{selectedEdge.mapping_type_code ?? selectedEdge.relation_type}</PanelRow>
-                    <PanelRow label="Kind">{selectedEdge.edge_kind}</PanelRow>
-                    <PanelRow label="Verified">{selectedEdge.is_verified ? 'Ano' : 'Ne'}</PanelRow>
-                    {selectedEdge.relation_note && <PanelRow label="Poznámka">{selectedEdge.relation_note}</PanelRow>}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </main>
-    </div>
+      )}
+      detailPanelContent={(
+        <>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelTitle}>{selectedNode ? 'Detail uzlu' : selectedEdge ? 'Detail vazby' : 'Detail'}</span>
+            {(selectedNode || selectedEdge) && (
+              <button className={styles.panelClose} onClick={() => { setSelectedNode(null); setSelectedEdge(null); }}>Close</button>
+            )}
+          </div>
+          <div className={styles.panelBody}>
+            {selectedNode && selectedNode.node_kind === 'service' && (
+              <>
+                <PanelRow label="Service ID">{selectedNode.service_id ?? '—'}</PanelRow>
+                <PanelRow label="Title">{selectedNode.title}</PanelRow>
+                <PanelRow label="Status"><StatusPill status={selectedNode.service_status ?? 'draft'} size="sm" /></PanelRow>
+                <PanelRow label="Type">{selectedNode.service_type ?? '—'}</PanelRow>
+                <PanelRow label="Portfolio">{selectedNode.portfolio_group ?? '—'}</PanelRow>
+                <PanelRow label="Domains">{selectedNode.available_on ?? '—'}</PanelRow>
+                <a href={`/services/${selectedNode.service_id}`} className={styles.panelLink}>Detail služby →</a>
+              </>
+            )}
+
+            {selectedNode && selectedNode.node_kind !== 'service' && (
+              <>
+                <PanelRow label="Typ">{selectedNode.node_kind.replace('c3_', '').replace(/_/g, ' ')}</PanelRow>
+                <PanelRow label="Kód">{selectedNode.code ?? '—'}</PanelRow>
+                <PanelRow label="Title">{selectedNode.title}</PanelRow>
+                {selectedNode.item_type ? <PanelRow label="Item Type">{selectedNode.item_type}</PanelRow> : null}
+                {selectedNode.parent_uuid ? <PanelRow label="Parent">{selectedNode.parent_uuid}</PanelRow> : null}
+                {selectedNode.completeness_status ? <PanelRow label="Completeness">{selectedNode.completeness_status}</PanelRow> : null}
+                {selectedNode.c3_uuid && <a href={`/c3/${selectedNode.c3_uuid}`} className={styles.panelLink}>Detail C3 →</a>}
+                {selectedNode.node_kind === 'c3_application' && selectedNode.code && <a href={`/c3/applications/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail Application →</a>}
+                {selectedNode.node_kind === 'c3_tin' && selectedNode.code && <a href={`/c3/technology-interactions/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail TIN →</a>}
+                {selectedNode.node_kind === 'c3_data_object' && selectedNode.code && <a href={`/c3/data-objects/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail Data Object →</a>}
+                {selectedNode.node_kind === 'c3_service' && selectedNode.code && <a href={`/c3/services/${encodeURIComponent(selectedNode.code)}`} className={styles.panelLink}>Detail C3 Service →</a>}
+              </>
+            )}
+
+            {selectedEdge && (
+              <>
+                <PanelRow label="Source">{selectedEdge.source}</PanelRow>
+                <PanelRow label="Target">{selectedEdge.target}</PanelRow>
+                <PanelRow label="Typ">{selectedEdge.mapping_type_code ?? selectedEdge.relation_type}</PanelRow>
+                <PanelRow label="Kind">{selectedEdge.edge_kind}</PanelRow>
+                <PanelRow label="Verified">{selectedEdge.is_verified ? 'Ano' : 'Ne'}</PanelRow>
+                {selectedEdge.relation_note && <PanelRow label="Poznámka">{selectedEdge.relation_note}</PanelRow>}
+              </>
+            )}
+
+            {!selectedNode && !selectedEdge && (
+              <div className={styles.meta}>
+                Klikni na uzel nebo vazbu. Detail se zobrazí tady, mimo canvas, podle Graph workspace šablony.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    />
   );
 }
 

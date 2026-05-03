@@ -1,15 +1,34 @@
 'use client';
 
-import { type FormEvent } from 'react';
+import { type FormEvent, useMemo, useState, useEffect } from 'react';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
+import { ReviewActionModal, ServicePicker, UserPicker, type ReviewActionValue } from '@/app/components/layout-v2';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
-import { authHeaders } from '@/features/services/api/services.api';
+import type { BadgeVariant } from '@/design-system/controls';
+import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { useGovernanceReviews } from '@/features/governance/hooks/useGovernance';
 import type { GovernanceReview } from '@/features/governance/types';
+import useSWR from 'swr';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../governance.module.css';
 
-function statusVariant(status: string) {
+type ReviewView = 'board' | 'list' | 'calendar';
+type ReviewActionStatus = 'in_review' | 'approved' | 'rejected' | 'deferred' | 'cancelled';
+
+interface ReviewActionState {
+  item: GovernanceReview;
+  status: ReviewActionStatus;
+}
+
+const BOARD_COLUMNS = [
+  { id: 'requested', label: 'Requested', statuses: ['pending', 'requested'] },
+  { id: 'in_review', label: 'In review', statuses: ['in_review'] },
+  { id: 'decision_needed', label: 'Decision needed', statuses: ['deferred'] },
+  { id: 'closed', label: 'Closed', statuses: ['approved', 'rejected', 'cancelled'] },
+];
+
+function statusVariant(status: string): BadgeVariant {
   if (status === 'approved') return 'success';
   if (status === 'rejected' || status === 'cancelled') return 'danger';
   if (status === 'deferred') return 'warning';
@@ -22,6 +41,10 @@ function formatDate(value: string | null | undefined) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB');
 }
 
+function isTerminalStatus(status: ReviewActionStatus) {
+  return ['approved', 'rejected', 'deferred', 'cancelled'].includes(status);
+}
+
 async function patchReview(id: number, body: Record<string, unknown>) {
   const response = await fetch(`/api/v1/governance/reviews/${id}`, {
     method: 'PATCH',
@@ -29,33 +52,54 @@ async function patchReview(id: number, body: Record<string, unknown>) {
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`API ${response.status}`);
+  if (!response.ok) throw new Error(`Review update failed: API ${response.status}`);
 }
 
-function ReviewRow({ item, onSaved }: { item: GovernanceReview; onSaved: () => Promise<void> }) {
-  async function transition(status: GovernanceReview['status']) {
-    await patchReview(item.id, { status });
-    await onSaved();
-  }
+async function createDecision(
+  item: GovernanceReview,
+  status: ReviewActionStatus,
+  rationale: string,
+  evidence?: string,
+  deferExpiry?: string,
+) {
+  const body: Record<string, unknown> = {
+    service_id: item.service_id,
+    decision_type: item.review_type || 'governance_review',
+    decision: status,
+    rationale: rationale.trim() || `Decision recorded from review #${item.id}.`,
+  };
+  if (evidence?.trim()) body.evidence = evidence.trim();
+  if (deferExpiry) body.defer_expires_at = `${deferExpiry}T00:00:00Z`;
+  const response = await fetch('/api/v1/governance/decisions', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`Decision log failed: API ${response.status}`);
+}
 
+function ReviewCard({ item, onAction }: { item: GovernanceReview; onAction: (status: ReviewActionStatus, item: GovernanceReview) => void }) {
   return (
-    <article className={govStyles.workflowRow}>
-      <div className={govStyles.workflowMain}>
+    <article className={govStyles.reviewCard}>
+      <div className={govStyles.reviewCardHeader}>
         <Link href={`/services/${item.service_id}`} className={govStyles.workflowTitle}>
           <strong>{item.service_title}</strong>
           <span>{item.service_id} · {item.review_type}</span>
         </Link>
-        <div className={govStyles.workflowMeta}>
-          <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
-          {item.overdue ? <Badge variant="danger">Overdue</Badge> : <Badge variant="neutral">{formatDate(item.due_at)}</Badge>}
-          <span>{item.assigned_to ?? 'Unassigned'}</span>
-        </div>
+        <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
       </div>
-      <div className={govStyles.workflowActions}>
-        <button type="button" onClick={() => transition('in_review')}>Start review</button>
-        <button type="button" onClick={() => transition('approved')}>Approve</button>
-        <button type="button" onClick={() => transition('rejected')}>Reject</button>
-        <button type="button" onClick={() => transition('deferred')}>Defer</button>
+      <div className={govStyles.workflowMeta}>
+        {item.overdue ? <Badge variant="danger">Overdue</Badge> : <Badge variant="neutral">{formatDate(item.due_at)}</Badge>}
+        <span>{item.assigned_to ?? 'Unassigned'}</span>
+      </div>
+      <div className={govStyles.reviewActions}>
+        {item.status !== 'in_review' && item.status !== 'approved' && item.status !== 'rejected' && (
+          <button type="button" onClick={() => onAction('in_review', item)}>Start</button>
+        )}
+        <button type="button" onClick={() => onAction('approved', item)}>Approve</button>
+        <button type="button" onClick={() => onAction('rejected', item)}>Reject</button>
+        <button type="button" onClick={() => onAction('deferred', item)}>Defer</button>
       </div>
     </article>
   );
@@ -63,30 +107,95 @@ function ReviewRow({ item, onSaved }: { item: GovernanceReview; onSaved: () => P
 
 export default function GovernanceReviewsPage() {
   const { data, isLoading, error, mutate } = useGovernanceReviews({ limit: 200 });
+  const [view, setView] = useState<ReviewView>('board');
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestDraft, setRequestDraft] = useState({ service_id: '', review_type: 'publish', assigned_to: '', due_at: '' });
+  const [action, setAction] = useState<ReviewActionState | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Pre-flight: fetch readiness for service_id in request form
+  const preflightServiceId = requestDraft.service_id.trim();
+  const { data: preflightReadiness } = useSWR(
+    preflightServiceId ? `/api/v1/readiness/summary?service_id=${encodeURIComponent(preflightServiceId)}&limit=1` : null,
+    apiFetch,
+    { revalidateOnFocus: false },
+  );
+  const actionServiceId = action?.item.service_id?.trim() ?? '';
+  const { data: actionReadiness } = useSWR(
+    actionServiceId ? `/api/v1/readiness/summary?service_id=${encodeURIComponent(actionServiceId)}&limit=1` : null,
+    apiFetch,
+    { revalidateOnFocus: false },
+  );
+
   const reviews = data?.items ?? [];
   const overdue = reviews.filter((item) => item.overdue).length;
   const inReview = reviews.filter((item) => item.status === 'in_review').length;
+  const closed = reviews.filter((item) => ['approved', 'rejected', 'cancelled'].includes(item.status)).length;
+
+  const byColumn = useMemo(() => {
+    return BOARD_COLUMNS.map((column) => ({
+      ...column,
+      items: reviews.filter((review) => column.statuses.includes(review.status)),
+    }));
+  }, [reviews]);
+
+  const byDueDate = useMemo(() => {
+    const groups = new Map<string, GovernanceReview[]>();
+    for (const review of reviews) {
+      const key = formatDate(review.due_at);
+      groups.set(key, [...(groups.get(key) ?? []), review]);
+    }
+    return Array.from(groups.entries());
+  }, [reviews]);
 
   async function requestReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const serviceId = String(data.get('service_id') ?? '').trim();
-    if (!serviceId) return;
-    const response = await fetch('/api/v1/governance/reviews', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({
-        service_id: serviceId,
-        review_type: String(data.get('review_type') ?? 'publish'),
-        assigned_to: String(data.get('assigned_to') ?? '').trim() || null,
-        due_at: String(data.get('due_at') ?? '').trim() ? `${data.get('due_at')}T00:00:00Z` : null,
-      }),
-    });
-    if (!response.ok) throw new Error(`API ${response.status}`);
-    form.reset();
-    await mutate();
+    setBusy(true);
+    setModalError(null);
+    try {
+      const serviceId = requestDraft.service_id.trim();
+      if (!serviceId) return;
+      const response = await fetch('/api/v1/governance/reviews', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          service_id: serviceId,
+          review_type: requestDraft.review_type,
+          assigned_to: requestDraft.assigned_to.trim() || null,
+          due_at: requestDraft.due_at ? `${requestDraft.due_at}T00:00:00Z` : null,
+        }),
+      });
+      if (!response.ok) throw new Error(`Request failed: API ${response.status}`);
+      setRequestDraft({ service_id: '', review_type: 'publish', assigned_to: '', due_at: '' });
+      setRequestOpen(false);
+      await mutate();
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'Request review failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmAction(value: ReviewActionValue) {
+    if (!action) return;
+    setBusy(true);
+    setModalError(null);
+    try {
+      const patchBody: Record<string, unknown> = { status: action.status };
+      if (action.status === 'deferred' && value.defer_expires_at) patchBody.defer_expires_at = `${value.defer_expires_at}T00:00:00Z`;
+      await patchReview(action.item.id, patchBody);
+      if (isTerminalStatus(action.status)) {
+        await createDecision(action.item, action.status, value.rationale, value.evidence, value.defer_expires_at);
+      }
+      setAction(null);
+      await mutate();
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'Review action failed');
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (isLoading) return <div className={styles.state}>Loading governance reviews...</div>;
@@ -94,67 +203,178 @@ export default function GovernanceReviewsPage() {
 
   return (
     <main className={styles.shell}>
-      <header className={styles.pageHeader}>
-        <div>
-          <span className={styles.pageEyebrow}>Operations</span>
-          <h1 className={styles.pageTitle}>Governance Reviews</h1>
-          <p className={styles.pageLead}>Move services through requested, in-review, approved, rejected, and deferred states.</p>
-        </div>
-        <div className={styles.headerActions}>
-          <Link href="/operations" className={styles.secondaryLink}>Operations</Link>
-          <Link href="/operations/decisions" className={styles.secondaryLink}>Decision log</Link>
-        </div>
-      </header>
+      <PageHeader
+        title="Governance Reviews"
+        purpose="Review board pro publikaci, změny a výjimky. Stav se mění pouze přes akční modal s odůvodněním a náhledem zápisu do decision logu."
+        chips={[
+          { label: `${reviews.length} open`, tone: 'info' },
+          { label: `${overdue} overdue`, tone: overdue > 0 ? 'bad' : 'ok' },
+          { label: `${closed} closed`, tone: 'neutral' },
+        ]}
+        primaryAction={{ label: 'Decision log', href: '/operations/decisions' }}
+      />
 
       <section className={styles.kpiThree} aria-label="Governance review KPIs">
-        <KpiCard label="Open reviews" value={reviews.length} hint="Reviews in queue" />
-        <KpiCard label="In review" value={inReview} hint="Started workflow" />
-        <KpiCard label="Overdue" value={overdue} hint="Past due without completion" />
+        <KpiCard label="Open reviews" value={reviews.length} hint="Items in review queue" />
+        <KpiCard label="In review" value={inReview} hint="Active workflow" />
+        <KpiCard label="Overdue" value={overdue} hint="Needs attention" tone={overdue > 0 ? 'danger' : 'success'} />
       </section>
 
-      <section className={govStyles.workflowGrid}>
-        <article className={govStyles.governancePanel}>
-          <div className={govStyles.panelHeader}>
-            <div>
-              <h2 className={govStyles.panelTitle}>Review Queue</h2>
-              <p className={govStyles.panelHint}>Due dates, owners, and review transitions.</p>
-            </div>
-            <span className={govStyles.panelCount}>{reviews.length}</span>
-          </div>
+      <section className={govStyles.reviewToolbar} aria-label="Review controls">
+        <div className={govStyles.segmented}>
+          {(['board', 'list', 'calendar'] as ReviewView[]).map((nextView) => (
+            <button
+              key={nextView}
+              type="button"
+              className={view === nextView ? govStyles.segmentActive : ''}
+              onClick={() => setView(nextView)}
+            >
+              {nextView === 'board' ? 'Board' : nextView === 'list' ? 'List' : 'Calendar'}
+            </button>
+          ))}
+        </div>
+        <button type="button" className={govStyles.primaryAction} onClick={() => setRequestOpen(true)}>
+          Request review
+        </button>
+      </section>
+
+      {view === 'board' && (
+        <section className={govStyles.kanbanBoard} aria-label="Review board">
+          {byColumn.map((column) => (
+            <article key={column.id} className={govStyles.kanbanColumn}>
+              <div className={govStyles.panelHeader}>
+                <h2 className={govStyles.panelTitle}>{column.label}</h2>
+                <span className={govStyles.panelCount}>{column.items.length}</span>
+              </div>
+              <div className={govStyles.governanceList}>
+                {column.items.length === 0 ? (
+                  <div className={govStyles.stateLine}>No reviews</div>
+                ) : column.items.map((item) => (
+                  <ReviewCard key={item.id} item={item} onAction={(status, review) => { setAction({ item: review, status }); setModalError(null); }} />
+                ))}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {view === 'list' && (
+        <section className={govStyles.governancePanel}>
           {reviews.length === 0 ? <EmptyState title="No governance reviews." /> : (
             <div className={govStyles.governanceList}>
-              {reviews.map((item) => <ReviewRow key={item.id} item={item} onSaved={async () => { await mutate(); }} />)}
+              {reviews.map((item) => (
+                <ReviewCard key={item.id} item={item} onAction={(status, review) => { setAction({ item: review, status }); setModalError(null); }} />
+              ))}
             </div>
           )}
-        </article>
+        </section>
+      )}
 
-        <aside className={govStyles.governancePanel}>
-          <h2 className={govStyles.panelTitle}>Request Review</h2>
-          <form className={govStyles.workflowForm} onSubmit={requestReview}>
-            <label>
-              <span>Service ID</span>
-              <input name="service_id" type="text" required placeholder="SVC-IAM" />
-            </label>
-            <label>
-              <span>Review type</span>
-              <select name="review_type" defaultValue="publish">
-                <option value="publish">Publish</option>
-                <option value="owner_review">Owner review</option>
-                <option value="coverage_review">Coverage review</option>
-              </select>
-            </label>
-            <label>
-              <span>Assigned to</span>
-              <input name="assigned_to" type="email" placeholder="owner@example.com" />
-            </label>
-            <label>
-              <span>Due date</span>
-              <input name="due_at" type="date" />
-            </label>
-            <button type="submit">Request review</button>
+      {view === 'calendar' && (
+        <section className={govStyles.calendarGrid} aria-label="Review calendar">
+          {byDueDate.map(([date, items]) => (
+            <article key={date} className={govStyles.governancePanel}>
+              <div className={govStyles.panelHeader}>
+                <h2 className={govStyles.panelTitle}>{date}</h2>
+                <span className={govStyles.panelCount}>{items.length}</span>
+              </div>
+              <div className={govStyles.governanceList}>
+                {items.map((item) => (
+                  <ReviewCard key={item.id} item={item} onAction={(status, review) => { setAction({ item: review, status }); setModalError(null); }} />
+                ))}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {requestOpen && (
+        <div className={govStyles.modalBackdrop} role="presentation">
+          <form className={govStyles.reviewModal} onSubmit={requestReview}>
+            <div className={govStyles.panelHeader}>
+              <div>
+                <h2 className={govStyles.panelTitle}>Request review</h2>
+                <p className={govStyles.panelHint}>Preflight kontroluje minimum pro založení review queue itemu.</p>
+              </div>
+              <button type="button" className={govStyles.iconButton} onClick={() => setRequestOpen(false)}>Close</button>
+            </div>
+            {modalError ? <div className={govStyles.modalError}>{modalError}</div> : null}
+            <div className={govStyles.workflowForm}>
+              <ServicePicker
+                label="Service ID"
+                value={requestDraft.service_id}
+                onChange={(value) => setRequestDraft((draft) => ({ ...draft, service_id: value }))}
+                required
+              />
+              <label>
+                <span>Review type</span>
+                <select value={requestDraft.review_type} onChange={(event) => setRequestDraft((draft) => ({ ...draft, review_type: event.target.value }))}>
+                  <option value="publish">Publish</option>
+                  <option value="owner_review">Owner review</option>
+                  <option value="coverage_review">Coverage review</option>
+                </select>
+              </label>
+              <UserPicker
+                label="Assigned to"
+                scope="reviewers"
+                value={requestDraft.assigned_to}
+                onChange={(value) => setRequestDraft((draft) => ({ ...draft, assigned_to: value }))}
+              />
+              <label>
+                <span>Due date</span>
+                <input type="date" value={requestDraft.due_at} onChange={(event) => setRequestDraft((draft) => ({ ...draft, due_at: event.target.value }))} />
+              </label>
+            </div>
+            <div className={govStyles.decisionPreview}>
+              <strong>Preflight</strong>
+              {!preflightServiceId ? (
+                <span className={govStyles.preflightWarn}>⚠ Zadej Service ID</span>
+              ) : preflightReadiness === undefined ? (
+                <span>Kontroluji připravenost…</span>
+              ) : (preflightReadiness as { items?: Array<{ score?: number; blockers?: number }> })?.items?.length === 0 ? (
+                <span className={govStyles.preflightWarn}>⚠ Služba nenalezena — zkontroluj Service ID</span>
+              ) : (
+                <>
+                  <span className={govStyles.preflightOk}>✓ Služba nalezena</span>
+                  {(() => {
+                    const item = (preflightReadiness as { items?: Array<{ score?: number; blockers?: number }> })?.items?.[0];
+                    if (!item) return null;
+                    return item.blockers ? (
+                      <span className={govStyles.preflightWarn}>⚠ {item.blockers} readiness blokátorů — review může selhat</span>
+                    ) : (
+                      <span className={govStyles.preflightOk}>✓ Readiness v pořádku — review lze vytvořit</span>
+                    );
+                  })()}
+                </>
+              )}
+              <span>{requestDraft.assigned_to.trim() ? `✓ Reviewer: ${requestDraft.assigned_to}` : 'Reviewer může být přiřazen později'}</span>
+            </div>
+            <button type="submit" className={govStyles.primaryAction} disabled={busy}>Create review</button>
           </form>
-        </aside>
-      </section>
+        </div>
+      )}
+
+      {action && (
+        <ReviewActionModal
+          item={action.item}
+          status={action.status}
+          readiness={toReadinessPreview(actionReadiness)}
+          busy={busy}
+          error={modalError}
+          onClose={() => setAction(null)}
+          onSubmit={confirmAction}
+        />
+      )}
     </main>
   );
+}
+
+function toReadinessPreview(data: unknown) {
+  const item = (data as { items?: Array<{ score?: number; blockers?: number; warnings?: number; readiness_score?: number }> } | undefined)?.items?.[0];
+  if (!item) return null;
+  return {
+    score: item.score ?? item.readiness_score ?? null,
+    blockers: item.blockers ?? null,
+    warnings: item.warnings ?? null,
+  };
 }

@@ -5,6 +5,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, type Dispatch, 
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
+import { C3EntityWorkspace, CodeEditor } from '@/app/components/layout-v2';
 import styles from './entity-list.module.css';
 
 type SortDirection = 'asc' | 'desc';
@@ -363,12 +364,12 @@ export function C3EntityListPage({
   if (embedded) return content;
 
   return (
-    <div className={styles.shell}>
+    <C3EntityWorkspace className={styles.shell}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>{title}</h1>
       </div>
       <div className={styles.body}>{content}</div>
-    </div>
+    </C3EntityWorkspace>
   );
 }
 
@@ -392,6 +393,19 @@ function renderEditControl(
   setEditDraft: Dispatch<SetStateAction<Record<string, unknown>>>,
 ) {
   if (field.type === 'textarea') {
+    if (isCodeLikeField(field)) {
+      const value = String(editDraft[field.key] ?? '');
+      return (
+        <CodeEditor
+          label={field.label}
+          language={inferEditorLanguage(field, value)}
+          value={value}
+          rows={6}
+          placeholder={field.placeholder}
+          onValueChange={(nextValue) => setEditDraft((current) => ({ ...current, [field.key]: nextValue }))}
+        />
+      );
+    }
     return (
       <textarea
         className={styles.editTextarea}
@@ -435,6 +449,19 @@ function renderEditControl(
       placeholder={field.placeholder}
     />
   );
+}
+
+function isCodeLikeField(field: EditFieldDef) {
+  const key = field.key.toLowerCase();
+  const label = field.label.toLowerCase();
+  return key.endsWith('_raw') || key.includes('_json') || label.includes('raw') || label.includes('json');
+}
+
+function inferEditorLanguage(field: EditFieldDef, value: string) {
+  const key = field.key.toLowerCase();
+  const text = value.trim();
+  if (key.includes('json') || text.startsWith('{') || text.startsWith('[')) return 'json';
+  return 'plaintext';
 }
 
 function toBoolean(value: unknown) {

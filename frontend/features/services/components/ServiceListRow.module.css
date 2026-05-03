@@ -3,14 +3,14 @@
 .row {
   display: grid;
   grid-template-columns:
-    128px
-    minmax(260px, 1.3fr)
-    130px
-    86px
-    94px
-    104px
-    132px
-    140px;
+    minmax(260px, 1.5fr)
+    112px
+    150px
+    150px
+    150px
+    64px
+    110px
+    144px;
   align-items: center;
   gap: 0 var(--space-4);
   margin: var(--space-2) var(--space-3);
@@ -69,10 +69,13 @@
 }
 
 /* Column styles */
-.serviceId {
+.serviceMeta {
   font: var(--text-mono-sm);
   color: var(--color-text-secondary);
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .typeChip {
@@ -122,53 +125,61 @@
   margin-top: 1px;
 }
 
-.portfolio {
-  font: var(--text-body-sm);
+.owner {
+  font: var(--text-label-md);
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.owner {
+.ownerOrg,
+.readinessText,
+.muted {
+  color: var(--color-text-muted);
   font: var(--text-body-sm);
+}
+
+.ownerMissing,
+.capabilityMissing {
+  color: var(--color-danger);
+  font: var(--text-label-md);
+}
+
+.capabilityMissing {
+  color: var(--color-warning);
+}
+
+.capability {
   color: var(--color-text-secondary);
+  font: var(--text-body-sm);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter,
+.dependencyCount {
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
   white-space: nowrap;
 }
 
 /* Column refs */
-.colId       { overflow: hidden; }
-.colTitle    { min-width: 0; }
-.colPortfolio { overflow: hidden; }
-.colDomains  { }
-.colAvail    { }
-.colStatus   { display: flex; align-items: center; gap: var(--space-2); }
-.colSignals  {
+.colService    { min-width: 0; overflow: hidden; }
+.colLifecycle  { display: flex; align-items: center; gap: var(--space-2); }
+.colOwner      { display: grid; gap: 2px; min-width: 0; overflow: hidden; }
+.colReadiness  { display: grid; gap: 4px; min-width: 0; }
+.colCapability { min-width: 0; overflow: hidden; }
+.colC3         { display: flex; align-items: center; }
+.colDeps       {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
 }
-.colOwner    { overflow: hidden; }
-
-.colSignals span,
-.colSignals strong {
-  padding: 2px var(--space-2);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-canvas);
-  color: var(--color-text-secondary);
-  font: var(--text-label-sm);
-  white-space: nowrap;
-}
-
-.colSignals strong {
-  color: var(--color-warning);
-  font-weight: 500;
-}
+.colNextAction { color: var(--color-info); font: var(--text-label-md); white-space: nowrap; }
 
 /* Lifecycle dot — small colored circle next to status pill */
 .lifecycleDot {
@@ -181,12 +192,12 @@
 
 @media (max-width: 1200px) {
   .row {
-    grid-template-columns: 112px minmax(220px, 1fr) 110px 80px 96px;
+    grid-template-columns: minmax(220px, 1fr) 120px 140px 120px 120px;
   }
 
-  .colPortfolio,
-  .colSignals,
-  .colOwner {
+  .colCapability,
+  .colC3,
+  .colDeps {
     display: none;
   }
 }

@@ -3,40 +3,65 @@
    2026: blur-triggered errors, per-field states, clean section cards.
    ══════════════════════════════════════════════════════════════════════════ */
 
-.shell { min-height: 100vh; background: var(--color-bg-canvas); }
+.shell {
+  min-height: 100vh;
+  padding: 20px 24px 0;
+  background: var(--color-bg-workspace);
+}
 
 .state { padding: var(--space-8); text-align: center; color: var(--color-text-muted); }
 
 /* ── Editor header ───────────────────────────────────────────────────────── */
-.editorHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-bg-surface);
-  border-bottom: 1px solid var(--color-border-default);
-  gap: var(--space-4);
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  padding-bottom: 14px;
+  background: var(--color-bg-workspace);
 }
-.serviceId   { font: var(--text-mono-sm); color: var(--color-text-muted); display: block; margin-bottom: var(--space-1); }
-.editorTitle { font: var(--text-title-lg); color: var(--color-text-primary); letter-spacing: -0.02em; }
 
 /* ── Body grid ───────────────────────────────────────────────────────────── */
 .editorBody {
   display: grid;
-  grid-template-columns: 1fr 240px;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 0 16px;
   align-items: start;
 }
 
 .formArea { display: flex; flex-direction: column; gap: var(--space-3); }
 
+.editorSignals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, .45fr);
+  gap: 12px;
+}
+
+.signalCard {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.signalLabel {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  text-transform: uppercase;
+}
+
 /* ── Section card ────────────────────────────────────────────────────────── */
 .section {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-low);
+  scroll-margin-top: 112px;
 }
 
 .sectionTitle {
@@ -44,16 +69,15 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  font: var(--text-label-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text-muted);
-  padding: 10px var(--space-4);
-  background: var(--color-bg-canvas);
+  margin: 0;
+  font: var(--text-title-sm);
+  color: var(--color-text-primary);
+  padding: 14px 18px 12px;
+  background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border-default);
 }
 
-.sectionBody { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.sectionBody { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* ── Field layout ────────────────────────────────────────────────────────── */
 .fieldRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
@@ -92,6 +116,18 @@
   outline-offset: -1px;
 }
 .input::placeholder { color: var(--color-text-muted); }
+
+.readOnlyInput {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-readonly-field);
+  color: var(--color-text-secondary);
+  font: var(--text-mono-sm);
+  width: 100%;
+  cursor: not-allowed;
+  opacity: 1;
+}
 
 /* ── Input validation states (inline, blur-triggered) ────────────────────── */
 .inputError {
@@ -175,7 +211,7 @@
   align-items: flex-start;
   line-height: 1.5;
 }
-.crossFieldAlertWarn    { background: var(--color-bg-surface)beb; border: 1px solid var(--color-warning); color: var(--color-warning); }
+.crossFieldAlertWarn    { background: var(--color-orange-soft); border: 1px solid var(--color-warning); color: var(--color-warning); }
 .crossFieldAlertOk      { background: color-mix(in srgb, var(--color-success) 10%, transparent); border: 1px solid var(--color-success); color: var(--color-success); }
 .crossFieldAlertDanger  { background: color-mix(in srgb, var(--color-danger) 10%, transparent); border: 1px solid var(--color-danger); color: var(--color-danger); }
 .crossFieldAlertIcon    { flex-shrink: 0; font-size: 13px; line-height: 1.3; }
@@ -279,6 +315,46 @@
 .validationError { font: var(--text-label-sm); color: var(--color-danger); margin-bottom: var(--space-1); }
 .validOk { font: var(--text-body-sm); color: var(--color-success); }
 
+.publishGateWarn,
+.publishGateOk {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font: var(--text-body-sm);
+}
+
+.publishGateWarn {
+  border: 1px solid var(--color-warning);
+  background: var(--color-orange-soft);
+  color: var(--color-warning);
+}
+
+.publishGateOk {
+  border: 1px solid var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
+}
+
+.publishGateTitle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font: var(--text-label-md);
+}
+
+.publishGateTitle span {
+  color: var(--color-text-primary);
+}
+
+.publishGateList {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+
 /* ── Button variants ────────────────────────────────────────────���────────── */
 .btnPrimary {
   display: inline-flex; align-items: center;
@@ -340,7 +416,7 @@
 
 .phase4Row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
   gap: var(--space-2);
   align-items: start;
   padding: var(--space-3);
@@ -363,6 +439,13 @@
 .phase4Hint {
   font: var(--text-body-sm);
   color: var(--color-text-secondary);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
 }
 
 /* ── Flavours CRUD ───────────────────────────────────────────────────────── */
@@ -433,7 +516,7 @@
   border: 1px solid transparent;
 }
 .readinessOk { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); border-color: var(--color-success); }
-.readinessBlocked { background: var(--color-bg-surface)3f3; color: var(--color-danger); border-color: var(--color-danger); }
+.readinessBlocked { background: color-mix(in srgb, var(--color-danger) 9%, var(--color-bg-surface)); color: var(--color-danger); border-color: var(--color-danger); }
 .readinessMeta { display: flex; flex-wrap: wrap; gap: var(--space-3); font: var(--text-label-sm); color: var(--color-text-muted); }
 .readinessBlock,
 .readinessWarn { font: var(--text-body-sm); color: var(--color-text-secondary); }
@@ -548,6 +631,7 @@
 @media (max-width: 1024px) {
   .editorBody { grid-template-columns: 1fr; }
   .rail { position: static; }
+  .editorSignals { grid-template-columns: 1fr; }
   .flavourEditRow { grid-template-columns: 1fr 1fr; }
   .relAddForm { grid-template-columns: 1fr; }
   .phase4Row { grid-template-columns: 1fr; }

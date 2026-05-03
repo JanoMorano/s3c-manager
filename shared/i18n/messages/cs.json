@@ -119,6 +119,8 @@
   "administration.users.role.editor.access": "Čtení, zápis a přístup do Správy obsahu",
   "administration.users.role.admin.label": "Admin - vše",
   "administration.users.role.admin.access": "Plný přístup včetně Administrace",
+  "administration.users.working_view_label": "Pracovní pohled",
+  "administration.users.role_persona_guide": "Role řídí oprávnění, pracovní pohled řídí navigaci",
   "administration.users.new_button": "Nový uživatel",
   "administration.users.edit_title": "Editace uživatele #{{id}}",
   "administration.users.new_title": "Nový uživatel",

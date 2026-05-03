@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from '@/app/components/AppLink';
+import PageHeader from '@/app/components/PageHeader';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
 import { authHeaders } from '@/features/services/api/services.api';
@@ -115,110 +116,212 @@ function ExceptionForm({
   );
 }
 
-function ReadinessRow({ item, onSaved }: { item: ServiceReadiness; onSaved: () => Promise<void> }) {
-  const findings = actionableRules(item);
-  const failedRule = primaryFailedRule(item);
-  const statusText = item.blockers.length > 0 ? 'Blocked' : item.warnings.length > 0 ? 'Warnings' : 'Ready';
+type ReadinessFilter = 'blocked' | 'warnings' | 'ready' | 'exceptions';
+type RuleDetail = ReadinessRuleResult & {
+  related_process?: string | null;
+  what_is_missing?: string | null;
+};
 
-  return (
-    <article className={govStyles.readinessRow}>
-      <div className={govStyles.readinessRowHeader}>
-        <Link href={`/services/${item.service_id}`} className={govStyles.readinessTitleLink}>
-          <strong>{item.title}</strong>
-          <span>{item.service_id} · {item.service_status ?? 'unknown'}</span>
-        </Link>
-        <Badge variant={item.blockers.length > 0 ? 'danger' : item.warnings.length > 0 ? 'warning' : 'success'}>
-          {statusText}
-        </Badge>
-      </div>
-      <RuleBadges rules={findings} />
-      {failedRule ? <ExceptionForm serviceId={item.service_id} rule={failedRule} onSaved={onSaved} /> : null}
-    </article>
-  );
+const FILTERS: Array<{ id: ReadinessFilter; label: string }> = [
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'warnings', label: 'Warnings' },
+  { id: 'ready', label: 'Ready' },
+  { id: 'exceptions', label: 'Exceptions' },
+];
+
+function exceptionItems(items: ServiceReadiness[]) {
+  return items.filter((item) => (item.rules ?? []).some((rule) => rule.status === 'exception' || rule.exception));
 }
 
-function QueueGroup({
-  title,
-  hint,
-  items,
-  empty,
-  onSaved,
-}: {
-  title: string;
-  hint: string;
-  items: ServiceReadiness[];
-  empty: string;
-  onSaved: () => Promise<void>;
-}) {
-  return (
-    <section className={govStyles.governancePanel}>
-      <div className={govStyles.panelHeader}>
-        <div>
-          <h2 className={govStyles.panelTitle}>{title}</h2>
-          <p className={govStyles.panelHint}>{hint}</p>
-        </div>
-        <span className={govStyles.panelCount}>{items.length}</span>
-      </div>
-      {items.length === 0 ? (
-        <EmptyState title={empty} />
-      ) : (
-        <div className={govStyles.governanceList}>
-          {items.map((item) => <ReadinessRow key={item.service_id} item={item} onSaved={onSaved} />)}
-        </div>
-      )}
-    </section>
-  );
+function exceptionsExpiring(items: ServiceReadiness[]) {
+  const now = Date.now();
+  const threshold = now + 30 * 24 * 60 * 60 * 1000;
+  return items.reduce((sum, item) => {
+    const expiring = (item.rules ?? []).filter((rule) => {
+      const expiresAt = rule.exception?.expires_at ? new Date(rule.exception.expires_at).getTime() : Number.NaN;
+      return Number.isFinite(expiresAt) && expiresAt <= threshold;
+    }).length;
+    return sum + expiring;
+  }, 0);
+}
+
+function visibleItems(filter: ReadinessFilter, data: NonNullable<ReturnType<typeof useReadinessSummary>['data']>) {
+  if (filter === 'blocked') return data.groups?.blockers ?? [];
+  if (filter === 'warnings') return data.groups?.warnings ?? [];
+  if (filter === 'ready') return data.groups?.ready ?? [];
+  return exceptionItems(data.items ?? []);
+}
+
+function statusLabel(item: ServiceReadiness) {
+  if (item.blockers.length > 0) return 'Blocked';
+  if (item.warnings.length > 0) return 'Warnings';
+  return 'Ready';
+}
+
+function statusBadge(item: ServiceReadiness): BadgeVariant {
+  if (item.blockers.length > 0) return 'danger';
+  if (item.warnings.length > 0) return 'warning';
+  return 'success';
+}
+
+function ruleDetailText(rule: RuleDetail | null, key: 'what' | 'why' | 'how') {
+  if (!rule) return 'Vyber službu z readiness fronty.';
+  if (key === 'what') return rule.what_is_missing ?? rule.title_text ?? rule.message ?? rule.title;
+  if (key === 'why') return rule.why_text ?? rule.description ?? 'Bez tohoto údaje není možné průkazně řídit publikaci, změnu ani provozní odpovědnost služby.';
+  return rule.howto_text ?? rule.evidence_hint ?? 'Doplň chybějící evidenci v editoru služby, zkontroluj vlastníka a spusť readiness kontrolu znovu.';
+}
+
+function defaultFilter(data: NonNullable<ReturnType<typeof useReadinessSummary>['data']>): ReadinessFilter {
+  // Auto-select the first non-empty tab so the table is never blank on load.
+  if ((data.groups?.blockers ?? []).length > 0) return 'blocked';
+  if ((data.groups?.warnings ?? []).length > 0) return 'warnings';
+  if ((data.groups?.ready ?? []).length > 0) return 'ready';
+  return 'blocked';
 }
 
 export default function ReadinessQueuePage() {
   const { data, isLoading, error, mutate } = useReadinessSummary({ limit: 200 });
+  const [activeFilter, setActiveFilter] = useState<ReadinessFilter | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
-  if (isLoading) return <div className={styles.state}>Loading readiness...</div>;
-  if (error || !data) return <div className={styles.stateError}>Readiness queue is not available.</div>;
+  if (isLoading) return <div className={styles.state}>Loading readiness data…</div>;
+  if (error || !data) return <div className={styles.stateError}>Readiness queue is not available. ({String(error ?? 'no data')})</div>;
+
+  // Resolve the active filter — set once when data first arrives, then user-controlled.
+  const resolvedFilter: ReadinessFilter = activeFilter ?? defaultFilter(data);
+
+  const filteredItems = visibleItems(resolvedFilter, data);
+  const selectedItem = filteredItems.find((item) => item.service_id === selectedServiceId) ?? filteredItems[0] ?? null;
+  const selectedRule = selectedItem ? (primaryFailedRule(selectedItem) ?? actionableRules(selectedItem)[0] ?? selectedItem.rules?.[0] ?? null) as RuleDetail | null : null;
+  const allItems = data.items ?? [];
+  const exceptionCount = exceptionItems(allItems).length;
+  const expiringCount = exceptionsExpiring(allItems);
 
   return (
     <main className={styles.shell}>
-      <header className={styles.pageHeader}>
-        <div>
-          <span className={styles.pageEyebrow}>Operations</span>
-          <h1 className={styles.pageTitle}>Readiness Queue</h1>
-          <p className={styles.pageLead}>Named rules, blockers, warnings, ready services, and time-bound exceptions.</p>
-        </div>
-        <div className={styles.headerActions}>
-          <Link href="/operations" className={styles.secondaryLink}>Operations</Link>
-          <Link href="/services/list" className={styles.secondaryLink}>Service list</Link>
-        </div>
-      </header>
+      <PageHeader
+        title="Readiness Gate"
+        purpose="Publikační brána pro služby: co chybí, proč je to problém, jak to opravit a kdy je povolená výjimka."
+        chips={[
+          { label: `${data.counts.total} scanned`, tone: 'info' },
+          { label: `${data.counts.blockers} blocked`, tone: data.counts.blockers ? 'bad' : 'ok' },
+          { label: `${data.counts.ready} ready`, tone: 'ok' },
+          { label: `${exceptionCount} exceptions`, tone: exceptionCount ? 'warn' : 'neutral' },
+        ]}
+        primaryAction={{ label: 'Service list', href: '/services/list' }}
+      />
 
-      <section className={styles.kpiThree} aria-label="Readiness KPIs">
-        <KpiCard label="Total scanned" value={data.counts.total} hint="Services evaluated by enabled rules" />
-        <KpiCard label="Blockers" value={data.counts.blockers} hint="Not publishable without fix or exception" />
-        <KpiCard label="Ready" value={data.counts.ready} hint="No blockers or warnings" />
+      <section className={govStyles.readinessKpiGrid} aria-label="Readiness KPIs">
+        <KpiCard label="Blocked" value={data.counts.blockers} hint="blokuje publish bez opravy nebo výjimky" tone={data.counts.blockers ? 'danger' : 'success'} />
+        <KpiCard label="Warnings" value={data.counts.warnings} hint="neblokuje draft, ale vyžaduje pozornost" tone={data.counts.warnings ? 'warning' : 'success'} />
+        <KpiCard label="Ready" value={data.counts.ready} hint="služby bez blockerů a warningů" tone="success" />
+        <KpiCard label="Exceptions expiring" value={expiringCount} hint="výjimky s koncem do 30 dnů" tone={expiringCount ? 'warning' : 'neutral'} />
       </section>
 
-      <div className={govStyles.readinessGroupGrid}>
-        <QueueGroup
-          title="Blockers"
-          hint="Blocking failed rules before publication."
-          items={data.groups.blockers}
-          empty="No blocking readiness items."
-          onSaved={async () => { await mutate(); }}
-        />
-        <QueueGroup
-          title="Warnings"
-          hint="Non-blocking rule findings and waivers past expiry."
-          items={data.groups.warnings}
-          empty="No warning readiness items."
-          onSaved={async () => { await mutate(); }}
-        />
-        <QueueGroup
-          title="Ready"
-          hint="Services currently publishable by configured rules."
-          items={data.groups.ready}
-          empty="No ready services yet."
-          onSaved={async () => { await mutate(); }}
-        />
+      <div className={govStyles.readinessTabs} role="tablist" aria-label="Readiness queues">
+        {FILTERS.map((filter) => {
+          const count = filter.id === 'blocked'
+            ? data.counts.blockers
+            : filter.id === 'warnings'
+              ? data.counts.warnings
+              : filter.id === 'ready'
+                ? data.counts.ready
+                : exceptionCount;
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              className={filter.id === resolvedFilter ? govStyles.readinessTabActive : ''}
+              onClick={() => {
+                setActiveFilter(filter.id as ReadinessFilter);
+                setSelectedServiceId(null);
+              }}
+            >
+              <span>{filter.label}</span>
+              <strong>{count}</strong>
+            </button>
+          );
+        })}
       </div>
+
+      <section className={govStyles.readinessWorkspace} aria-label="Readiness gate workspace">
+        <div className={govStyles.readinessTable}>
+          <div className={govStyles.readinessTableHeader}>
+            <span>Service</span>
+            <span>Rule</span>
+            <span>Status</span>
+            <span>Action</span>
+          </div>
+          {filteredItems.length === 0 ? (
+            <EmptyState title={
+              resolvedFilter === 'blocked'
+                ? 'Žádné blokované služby — všechny prošly blocking pravidly.'
+                : resolvedFilter === 'warnings'
+                  ? 'Žádná varování — všechny služby jsou čisté.'
+                  : resolvedFilter === 'ready'
+                    ? 'Žádné ready služby v katalogu.'
+                    : 'Žádné aktivní výjimky.'
+            } />
+          ) : filteredItems.map((item) => {
+            const failedRule = primaryFailedRule(item);
+            const findings = actionableRules(item);
+            return (
+              <article
+                key={item.service_id}
+                role="button"
+                tabIndex={0}
+                className={`${govStyles.readinessTableRow} ${selectedItem?.service_id === item.service_id ? govStyles.readinessTableRowSelected : ''}`}
+                onClick={() => setSelectedServiceId(item.service_id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') setSelectedServiceId(item.service_id);
+                }}
+              >
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.service_id} · {item.service_status ?? 'unknown'}</small>
+                </span>
+                <span>{failedRule?.title ?? findings[0]?.title ?? 'All rules passed'}</span>
+                <Badge variant={statusBadge(item)}>{statusLabel(item)}</Badge>
+                <Link href={`/services/${item.service_id}`} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>Open</Link>
+              </article>
+            );
+          })}
+        </div>
+
+        <aside className={govStyles.ruleDetailPanel}>
+          <div className={govStyles.panelHeader}>
+            <div>
+              <h2 className={govStyles.panelTitle}>{selectedRule?.title ?? 'Readiness rule detail'}</h2>
+              <p className={govStyles.panelHint}>{selectedItem ? `${selectedItem.title} · ${selectedItem.service_id}` : 'Vyber položku ve frontě.'}</p>
+            </div>
+            {selectedRule ? <Badge variant={severityTone(selectedRule.severity)}>{selectedRule.severity}</Badge> : null}
+          </div>
+
+          <div className={govStyles.ruleExplanation}>
+            <section>
+              <h3>What is missing</h3>
+              <p>{ruleDetailText(selectedRule, 'what')}</p>
+            </section>
+            <section>
+              <h3>Why it matters</h3>
+              <p>{ruleDetailText(selectedRule, 'why')}</p>
+            </section>
+            <section>
+              <h3>Related ITIL / TOGAF process</h3>
+              <p>{selectedRule?.related_process ?? 'Service Portfolio Management · Change Enablement · Architecture Governance'}</p>
+            </section>
+            <section>
+              <h3>How to fix</h3>
+              <p>{ruleDetailText(selectedRule, 'how')}</p>
+            </section>
+          </div>
+
+          {selectedItem ? <RuleBadges rules={actionableRules(selectedItem)} /> : null}
+          {selectedItem && selectedRule?.status === 'failed' ? (
+            <ExceptionForm serviceId={selectedItem.service_id} rule={selectedRule} onSaved={async () => { await mutate(); }} />
+          ) : null}
+        </aside>
+      </section>
     </main>
   );
 }

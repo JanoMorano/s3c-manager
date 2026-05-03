@@ -1,8 +1,8 @@
 .shell {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 220px minmax(0, 1fr);
   height: calc(100vh - 48px);
-  background: var(--color-bg-canvas);
+  background: var(--color-bg-workspace);
 }
 
 .rail {
@@ -21,7 +21,7 @@
   font: var(--text-label-sm);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0;
   margin-bottom: var(--space-2);
 }
 
@@ -93,7 +93,7 @@
 .performanceBadge {
   font: var(--text-label-sm);
   color: var(--color-warning);
-  background: var(--color-bg-surface)ae6;
+  background: var(--color-orange-soft);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-pill);
   padding: 2px 10px;
@@ -111,6 +111,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  background: var(--color-bg-workspace);
 }
 
 .flowSurface {
@@ -175,6 +176,29 @@
 .c3NodeSelected { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
 .c3Type { font: var(--text-label-sm); font-weight: 800; margin-bottom: 4px; }
 .c3Title { font: var(--text-body-sm); line-height: 1.2; }
+
+.flavourNode {
+  min-width: 110px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-surface));
+  text-align: center;
+}
+
+.flavourNodeTitle {
+  max-width: 120px;
+  overflow: hidden;
+  color: var(--color-warning);
+  font: var(--text-label-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flavourNodePrice {
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
 
 .panel {
   width: 300px;
