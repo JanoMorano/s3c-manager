@@ -6,9 +6,9 @@
 #                              + a separate postgres container (from Docker Hub)
 #
 # Version is read automatically from docker-compose.yml (APP_VERSION default).
-# Output filenames include the version and architecture, e.g.:
-#   - sc-images-amd64-1.1.2.tar
-#   - sc-qnap-bundle-amd64-1.1.2.tar.gz
+# Output filenames include the version, e.g.:
+#   - s3c-manager.v1.2.tar
+#   - s3c-manager.v1.2.tar.gz
 #
 # Usage:
 #   chmod +x build-amd64.sh
@@ -23,13 +23,32 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ── Auto-detect version from docker-compose.yml ───────────────────────────────
-# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.1.2}
-DETECTED_VERSION=""
-if [ -f "docker-compose.yml" ]; then
-  DETECTED_VERSION=$(grep 'APP_VERSION:-' docker-compose.yml | sed 's/.*APP_VERSION:-\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/' | head -1)
-fi
-if [ -z "$DETECTED_VERSION" ]; then
+# ── Auto-detect version from APP_VERSION / docker-compose.yml ────────────────
+# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.2}
+detect_app_version() {
+  if [ -n "${APP_VERSION:-}" ]; then
+    printf '%s\n' "$APP_VERSION"
+    return
+  fi
+
+  if [ ! -f "docker-compose.yml" ]; then
+    return
+  fi
+
+  local line value
+  line="$(grep -E '^[[:space:]]*APP_VERSION:[[:space:]]*' docker-compose.yml | head -1 || true)"
+  [ -n "$line" ] || return
+
+  value="$(printf '%s\n' "$line" | sed -E 's/.*\$\{APP_VERSION:-([^}]+)\}.*/\1/')"
+  if [ "$value" = "$line" ]; then
+    value="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*APP_VERSION:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')"
+  fi
+
+  printf '%s\n' "$value"
+}
+
+DETECTED_VERSION="$(detect_app_version)"
+if ! [[ "$DETECTED_VERSION" =~ ^[A-Za-z0-9_.-]+$ ]]; then
   echo "⚠ Could not detect APP_VERSION from docker-compose.yml — falling back to 'latest'"
   DETECTED_VERSION="latest"
 fi
@@ -84,7 +103,8 @@ done
 OUTPUT_TAR="${OUTPUT_TAR_OVERRIDE:-s3c-manager.v${IMAGE_TAG}.tar}"
 BUNDLE_TAR="${BUNDLE_TAR_OVERRIDE:-s3c-manager.v${IMAGE_TAG}.tar.gz}"
 
-FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}-${ARCH}"
+DEPLOY_IMAGE_TAG="${IMAGE_TAG}-${ARCH}"
+FULL_IMAGE="${IMAGE_NAME}:${DEPLOY_IMAGE_TAG}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -171,8 +191,8 @@ echo ""
 echo "▶ Preparing deployment bundle ${BUNDLE_TAR}..."
 TMP_DIR="$(mktemp -d)"
 
-# Inject the image tag into the env example
-sed "s/^SC_APP_TAG=.*/SC_APP_TAG=${IMAGE_TAG}/" .env.qnap > "$TMP_DIR/.env.qnap"
+# Inject the deployable image tag into the env example.
+sed "s/^SC_APP_TAG=.*/SC_APP_TAG=${DEPLOY_IMAGE_TAG}/" .env.qnap > "$TMP_DIR/.env.qnap"
 
 cp portainer-stack.yml "$TMP_DIR/portainer-stack.yml"
 cp "$OUTPUT_TAR"       "$TMP_DIR/${OUTPUT_TAR}"
