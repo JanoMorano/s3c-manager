@@ -204,8 +204,8 @@ BUNDLE_SIZE=$(du -sh "$BUNDLE_TAR" | cut -f1)
 
 # ── GitHub release (optional) ─────────────────────────────────────────────────
 if [ "$DO_RELEASE" = true ]; then
-  # Git tag uses the plain version (with optional leading v), e.g. v1.1.2
-  # The image tag has the arch suffix (sc-app:1.1.2-amd64) but the release tag does not.
+  # Git tag uses the plain version (with optional leading v), e.g. v1.2
+  # The image tag has the arch suffix (sc-app:1.2-amd64) but the release tag does not.
   GIT_TAG="${IMAGE_TAG}"
   # Prepend 'v' if not already present
   [[ "$GIT_TAG" != v* ]] && GIT_TAG="v${GIT_TAG}"
