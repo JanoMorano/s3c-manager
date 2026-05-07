@@ -33,6 +33,19 @@ function primaryFailedRule(item: ServiceReadiness) {
   return (item.rules ?? []).find((rule) => rule.status === 'failed') ?? null;
 }
 
+function editorSectionForRule(rule: ReadinessRuleResult | null | undefined) {
+  const text = `${rule?.rule_key ?? ''} ${rule?.title ?? ''} ${rule?.message ?? ''}`.toLowerCase();
+  if (text.includes('owner') || text.includes('ownership')) return 'ownership';
+  if (text.includes('request') || text.includes('channel') || text.includes('offering')) return 'request-access';
+  if (text.includes('c3') || text.includes('capability') || text.includes('mapping')) return 'c3mapping';
+  if (text.includes('support') || text.includes('sla')) return 'support-model';
+  return 'readiness-governance';
+}
+
+function editorHrefForRule(serviceId: string, rule: ReadinessRuleResult | null | undefined) {
+  return `/services/${encodeURIComponent(serviceId)}/edit#${editorSectionForRule(rule)}`;
+}
+
 function RuleBadges({ rules }: { rules: ReadinessRuleResult[] }) {
   if (rules.length === 0) return <span className={govStyles.stateLine}>No rule findings</span>;
   return (
@@ -250,7 +263,7 @@ export default function ReadinessQueuePage() {
             <span>Service</span>
             <span>Rule</span>
             <span>Status</span>
-            <span>Action</span>
+            <span>Actions</span>
           </div>
           {filteredItems.length === 0 ? (
             <EmptyState title={
@@ -282,7 +295,10 @@ export default function ReadinessQueuePage() {
                 </span>
                 <span>{failedRule?.title ?? findings[0]?.title ?? 'All rules passed'}</span>
                 <Badge variant={statusBadge(item)}>{statusLabel(item)}</Badge>
-                <Link href={`/services/${item.service_id}`} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>Open</Link>
+                <span className={govStyles.rowActionStack}>
+                  <Link href={`/services/${encodeURIComponent(item.service_id)}`} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>Detail</Link>
+                  <Link href={editorHrefForRule(item.service_id, failedRule ?? findings[0])} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>Fix rule</Link>
+                </span>
               </article>
             );
           })}
@@ -307,7 +323,7 @@ export default function ReadinessQueuePage() {
               <p>{ruleDetailText(selectedRule, 'why')}</p>
             </section>
             <section>
-              <h3>Related ITIL / TOGAF process</h3>
+              <h3>Related governance process</h3>
               <p>{selectedRule?.related_process ?? 'Service Portfolio Management · Change Enablement · Architecture Governance'}</p>
             </section>
             <section>
@@ -317,6 +333,15 @@ export default function ReadinessQueuePage() {
           </div>
 
           {selectedItem ? <RuleBadges rules={actionableRules(selectedItem)} /> : null}
+          {selectedItem ? (
+            <div className={govStyles.workflowActions}>
+              <Link href={`/services/${encodeURIComponent(selectedItem.service_id)}`} className={govStyles.rowActionLink}>Open service detail</Link>
+              <Link href={editorHrefForRule(selectedItem.service_id, selectedRule)} className={govStyles.rowActionLink}>Open editor on this rule</Link>
+              {selectedItem.primary_c3_uuid ? (
+                <Link href={`/c3/${encodeURIComponent(selectedItem.primary_c3_uuid)}`} className={govStyles.rowActionLink}>Open related capability</Link>
+              ) : null}
+            </div>
+          ) : null}
           {selectedItem && selectedRule?.status === 'failed' ? (
             <ExceptionForm serviceId={selectedItem.service_id} rule={selectedRule} onSaved={async () => { await mutate(); }} />
           ) : null}

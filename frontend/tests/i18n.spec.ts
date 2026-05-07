@@ -120,6 +120,66 @@ async function prepareLocale(page, locale: Locale, options: { ready?: boolean; a
   });
 }
 
+async function mockHomeDashboard(page) {
+  await page.route('**/api/v1/stats/dashboard-headline', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ kpis: [{ key: 'services_count', value: 0 }] }),
+    });
+  });
+  await page.route('**/api/v1/dashboard/inbox', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [],
+        my_owned_services: [],
+        my_reviews: [],
+        my_blockers: [],
+        my_decisions: [],
+      }),
+    });
+  });
+  await page.route('**/api/v1/dashboard/summary', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        summary: {
+          total_services: 0,
+          services_ready_for_publish: 0,
+          services_blocked_by_readiness: 0,
+          overdue_reviews: 0,
+          uncovered_capabilities: 0,
+          over_covered_capabilities: 0,
+        },
+      }),
+    });
+  });
+  await page.route('**/api/v1/stats/operations', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ sections: { c3_mapping_gap: [], missing_owners: [] } }),
+    });
+  });
+  await page.route('**/api/v1/stats/dashboard', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ summary: { total_services: 0, active_services: 0 } }),
+    });
+  });
+  await page.route('**/api/v1/stats/completeness', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    });
+  });
+}
+
 test('english login renders from the locale bootstrap snapshot', async ({ page }) => {
   const csKeys = Object.keys(csMessages).sort();
   const enKeys = Object.keys(enMessages).sort();
@@ -148,18 +208,26 @@ test('english install admin validation keeps wizard copy in english', async ({ p
   });
 
   await page.goto('/install', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: /^continue/i }).click();
   await page.getByRole('textbox').fill('test-setup-token');
   await page.getByRole('button', { name: /start installation/i }).click();
   await page.getByRole('button', { name: /^skip$/i }).click();
   await page.getByRole('button', { name: /^continue/i }).click();
-  await page.getByRole('button', { name: /create admin account/i }).click();
+  await expect(page.getByRole('heading', { name: /create admin account/i })).toBeVisible();
+  const adminFields = page.getByRole('textbox');
+  await adminFields.nth(0).fill('');
+  await adminFields.nth(1).fill('');
+  await adminFields.nth(2).fill('not-an-email');
+  await adminFields.nth(3).fill('short');
+  await adminFields.nth(4).fill('different');
+  await page.getByRole('button', { name: /create admin account|save account changes/i }).click();
 
   await expect(page.locator('html')).toContainText('Required field');
   await expect(page.locator('html')).toContainText('Enter a valid email address');
-  await expect(page.locator('html')).toContainText('At least 10 characters');
+  await expect(page.locator('html')).toContainText('Password must include uppercase letters, lowercase letters, digits, and a special character');
   await expect(page.locator('html')).not.toContainText('Povinné pole');
   await expect(page.locator('html')).not.toContainText('Zadejte platný e-mail');
-  await expect(page.locator('html')).not.toContainText('Minimálně 10 znaků');
+  await expect(page.locator('html')).not.toContainText('Heslo musí obsahovat velká písmena');
 });
 
 test('english administration users editor keeps provider placeholders in english', async ({ page }) => {
@@ -272,24 +340,19 @@ test('english user info renders profile and password labels in english', async (
   await expect(page.locator('html')).not.toContainText('Uložit profil');
   await expect(page.locator('html')).not.toContainText('Změna hesla');
 
-  const userView = page.getByText('User view', { exact: true });
+  const userSettings = page.getByText('User settings', { exact: true });
   const language = page.getByLabel('Language', { exact: true });
-  const persona = page.getByLabel('Persona', { exact: true });
   await expect(language).toBeVisible();
-  await expect(persona).toBeVisible();
+  await expect(page.getByLabel('Persona', { exact: true })).toHaveCount(0);
 
-  const [userViewBox, languageBox, personaBox] = await Promise.all([
-    userView.boundingBox(),
+  const [userSettingsBox, languageBox] = await Promise.all([
+    userSettings.boundingBox(),
     language.boundingBox(),
-    persona.boundingBox(),
   ]);
-  expect(userViewBox).not.toBeNull();
+  expect(userSettingsBox).not.toBeNull();
   expect(languageBox).not.toBeNull();
-  expect(personaBox).not.toBeNull();
-  expect(languageBox!.x).toBeGreaterThan(userViewBox!.x + userViewBox!.width);
-  expect(personaBox!.x).toBeGreaterThan(languageBox!.x + languageBox!.width);
-  expect(Math.abs(userViewBox!.y - languageBox!.y)).toBeLessThan(36);
-  expect(Math.abs(languageBox!.y - personaBox!.y)).toBeLessThan(36);
+  expect(languageBox!.x).toBeGreaterThan(userSettingsBox!.x + userSettingsBox!.width);
+  expect(Math.abs(userSettingsBox!.y - languageBox!.y)).toBeLessThan(36);
 });
 
 test('english web settings save fallback stays in english', async ({ page }) => {
@@ -329,14 +392,17 @@ test('english web settings save fallback stays in english', async ({ page }) => 
 });
 
 for (const locale of ['cs', 'en'] as const) {
-  test(`home page renders localized dashboard copy in ${locale}`, async ({ page }) => {
+  test(`home page renders current governance cockpit shell in ${locale}`, async ({ page }) => {
     await prepareLocale(page, locale, { authenticated: true, ready: true });
+    await mockHomeDashboard(page);
     await page.goto('/');
 
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(locale === 'cs' ? 'Katalog služeb' : 'Service Catalogue');
-    await expect(page.getByText(locale === 'cs' ? 'Přehled služeb, KPI a navigace do seznamu a grafu Service Catalogue.' : 'Overview of services, KPIs, and navigation to the service catalogue list and graph.')).toBeVisible();
-    await expect(page.getByText(locale === 'cs' ? 'Taxonomie C3' : 'C3 Taxonomy', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(locale === 'cs' ? 'Přehled řízení' : 'Management overview');
+    await expect(page.getByText(locale === 'cs'
+      ? 'Stav portfolia, rizik a rozhodnutí v jednom pohledu.'
+      : 'Portfolio, risk, and decision status in one view.')).toBeVisible();
+    await expect(page.getByText('Capability gaps', { exact: true })).toBeVisible();
   });
 
   test(`install wizard renders localized chrome in ${locale}`, async ({ page }) => {
@@ -345,7 +411,13 @@ for (const locale of ['cs', 'en'] as const) {
 
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
     await expect(page.getByRole('heading', { name: locale === 'cs' ? /vítejte v/i : /welcome to/i })).toBeVisible();
-    await expect(page.getByText(locale === 'cs' ? 'Setup token instalace' : 'Install setup token', { exact: true })).toBeVisible();
+    await expect(page.getByText(locale === 'cs' ? 'Prostředí aplikace' : 'Application environment', { exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox')).toHaveValue(locale);
+    await expect(page.getByRole('button', { name: locale === 'cs' ? /pokračovat/i : /continue/i })).toBeVisible();
+
+    await page.getByRole('button', { name: locale === 'cs' ? /pokračovat/i : /continue/i }).click();
+
+    await expect(page.getByRole('heading', { name: locale === 'cs' ? 'Setup token instalace' : 'Install setup token' })).toBeVisible();
     await expect(page.getByRole('textbox')).toBeVisible();
     await expect(page.getByRole('button', { name: locale === 'cs' ? /zahájit instalaci/i : /start installation/i })).toBeVisible();
   });
@@ -356,10 +428,7 @@ for (const locale of ['cs', 'en'] as const) {
 
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(locale === 'cs' ? 'Administrace' : 'Administration');
-    await expect(page.getByRole('link', { name: locale === 'cs' ? 'Administrace' : 'Administration' })).toBeVisible();
-    await expect(page.getByRole('link', {
-      name: locale === 'cs' ? 'Správa obsahu' : 'Content Admin',
-      exact: true,
-    })).toBeVisible();
+    await expect(page.locator('main a[href="/administration/users"]')).toContainText(locale === 'cs' ? 'Správa uživatelů' : 'User Management');
+    await expect(page.locator('main a[href="/administration/catalogue-ref"]')).toContainText(locale === 'cs' ? 'Editace číselníků katalogu' : 'Catalogue Reference Editing');
   });
 }

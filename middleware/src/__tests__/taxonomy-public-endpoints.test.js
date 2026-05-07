@@ -78,7 +78,7 @@ function buildEocdOnlyZip(entryCount) {
     return buffer;
 }
 
-describe('taxonomy public c3 endpoints', () => {
+describe('taxonomy authenticated c3 endpoints', () => {
     beforeEach(() => {
         jest.resetModules();
         mockAuthState.authenticated = true;
@@ -169,10 +169,10 @@ describe('taxonomy public c3 endpoints', () => {
                 expect(body).toEqual(expect.objectContaining({ technology_interaction_code: 'TIN-1' }));
             },
         },
-    ])('public allowlist keeps $path public', async ({ path, setup, expectBody }) => {
+    ])('authenticated C3 read endpoint $path returns data', async ({ path, setup, expectBody }) => {
         const { __query } = require('../db/pool');
         setup(__query);
-        mockAuthState.authenticated = false;
+        mockAuthState.authenticated = true;
 
         const router = require('../routes/taxonomy');
         const app = express();
@@ -183,7 +183,30 @@ describe('taxonomy public c3 endpoints', () => {
         expectBody(response.body);
     });
 
-    test('GET /c3 supports public item type filtering for capability pickers', async () => {
+    test.each([
+        '/api/v1/taxonomy/c3/types',
+        '/api/v1/taxonomy/c3/statuses',
+        '/api/v1/taxonomy/c3/parent-options?item_type=BP',
+        '/api/v1/taxonomy/security-classifications',
+        '/api/v1/taxonomy/c3',
+        '/api/v1/taxonomy/c3-services/SRV-1',
+        '/api/v1/taxonomy/c3-applications/APL-1',
+        '/api/v1/taxonomy/c3-data-objects/DOB-1',
+        '/api/v1/taxonomy/c3-technology-interactions/TIN-1',
+    ])('C3 read endpoint %s rejects unauthenticated requests', async (path) => {
+        const { __query } = require('../db/pool');
+        mockAuthState.authenticated = false;
+
+        const router = require('../routes/taxonomy');
+        const app = express();
+        app.use('/api/v1/taxonomy', router);
+
+        const response = await request(app).get(path);
+        expect(response.status).toBe(401);
+        expect(__query).not.toHaveBeenCalled();
+    });
+
+    test('GET /c3 supports authenticated item type filtering for capability pickers', async () => {
         const { __query } = require('../db/pool');
         __query.mockResolvedValueOnce({
             rows: [
@@ -215,7 +238,7 @@ describe('taxonomy public c3 endpoints', () => {
                 },
             ],
         });
-        mockAuthState.authenticated = false;
+        mockAuthState.authenticated = true;
 
         const router = require('../routes/taxonomy');
         const app = express();

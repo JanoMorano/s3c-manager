@@ -20,11 +20,29 @@ function logAuthFailure(req, { username, userId = 0, reason }) {
         recordId: userId,
         recordLabel: username || null,
         action: 'AUTH_FAILURE',
-        newValues: { reason },
+        newValues: { reason, request_id: req.id || null },
         performedBy: username || 'unknown',
         clientIp: req.ip || null,
         userAgent: req.get('user-agent') || null,
     }).catch(err => logger.warn({ err }, 'audit_log: AUTH_FAILURE write failed'));
+}
+
+/** Records a successful authentication event without storing tokens or secrets. */
+function logAuthSuccess(req, user, authProvider) {
+    audit.log({
+        tableName: 'users',
+        recordId: user.id,
+        recordLabel: user.username || null,
+        action: 'AUTH_SUCCESS',
+        newValues: {
+            auth_provider: authProvider,
+            role: user.role,
+            request_id: req.id || null,
+        },
+        performedBy: user.username || 'unknown',
+        clientIp: req.ip || null,
+        userAgent: req.get('user-agent') || null,
+    }).catch(err => logger.warn({ err }, 'audit_log: AUTH_SUCCESS write failed'));
 }
 
 const router = express.Router();
@@ -196,7 +214,6 @@ function buildUserResponse(user, { mustChangePassword = false } = {}) {
         auth_provider: user.auth_provider ?? 'local',
         must_change_password: mustChangePassword,
         preferred_lang: normalizeLocale(user.preferred_lang),
-        preferred_persona: user.preferred_persona ?? 'service_owner',
         preferred_theme: user.preferred_theme || 'dark',
     };
 }
@@ -223,7 +240,6 @@ async function loadUserById(userId) {
             external_principal,
             preferred_lang,
             preferred_theme,
-            COALESCE(preferred_persona, 'service_owner') AS preferred_persona,
             given_name,
             surname,
             phone,
@@ -443,6 +459,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
         }
 
         const response = await issueLoginResponse(user, req, res);
+        logAuthSuccess(req, user, 'local');
         logger.info(`Login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -480,6 +497,7 @@ router.get('/sso', async (req, res, next) => {
         }
 
         const response = await issueLoginResponse(user, req, res, { isSso: true, ssoProfile });
+        logAuthSuccess(req, user, 'sso');
         logger.info(`SSO login: ${user.username} (${user.role}) from ${req.ip}`);
         res.json(response);
     } catch (err) {
@@ -600,7 +618,6 @@ router.get('/me', requireAuth, async (req, res, next) => {
             external_principal: user.external_principal ?? null,
             preferred_lang: normalizeLocale(user.preferred_lang),
             preferred_theme: user.preferred_theme ?? 'dark',
-            preferred_persona: user.preferred_persona ?? 'service_owner',
             given_name: user.given_name ?? null,
             surname: user.surname ?? null,
             phone: user.phone ?? null,
@@ -612,36 +629,6 @@ router.get('/me', requireAuth, async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-});
-
-const VALID_PERSONAS = new Set(['consumer', 'service_owner', 'capability_manager', 'admin']);
-
-router.get('/me/persona', requireAuth, async (req, res, next) => {
-    try {
-        const result = await getPlatformPool().query(`
-            SELECT COALESCE(preferred_persona, 'service_owner') AS preferred_persona
-            FROM platform.users
-            WHERE id = $1
-        `, [req.user.id]);
-        const persona = result.rows[0]?.preferred_persona ?? 'service_owner';
-        res.json({ persona });
-    } catch (err) { next(err); }
-});
-
-router.put('/me/persona', requireAuth, async (req, res, next) => {
-    try {
-        const persona = String(req.body?.persona ?? '').trim();
-        if (!VALID_PERSONAS.has(persona)) {
-            return res.status(400).json({ error: 'Invalid persona' });
-        }
-        await getPlatformPool().query(`
-            UPDATE platform.users
-            SET preferred_persona = $2,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1
-        `, [req.user.id, persona]);
-        res.json({ persona });
-    } catch (err) { next(err); }
 });
 
 /**
@@ -753,90 +740,6 @@ router.put('/preferences', requireAuth, async (req, res, next) => {
         );
         setLocaleCookie(req, res, normalizedPreferredLang);
         res.json({ message: tReq(req, 'auth.preferences.saved'), preferred_lang: normalizedPreferredLang });
-    } catch (err) {
-        next(err);
-    }
-});
-
-function normalizePreferenceKey(value) {
-    return String(value ?? '')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9_.:-]/g, '_')
-        .slice(0, 120);
-}
-
-function isMissingEnterprisePreferenceStore(err) {
-    return err?.code === '42P01' || err?.code === '42703';
-}
-
-/**
- * GET /api/v1/auth/preferences/:key
- * Generic per-user preference lookup. Used by enterprise UI surfaces such as
- * Business/Technical view persistence and later saved views.
- */
-router.get('/preferences/:key', requireAuth, async (req, res, next) => {
-    try {
-        const key = normalizePreferenceKey(req.params.key);
-        if (!key) return res.status(400).json({ error: 'Preference key is required' });
-
-        try {
-            const result = await getPlatformPool().query(`
-                SELECT preference_key, preference_value, updated_at
-                FROM platform.user_preferences
-                WHERE user_id = $1
-                  AND preference_key = $2
-            `, [req.user.id, key]);
-
-            res.json({
-                preference_key: key,
-                preference_value: result.rows[0]?.preference_value ?? null,
-                updated_at: result.rows[0]?.updated_at ?? null,
-            });
-        } catch (err) {
-            if (isMissingEnterprisePreferenceStore(err)) {
-                return res.json({ preference_key: key, preference_value: null, updated_at: null, storage: 'local' });
-            }
-            throw err;
-        }
-    } catch (err) {
-        next(err);
-    }
-});
-
-/**
- * PUT /api/v1/auth/preferences/:key
- */
-router.put('/preferences/:key', requireAuth, async (req, res, next) => {
-    try {
-        const key = normalizePreferenceKey(req.params.key);
-        if (!key) return res.status(400).json({ error: 'Preference key is required' });
-
-        const preferenceValue = req.body?.preference_value ?? req.body?.value ?? req.body ?? {};
-        try {
-            const result = await getPlatformPool().query(`
-                INSERT INTO platform.user_preferences
-                    (user_id, preference_key, preference_value, updated_by)
-                VALUES ($1, $2, $3::jsonb, $4)
-                ON CONFLICT (user_id, preference_key) DO UPDATE
-                SET preference_value = EXCLUDED.preference_value,
-                    updated_by = EXCLUDED.updated_by,
-                    updated_at = CURRENT_TIMESTAMP
-                RETURNING preference_key, preference_value, updated_at
-            `, [
-                req.user.id,
-                key,
-                JSON.stringify(preferenceValue),
-                req.user.username || req.user.display_name || 'unknown',
-            ]);
-
-            res.json(result.rows[0]);
-        } catch (err) {
-            if (isMissingEnterprisePreferenceStore(err)) {
-                return res.json({ preference_key: key, preference_value: preferenceValue, updated_at: null, storage: 'local' });
-            }
-            throw err;
-        }
     } catch (err) {
         next(err);
     }

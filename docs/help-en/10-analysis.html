@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Graphs, impact, gaps and problem diagnostics - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">10 · Analysis</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link active" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">10 Analysis</p>
+        <h1>Graphs, impact, gaps and problem diagnostics</h1>
+        <p class="lead">Analysis views help users answer what depends on what, where coverage is missing, which C3 items are affected and why a service is not ready.</p>
+      </section>
+
+      <h2>Analysis theory</h2>
+      <p>A catalogue is useful only when it can explain consequences. Graphs, readiness diagnostics, gaps and overlaps turn static records into decisions.</p>
+
+      <h2>Analytical views</h2>
+      <table class="field-table"><thead><tr><th>View</th><th>Purpose</th></tr></thead><tbody><tr><td>Services Graph</td><td>Shows service-to-service and dependency relations.</td></tr><tr><td>Service detail graph</td><td>Focuses on one service and its neighborhood.</td></tr><tr><td>C3 Graph</td><td>Shows C3 taxonomy relations and linked entities.</td></tr><tr><td>Impact Analysis</td><td>Explains what could break when a service, capability or C3 item changes.</td></tr><tr><td>Capability gaps and overlaps</td><td>Shows where services are missing or duplicated for capabilities.</td></tr></tbody></table>
+
+      <h2>How to diagnose a service problem</h2>
+      <p>Open service detail, read readiness warnings, inspect ownership and offering evidence, then follow dependencies in the graph. If a warning is architecture-related, continue to capability mapping or C3 detail.</p>
+
+      <h2>Common mistakes</h2>
+      <p>Do not treat graph distance as business criticality. A nearby node can be low risk and a distant dependency can be critical. Always combine graph context with lifecycle, owner, SLA, decision records and dependency type.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Analysis<br><code>/img/help-en/10-analysis.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="09-user.html">Previous: User</a>
+        <a href="11-api.html">Next: API</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

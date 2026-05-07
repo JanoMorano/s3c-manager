@@ -28,11 +28,10 @@ interface DecisionRecordModalProps {
 }
 
 const DECISION_TYPES = [
-  ['publish_approval', 'Publish approval'],
-  ['deferral', 'Deferral'],
-  ['risk_acceptance', 'Risk acceptance'],
+  ['publish', 'Publish'],
   ['exception', 'Exception'],
-  ['retirement', 'Retirement'],
+  ['lifecycle', 'Lifecycle'],
+  ['other', 'Other'],
 ];
 
 const DECISIONS = [
@@ -55,7 +54,7 @@ export default function DecisionRecordModal({
   const [serviceId, setServiceId] = useState(initial?.service_id ?? '');
   const [capabilityId, setCapabilityId] = useState(initial?.capability_id ?? '');
   const [c3Id, setC3Id] = useState(initial?.c3_id ?? '');
-  const [decisionType, setDecisionType] = useState(initial?.decision_type ?? 'publish_approval');
+  const [decisionType, setDecisionType] = useState(initial?.decision_type ?? 'publish');
   const [decision, setDecision] = useState(initial?.decision ?? 'approved');
   const [rationale, setRationale] = useState(initial?.rationale ?? '');
   const [expiresAt, setExpiresAt] = useState(initial?.expires_at ?? '');

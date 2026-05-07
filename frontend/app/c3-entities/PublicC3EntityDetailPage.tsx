@@ -17,7 +17,6 @@ import {
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
-import adminStyles from '../admin/admin.module.css';
 import detailStyles from '../services/[id]/detail.module.css';
 import editorStyles from '../services/[id]/edit/editor.module.css';
 import entityStyles from '../admin/c3-entities/entity-list.module.css';
@@ -70,12 +69,6 @@ function formatValue(value: unknown) {
 
 function uniqueKeys(keys: string[]) {
   return [...new Set(keys.filter(Boolean))];
-}
-
-function isEmptyValue(value: unknown, type: EditFieldDef['type']) {
-  if (type === 'checkbox') return false;
-  if (value == null) return true;
-  return String(value).trim() === '';
 }
 
 function toBoolean(value: unknown) {
@@ -217,15 +210,16 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
   const { code } = use(params);
   const router = useRouter();
   const decodedCode = decodeURIComponent(code);
-  const isEdit = mode === 'edit';
-  const [role, setRole] = useState<string | null>(null);
+  const isReadOnlyEntity = config.editable === false;
+  const isEdit = mode === 'edit' && !isReadOnlyEntity;
+  const [role] = useState<string | null>(() => getAuthSnapshot()?.role ?? null);
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const canEdit = hasRoleAccess(role, 'editor');
+  const canEdit = !isReadOnlyEntity && hasRoleAccess(role, 'editor');
   const isAdmin = hasRoleAccess(role, 'admin');
 
   const { data: item, isLoading, error } = useSWR<Record<string, unknown>>(
@@ -234,10 +228,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     { revalidateOnFocus: false },
   );
 
-  useEffect(() => {
-    setRole(getAuthSnapshot()?.role ?? null);
-  }, []);
-
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: edit mode hydrates the local C3 entity draft after async detail load. */
   useEffect(() => {
     if (!isEdit || !item || draft) return;
     const nextDraft = config.editFields.reduce<Record<string, unknown>>((acc, field) => {
@@ -246,6 +237,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     }, {});
     setDraft(nextDraft);
   }, [config.editFields, draft, isEdit, item]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Wrapper that marks the form as dirty on every draft change
   const setDraftAndDirty: Dispatch<SetStateAction<Record<string, unknown> | null>> = useCallback(
@@ -435,7 +427,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
         title={titleValue}
         purpose={`${config.title} · ${config.codeLabel}: ${codeValue}`}
         chips={[
-          { label: isEdit ? 'Edit' : 'View',              tone: isEdit ? 'warn' : 'neutral' },
+          { label: isReadOnlyEntity ? 'Read-only import evidence' : isEdit ? 'Edit' : 'View', tone: isEdit ? 'warn' : 'neutral' },
           { label: formatValue(item.item_status),          tone: 'neutral' },
           ...(validationIssues.length > 0
             ? [{ label: `${validationIssues.length} chyb`, tone: 'bad' as const }]
@@ -630,6 +622,15 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                 <div className={editorStyles.validOk}>No errors</div>
               )}
             </div>
+
+            {isReadOnlyEntity && (
+              <div className={editorStyles.railCard}>
+                <div className={editorStyles.railTitle}>Import-only</div>
+                <div className={editorStyles.validOk}>
+                  {config.readOnlyReason ?? 'This C3 entity is maintained by import and is read-only in the UI.'}
+                </div>
+              </div>
+            )}
 
             {!isEdit && canEdit && (
               <div className={editorStyles.railCard}>

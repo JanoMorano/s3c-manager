@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capability management, C3 taxonomy and FMN spirals - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">05 · Capabilities and C3</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link active" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">05 Capabilities and C3</p>
+        <h1>Capability management, C3 taxonomy and FMN spirals</h1>
+        <p class="lead">Capability and C3 views explain what a service supports and where architectural or operational gaps exist. They help architects and capability managers connect services to C3 capabilities, FMN spirals, applications, data objects and technology interactions.</p>
+      </section>
+
+      <h2>Mental model</h2>
+      <p>Capabilities describe what the organization needs to do. C3 taxonomy items provide structured command, control and communication context. Services provide concrete fulfilment. FMN spirals provide baseline grouping. The value comes from the relationships between these layers.</p>
+
+      <h2>Main pages</h2>
+      <table class="field-table"><thead><tr><th>Page</th><th>Route</th><th>Purpose</th></tr></thead><tbody><tr><td>Capabilities workspace</td><td>/capabilities</td><td>Overview of coverage, gaps and overlaps.</td></tr><tr><td>Capability detail</td><td>/capabilities/{slug}</td><td>Capability context, linked services and evidence.</td></tr><tr><td>Capability maps</td><td>/c3/capability-map-spiral7 and related routes</td><td>Visual map of C3 capabilities by baseline or spiral.</td></tr><tr><td>Expert C3 reference</td><td>/c3/list</td><td>Administrative list of C3 entities and taxonomy records.</td></tr><tr><td>C3 entity detail</td><td>/c3/{uuid}</td><td>Read or edit detailed C3 entity evidence.</td></tr><tr><td>Spirals</td><td>/spirals</td><td>FMN spiral and baseline overview.</td></tr></tbody></table>
+
+      <h2>C3 entity workspace</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Classification and hierarchy</strong></span></span><p>Entity type, parent, level, spiral and taxonomy placement.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Identity</strong></span></span><p>External ID, title, UUID and source identifiers.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Description</strong></span></span><p>Human-readable explanation of purpose and scope.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Source and quality</strong></span></span><p>Import provenance, modification date and evidence quality.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Links and completeness</strong></span></span><p>Relations to services, applications, data objects and capabilities.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Raw JSON / code editor</strong></span></span><p>Technical evidence preserved for expert admins and imports.</p></article></div>
+
+      <h2>How to create and link a capability</h2>
+      <p>Create or import the capability, verify hierarchy and external ID, map it to C3 and FMN context, link services that fulfil it, then review coverage gaps and overlaps. The final step is a governance decision or readiness action when a gap materially affects a service.</p>
+
+      <h2>Governance impact</h2>
+      <p>Missing capability mapping can block publication, lower readiness score or trigger architecture review. A capability gap is not automatically a failure, but it must be understood and either resolved or accepted as a documented decision.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Capabilities and C3<br><code>/img/help-en/05-capabilities_c3.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="04-services.html">Previous: Services</a>
+        <a href="06-governance.html">Next: Governance</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

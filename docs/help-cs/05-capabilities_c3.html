@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>05 Capabilities a C3 - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">05 · Capabilities a C3</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link active" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">05 Capabilities a C3</p>
+        <h1>Capability management, C3 taxonomy a FMN spirals</h1>
+        <p class="lead">Capability říká, jakou schopnost organizace potřebuje. C3 taxonomy říká, jak je schopnost strukturovaná v C3/FMN kontextu. Služba říká, jak je schopnost reálně poskytována, objednávána, podporována a governance řízena.</p>
+      </section>
+
+      <h2>Teoretický význam capability a C3</h2>
+      <p>
+        Capability je stabilní schopnost organizace: něco, co má organizace umět, udržovat a řídit. Není to konkrétní aplikace, dodavatel, server, URL ani ticket. Služba je provozní způsob, jak se hodnota capability poskytuje uživatelům. Aplikace, datové objekty, C3 služby a TINs jsou podpůrné architektonické prvky, které capability technicky umožňují.
+      </p>
+      <p>
+        V S3C Manageru je tato část důležitá proto, že vedení organizace nechce jen vědět, že existuje nějaká služba. Potřebuje vědět, jakou schopnost služba podporuje, zda je tato schopnost pokrytá dostatečně, zda není pokrytá duplicitně a zda má návaznost na C3/FMN taxonomii, spiral baseline a integrační prvky.
+      </p>
+      <div class="fmn-note">
+        <strong>FMN/C3 souvislost:</strong> FMN spiral slouží jako baseline interoperability a schopností. Capability coverage říká, zda je daná schopnost pokrytá službou, validovaným C3 mapováním a provozní připraveností. Pokud capability nemá službu, ownera, mapping nebo TIN, není to jen prázdné pole; je to governance riziko.
+      </div>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Capabilities overview<br><code>/img/help-cs/c3-01-capabilities-overview.png</code></div></div><figcaption>Úvod do capability oblasti: KPI, vstupy do coverage, gaps, overlaps, spirals a C3 listu.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Coverage matrix<br><code>/img/help-cs/c3-02-coverage.png</code></div></div><figcaption>Matice capability coverage: které schopnosti jsou pokryté službami a jakou mají readiness.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Capability gaps<br><code>/img/help-cs/c3-03-gaps.png</code></div></div><figcaption>Chybějící pokrytí: capability bez služby, primary mappingu, readiness nebo provozní evidence.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Capability overlaps<br><code>/img/help-cs/c3-04-overlaps.png</code></div></div><figcaption>Překryvy a duplicity služeb nad stejnou schopností.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Capability map<br><code>/img/help-cs/c3-05-capability-map.png</code></div></div><figcaption>Hierarchický mapový pohled na capability podle FMN spiral a C3 taxonomy.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>C3 list<br><code>/img/help-cs/c3-06-c3-list.png</code></div></div><figcaption>Pracovní seznam C3 položek s filtry, typy, statusem, parentem a importními údaji.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>C3 entity workspace<br><code>/img/help-cs/c3-07-entity-workspace.png</code></div></div><figcaption>Detail a editor capability, aplikace, datového objektu, C3 služby nebo TIN.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>C3 graph<br><code>/img/help-cs/c3-08-c3-graph.png</code></div></div><figcaption>Graf vazeb mezi C3 položkami, službami, aplikacemi, daty a TINs.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>FMN spirals<br><code>/img/help-cs/c3-09-spirals.png</code></div></div><figcaption>Spiral dashboardy, active baseline a stav zařazení capability do baseline.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>New C3 wizard<br><code>/img/help-cs/c3-10-new-c3.png</code></div></div><figcaption>Řízené založení C3 položky s identitou, hierarchií, statusem a raw poli.</figcaption></figure>
+      </div>
+
+      <h2>Mentální model objektů</h2>
+      <table class="field-table">
+        <thead><tr><th>Objekt</th><th>Co znamená</th><th>Co to není</th><th>Kde se používá</th></tr></thead>
+        <tbody>
+          <tr><td>Capability</td><td>Schopnost, kterou má organizace mít.</td><td>Není to konkrétní aplikace, server ani organizační útvar.</td><td><code>/capabilities</code>, coverage, gaps, Service 360.</td></tr>
+          <tr><td>C3 Capability</td><td>Capability v C3/FMN taxonomii s UUID, parentem, levelem a baseline kontextem.</td><td>Není to lokální volný text; je to řízený taxonomy prvek.</td><td><code>/c3/{uuid}</code>, capability map, C3 graph.</td></tr>
+          <tr><td>C3 Application</td><td>Aplikační prvek podporující C3 capability nebo TIN.</td><td>Není to služba katalogu; služba říká provozní poskytování.</td><td><code>/c3/applications</code>, link panel, graph.</td></tr>
+          <tr><td>Data Object</td><td>Datový objekt používaný nebo produkovaný schopností.</td><td>Není to soubor nebo tabulka bez governance významu.</td><td><code>/c3/data-objects</code>, impact a interoperability.</td></tr>
+          <tr><td>C3 Service</td><td>C3/FMN služba jako architektonický nebo interoperabilní prvek.</td><td>Není automaticky totéž jako service catalogue service.</td><td><code>/c3/services</code>, C3 links, FMN mapping.</td></tr>
+          <tr><td>TIN</td><td>Technology Interaction Node nebo technologická interakce podle C3/FMN vazeb.</td><td>Není jen technická poznámka; ovlivňuje interoperabilitu.</td><td><code>/c3/technology-interactions</code>, graph, gaps.</td></tr>
+          <tr><td>FMN Spiral</td><td>Baseline nebo iterace schopností a interoperabilních prvků.</td><td>Není lifecycle služby. Služba může být live a přesto mít nevalidní spiral mapping.</td><td><code>/spirals</code>, capability map, coverage.</td></tr>
+          <tr><td>Service</td><td>Provozní služba v katalogu, která capability poskytuje nebo podporuje.</td><td>Není taxonomy prvek; má ownera, SLA, request model a support.</td><td><code>/services/{id}</code>, mapping, readiness.</td></tr>
+          <tr><td>Mapping</td><td>Vazba mezi službou a C3/capability položkou.</td><td>Není popis; je to řízená evidence vztahu.</td><td><code>service_c3_mapping</code>, Service editor, Coverage.</td></tr>
+          <tr><td>Coverage</td><td>Stav pokrytí capability službami a readiness signály.</td><td>Není počet služeb bez kontextu. Jedna slabá služba nemusí znamenat dobré pokrytí.</td><td><code>/capabilities?view=coverage</code>.</td></tr>
+          <tr><td>Gap</td><td>Schopnost bez dostatečného pokrytí nebo bez potřebné evidence.</td><td>Není automaticky chyba aplikace; může jít o architektonickou realitu.</td><td><code>/capabilities?view=gaps</code>, Cockpit.</td></tr>
+          <tr><td>Overlap</td><td>Schopnost pokrytá více službami bez jasného rozdělení odpovědnosti.</td><td>Není vždy špatně; může být záměrná redundance, pokud má decision.</td><td><code>/capabilities?view=overlaps</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Capabilities overview</h2>
+      <p>
+        Stránka <code>/capabilities</code> je vstupní bod pro architekta, service ownera a manažera. Nejde o editor jedné capability, ale o rozcestník: kolik máme capability, které jsou pokryté, kde jsou gaps, kde jsou overlaps a jak se capability vážou na FMN spirals.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Co ukazuje</th><th>Proč ho použít</th><th>Zdroj / vazba</th></tr></thead>
+        <tbody>
+          <tr><td>KPI L3 capabilities</td><td>Počet detailních capability na úrovni L3 nebo srovnatelné pracovní úrovni.</td><td>L3 je obvykle nejpraktičtější úroveň pro mapování služeb.</td><td><code>GET /api/v1/capabilities/lvl3</code>, <code>c3_taxonomy</code>.</td></tr>
+          <tr><td>KPI Mapped</td><td>Kolik capability má alespoň jednu službu nebo C3 mapping.</td><td>Ukazuje minimální pokrytí schopností.</td><td><code>service_c3_mapping</code>.</td></tr>
+          <tr><td>KPI Gaps</td><td>Capability bez služby, bez primary mappingu nebo s readiness problémem.</td><td>Priority pro architekta a portfolio ownera.</td><td><code>GET /api/v1/capabilities?view=gaps</code>.</td></tr>
+          <tr><td>KPI Overlaps</td><td>Capability pokryté více službami bez zřejmého rozlišení.</td><td>Hledání duplicit nebo záměrné redundance.</td><td><code>GET /api/v1/capabilities?view=overlaps</code>.</td></tr>
+          <tr><td>Spiral entry</td><td>Vstup do FMN spiral pohledů.</td><td>Umožní číst capability podle baseline.</td><td><code>/spirals</code>, <code>ref_spiral_baseline</code>.</td></tr>
+          <tr><td>Dashboard cards</td><td>Odkazy na coverage, gaps, overlaps, capability map a C3 list.</td><td>Uživatel nemusí znát technické route.</td><td>Lokální navigace.</td></tr>
+          <tr><td>Capability cards/list</td><td>Název, doména, spiral, status, mapped/unmapped stav a detail.</td><td>Rychlé rozhodnutí, zda otevřít detail nebo mapování.</td><td><code>c3_taxonomy</code>, coverage views.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Coverage, gaps a overlaps</h2>
+      <p>
+        Coverage, gaps a overlaps jsou tři strany stejného problému. Coverage ukazuje běžný stav pokrytí. Gaps ukazují, co chybí. Overlaps ukazují, kde je pokrytí možná duplicitní nebo nejasné.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Pole / filtr</th><th>Možnosti</th><th>Proč se používá</th><th>Co ovlivní</th></tr></thead>
+        <tbody>
+          <tr><td>Spiral</td><td>All, Spiral 7, Spiral 6, Spiral 5, Spiral 4 nebo lokální baseline.</td><td>Oddělí aktivní baseline od historické nebo plánované.</td><td>Výběr capability v coverage/gap tabulce.</td></tr>
+          <tr><td>Domain</td><td>Capability doména nebo oblast.</td><td>Manažer/architekt často řeší jednu doménu, ne celý katalog.</td><td>Filtruje capability, KPI a grafy.</td></tr>
+          <tr><td>Readiness</td><td>All, ready, warning, blocked.</td><td>Ne každé pokrytí je použitelné. Ready znamená provozně čitelnější službu.</td><td>Ukazuje, kde mapping existuje, ale služba není připravená.</td></tr>
+          <tr><td>Lifecycle</td><td>draft, under_review, approved, live, deprecated, retired.</td><td>Live coverage je silnější signál než draft mapping.</td><td>Pomáhá vyřadit plánované nebo retired služby z provozního pohledu.</td></tr>
+          <tr><td>Owner</td><td>Service owner nebo odpovědný tým.</td><td>Umožní poslat opravu správnému člověku.</td><td>Filtrování služeb a ownership gapů.</td></tr>
+          <tr><td>Search</td><td>Název capability, service ID, UUID, zkratka nebo synonymum.</td><td>Rychlé dohledání známého pojmu.</td><td>Lokální nebo server-side search podle stránky.</td></tr>
+        </tbody>
+      </table>
+
+      <table class="field-table">
+        <thead><tr><th>Sloupec výsledku</th><th>Co znamená</th><th>Proč je důležitý</th><th>Typická akce</th></tr></thead>
+        <tbody>
+          <tr><td>Capability</td><td>Název a případně kód/UUID schopnosti.</td><td>Identifikuje, jakou schopnost řešíme.</td><td>Otevřít capability detail nebo C3 detail.</td></tr>
+          <tr><td>Spiral / baseline</td><td>FMN spiral, ve které capability existuje nebo je aktivní.</td><td>Rozlišuje aktuální, plánovanou a historickou baseline.</td><td>Porovnat s cílovou spiral organizace.</td></tr>
+          <tr><td>Coverage progress</td><td>Vizuální míra pokrytí službami.</td><td>Manažerská zkratka: zelená není jen “něco existuje”, ale “pokrytí je použitelné”.</td><td>U nízké hodnoty otevřít gaps.</td></tr>
+          <tr><td>Mapped services</td><td>Služby navázané na capability.</td><td>Ukazuje konkrétní provozní implementaci capability.</td><td>Otevřít Service 360 nebo editor mappingu.</td></tr>
+          <tr><td>Primary mapping</td><td>Která služba je hlavní nebo preferovaná pro capability.</td><td>Bez primary mappingu vzniká nejasné vlastnictví.</td><td>Nastavit <code>is_primary</code> v service C3 mappingu.</td></tr>
+          <tr><td>Readiness badge</td><td>Ready, warning nebo blocked pro navázané služby.</td><td>Capability může být mapovaná, ale nepřipravená k provozu.</td><td>Otevřít readiness gate a service editor.</td></tr>
+          <tr><td>Recommended action</td><td>Návrh dalšího kroku.</td><td>Uživatel nemusí znát pravidla; dostane směr opravy.</td><td>Doplnit service mapping, ownera, SLA, TIN nebo zapsat decision.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Capability detail</h2>
+      <p>
+        Detail capability na <code>/capabilities/{slug}</code> slouží k přečtení jedné schopnosti v kontextu. V ideálním stavu je zde jasné, co capability znamená, do jaké domény a spiral patří, které služby ji podporují a jaké governance signály se k ní vážou.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Pole / panel</th><th>Význam</th><th>Co ovlivní</th><th>Odkaz / vazba</th></tr></thead>
+        <tbody>
+          <tr><td>Code / slug</td><td>URL-friendly identifikátor capability.</td><td>Stabilní odkaz do manuálů, reportů a komunikace.</td><td><code>/capabilities/{slug}</code>.</td></tr>
+          <tr><td>Title</td><td>Název schopnosti.</td><td>Manažerská čitelnost a search.</td><td><code>c3_taxonomy.title</code>.</td></tr>
+          <tr><td>Domain</td><td>Oblast capability.</td><td>Filtry, dashboardy a odpovědnost architekta.</td><td>C3 taxonomy nebo builder metadata.</td></tr>
+          <tr><td>Spiral</td><td>FMN spiral/baseline vazba.</td><td>Baseline reporting a coverage podle spiral.</td><td><code>c3_entity_spiral_membership</code>, <code>ref_spiral_baseline</code>.</td></tr>
+          <tr><td>UUID</td><td>Technický identifikátor C3 položky.</td><td>Linkování, import reconcile a graph.</td><td><code>/c3/{uuid}</code>.</td></tr>
+          <tr><td>Description</td><td>Popis smyslu capability.</td><td>Pomáhá ownerovi vybrat správnou službu pro mapping.</td><td><code>description</code>, <code>revised_description</code>.</td></tr>
+          <tr><td>Mapped services</td><td>Služby pokrývající capability.</td><td>Základ service portfolio a impact pohledu.</td><td><code>service_c3_mapping</code>.</td></tr>
+          <tr><td>Readiness</td><td>Stav provozní připravenosti pokrytí.</td><td>Ukazuje, zda je capability jen namapovaná, nebo reálně řízená.</td><td>Readiness summary služeb.</td></tr>
+          <tr><td>Governance history</td><td>Rozhodnutí, výjimky a review vztahující se ke capability nebo mapovaným službám.</td><td>Auditní transparentnost.</td><td><code>governance_decision</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>C3 taxonomy list</h2>
+      <p>
+        Stránka <code>/c3/list</code> je pracovní seznam všech C3 taxonomy položek. Používá se hlavně pro hledání, kontrolu importu, ruční editaci a navigaci do detailu C3 entity. Administrátor zde vidí více technických sloupců než běžný uživatel.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Filtr / ovládání</th><th>Možnosti</th><th>Proč se používá</th><th>Co ovlivní</th></tr></thead>
+        <tbody>
+          <tr><td>Search</td><td>Text přes title, description, UUID, external_id, zkratky a synonyma.</td><td>Najde položku i podle neúplného názvu.</td><td>Výsledný list a počet řádků.</td></tr>
+          <tr><td>Exact search</td><td>Přesná shoda podle UUID, external_id nebo kódu.</td><td>Vhodné pro audit importu a dohledání z externí dokumentace.</td><td>Zúžení na konkrétní entitu.</td></tr>
+          <tr><td>Item type</td><td>Capability, application, data object, C3 service, TIN.</td><td>Každý typ má jinou logiku vazeb a editoru.</td><td>Filtr a cílová route detailu.</td></tr>
+          <tr><td>Status</td><td>Obsahový stav položky, například active, draft, deprecated, validated podle reference.</td><td>Pomáhá oddělit validované taxonomy položky od importovaných nebo historických.</td><td>Coverage a board interpretace.</td></tr>
+          <tr><td>Parent</td><td>UUID nebo kód nadřazené položky.</td><td>Omezí seznam na jednu větev taxonomy.</td><td>Hierarchie capability mapy.</td></tr>
+          <tr><td>Sort</td><td>Title, order number, status, item type, source.</td><td>Administrátor může kontrolovat pořadí a kvalitu importu.</td><td>Řazení tabulky.</td></tr>
+        </tbody>
+      </table>
+
+      <table class="field-table">
+        <thead><tr><th>Sloupec</th><th>Význam</th><th>Proč je důležitý</th><th>Vazba</th></tr></thead>
+        <tbody>
+          <tr><td>External ID / page</td><td>ID z externí taxonomy nebo importního zdroje.</td><td>Reconcile při dalším importu a porovnání s FMN/C3 dokumentací.</td><td><code>external_id</code>, <code>source_external_id</code>.</td></tr>
+          <tr><td>UUID</td><td>Stabilní identifikátor položky.</td><td>Bez UUID nelze spolehlivě linkovat služby a parent/child vztahy.</td><td><code>uuid</code>.</td></tr>
+          <tr><td>Title</td><td>Název položky.</td><td>Hlavní čitelný identifikátor pro uživatele.</td><td>Detail a search.</td></tr>
+          <tr><td>Description</td><td>Lokální nebo importní popis.</td><td>Pomáhá rozhodnout, zda položka odpovídá hledané capability.</td><td><code>description</code>, <code>source_description</code>.</td></tr>
+          <tr><td>Parent</td><td>Nadřazená C3 položka.</td><td>Určuje umístění ve stromu a capability mapě.</td><td><code>parent_uuid</code>, <code>parent_code</code>.</td></tr>
+          <tr><td>Datasets</td><td>Raw dataset reference.</td><td>Ukazuje, odkud položka přišla a jaké datové zdroje jsou navázané.</td><td><code>datasets_raw</code>.</td></tr>
+          <tr><td>Item type</td><td>Druh C3 entity.</td><td>Řídí detail, editaci a linkovací panel.</td><td><code>item_type</code>.</td></tr>
+          <tr><td>Order</td><td>Pořadí ve stromu.</td><td>Důležité pro srovnatelný výstup s externí taxonomy.</td><td><code>order_num</code>.</td></tr>
+          <tr><td>Item status</td><td>Obsahový stav položky.</td><td>Upozorní na draft, deprecated nebo nevalidované záznamy.</td><td><code>item_status</code>.</td></tr>
+          <tr><td>Edit / Delete</td><td>Akce podle role.</td><td>Zápis je omezen na oprávněné uživatele, protože změna ovlivňuje graf a coverage.</td><td>Permission gate, audit.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Capability map a FMN spirals</h2>
+      <p>
+        Capability map zobrazuje C3 schopnosti jako hierarchii. Spiral pohled k tomu přidává baseline: co je v konkrétní FMN spiral, co je aktivní, co je historické a co ještě nemá pokrytí službou.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Stránka / prvek</th><th>Význam</th><th>Proč se používá</th><th>API / DB</th></tr></thead>
+        <tbody>
+          <tr><td><code>/c3/capability-map-spiral7</code></td><td>Capability mapa pro Spiral 7 nebo aktivní baseline.</td><td>Hlavní pracovní pohled na aktuální FMN kontext.</td><td><code>GET /api/v1/taxonomy/c3/capability-map-spiral7</code>.</td></tr>
+          <tr><td><code>/c3/capability-map-spiral6</code></td><td>Capability mapa pro Spiral 6.</td><td>Porovnání s předchozí nebo alternativní baseline.</td><td>C3 taxonomy a spiral membership.</td></tr>
+          <tr><td><code>/c3/capability-map</code></td><td>Legacy/obecná mapa.</td><td>Kompatibilita se staršími odkazy.</td><td>Taxonomy read model.</td></tr>
+          <tr><td>Spiral switch</td><td>Přepíná baseline.</td><td>Uživatel chápe rozdíl mezi aktuální a historickou schopností.</td><td><code>ref_spiral_baseline</code>.</td></tr>
+          <tr><td>Show unmapped</td><td>Zobrazí capability bez služby.</td><td>Nejdůležitější režim pro hledání gapů.</td><td><code>service_c3_mapping</code>.</td></tr>
+          <tr><td>Node click</td><td>Vybere capability a zobrazí detail.</td><td>Mapu nelze jen prohlížet; má vést k opravě evidence.</td><td><code>/c3/{uuid}</code> nebo detail panel.</td></tr>
+          <tr><td>Open C3 detail</td><td>Otevře plný C3 workspace.</td><td>Detailní editace a linkování se dělá v entity workspace.</td><td><code>/c3/{uuid}</code>.</td></tr>
+          <tr><td>Filter graph/map</td><td>Omezí mapu na doménu, parenta nebo status.</td><td>Velká taxonomy je bez filtrů nečitelná.</td><td>Query parametry nebo lokální state.</td></tr>
+          <tr><td>Empty state</td><td>Ukáže, že mapa nemá data pro vybraný filtr.</td><td>Uživatel má dostat cestu: změnit filtr, importovat data, otevřít builder.</td><td><code>/administration/c3-capability-builder</code>.</td></tr>
+          <tr><td><code>/spirals</code></td><td>Dashboard FMN spirals.</td><td>Baseline governance, coverage, active/inactive stav a reporting.</td><td><code>GET /api/v1/taxonomy/spiral</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>C3 entity workspace</h2>
+      <p>
+        C3 entity workspace na <code>/c3/{uuid}</code> a <code>/c3/{uuid}/edit</code> je společný vzor pro capability, aplikace, datové objekty, C3 služby a TINs. Uživatel zde vidí detail, vazby, raw data a podle oprávnění také editor. Důležité pravidlo: raw pole pomáhají s auditem a importem, ale běžné governance vysvětlení má být v popisech a vazbách.
+      </p>
+
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">01</span><div><h3>Classification &amp; hierarchy</h3><div class="step-meta"><span>item_type</span><span>parent_uuid</span><span>level</span></div></div></header>
+          <p>Tato sekce říká, co položka je a kam patří ve stromu. Je to nejdůležitější část pro mapy a grafy.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace / poznámka</th></tr></thead>
+            <tbody>
+              <tr><td><code>item_type</code></td><td>Typ entity: capability, application, data object, C3 service nebo TIN.</td><td>Editor, link panel, list family a graph node kind.</td><td>Neměnit bez jasného důvodu; změna typu mění interpretaci vazeb.</td></tr>
+              <tr><td><code>parent_uuid</code></td><td>UUID nadřazené položky.</td><td>Capability map, breadcrumbs, aggregation a inheritance kontext.</td><td>Musí existovat. Parent nesmí vytvořit cyklus.</td></tr>
+              <tr><td><code>parent_code</code></td><td>Čitelný kód parenta.</td><td>Pomáhá uživateli ověřit, že vybral správnou větev.</td><td>Obvykle read-only odvozené pole.</td></tr>
+              <tr><td><code>parent_title</code></td><td>Název parenta.</td><td>Manažerská orientace ve stromu.</td><td>Read-only detail.</td></tr>
+              <tr><td><code>level_num</code></td><td>Úroveň ve stromu taxonomy.</td><td>Mapování L1/L2/L3 a coverage reporting.</td><td>Admin read-only nebo odvozené z parenta.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">02</span><div><h3>Identity</h3><div class="step-meta"><span>title</span><span>external_id</span><span>status</span></div></div></header>
+          <p>Identita rozhoduje o tom, jak se položka hledá, páruje s importy a zobrazuje v Service 360, grafu i capability mapě.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace / poznámka</th></tr></thead>
+            <tbody>
+              <tr><td><code>uuid</code></td><td>Stabilní systémový identifikátor C3 položky.</td><td>Vazby na služby, parent/child, graph a API.</td><td>Read-only po vytvoření.</td></tr>
+              <tr><td><code>title</code></td><td>Hlavní název položky.</td><td>Search, mapy, grafy, detail a listy.</td><td>Povinné. Má být čitelné i bez znalosti zdroje.</td></tr>
+              <tr><td><code>application</code></td><td>Textové aplikační označení nebo zdrojový kontext.</td><td>Pomáhá rozlišit položky s podobným názvem.</td><td>Nepoužívat jako náhradu za C3 Application link.</td></tr>
+              <tr><td><code>item_status</code></td><td>Obsahový stav položky.</td><td>Filtrování, coverage interpretace a board signál.</td><td>Nezaměňovat s C3 map and C3 detail workflow governance state.</td></tr>
+              <tr><td><code>external_id</code></td><td>ID z externí taxonomy nebo importního zdroje.</td><td>Import reconcile, audit a porovnání baseline.</td><td>Měnit jen při opravě zdrojového mapování.</td></tr>
+              <tr><td><code>source_external_id</code></td><td>Původní external ID ze zdroje.</td><td>Audit původu a dohledání ve zdrojových datech.</td><td>Obvykle read-only.</td></tr>
+              <tr><td><code>order_num</code></td><td>Pořadí položky v taxonomy.</td><td>Řazení ve stromu, listu a exportu.</td><td>Číselné pole.</td></tr>
+              <tr><td><code>abbreviation</code></td><td>Zkratka položky.</td><td>Search, manuál, zobrazení v grafech.</td><td>Vyplnit u známých vojenských/procesních zkratek.</td></tr>
+              <tr><td><code>synonym</code></td><td>Alternativní název nebo lokální označení.</td><td>Pomáhá najít položku pod různými pojmy.</td><td>Nepsat sem dlouhý popis; od toho je description.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">03</span><div><h3>Description</h3><div class="step-meta"><span>source</span><span>revised</span><span>local meaning</span></div></div></header>
+          <p>Popisová sekce odděluje původní zdrojový text od lokální governance interpretace. To je důležité pro audit: zdroj se neztrácí, ale organizace si může doplnit vlastní srozumitelné vysvětlení.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace / poznámka</th></tr></thead>
+            <tbody>
+              <tr><td><code>description</code></td><td>Lokální popis položky.</td><td>Service 360, detail, search a rozhodování ownera.</td><td>Má vysvětlit účel bez kopírování celé taxonomy.</td></tr>
+              <tr><td><code>source_description</code></td><td>Původní popis ze zdroje/importu.</td><td>Audit a porovnání s FMN/C3 podkladem.</td><td>Nemazat kvůli lokální úpravě.</td></tr>
+              <tr><td><code>revised_description</code></td><td>Revidovaný governance popis.</td><td>Manažerská interpretace, interní vysvětlení a onboarding.</td><td>Použít pro zpřesnění bez ztráty source_description.</td></tr>
+              <tr><td><code>revised</code></td><td>Flag nebo poznámka, že položka byla lokálně upravena.</td><td>Audit lokálních zásahů do importované taxonomy.</td><td>Pomáhá reviewerovi poznat, že záznam už prošel lidskou kontrolou.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">04</span><div><h3>Source &amp; quality</h3><div class="step-meta"><span>data_source</span><span>baseline status</span><span>sync</span></div></div></header>
+          <p>Tato sekce říká, odkud data přišla, jak jsou důvěryhodná a zda odpovídají baseline. V enterprise prostředí je důležité rozlišit ručně vytvořenou položku od importované a validované taxonomy.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace / poznámka</th></tr></thead>
+            <tbody>
+              <tr><td><code>data_qualifier</code></td><td>Kvalifikace dat, například source, derived, local, provisional.</td><td>Důvěryhodnost evidence a audit.</td><td>Používat konzistentní slovník.</td></tr>
+              <tr><td><code>data_source</code></td><td>Název zdroje dat.</td><td>Import traceability a provozní důvěra.</td><td>Například FMN source, ruční builder nebo lokální CSV.</td></tr>
+              <tr><td><code>ss_overall_status</code></td><td>Celkový stav vůči source/baseline.</td><td>FMN reporting a governance filtr.</td><td>Neplést s lifecycle služby.</td></tr>
+              <tr><td><code>ss_baseline_status</code></td><td>Stav vůči konkrétní spiral baseline.</td><td>Baseline coverage a spiral dashboard.</td><td>Důležité při porovnání Spiral 6 vs Spiral 7.</td></tr>
+              <tr><td><code>synced_at</code></td><td>Kdy byla položka naposledy synchronizována.</td><td>Staleness signál a import audit.</td><td>Read-only časový údaj.</td></tr>
+              <tr><td><code>modification_date</code></td><td>Datum změny ze zdroje nebo lokální změny.</td><td>Audit a porovnání změn mezi baseline.</td><td>Read-only nebo importně řízené pole.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">05</span><div><h3>Links &amp; completeness</h3><div class="step-meta"><span>services</span><span>apps</span><span>data</span><span>TINs</span></div></div></header>
+          <p>Link panel vysvětluje, čím je capability skutečně podpořena. Bez vazeb zůstává capability jen textem v taxonomy.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Vazba</th><th>Co znamená</th><th>Co ovlivní</th><th>Typická oprava</th></tr></thead>
+            <tbody>
+              <tr><td>Service mappings</td><td>Katalogové služby pokrývající capability.</td><td>Coverage, Service 360, gaps a overlaps.</td><td>Doplnit <code>service_c3_mapping</code> v service editoru.</td></tr>
+              <tr><td>Applications</td><td>Aplikace podporující capability.</td><td>Architektura, graph a impact.</td><td>Přidat C3 Application link.</td></tr>
+              <tr><td>Data objects</td><td>Data používaná nebo produkovaná capability.</td><td>Data impact a interoperability.</td><td>Přidat Data Object link s rolí.</td></tr>
+              <tr><td>C3 services</td><td>C3/FMN služby navázané na capability.</td><td>FMN service interoperability.</td><td>Přidat C3 Service link.</td></tr>
+              <tr><td>TINs</td><td>Technologické interakce nebo integrační body.</td><td>Ukazuje, zda capability má technickou interoperabilitu.</td><td>Doplnit TIN link nebo založit chybějící TIN.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">06</span><div><h3>Raw JSON / code editor</h3><div class="step-meta"><span>dark editor</span><span>audit</span><span>import</span></div></div></header>
+          <p>Raw pole slouží pro technická data, která se nedají hned převést na strukturovaný formulář. V aplikaci se zobrazují v tmavém code editoru, aby bylo jasné, že nejde o běžné business pole.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Pravidlo použití</th></tr></thead>
+            <tbody>
+              <tr><td><code>script_raw</code></td><td>Raw script nebo textový zdrojový zápis.</td><td>Import/export a hlubší audit.</td><td>Upravovat jen při znalosti zdrojového kontraktu.</td></tr>
+              <tr><td><code>datasets_raw</code></td><td>Raw dataset reference.</td><td>Data lineage a dohledání zdroje.</td><td>Pokud je to možné, důležité vazby převést na strukturované Data Object links.</td></tr>
+              <tr><td><code>standards_raw</code></td><td>Raw evidence standardů.</td><td>Compliance a FMN standard reference.</td><td>Nenahrazuje explicitní governance decision.</td></tr>
+              <tr><td><code>references_raw</code></td><td>Raw odkazy a reference.</td><td>Traceability na dokumenty.</td><td>Důležité URL dát i do operational/reference links, pokud je uživatel má používat.</td></tr>
+              <tr><td><code>provenance_raw</code></td><td>Raw původ dat.</td><td>Audit importu a důvěryhodnost.</td><td>Nepřepisovat kvůli zkrácení textu; patří sem stopa původu.</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+
+      <h2>Capability link panel</h2>
+      <p>
+        Capability link panel je místo, kde se z abstraktní schopnosti stává propojený architektonický objekt. Každé přidání linku má význam pro graf, Service 360, impact analysis a readiness interpretaci.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Link</th><th>Vstupní pole</th><th>Význam</th><th>API / DB dopad</th></tr></thead>
+        <tbody>
+          <tr><td>Application link</td><td><code>c3_application_id</code>, <code>link_role</code></td><td>Aplikace capability podporuje, implementuje nebo používá.</td><td><code>POST /api/v1/taxonomy/c3/{uuid}/links/app</code>, application link table.</td></tr>
+          <tr><td>Data object link</td><td><code>c3_data_object_id</code>, <code>link_role</code></td><td>Capability data používá, produkuje nebo vyžaduje.</td><td><code>POST /api/v1/taxonomy/c3/{uuid}/links/data-object</code>.</td></tr>
+          <tr><td>TIN link</td><td><code>c3_tin_id</code>, <code>link_role</code></td><td>Capability závisí na technologické interakci nebo ji používá.</td><td><code>POST /api/v1/taxonomy/c3/{uuid}/links/tin</code>.</td></tr>
+          <tr><td>C3 service link</td><td><code>c3_service_id</code>, <code>link_role</code></td><td>Capability je podporována C3/FMN službou.</td><td><code>POST /api/v1/taxonomy/c3/{uuid}/links/c3-service</code>.</td></tr>
+          <tr><td>Service catalogue mapping</td><td><code>service_id</code>, <code>mapping_type_code</code>, <code>is_primary</code></td><td>Katalogová služba capability provozně poskytuje nebo podporuje.</td><td><code>service_c3_mapping</code>, Service editor, coverage.</td></tr>
+          <tr><td>Link role</td><td>supports, implements, uses, depends_on, produces nebo lokální role.</td><td>Popisuje směr a význam vazby.</td><td>Bez role je vazba méně použitelná pro impact analysis.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>C3 entity family stránky</h2>
+      <p>
+        C3 položky mají společný workspace pattern, ale jednotlivé family stránky pomáhají uživateli pracovat s konkrétním typem entity. Uživatel, který řeší aplikace, nemá být nucen filtrovat celý C3 list ručně.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Family</th><th>Stránky</th><th>Hlavní pole</th><th>Kdy ji použít</th></tr></thead>
+        <tbody>
+          <tr><td>C3 Applications</td><td><code>/c3/applications</code>, <code>/c3/applications/{code}</code>, <code>/edit</code></td><td>Application code, title, status, data_source, description, UUID, linked capability, linked TIN.</td><td>Když potřebujete zjistit, které aplikace podporují capability nebo TIN.</td></tr>
+          <tr><td>Data Objects</td><td><code>/c3/data-objects</code>, <code>/c3/data-objects/{code}</code>, <code>/edit</code></td><td>Data object code, title, status, description, metadata, UUID, linked capability.</td><td>Když řešíte datový dopad, interoperabilitu nebo chybějící datové vazby.</td></tr>
+          <tr><td>C3 Services</td><td><code>/c3/services</code>, <code>/c3/services/{code}</code>, <code>/edit</code></td><td>C3 service code, title, status, source, description, UUID, linked capability.</td><td>Když mapujete FMN/C3 službu k business službě nebo capability.</td></tr>
+          <tr><td>Technology Interactions / TINs</td><td><code>/c3/technology-interactions</code>, <code>/c3/technology-interactions/{code}</code>, <code>/edit</code></td><td>TIN code, title, interaction type, maturity/status, linked applications, services, data objects.</td><td>Když hledáte chybějící technologickou interakci nebo dopad integrace.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>C3 graph</h2>
+      <p>
+        Graf na <code>/c3/capability-map-spiral7</code> je analytický pohled. Neslouží k masové editaci. Je určený pro otázky typu: “Jak spolu souvisí tato capability, služby, aplikace, data a TINs?” nebo “Co se může rozbít, když změníme tuto položku?”.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Ovládací prvek</th><th>Možnosti</th><th>Proč existuje</th><th>Dopad na výstup</th></tr></thead>
+        <tbody>
+          <tr><td>Search</td><td>Název, kód, UUID, zkratka, synonymum.</td><td>Najde startovní bod analýzy.</td><td>Filtrovaný graf nebo zvýrazněné uzly.</td></tr>
+          <tr><td>Domain / L1 buttons</td><td>Domény nebo nejvyšší capability větve.</td><td>Graf celého C3 stromu je příliš velký.</td><td>Omezí node set.</td></tr>
+          <tr><td>L3 select</td><td>Výběr konkrétní detailní capability.</td><td>Nejvhodnější pro analýzu konkrétního provozního dopadu.</td><td>Vybere subgraph okolo capability.</td></tr>
+          <tr><td>Node type toggles</td><td>Capability, service, application, data object, TIN, C3 service.</td><td>Uživatel vidí jen vrstvy, které potřebuje.</td><td>Skrývá nebo zobrazuje typy uzlů.</td></tr>
+          <tr><td>Edge type</td><td>Mapping, parent/child, supports, depends_on, produces, uses.</td><td>Vysvětluje význam čar v grafu.</td><td>Filtruje vazby a snižuje šum.</td></tr>
+          <tr><td>Line style</td><td>Compact, detailed, curved/straight podle implementace.</td><td>Pomáhá čitelnosti velkého grafu.</td><td>Jen vizuální nastavení.</td></tr>
+          <tr><td>Node click</td><td>Vybere uzel a otevře detail panel.</td><td>Graf musí vysvětlit, co uzel znamená.</td><td>Detail panel s poli a odkazy.</td></tr>
+          <tr><td>Double click / open</td><td>Otevře plný detail entity.</td><td>Analýza vede k opravě evidence.</td><td><code>/c3/{uuid}</code>, <code>/services/{id}</code> nebo family detail.</td></tr>
+          <tr><td>Export PDF</td><td>Vytvoří výstup grafu.</td><td>Podklad pro review, change nebo architektonickou schůzku.</td><td>Export aktuálního pohledu.</td></tr>
+        </tbody>
+      </table>
+      <div class="itil-note">
+        <strong>Praktické pravidlo:</strong> Pokud graf ukazuje capability bez služby, jde o coverage gap. Pokud ukazuje službu bez ownera nebo readiness, nejde o technický problém grafu, ale o problém katalogové governance. Pokud ukazuje TIN bez aplikace nebo datového objektu, je potřeba ověřit interoperabilitu.
+      </div>
+
+      <h2>New C3 wizard</h2>
+      <p>
+        Wizard na <code>/administration/c3-capability-builder</code> je bezpečnější než okamžitá editace raw záznamu. Uživatel postupně vyplní identitu, typ, parenta, status, popisy a raw data. Cílem je založit C3 položku tak, aby šla hned dohledat, zařadit do stromu a později napojit na služby.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Krok</th><th>Pole</th><th>Proč je povinné / důležité</th><th>Co se stane dál</th></tr></thead>
+        <tbody>
+          <tr><td>Identity</td><td><code>title</code>, <code>external_id</code>, <code>abbreviation</code>, <code>synonym</code></td><td>Bez čitelné identity položku nikdo nenajde a import ji nepůjde spárovat.</td><td>Vznikne základní C3 záznam.</td></tr>
+          <tr><td>Classification</td><td><code>item_type</code>, <code>parent_uuid</code></td><td>Typ a parent určují editor, graf a capability mapu.</td><td>Položka se zařadí do taxonomy stromu.</td></tr>
+          <tr><td>Status &amp; source</td><td><code>item_status</code>, <code>data_source</code>, <code>data_qualifier</code></td><td>Governance musí vědět, zda jde o validovanou nebo lokální/provizorní položku.</td><td>Budoucí import a review pozná původ záznamu.</td></tr>
+          <tr><td>Description</td><td><code>description</code>, <code>source_description</code>, <code>revised_description</code></td><td>Bez popisu je položka pro manažera i ownera nečitelná.</td><td>Detail a search se naplní srozumitelným textem.</td></tr>
+          <tr><td>Raw</td><td><code>script_raw</code>, <code>datasets_raw</code>, <code>standards_raw</code>, <code>references_raw</code>, <code>provenance_raw</code></td><td>Umožní uchovat technickou stopu zdroje.</td><td>Raw data se ukládají pro audit a importní návaznost.</td></tr>
+          <tr><td>Review</td><td>Souhrn zadaných údajů.</td><td>Uživatel si ověří, že typ, parent a identita dávají smysl.</td><td>Create vytvoří záznam a přesměruje na detail/editor.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Jak vytvořit a navázat capability krok za krokem</h2>
+      <ol>
+        <li>Nejprve ověřte, zda capability už neexistuje v <code>/c3/list</code> nebo capability mapě. Duplicitní capability vytváří špatné coverage i overlaps.</li>
+        <li>Pokud chybí, založte C3 položku přes <code>/administration/c3-capability-builder</code> nebo Capability builder v administraci.</li>
+        <li>Vyberte správný <code>item_type</code> a <code>parent_uuid</code>. Špatný parent znamená špatný strom, graf i reporting.</li>
+        <li>Doplňte popis tak, aby capability pochopil i service owner, který nezná FMN dokumentaci.</li>
+        <li>Otevřete service editor a přidejte service C3 mapping. Pokud služba capability primárně poskytuje, nastavte <code>is_primary</code>.</li>
+        <li>Doplňte podpůrné vazby na aplikace, data objects, C3 services a TINs v Capability link panelu.</li>
+        <li>Otevřete <code>/capabilities?view=coverage</code> a ověřte, zda capability přestala být gap.</li>
+        <li>Pokud je coverage záměrně duplicitní, zapište governance decision nebo vysvětlení, proč je překryv správný.</li>
+        <li>Při změně služby nebo capability spusťte impact analysis nebo C3 graph a ověřte dopady.</li>
+      </ol>
+
+      <h2>API a DB vazby</h2>
+      <table class="field-table">
+        <thead><tr><th>API / tabulka</th><th>Kde se používá</th><th>Co vrací / ukládá</th><th>Proč je důležité</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/capabilities/lvl3</code></td><td>Capabilities overview a výběry capability.</td><td>L3 capability seznam.</td><td>Základní list schopností pro mapování služeb.</td></tr>
+          <tr><td><code>GET /api/v1/capabilities?view=coverage</code></td><td>Coverage matrix.</td><td>Capability, mapped services, readiness, progress.</td><td>Manažerské pokrytí schopností.</td></tr>
+          <tr><td><code>GET /api/v1/capabilities?view=gaps</code></td><td>Gaps stránka a cockpit.</td><td>Nepokryté nebo nedostatečně pokryté capability.</td><td>Prioritizace oprav a nových služeb.</td></tr>
+          <tr><td><code>GET /api/v1/capabilities?view=overlaps</code></td><td>Overlaps stránka.</td><td>Překryvy služeb nad capability.</td><td>Hledání duplicit, konsolidace nebo záměrné redundance.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/c3</code></td><td>C3 list.</td><td>Filtrovaný taxonomy seznam.</td><td>Hlavní zdroj C3 evidence.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/c3/{uuid}</code></td><td>C3 detail workspace.</td><td>Detail C3 položky včetně polí a vazeb.</td><td>Jeden objekt pravdy pro C3 entitu.</td></tr>
+          <tr><td><code>POST /api/v1/taxonomy/c3</code></td><td>New C3 wizard.</td><td>Vytvoření nové C3 položky.</td><td>Řízené rozšíření taxonomy.</td></tr>
+          <tr><td><code>PATCH /api/v1/taxonomy/c3/{uuid}</code></td><td>C3 editor.</td><td>Úprava identity, popisů, statusu, parenta a raw polí.</td><td>Auditovatelná správa C3 evidence.</td></tr>
+          <tr><td><code>/api/v1/taxonomy/c3/{uuid}/links/*</code></td><td>Capability link panel.</td><td>Vazby na aplikace, data objects, TINs a C3 services.</td><td>Bez vazeb není možné dělat impact a graph analýzu.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/c3-applications</code></td><td>C3 Applications family.</td><td>Seznam aplikací.</td><td>Architektonická vrstva application supportu.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/c3-data-objects</code></td><td>Data Objects family.</td><td>Seznam datových objektů.</td><td>Data impact a interoperability.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/c3-services</code></td><td>C3 Services family.</td><td>Seznam C3 služeb.</td><td>FMN service mapping.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/c3-technology-interactions</code></td><td>TIN family.</td><td>Seznam technologických interakcí.</td><td>Interoperability a integration impact.</td></tr>
+          <tr><td><code>GET /api/v1/taxonomy/spiral</code></td><td>Spiral dashboard.</td><td>Baseline, membership a coverage kontext.</td><td>FMN reporting.</td></tr>
+          <tr><td><code>GET /api/v1/graph/c3-relations</code></td><td>C3 graph.</td><td>Nodes a edges pro C3 vztahy.</td><td>Impact a relationship analysis.</td></tr>
+          <tr><td><code>c3_taxonomy</code></td><td>C3 položky a capability strom.</td><td>UUID, parent, type, title, status, source a raw pole.</td><td>Základní DB objekt celé C3 části.</td></tr>
+          <tr><td><code>c3_capability_builder</code></td><td>Capability builder a lokální vrstvy.</td><td>Builder evidence, doplňkové capability metadata.</td><td>Umožní lokální správu nad importovanou taxonomy.</td></tr>
+          <tr><td><code>ref_spiral_baseline</code></td><td>Spiral reference.</td><td>Kódy a stavy baseline.</td><td>Řízený seznam FMN spirals.</td></tr>
+          <tr><td><code>c3_entity_spiral_membership</code></td><td>Vazba C3 entity na spiral.</td><td>Membership, active baseline a coverage po spiral.</td><td>Bez membership nejde číst FMN stav.</td></tr>
+          <tr><td><code>service_c3_mapping</code></td><td>Service editor, coverage a Service 360.</td><td>Vazba service → C3 capability, mapping type a primary flag.</td><td>Nejdůležitější vazba mezi katalogem služeb a capability řízením.</td></tr>
+          <tr><td><code>c3_application</code>, <code>c3_data_object</code>, <code>c3_service</code>, <code>c3_technology_interaction</code></td><td>C3 family stránky.</td><td>Specializované entity pro aplikace, data, C3 služby a TINs.</td><td>Podklad pro graph a impact analysis.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Readiness a governance dopady</h2>
+      <table class="field-table">
+        <thead><tr><th>Signál</th><th>Co znamená</th><th>Proč je problém</th><th>Jak opravit</th></tr></thead>
+        <tbody>
+          <tr><td>Missing primary mapping</td><td>Capability má více služeb nebo žádnou hlavní službu.</td><td>Není jasné, kdo capability primárně zajišťuje.</td><td>Nastavit <code>is_primary</code> nebo zapsat decision o záměrné redundanci.</td></tr>
+          <tr><td>Uncovered capability</td><td>Capability nemá navázanou službu.</td><td>Organizace má požadovanou schopnost bez provozního poskytování.</td><td>Namapovat službu, založit novou službu nebo schválit gap jako riziko.</td></tr>
+          <tr><td>Over-covered capability</td><td>Capability pokrývá více služeb bez vysvětlení.</td><td>Může znamenat duplicitu nákladů, nejasné vlastnictví nebo konfliktní request flow.</td><td>Konsolidovat služby nebo zapsat decision, proč je překryv záměrný.</td></tr>
+          <tr><td>Unvalidated C3 item</td><td>C3 položka má provizorní/draft status nebo slabý source qualifier.</td><td>Mapping může stát na nedůvěryhodné taxonomy položce.</td><td>Validovat položku, doplnit source, revised description a reviewer decision.</td></tr>
+          <tr><td>Missing TIN</td><td>Capability nemá technologickou interakci tam, kde je potřeba.</td><td>Interoperabilita není prokazatelná.</td><td>Doplnit TIN link nebo založit TIN záznam.</td></tr>
+          <tr><td>Missing data object</td><td>Capability má službu/aplikaci, ale nejasný datový vstup/výstup.</td><td>Data impact analysis bude neúplná.</td><td>Přidat Data Object link a roli produces/uses.</td></tr>
+          <tr><td>Stale spiral membership</td><td>Položka je navázaná na starou nebo neaktivní baseline.</td><td>Reporting může ukazovat historické schopnosti jako aktuální.</td><td>Ověřit <code>ref_spiral_baseline</code> a membership.</td></tr>
+          <tr><td>Service mapped but blocked</td><td>Capability má službu, ale služba neprošla readiness.</td><td>Coverage existuje na papíře, ale není provozně spolehlivá.</td><td>Opravit service readiness blockery v editoru.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Typické scénáře práce</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">A</span><div><h3>Manažer chce vědět, kde chybí služba</h3><div class="step-meta"><span>gaps</span><span>portfolio</span><span>decision</span></div></div></header>
+          <ol>
+            <li>Otevře <code>/capabilities?view=gaps</code>.</li>
+            <li>Vybere spiral a doménu.</li>
+            <li>Seřadí podle kritičnosti nebo readiness dopadu.</li>
+            <li>Otevře capability detail a zkontroluje, zda opravdu chybí služba.</li>
+            <li>Rozhodne: založit službu, namapovat existující službu, nebo zapsat governance exception.</li>
+          </ol>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">B</span><div><h3>Architekt ověřuje dopad změny C3 položky</h3><div class="step-meta"><span>graph</span><span>impact</span><span>TIN</span></div></div></header>
+          <ol>
+            <li>Najde C3 položku v <code>/c3/list</code> nebo <code>/c3/capability-map-spiral7</code>.</li>
+            <li>Otevře detail a zkontroluje parent, service mappings a link panel.</li>
+            <li>V grafu zapne services, applications, data objects a TINs.</li>
+            <li>Podle vazeb rozhodne, které služby nebo týmy musí být součástí change review.</li>
+          </ol>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">C</span><div><h3>Admin opravuje importovanou taxonomy</h3><div class="step-meta"><span>source</span><span>raw</span><span>audit</span></div></div></header>
+          <ol>
+            <li>V C3 listu vyfiltruje problematický import podle source nebo statusu.</li>
+            <li>Otevře C3 editor.</li>
+            <li>Upraví pouze lokální pole, pokud nechce přepsat importní provenance.</li>
+            <li>Raw pole nechá jako auditní stopu nebo je upraví se znalostí importního kontraktu.</li>
+            <li>Ověří coverage a graph, zda se oprava propsala do vazeb.</li>
+          </ol>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">D</span><div><h3>Service owner doplňuje mapping služby</h3><div class="step-meta"><span>service editor</span><span>mapping</span><span>readiness</span></div></div></header>
+          <ol>
+            <li>Otevře službu v editoru.</li>
+            <li>Najde sekci C3 mapping.</li>
+            <li>Vybere správnou capability podle title, UUID, parenta a popisu.</li>
+            <li>Nastaví mapping type a primary flag.</li>
+            <li>Uloží draft a ověří readiness. Publish gate pustí službu dál jen při splněných pravidlech nebo výjimce.</li>
+          </ol>
+        </article>
+      </div>
+
+      <h2>Časté chyby</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Proč vzniká</th><th>Dopad</th><th>Správný postup</th></tr></thead>
+        <tbody>
+          <tr><td>Založení nové capability místo nalezení existující.</td><td>Uživatel hledal jen přes přesný název, ne přes synonymum nebo UUID.</td><td>Vznikne duplicitní coverage a špatné overlaps.</td><td>Nejprve hledat v C3 listu, exact search i fuzzy search.</td></tr>
+          <tr><td>Mapování služby na příliš obecnou L1/L2 capability.</td><td>Uživatel nechce vybírat detailní položku.</td><td>Coverage vypadá dobře, ale manažersky nic neříká.</td><td>Mapovat primárně na nejnižší smysluplnou úroveň, obvykle L3.</td></tr>
+          <tr><td>Záměna C3 service za service catalogue service.</td><td>Obě položky obsahují slovo “service”.</td><td>Špatná očekávání v katalogu a request flow.</td><td>C3 service je architektonická/FMN položka, catalogue service je provozní služba.</td></tr>
+          <tr><td>Raw pole jako hlavní popis.</td><td>Admin importoval data a nedoplnil business text.</td><td>Manažer ani owner nepochopí význam capability.</td><td>Doplnit description nebo revised_description.</td></tr>
+          <tr><td>Vazba bez role.</td><td>Uživatel přidal link, ale neřekl proč.</td><td>Impact analysis neví, zda jde o support, dependency, produkci dat nebo spotřebu.</td><td>Vždy doplnit <code>link_role</code>.</td></tr>
+          <tr><td>Coverage ignoruje readiness.</td><td>Uživatel počítá jen počet mapovaných služeb.</td><td>Capability vypadá pokrytá, ale služba nemá ownera, SLA nebo request model.</td><td>Číst coverage společně s readiness badge.</td></tr>
+          <tr><td>Overlaps se mažou bez decision.</td><td>Tým se snaží rychle “uklidit” tabulku.</td><td>Ztratí se informace o záměrné redundanci nebo přechodném stavu.</td><td>Nejdřív zapsat governance decision, potom měnit mapping.</td></tr>
+          <tr><td>Parent se mění bez kontroly grafu.</td><td>Admin opravuje strom izolovaně.</td><td>Mění se mapa, coverage aggregation a links.</td><td>Po změně parenta ověřit capability map a C3 graph.</td></tr>
+          <tr><td>Spiral se čte jako lifecycle služby.</td><td>Obě hodnoty vypadají jako stav.</td><td>Manažer může špatně vyhodnotit aktuálnost služby.</td><td>Spiral je baseline taxonomy, lifecycle je workflow služby.</td></tr>
+          <tr><td>Chybějící TIN se ignoruje.</td><td>Capability má službu, takže se zdá pokrytá.</td><td>Interoperabilita nebo integrační dopad není prokazatelný.</td><td>U technických capability kontrolovat TIN vazby v graphu.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Vazby na další kapitoly</h2>
+      <div class="route-list">
+        <div class="route-item"><strong><a href="04-services.html">04 Služby</a></strong> vysvětluje, kde se v service editoru nastavuje C3 mapping a proč ovlivňuje readiness.</div>
+        <div class="route-item"><strong><a href="06-governance.html">06 Governance</a></strong> popisuje review, decisions a výjimky, které se používají i pro gaps a overlaps.</div>
+        <div class="route-item"><strong><a href="07-import.html">07 Import</a></strong> vysvětluje, jak se C3/FMN taxonomy dostává do databáze a proč je dry-run důležitý.</div>
+        <div class="route-item"><strong><a href="08-admin.html">08 Administrace</a></strong> popisuje Capability builder, reference data, spirals a administrátorské opravy taxonomy.</div>
+        <div class="route-item"><strong><a href="10-analysis.html">10 Analýzy</a></strong> navazuje grafy, impact analysis, workflow board a hledání chybějících TIN nebo služeb.</div>
+        <div class="route-item"><strong><a href="11-api.html">11 API</a></strong> obsahuje podrobné API kontrakty pro C3, capabilities, graph a import.</div>
+      </div>
+
+      <div class="chapter-nav">
+        <a href="04-services.html">Předchozí: 04 Služby</a>
+        <a href="06-governance.html">Další: 06 Governance</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

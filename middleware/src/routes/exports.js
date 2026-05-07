@@ -11,17 +11,23 @@ const { generateBackstageCatalogInfo } = require('../utils/backstage-catalog');
 
 router.use(requireAuth);
 
-router.get('/route-metadata', canAdmin, async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'routes'], ['export:routes']);
-        const result = await getPlatformPool().query(`
-            SELECT route_key, feature_area, canonical_path, legacy_paths_json, route_kind, export_endpoint
-            FROM platform.v_canonical_route_metadata
-            ORDER BY feature_area, route_key
-        `);
-        res.json(result.rows);
-    } catch (err) { next(err); }
-});
+const KEPT_EXPORT_ENDPOINTS = new Set([
+    '/api/v1/export/bundle',
+    '/api/v1/export/manifest',
+    '/api/v1/export/governance-report',
+    '/api/v1/export/capability-map-hierarchy',
+    '/api/v1/export/c3-relationships',
+    '/api/v1/export/capabilities/coverage',
+    '/api/v1/export/backstage/catalog-info',
+]);
+
+function isKeptExportRoute(row) {
+    return KEPT_EXPORT_ENDPOINTS.has(row?.export_endpoint) || KEPT_EXPORT_ENDPOINTS.has(row?.canonical_path);
+}
+
+function filterKeptExportRoutes(rows) {
+    return rows.filter(isKeptExportRoute);
+}
 
 router.get('/manifest', async (req, res, next) => {
     try {
@@ -44,16 +50,8 @@ router.get('/manifest', async (req, res, next) => {
         res.json({
             ...(manifest.rows[0] ?? {}),
             scope,
-            routes: routes.rows,
+            routes: filterKeptExportRoutes(routes.rows),
         });
-    } catch (err) { next(err); }
-});
-
-router.get('/taxonomy', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'c3'], ['export:taxonomy']);
-        const result = await getPool().query(`SELECT * FROM data.v_taxonomyexport ORDER BY order_num, title`);
-        res.json(result.rows);
     } catch (err) { next(err); }
 });
 
@@ -79,66 +77,6 @@ router.get('/c3-relationships', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/graph-overview', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'graph', 'domains'], ['export:graph']);
-        const [nodes, relations, mappings] = await Promise.all([
-            getPool().query(`SELECT * FROM data.v_graphoverviewnodes ORDER BY portfolio_group, service_id`),
-            getPool().query(`
-                SELECT
-                    f.service_id AS from_service_id,
-                    t.service_id AS to_service_id,
-                    sr.relation_type_code,
-                    sr.relation_label,
-                    sr.is_mandatory,
-                    sr.impact_level,
-                    sr.pace_code,
-                    sr.is_verified,
-                    sr.parse_confidence,
-                    sr.relation_note
-                FROM data.service_relation sr
-                JOIN data.service_catalog f ON f.id = sr.from_service_id AND f.is_deleted = FALSE
-                JOIN data.service_catalog t ON t.id = sr.to_service_id AND t.is_deleted = FALSE
-                WHERE sr.is_deleted = FALSE
-            `),
-            getPool().query(`
-                SELECT sc.service_id, scm.c3_uuid, scm.mapping_type_code, scm.is_primary, scm.sync_status
-                FROM data.service_c3_mapping scm
-                JOIN data.service_catalog sc ON sc.id = scm.service_id AND sc.is_deleted = FALSE
-            `),
-        ]);
-        res.json({
-            nodes: nodes.rows,
-            service_relations: relations.rows,
-            taxonomy_mappings: mappings.rows,
-        });
-    } catch (err) { next(err); }
-});
-
-router.get('/services', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'service'], ['export:services']);
-        const services = await findAllForExport();
-        res.json({
-            profile_key: 's3c-service-catalogue-json',
-            exported_at: new Date().toISOString(),
-            services,
-        });
-    } catch (err) { next(err); }
-});
-
-router.get('/portfolio', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'portfolio'], ['export:portfolio']);
-        const result = await getPool().query(`
-            SELECT *
-            FROM data.service_portfolio
-            ORDER BY portfolio_code
-        `);
-        res.json({ exported_at: new Date().toISOString(), items: result.rows });
-    } catch (err) { next(err); }
-});
-
 router.get('/capabilities/coverage', async (req, res, next) => {
     try {
         applyCacheTags(res, ['export', 'capabilities'], ['export:capability-coverage']);
@@ -146,41 +84,6 @@ router.get('/capabilities/coverage', async (req, res, next) => {
             SELECT *
             FROM data.v_capability_governance_coverage
             ORDER BY capability_title
-        `);
-        res.json({ exported_at: new Date().toISOString(), items: result.rows });
-    } catch (err) { next(err); }
-});
-
-router.get('/readiness', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'readiness'], ['export:readiness']);
-        const result = await getPool().query(`
-            SELECT *
-            FROM data.v_servicepublishreadiness
-            ORDER BY service_id
-        `);
-        res.json({ exported_at: new Date().toISOString(), items: result.rows });
-    } catch (err) { next(err); }
-});
-
-router.get('/decisions', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'governance'], ['export:decisions']);
-        const result = await getPool().query(`
-            SELECT
-                gd.id,
-                sc.service_id,
-                sc.title AS service_title,
-                gd.decision_type,
-                gd.decision,
-                gd.rationale,
-                gd.decided_by,
-                gd.decided_at,
-                gd.created_at
-            FROM data.governance_decision gd
-            JOIN data.service_catalog sc ON sc.id = gd.service_id
-            WHERE sc.is_deleted = FALSE
-            ORDER BY gd.decided_at DESC, gd.id DESC
         `);
         res.json({ exported_at: new Date().toISOString(), items: result.rows });
     } catch (err) { next(err); }
@@ -220,46 +123,6 @@ router.get('/backstage/catalog-info', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/pricing', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'pricing'], ['export:pricing']);
-        const result = await getPool().query(`SELECT * FROM data.v_pricingexport ORDER BY service_id, display_order, flavour_code`);
-        res.json(result.rows);
-    } catch (err) { next(err); }
-});
-
-router.get('/sla', async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'sla'], ['export:sla']);
-        const result = await getPool().query(`SELECT * FROM data.v_slaexport ORDER BY service_id, flavour_code, sla_pk`);
-        res.json(result.rows);
-    } catch (err) { next(err); }
-});
-
-// SECURITY: audit/archive data is admin-only — contains internal operational details.
-router.get('/archive-audit-reporting', canAdmin, async (req, res, next) => {
-    try {
-        applyCacheTags(res, ['export', 'import'], ['export:archive-audit']);
-        const [batchArchive, rowArchive, issueArchive, taxonomyAuditArchive, graphAuditArchive, retentionJobs] = await Promise.all([
-            getPool().query(`SELECT * FROM data.v_importbatcharchiveexport ORDER BY archived_at DESC, id DESC`),
-            getPool().query(`SELECT * FROM data.v_importrowarchiveexport ORDER BY archived_at DESC, id DESC`),
-            getPool().query(`SELECT * FROM data.v_importissuearchiveexport ORDER BY archived_at DESC, id DESC`),
-            getPool().query(`SELECT * FROM data.v_taxonomymappingauditarchiveexport ORDER BY archived_at DESC, id DESC`),
-            getPool().query(`SELECT * FROM data.v_graphlayoutauditarchiveexport ORDER BY archived_at DESC, id DESC`),
-            getPool().query(`SELECT * FROM data.v_retentionjobauditexport ORDER BY started_at DESC, id DESC`),
-        ]);
-
-        res.json({
-            import_batch_archive: batchArchive.rows,
-            import_row_archive: rowArchive.rows,
-            import_issue_archive: issueArchive.rows,
-            taxonomy_mapping_audit_archive: taxonomyAuditArchive.rows,
-            graph_layout_audit_archive: graphAuditArchive.rows,
-            retention_job_audit: retentionJobs.rows,
-        });
-    } catch (err) { next(err); }
-});
-
 // SECURITY: full bundle export is admin-only — contains audit trails and internal data.
 router.get('/bundle', canAdmin, async (req, res, next) => {
     try {
@@ -287,7 +150,7 @@ router.get('/bundle', canAdmin, async (req, res, next) => {
             schema_version: manifest.rows[0]?.schema_version ?? 'canonical-23',
             exported_at: new Date().toISOString(),
             manifest: manifest.rows[0] ?? null,
-            canonical_routes: routeMetadata.rows,
+            canonical_routes: filterKeptExportRoutes(routeMetadata.rows),
             services,
             taxonomy: taxonomy.rows,
             capability_map_hierarchy: capabilityMapHierarchy.rows,

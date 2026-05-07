@@ -40,10 +40,7 @@ export function requiredRoleForPath(pathname: string): AppRole | null {
     pathname === '/admin/c3-data-objects' ||
     pathname.startsWith('/admin/c3-data-objects/') ||
     pathname === '/admin/c3-technology-interactions' ||
-    pathname.startsWith('/admin/c3-technology-interactions/') ||
-    pathname === '/admin/c3-capability-builder' ||
-    pathname === '/admin/c3-capability-builder2' ||
-    pathname === '/admin/c3-ref'
+    pathname.startsWith('/admin/c3-technology-interactions/')
   ) return 'editor'
   if (pathname === '/admin' || pathname.startsWith('/admin/')) return 'admin'
   return null

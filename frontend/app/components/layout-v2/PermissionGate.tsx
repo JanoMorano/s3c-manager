@@ -19,7 +19,7 @@ export default function PermissionGate({
   }
 
   return (
-    <section className={styles.panel} role="status">
+    <section className={styles.panel} role="alert" aria-live="polite">
       <strong>{title}</strong>
       <p>{message}</p>
     </section>

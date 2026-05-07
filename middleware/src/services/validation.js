@@ -2,6 +2,7 @@
 /**
  * ServiceCatalog validation — canonical schema v2.1.
  */
+const { accepted: VALID_REL_TYPES } = require('../../../shared/service-catalogue/relationTypes.json');
 
 // Must match ref_ServiceType.code in the DB
 const VALID_TYPES = ['CF', 'CFS', 'ES', 'SS', 'MS', 'AS'];
@@ -9,47 +10,48 @@ const VALID_TYPES = ['CF', 'CFS', 'ES', 'SS', 'MS', 'AS'];
 // Must match ref_ServiceStatus.code in the DB (excluding external_reference, which is stub-only)
 const VALID_STATUSES = ['draft', 'planned', 'active', 'deprecated', 'retired'];
 
-// Must match ref_RelationType.code in the DB
-const VALID_REL_TYPES = [
-    'depends_on', 'prerequisite', 'underlying',
-    'requires_account', 'uses', 'provides', 'replaces',
-    'integrates_with', 'related_to', 'part_of', 'replaced_by',
-    'provided_by',
-    'child_of',
-];
-
-const SERVICE_ID_REGEX = /^[A-Za-z0-9\-_\.]{2,50}$/;
+const SERVICE_ID_REGEX = /^[A-Za-z0-9_.-]{2,50}$/;
 
 // ── Phase 7: Lifecycle governance ────────────────────────────────────────────
 
-const LIFECYCLE_STATES = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
+const LIFECYCLE_STATES = ['draft', 'live', 'deprecated', 'retired'];
 
 /**
  * Allowed forward and backward transitions.
  * null/'' means "no current lifecycle" → any state is permitted.
  */
 const LIFECYCLE_TRANSITIONS = {
-    draft:        ['under_review'],
-    under_review: ['draft', 'approved'],
-    approved:     ['under_review', 'live'],
-    live:         ['deprecated'],
-    deprecated:   ['live', 'retired'],
-    retired:      ['deprecated'],
+    draft:      ['live'],
+    live:       ['deprecated', 'retired'],
+    deprecated: ['live', 'retired'],
+    retired:    ['deprecated'],
 };
+
+function normalizeLifecycleState(value) {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (!normalized) return '';
+    if (['draft', 'planned', 'design', 'under_review', 'approved'].includes(normalized)) return 'draft';
+    if (['live', 'active', 'published', 'production'].includes(normalized)) return 'live';
+    if (['deprecated', 'retiring'].includes(normalized)) return 'deprecated';
+    if (normalized === 'retired') return 'retired';
+    return normalized;
+}
 
 function validateLifecycleTransition(from, to) {
     if (!to) return [];
-    if (!LIFECYCLE_STATES.includes(to)) {
+    const fromState = normalizeLifecycleState(from);
+    const toState = normalizeLifecycleState(to);
+    if (!LIFECYCLE_STATES.includes(toState) || toState !== String(to).trim().toLowerCase()) {
         return [{ field: 'lifecycle_state', message: `Neplatný lifecycle stav: '${to}'. Povolené hodnoty: ${LIFECYCLE_STATES.join(', ')}` }];
     }
     // No current state → any target is allowed (first assignment)
-    if (!from || from === to) return [];
-    const allowed = LIFECYCLE_TRANSITIONS[from];
+    if (!fromState || fromState === toState) return [];
+    const allowed = LIFECYCLE_TRANSITIONS[fromState];
     if (!allowed) return []; // unknown from state — permissive
-    if (!allowed.includes(to)) {
+    if (!allowed.includes(toState)) {
         return [{
             field: 'lifecycle_state',
-            message: `Nelze přejít ze stavu '${from}' do '${to}'. Povolené přechody: ${allowed.join(', ')}`,
+            message: `Nelze přejít ze stavu '${fromState}' do '${toState}'. Povolené přechody: ${allowed.join(', ')}`,
         }];
     }
     return [];
@@ -145,6 +147,9 @@ function validateCreate(data) {
         errors.push({ field: 'request_channel_url', message: 'Request channel URL musí být validní http/https URL' });
 
     errors.push(...validateRequestability(data));
+    if (data.lifecycle_state !== undefined) {
+        errors.push(...validateLifecycleTransition(null, data.lifecycle_state));
+    }
 
     return errors;
 }
@@ -290,6 +295,7 @@ module.exports = {
     validateLifecycleTransition,
     validateLifecycleReadiness,
     validateLifecycleOperationalReadiness,
+    normalizeLifecycleState,
     LIFECYCLE_TRANSITIONS,
     LIFECYCLE_STATES,
     VALID_TYPES,

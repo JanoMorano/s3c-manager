@@ -498,13 +498,14 @@ test('service detail renders Service 360 readiness and action cockpit', async ({
   await page.goto('/services/SVC-IAM');
 
   await expect(page.getByRole('heading', { name: 'Identity Access Management' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Service detail views' }).getByRole('button', { name: /governance/i }).click();
   await expect(page.getByRole('heading', { name: /service 360/i })).toBeVisible();
   await expect(page.getByText('2 blockers')).toBeVisible();
   await expect(page.getByText('1 warning')).toBeVisible();
   await expect(page.getByText('Owner review is missing.')).toBeVisible();
   await expect(page.getByText('Primary capability is not complete.')).toBeVisible();
   await expect(page.getByText('1 out / 1 in')).toBeVisible();
-  await expect(page.getByText('Provide Identity Services')).toBeVisible();
+  await expect(page.getByLabel('Service relationship overview').getByText('Provide Identity Services')).toBeVisible();
 
   const ownerAction = page.getByRole('link', { name: /confirm owner/i });
   await expect(ownerAction).toHaveAttribute('href', '/services/SVC-IAM/edit#ownership');

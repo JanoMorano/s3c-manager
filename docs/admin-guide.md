@@ -2,660 +2,136 @@
 
 ## Document Purpose
 
-This guide describes the operation, configuration, and administration of the Service Catalogue runtime. It is intended for:
+This guide describes administration and operation of the reduced S3C Manager runtime. It is intended for:
 
-- `admin` users managing the system
-- `editor` users handling content management
+- `admin` users managing users, roles, reference data, installation, imports, and audit
+- `editor` users handling catalogue content and imports
 - deployment and operations administrators
 
-## Current Runtime Model
+## Runtime Model
 
 The canonical deployment uses two containers:
 
-- `app` — Next.js 16.2 / React 19.2 frontend, Express 5.2 middleware, init and seed logic, retention scheduler
-- `postgres` — `platform` schema (system), `data` schema (business data)
+- `app` - Next.js frontend, Express middleware, init/seed logic, and scheduled maintenance helpers
+- `postgres` - `platform` schema for system data and `data` schema for catalogue/governance data
 
-The current package baseline is controlled by `frontend/package.json`, `frontend/package-lock.json`, `middleware/package.json`, and `middleware/package-lock.json`. Frontend ESLint is pinned to the latest Next-compatible 9.x release until `eslint-config-next` supports ESLint 10 through its bundled React plugins.
+Back up PostgreSQL before every upgrade or DB cleanup stage.
 
----
+## Canonical Administrative Routes
 
-## Main Administrative Areas
+| Area | Route | Purpose |
+|---|---|---|
+| Administration overview | `/administration` | Admin entry point |
+| Users | `/administration/users` | Accounts, roles, providers, activation |
+| Groups | `/administration/groups` | RBAC groups and membership |
+| Web / SSO | `/administration/web` | Login modes, trusted headers, SSO/web settings |
+| Reference data | `/administration/catalogue-ref` | Catalogue reference values |
+| C3 reference | `/administration/c3-ref` | Expert C3 reference values |
+| C3 capability builder | `/administration/c3-capability-builder` | Expert capability map maintenance |
+| Import profiles | `/administration/import` | Admin import evidence and profiles |
+| Installation | `/administration/installation` | Install status, modules, seed/repair flows |
 
-### Administration
+`/admin/*` frontend aliases were removed in the v1.2 final sunset cleanup. New documentation, bookmarks, and user communication must use `/administration/*`.
 
-Route:
+## Roles
 
-```text
-/administration
-```
+- `viewer` - read-only catalogue and evidence access.
+- `editor` - can create/edit services, mappings, imports, reviews, and decisions where permitted.
+- `admin` - can manage users, groups, web/SSO, reference data, installation state, and audit views.
 
-Contains:
+Personas do not grant permissions. RBAC roles and group permissions do.
 
-- `User Management`
-- `Group Management`
-- `Web` (SSO settings)
-- `Installation & Modules`
-- `Catalogue Column Edit`
-- `C3 Column Edit`
-- `C3 Capability Builder`
-- `Import History`
-- `Import Audit`
-- `Audit Logs`
+## Service Administration
 
-### Content Admin
+### New Service
 
-Route:
+Route: `/management/new-service`
 
-```text
-/management
-```
-
-Available to `editor` and `admin`. Provides:
-
-- `New Service` — launches the Service Onboarding Wizard
-- `New C3 Capability`
-- `Import CSV/JSON/XLSX`
-
----
-
-## Roles and Permissions
-
-- `viewer` — read-only access to business data and dashboards
-- `editor` — can edit services, C3 entities, capabilities, and imports
-- `admin` — manages users, groups, web/SSO settings, references, installation workflows, and audit
-
-## Help Documentation Governance
-
-To keep end-user help accurate and publishable, use the following accountability model:
-
-- **Content owner (odpovědný za správnost)** — confirms factual and process correctness of help content before publication.
-- **Reviewer (věcná kontrola)** — performs peer review for clarity, consistency, and alignment with implemented behavior.
-- **Approver (publikace)** — gives final sign-off and publishes the help update to the target channel.
-
-### Review Cadence and Triggers
-
-- **Periodic review cadence:** monthly (at minimum once every calendar month).
-- **Release trigger:** mandatory out-of-cycle review after every application release (patch, minor, or major).
-- For release-triggered reviews, complete validation before announcing release notes to users.
-
-### Help Changelog
-
-Maintain a dedicated help changelog entry for each documentation update, including:
-
-- date of change
-- changed sections/pages
-- short summary of impact for users
-- author, reviewer, and approver identity
-- link to related release note or ticket (if applicable)
-
-### Documentation Versioning vs. Application Version
-
-Every published help package must explicitly state:
-
-- **Documentation version** (for example `DOC v1.1.2`)
-- **Target application version** it describes (for example `APP v1.1.2`)
-
-Use a compatibility label in this format:
-
-```text
-Documentation version: DOC vX.Y.Z
-Compatible with application: APP vA.B.C
-```
-
-If documentation lags behind a newer app release, mark the mismatch clearly at the top of the document.
-
----
-
-## Service Catalogue Administration
-
-### Service Onboarding Wizard
-
-Route:
-
-```text
-/management/new-service
-```
-
-The wizard guides editors through structured service creation in 7–8 steps depending on whether C3 module is enabled:
-
-1. **Identity** — service_id, title, type, status, lifecycle state
-2. **Description** — short_description, business_summary, consumer_value
-3. **Access** — requestable flag, request_channel_url, approval_required, fulfillment_lead_time, target_audience
-4. **Classification** — portfolio_group, network domains, service lines
-5. **Ownership** — service_owner (email), review_owner, next_review_due_at
-6. **SLA** — availability percentage, RTO, RPO, support_hours, support_tier, support_channel
-7. **C3 Mapping** — C3 taxonomy UUID selection (only visible when C3 module is installed)
-8. **Review** — full summary before submission
-
-Every field includes an inline ITIL hint and a `?` tooltip with a detailed explanation. Placeholders are shown in blue italic to guide editors on expected format.
-
-After the wizard completes, the editor is redirected to the full service editor for offerings and support model.
+The wizard captures identity, description, access, classification, ownership, SLA/support evidence, optional C3 mapping, and a review summary. After creation, the editor continues in `/services/{service_id}/edit`.
 
 ### Service Editor
 
-Route:
+Route: `/services/{service_id}/edit`
 
-```text
-/services/{service_id}/edit
-```
+The editor is the canonical place to maintain:
 
-The editor organises fields in sections. Since ITIL phases 1–8, these sections include:
+- identity and canonical lifecycle
+- business description and consumer value
+- request channel and audience/eligibility information
+- service offerings
+- ownership and review owners
+- SLA/support evidence
+- operational links
+- service relations and domain availability
+- primary capability or C3 mapping
+- readiness and governance evidence
 
-**Identity & Lifecycle**
-- service_id, title, type, status
-- `lifecycle_state` — draft / under_review / approved / live / deprecated / retired
-- Lifecycle transitions are validated — a service cannot move to `live` without meeting minimum completeness requirements
+Legacy variant evidence can remain visible as read-only historical evidence. New service variants should use service offerings.
 
-**Business Description**
-- short_description, business_summary
-- `consumer_value` — plain-language benefit statement shown prominently to service consumers
+## Lifecycle Governance
 
-**Requestability & Audience**
-- `requestable` toggle — when enabled, request_channel_url is required
-- request_channel_url, approval_required, fulfillment_lead_time_text
-- target_audience, eligibility_rules
+Canonical service lifecycle states are:
 
-**Service Offerings**
-Each service can have multiple offerings. Per offering:
-- offering_code, title, description
-- requestable, approval_required, lead_time_text
-- target_audience, support_tier, billing_model, price_reference
-- is_default flag, status
-
-The default offering is surfaced in the service list and detail header.
-
-**Support Model**
-- support_owner_name / support_owner_email
-- resolver_group, support_hours, support_channel
-- escalation_path, maintenance_window, service_review_cadence
-
-**SLA**
-- sla_availability, sla_rto, sla_rpo, sla_restoration_text, sla_delivery_text
-- scope_text, operational_notes_raw
-
-**Ownership**
-- service_owner, review_owner, next_review_due_at
-
-**Operational Links**
-Structured URL references for:
-- knowledge articles
-- incident dashboard
-- change calendar
-- support documentation
-- service review records
-
-**Relations & Domains**
-- network domain availability
-- service-to-service relations (dependency, integration, replacement)
-
-**C3 Mappings** (when C3 module is enabled)
-- primary C3 capability
-- additional mappings
-- PACE categories
-- readiness and validation warnings
-
-**Validation & Completeness**
-- completeness score
-- readiness checks
-
-### Lifecycle Governance
-
-Lifecycle states and their meaning:
-
-| State | Meaning | Transition rules |
+| State | Meaning | Admin expectation |
 |---|---|---|
-| `draft` | Being prepared | Initial state, open to any edit |
-| `under_review` | Under review | Requires title, owner, type |
-| `approved` | Approved | Requires business_summary, lifecycle |
-| `live` | Active | Requires completeness minimum; sets publish date |
-| `deprecated` | Scheduled for retirement | Requires replacement service or justification |
-| `retired` | No longer available | Terminal state; consumer banner shown |
+| `draft` | Service is being prepared. | Missing evidence is expected but should be visible. |
+| `live` | Service is active. | Ownership, offering, SLA/support, and mapping evidence must stay current. |
+| `deprecated` | Service is planned for replacement or retirement. | Link replacement/impact/decision rationale. |
+| `retired` | Service is no longer available. | Preserve history and audit evidence. |
 
-Transition validation blocks advancement — the API rejects invalid transitions and returns a descriptive error. The editor surfaces these as inline validation messages.
+Review workflow status is separate from lifecycle and belongs to `/operations/reviews`.
 
-Deprecated and retired services show a prominent banner on the detail page warning consumers.
+## Readiness Rules And Exceptions
 
-### Readiness Rules And Exceptions
+The active readiness gate contains five fixable rules:
 
-Readiness rules are the publication gate used by Service 360, `/operations/readiness`, and governance approval checks.
+- service has owner
+- service has offering or cost evidence
+- service has lifecycle state
+- service has primary capability mapping
+- service has SLA/support evidence
 
-Default rules cover:
+Disabled historical rules remain in the database for rollback/audit context but do not block publication.
 
-- service owner
-- service offering
-- lifecycle stage
-- primary capability mapping
-- complete primary capability evidence
-- SLA
-- dependency classification
-- review date
-- pricing for requestable services
+Exceptions should be temporary, justified, and audited. Prefer fixing service data over creating exceptions.
 
-Exceptions are allowed only when an editor/admin can document a reason and, ideally, an expiry date. Use exceptions for temporary governance waivers such as pilot pricing, contract migration, or delayed capability evidence. Do not use exceptions to hide missing ownership permanently.
+## Governance Reviews And Decisions
 
-Administrative expectations:
+- Reviews live on `/operations/reviews`.
+- Decisions live on `/operations/decisions`.
+- Decision types are `publish`, `exception`, `lifecycle`, and `other`.
+- Rejected/deferred decisions need rationale.
+- Exceptions and lifecycle decisions should include expiry, replacement, or impact evidence when relevant.
 
-- review exceptions before release gates and monthly governance meetings
-- keep reasons human-readable and audit-friendly
-- prefer short expiry windows for blocking rules
-- delete or let exceptions expire when the underlying service data is fixed
-- verify audit logs after creating or deleting readiness exceptions
+## Import Administration
 
-### Governance Reviews And Decisions
+Use `/import` and `/import/upload` for normal import operations. Use `/administration/import` for deeper admin evidence, import profiles, and troubleshooting.
 
-Governance reviews live on `/operations/reviews`; decisions live on `/operations/decisions`.
+The import pipeline preserves batch, row, issue, raw field, and source evidence. Do not delete import evidence as part of ordinary catalogue cleanup.
 
-Recommended policy:
+## Help And Documentation Governance
 
-- editors may request reviews and update service evidence
-- admins or delegated governance owners should approve, reject, defer, or cancel decisions
-- reject and defer decisions require rationale
-- approval should not bypass readiness blockers unless the decision type explicitly allows deferral
-- retirement decisions should link to replacement service or documented rationale where possible
+The canonical in-app help entry is `/help`, which redirects by locale to `/help-cs`
+or `/help-en`. Do not maintain a separate manual compatibility as a second
+source of truth.
 
-Audit logs should capture review and decision mutations. During release hardening, verify at least one review creation/update and one decision creation in the audit log.
+Markdown files in `docs/` are the primary documentation source. Old generated
+DOCX manuals and release tarballs are release artifacts, not source files in the
+main repository tree.
 
-### Services Dashboard
+For every release:
 
-Route:
+- update both `/help-cs` and `/help-en` content when user-facing behavior changes
+- update `docs/user-guide.md` and this admin guide when workflows or routes change
+- add release notes with migration and smoke-test impact
+- do not document removed frontend route aliases as active compatibility paths
 
-```text
-/services/dashboard
-```
+## Upgrade Checklist
 
-Since ITIL phase additions, the dashboard includes:
-
-- **Lifecycle KPIs** — count of services in each lifecycle state
-- **Requestable count** — how many services are flagged as requestable
-- Status distribution, type distribution, governance completeness
-- Services with missing consumer_value or support model
-- Services approaching review date
-
----
-
-## C3 Administration
-
-### Capability List and Editor
-
-List: `/c3/list`  
-Editor: `/c3/{uuid}/edit`
-
-Capability detail and editing use a standardised section layout with validation blocks.
-
-### C3 Entity Editors
-
-Dedicated editors exist for:
-
-- `Applications` — `/admin/c3-application/{code}`
-- `Data Objects` — `/admin/c3-data-objects/{code}`
-- `Services` — `/admin/c3-services/{code}`
-- `Technology Interactions` — `/admin/c3-technology-interactions/{code}`
-
-### Capability Builder
-
-Route: `/admin/c3-capability-builder`
-
-Used for:
-
-- editing the final capability map
-- changing the capability map page title
-- managing Spiral 6 and Spiral 7 baseline branches
-
-Public maps: `/c3/capability-map-spiral6`, `/c3/capability-map-spiral7`
-
----
-
-## Installation and Modules
-
-### Installation & Modules
-
-Route: `/admin/installation`
-
-Typical uses:
-
-- inspect installation state
-- verify release/schema handshake
-- run repair flows
-- restore demo data
-- activate modules and review module state
-- coordinate backups and restores during maintenance windows
-
-Operations runbook: [docs/operations.md](operations.md)
-
-### First-Run Installation
-
-When `APP_RUN_DB_INIT=true`, the init script runs:
-
-```text
-/app/init/init-db-postgres.sh
-```
-
-It always creates the core schema and conditionally applies seed data based on flags. Does not create a reusable default admin account.
-
-If `INSTALL_SETUP_TOKEN` is set, pre-READY install write routes require the `x-install-setup-token` header.
-
-### Seed Flags
-
-- `APP_RUN_DB_INIT`
-- `INIT_WITH_TEST_SEEDS`
-- `INIT_WITH_C3_ENTITY_SEEDS`
-- `INIT_WITH_C3_BASELINE_TAXONOMY_SEED`
-- `INIT_WITH_C3_TAXONOMY_XLSX_SEED`
-- `INIT_WITH_C3_CAPABILITY_MAP_SEED`
-
-Practical combinations:
-
-- clean schema without C3: `APP_RUN_DB_INIT=true`, all `INIT_WITH_* = false`
-- full C3 baseline: enable the required `INIT_WITH_C3_*` flags
-- demo data: `INIT_WITH_TEST_SEEDS=true`
-
-### Schema Migrations
-
-ITIL phase migrations are applied automatically on startup in order:
-
-- `15_itil_catalogue_phase1.sql` — adds service_offerings, support_model, audience_policy, operational_links, lifecycle fields, requestability fields
-- `16_consumer_value.sql` — adds consumer_value column to services
-
-See [upgrade.md](upgrade.md) for the full migration workflow.
-
----
-
-## Admin sekce (CZ)
-
-### 1) Podporované prostředí a předpoklady instalace
-
-Pro provoz v produkci i testu používejte minimálně:
-
-- Docker Engine 24+
-- Docker Compose v2.20+
-- 2 vCPU / 4 GB RAM minimum (doporučeno 4 vCPU / 8 GB RAM)
-- min. 10 GB volného místa pro aplikaci, databázi a zálohy
-- nastavené tajné klíče: `JWT_SECRET`, `DB_PASSWORD`, `POSTGRES_PASSWORD`
-
-Doporučení:
-
-- pro sdílené prostředí vždy zapnout `INSTALL_SETUP_TOKEN`
-- používat HTTPS přes reverzní proxy
-- ověřit dostupnost portu aplikace a DB konektivity před startem instalace
-
-### 2) Instalační postup krok za krokem
-
-1. Připravte `.env` (tajné klíče, hesla DB, volitelně instalační token).
-2. Spusťte stack (`docker compose up -d`).
-3. Sledujte logy inicializace (`docker compose logs -f app`) a vyčkejte na dokončení bootstrapu.
-4. Otevřete aplikaci na `/install`.
-5. Dokončete wizard: konfigurace, vytvoření prvního admin účtu, kontrola DB, výběr modulů.
-6. (Volitelně) proveďte úvodní import dat.
-7. Ověřte stav instalace na `READY`.
-
-### 3) Import dat (formáty, mapování sloupců, validace, rollback)
-
-#### Podporované formáty
-
-- CSV (`text/csv`, `text/plain`)
-- JSON (`application/json`)
-- XLSX
-- ArchiMate XML (`application/xml`, `text/xml`) pro C3 cíle
-
-#### Mapování sloupců a polí
-
-- CSV a XLSX mapují primárně na canonical názvy (`service_id`, `title`, …).
-- JSON akceptuje canonical názvy i aliasy (`serviceId`, `serviceType`, `status`).
-- U C3 XML se mapují identifikátory, názvy, popisy a metadata na C3 taxonomy pole.
-
-#### Validace při importu
-
-Import pipeline:
-
-`parse -> normalize -> taxonomy resolve -> upsert -> audit log -> batch summary`
-
-Validace zahrnuje:
-
-- povinná pole (typicky `service_id`, `title`)
-- datové typy a formát hodnot
-- referenční/taxonomické kódy (neznámé kódy = warning, neblokují celý běh)
-- kolize klíčů řešené upsertem (`INSERT`/`UPDATE`)
-
-#### Rollback po importu
-
-- automatický rollback importu není podporován jako jediné tlačítko v UI
-- bezpečný návrat se provádí obnovou databáze ze zálohy před importem
-- pro kontrolu dopadu používejte dry-run endpointy/importní náhled před ostrým během
-
-#### Kontrolní checklist před importem
-
-- [ ] Existuje aktuální záloha databáze (ideálně čerstvá, mimo hostitele).
-- [ ] Byl proveden dry-run se stejným souborem a bez kritických chyb.
-- [ ] Soubor má očekávaný formát (oddělovač, kódování, hlavičky, datové typy).
-- [ ] Povinné sloupce/pole jsou vyplněné (`service_id`, `title`, …).
-- [ ] Referenční kódy (taxonomy, status, typy) odpovídají hodnotám v systému.
-- [ ] Je potvrzené importní okno a odpovědná osoba pro případ rollbacku.
-
-#### Kontrolní checklist po importu
-
-- [ ] Import batch je dokončen bez fatálních chyb.
-- [ ] `rows_failed` je 0 nebo je zdokumentován akceptovaný rozsah chyb.
-- [ ] Warnings z `import_issue` jsou vyhodnoceny a mají plán nápravy.
-- [ ] Náhodný vzorek importovaných záznamů byl funkčně ověřen v UI.
-- [ ] Auditní stopa (`import_batch`, audit log) je kompletní.
-- [ ] V případě problému je připravený a otestovaný postup obnovy ze zálohy.
-
-### 4) Aktualizace / verzování
-
-- aplikace používá SemVer (`MAJOR.MINOR.PATCH`)
-- při rozdílu verze aplikace a DB stavu se aktivuje režim upgrade (`UPGRADE_REQUIRED`)
-- před každým upgradem je povinná záloha DB
-- migrace jsou jednosměrné, sledované v `platform.schema_migrations`
-
-Praktický postup:
-
-1. vytvořit zálohu
-2. nasadit nové image (`docker compose pull && docker compose up -d`)
-3. dokončit upgrade flow ve wizardu
-4. ověřit `READY`, health endpointy a stav migrací
-
-### 5) Zálohování a obnova
-
-Primární skripty:
-
-- `./scripts/backup-postgres.sh`
-- `./scripts/restore-postgres.sh`
-
-Zásady:
-
-- zálohovat minimálně před každým releasem a před větším importem
-- uchovávat minimálně jednu kopii mimo cílový host
-- pravidelně testovat obnovu v neprodukčním prostředí
-- `deploy.sh rebuild-db` nepoužívat jako náhradu backup/restore procesu
-
-### 6) Řešení běžných chyb
-
-Nejčastější situace a reakce:
-
-- **Instalace se neodemkne /install write endpointy**
-  - zkontrolovat `INSTALL_SETUP_TOKEN` a posílanou hlavičku `x-install-setup-token`
-- **Import hlásí mnoho warningů taxonomy_unresolved**
-  - ověřit mapování referenčních kódů, případně doplnit reference před dalším během
-- **Po upgrade je stav `UPGRADE_REQUIRED` stále aktivní**
-  - zkontrolovat logy migrací a tabulku `platform.schema_migrations`
-- **Aplikace není READY po restore**
-  - ověřit konzistenci dumpu, DB přihlašovací údaje a readiness endpoint
-- **SSO login nefunguje**
-  - zkontrolovat trusted proxy hlavičky a sdílené tajemství mezi proxy a aplikací
-
----
-
-## Users, Groups, and SSO
-
-### User Management
-
-Route: `/administration/users`
-
-Administrators manage:
-
-- local accounts and AD/SSO-backed accounts
-- role assignments
-- account activity and profile data
-- user language preference (`cs` / `en` / `sk` / `de`)
-- persona preference for user-driven dashboard mode
-
-Language preference behavior:
-
-- canonical user locale stored in `preferred_lang`
-- web UI keeps locale cookie `sc_locale`
-- when a signed-in user changes language on `/user-info`, both DB preference and cookie are refreshed
-- legacy values (`cz`, `cze`) are normalised to `cs`; `svk` to `sk`; `ger` / `deu` to `de`
-- language and persona controls are intentionally placed on `/user-info`, not in the quick user dropdown
-
-### Group Management
-
-Route: `/admin/groups`
-
-Groups provide more granular permissions across catalogue and C3 areas.
-
-### Web / SSO
-
-Route: `/administration/web`
-
-Managed parameters:
-
-- trusted-header SSO
-- principal header mapping (display name, email, given name, surname, department)
-
-Relevant environment variables:
-
-- `AUTH_SSO_ENABLED`
-- `AUTH_SSO_HEADER`
-- `AUTH_SSO_DISPLAY_NAME_HEADER`
-- `AUTH_SSO_EMAIL_HEADER`
-- `AUTH_SSO_GIVEN_NAME_HEADER`
-- `AUTH_SSO_SURNAME_HEADER`
-- `AUTH_SSO_DEPARTMENT_HEADER`
-- `AUTH_SSO_SHARED_SECRET_HEADER`
-- `AUTH_SSO_SHARED_SECRET`
-
-Operational notes:
-
-- the backend trusts SSO identity headers only when the trusted proxy header is present and its shared secret matches
-- browser auth uses `HttpOnly` cookies for access and refresh tokens
-- the frontend keeps only a small user snapshot in `sessionStorage`; JWTs are not persisted in browser storage
-
----
-
-## Imports and Audit
-
-### Import Upload
-
-Route: `/import/upload`
-
-Supported import groups:
-
-- Service Catalogue — CSV, JSON
-- C3 Taxonomy — CSV, JSON, XLSX
-- FMN Spirals
-
-Flow: dry-run → sync → commit → issue reporting
-
-### Import Audit
-
-Routes: `/import`, `/admin/import`
-
-Used for batch history, warning/error issue logs, and troubleshooting specific runs.
-
----
-
-## References and Lookup Data
-
-### Catalogue Column Edit
-
-Route: `/admin/catalogue-ref`
-
-Manages: service types, service status codes, relation types, portfolio groups, service lines, and other catalogue reference tables.
-
-### C3 Column Edit
-
-Route: `/admin/c3-ref`
-
-Manages: C3 mapping types, capability domains, and other C3 reference values.
-
----
-
-## Runtime Environment Variables
-
-Key runtime variables:
-
-- `DATABASE_URL`
-- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- `JWT_SECRET`
-- `CORS_ORIGINS`
-- `ENABLE_RETENTION_SCHEDULER`
-- `RETENTION_RUNNER_NAME`, `RETENTION_RUNNER_KIND`
-- `RETENTION_PURGE_INTERVAL_SECONDS`, `RETENTION_HEARTBEAT_TTL_SECONDS`
-
----
-
-## QNAP / Portainer Notes
-
-QNAP deployment uses:
-
-- `portainer-stack.yml`
-- `.env.qnap`
-- the bundle created by `build-amd64.sh`
-
-Important variables: `QNAP_DATA_DIR`, `QNAP_NETWORK_NAME`, `APP_STATIC_IP`, `POSTGRES_STATIC_IP`, `QNAP_DNS`
-
-If `POSTGRES_PASSWORD` differs from the password used when the volume was first created, PostgreSQL rejects the login. Fix: reuse the original password, change it inside the DB, or remove the volume and run a clean init.
-
----
-
-## Recommended Operational Checks
-
-After deployment verify:
-
-```text
-/api/health/live
-/api/health/ready
-/api/health/import
-```
-
-Basic checklist:
-
-1. `app` and `postgres` containers are healthy
-2. login works
-3. `/services/list` returns data
-4. lifecycle and requestable filters return expected results
-5. `/c3/list` returns data (when C3 module is enabled)
-6. Spiral 6 and Spiral 7 capability maps load
-7. import upload page matches the user role
-8. administration menu is visible only to authorised roles
-9. New Service wizard loads at `/management/new-service`
-
----
-
-## Common Problems
-
-### Service Cannot Transition to `live`
-
-Cause: minimum completeness requirements are not met.
-
-Fix: open the service editor, check the Validation & Completeness section, fill all required fields, then retry the lifecycle transition.
-
-### C3 Seed Files Not Found
-
-Symptom: init reports a missing file in `shared/c3`
-
-Fix: add the required seed files or disable the corresponding `INIT_WITH_*` flag.
-
-### Password Authentication Failed for User `postgres`
-
-Cause: existing PostgreSQL volume was created with a different password.
-
-Fix: reuse the original password, change it inside the database, or remove the volume and redeploy cleanly.
-
-### C3 Editor Opens but Save Fails
-
-Current behavior: the C3 entity update API uses `canEdit`, so both `editor` and `admin` can save. Verify the user role if save fails.
-
-### Capability Map or Dashboard Is Empty
-
-Check: seed flags, presence of files in `shared/c3`, C3 Capability Builder state, and import runs.
+1. Create a PostgreSQL backup.
+2. Apply schema migrations in order through the init/upgrade flow.
+3. Verify `/api/health/ready`.
+4. Verify `/api/v1/install/status`.
+5. Smoke `/catalogue`, `/services/list`, `/operations`, `/operations/readiness`, `/operations/reviews`, `/operations/decisions`, `/import`, `/administration/users`, `/help-cs`, `/help-en`, and `/help`.
+6. Run middleware tests and frontend lint/i18n checks.
+7. Confirm `frontend/next-env.d.ts` was not left pointing at `.next/dev` after local dev smoke.

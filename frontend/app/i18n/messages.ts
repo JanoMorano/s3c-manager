@@ -1,9 +1,9 @@
-import { DEFAULT_LOCALE, normalizeLocale } from '../../../shared/i18n/core';
+import { normalizeLocale } from '../../../shared/i18n/core';
 import { getCatalog as getSharedCatalog, translate as translateShared } from '../../../shared/i18n/catalog';
 
 import type csCatalog from '../../../shared/i18n/messages/cs.json';
 
-export type Locale = 'cs' | 'en' | 'sk' | 'de';
+export type Locale = 'cs' | 'en';
 export type MessageCatalog = typeof csCatalog;
 export type MessageKey = keyof MessageCatalog;
 export type TranslationParams = Record<string, string | number | boolean | null | undefined>;

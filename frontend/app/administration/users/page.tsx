@@ -3,11 +3,10 @@
 import Link from '@/app/components/AppLink';
 import { useLocale, useT } from '@/app/i18n/useI18n';
 import type { Locale } from '@/app/i18n/messages';
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { AppRole } from '@/features/auth/roles';
-import type { Persona } from '@/features/auth/PersonaContext';
 import styles from './users.module.css';
 
 const USERS_ENDPOINT = '/api/v1/admin/users';
@@ -24,8 +23,6 @@ interface AdminUser {
   role: AppRole
   role_label: string
   access_label: string
-  preferred_persona: Persona
-  preferred_persona_label: string
   is_active: boolean
   auth_provider: AuthProvider
   auth_provider_label: string
@@ -44,7 +41,6 @@ interface UserDraft {
   display_name: string
   email: string
   role: AppRole
-  preferred_persona: Persona
   auth_provider: AuthProvider
   external_principal: string
   password: string
@@ -59,7 +55,6 @@ const EMPTY_DRAFT: UserDraft = {
   display_name: '',
   email: '',
   role: 'viewer',
-  preferred_persona: 'service_owner',
   auth_provider: 'local',
   external_principal: '',
   password: '',
@@ -75,8 +70,6 @@ function formatDate(value: string | null, locale: Locale, neverLabel: string): s
     const dateLocale: Record<Locale, string> = {
       cs: 'cs-CZ',
       en: 'en-GB',
-      sk: 'sk-SK',
-      de: 'de-DE',
     }
     return new Intl.DateTimeFormat(dateLocale[locale], {
       dateStyle: 'short',
@@ -113,12 +106,6 @@ export default function AdministrationUsersPage() {
       access: t('administration.users.role.admin.access'),
     },
   ];
-  const personaOptions: Array<{ value: Persona; label: string; access: string }> = [
-    { value: 'consumer', label: t('persona.consumer'), access: 'Katalog a request flow bez technického balastu.' },
-    { value: 'service_owner', label: t('persona.service_owner'), access: 'Moje služby, review, blokery a rozhodnutí.' },
-    { value: 'capability_manager', label: t('persona.capability_manager'), access: 'Schopnosti, C3 board, coverage, gaps a overlaps.' },
-    { value: 'admin', label: t('persona.admin'), access: 'Plný pracovní cockpit pro správu systému.' },
-  ];
   const PROVIDER_OPTIONS = [
     { value: 'local', label: t('administration.users.provider.local.label'), help: t('administration.users.provider.local.help') },
     { value: 'ad', label: t('administration.users.provider.ad.label'), help: t('administration.users.provider.ad.help') },
@@ -126,7 +113,6 @@ export default function AdministrationUsersPage() {
   const roleLabelByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.label])) as Record<AppRole, string>;
   const roleAccessByValue = Object.fromEntries(roleOptions.map((option) => [option.value, option.access])) as Record<AppRole, string>;
   const providerLabelByValue = Object.fromEntries(PROVIDER_OPTIONS.map((option) => [option.value, option.label])) as Record<AuthProvider, string>;
-  const personaLabelByValue = Object.fromEntries(personaOptions.map((option) => [option.value, option.label])) as Record<Persona, string>;
   const { data, isLoading, error } = useSWR<AdminUser[]>(USERS_ENDPOINT, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -153,17 +139,17 @@ export default function AdministrationUsersPage() {
     scrollEditorIntoView()
   }, [draft.username, editingId])
 
-  function getRoleLabel(role: AppRole) {
+  const getRoleLabel = useCallback((role: AppRole) => {
     return roleLabelByValue[role] ?? role;
-  }
+  }, [roleLabelByValue]);
 
   function getRoleAccess(role: AppRole) {
     return roleAccessByValue[role] ?? '';
   }
 
-  function getProviderLabel(provider: AuthProvider) {
+  const getProviderLabel = useCallback((provider: AuthProvider) => {
     return providerLabelByValue[provider] ?? provider;
-  }
+  }, [providerLabelByValue]);
 
   const filteredUsers = useMemo(() => {
     const rows = data ?? []
@@ -176,7 +162,6 @@ export default function AdministrationUsersPage() {
         user.display_name,
         user.email,
         getRoleLabel(user.role),
-        personaLabelByValue[user.preferred_persona],
         getProviderLabel(user.auth_provider),
         user.external_principal,
         user.given_name,
@@ -184,7 +169,7 @@ export default function AdministrationUsersPage() {
         user.department,
       ].some((value) => String(value ?? '').toLowerCase().includes(query))
     )
-  }, [data, deferredSearch, roleLabelByValue, providerLabelByValue, personaLabelByValue])
+  }, [data, deferredSearch, getProviderLabel, getRoleLabel])
 
   const sortedUsers = useMemo(() => {
     const direction = sortDirection === 'asc' ? 1 : -1
@@ -215,7 +200,7 @@ export default function AdministrationUsersPage() {
       if (result !== 0) return result * direction
       return left.username.localeCompare(right.username, locale) * direction
     })
-  }, [filteredUsers, locale, providerLabelByValue, roleLabelByValue, sortDirection, sortKey])
+  }, [filteredUsers, getProviderLabel, getRoleLabel, locale, sortDirection, sortKey])
 
   const users = data ?? []
   const activeUsers = users.filter((user) => user.is_active).length
@@ -237,7 +222,6 @@ export default function AdministrationUsersPage() {
       display_name: user.display_name ?? '',
       email: user.email ?? '',
       role: user.role,
-      preferred_persona: user.preferred_persona ?? 'service_owner',
       auth_provider: user.auth_provider,
       external_principal: user.external_principal ?? '',
       password: '',
@@ -355,15 +339,9 @@ export default function AdministrationUsersPage() {
       </section>
 
       <details className={styles.roleGuide}>
-        <summary>{t('administration.users.role_persona_guide')}</summary>
+        <summary>{t('common.role')}</summary>
         <div className={styles.roleGrid}>
           {roleOptions.map((option) => (
-            <article key={option.value} className={styles.roleCard}>
-              <div className={styles.roleTitle}>{option.label}</div>
-              <div className={styles.roleDesc}>{option.access}</div>
-            </article>
-          ))}
-          {personaOptions.map((option) => (
             <article key={option.value} className={styles.roleCard}>
               <div className={styles.roleTitle}>{option.label}</div>
               <div className={styles.roleDesc}>{option.access}</div>
@@ -419,15 +397,6 @@ export default function AdministrationUsersPage() {
             <span className={styles.label}>{t('common.role')}</span>
             <select className={styles.select} value={draft.role} onChange={(event) => updateDraft('role', event.target.value as AppRole)}>
               {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className={styles.field}>
-            <span className={styles.label}>{t('administration.users.working_view_label')}</span>
-            <select className={styles.select} value={draft.preferred_persona} onChange={(event) => updateDraft('preferred_persona', event.target.value as Persona)}>
-              {personaOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -552,7 +521,6 @@ export default function AdministrationUsersPage() {
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('username')}>{t('common.username')} {sortKey === 'username' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('display_name')}>{t('common.user')} {sortKey === 'display_name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('role')}>{t('common.role')} {sortKey === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
-                  <th>{t('administration.users.working_view_label')}</th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('auth_provider')}>{t('common.login')} {sortKey === 'auth_provider' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('is_active')}>{t('common.status')} {sortKey === 'is_active' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
                   <th><button type="button" className={styles.sortButton} onClick={() => toggleSort('last_login_at')}>{t('common.last_login')} {sortKey === 'last_login_at' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}</button></th>
@@ -574,12 +542,6 @@ export default function AdministrationUsersPage() {
                       <div className={styles.stack}>
                         <span className={styles.rolePill}>{getRoleLabel(user.role)}</span>
                         <span>{getRoleAccess(user.role)}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.stack}>
-                        <span className={styles.personaPill}>{personaLabelByValue[user.preferred_persona] ?? user.preferred_persona}</span>
-                        <span>{personaOptions.find((option) => option.value === user.preferred_persona)?.access ?? ''}</span>
                       </div>
                     </td>
                     <td>

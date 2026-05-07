@@ -100,6 +100,7 @@ function EntityPicker({ kind, value, onChange, label, placeholder, required }: E
   const [loading, setLoading] = useState(false);
   const listId = `${kind}-picker-${useId().replaceAll(':', '')}`;
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: picker keeps loading/options synchronized with async lookup results. */
   useEffect(() => {
     let cancelled = false;
     const query = value.trim();
@@ -118,6 +119,7 @@ function EntityPicker({ kind, value, onChange, label, placeholder, required }: E
       });
     return () => { cancelled = true; };
   }, [kind, value]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <label className={styles.field}>

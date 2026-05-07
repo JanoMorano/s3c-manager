@@ -4,7 +4,8 @@
  *
  * Mounting point: /api/v1/ref
  *
- * GET    /api/v1/ref/:table          — list all records (public read)
+ * GET    /api/v1/ref                 — list available reference tables (authenticated read)
+ * GET    /api/v1/ref/:table          — list all records (authenticated read)
  * POST   /api/v1/ref/:table          — create record (canAdmin)
  * PUT    /api/v1/ref/:table/:code    — update record (canAdmin)
  * DELETE /api/v1/ref/:table/:code    — delete record (canAdmin)
@@ -129,7 +130,7 @@ const TABLES = {
         ],
     },
     ref_FlavourStatus: {
-        label:   'Flavour Status',
+        label:   'Legacy Variant Status',
         order:   'sort_order',
         columns: [
             { key: 'code',       type: 'pk',   label: 'Kód',   maxlen: 50  },
@@ -203,7 +204,7 @@ function normalizeValue(col, value) {
 }
 
 // ─── GET /api/v1/ref (list available tables) ──────────────────────────────────
-router.get('/', (req, res) => {
+router.get('/', requireAuth, (req, res) => {
     res.json(Object.entries(TABLES).map(([table, meta]) => ({
         table,
         label:   meta.label,
@@ -212,7 +213,7 @@ router.get('/', (req, res) => {
 });
 
 // ─── GET /api/v1/ref/:table ───────────────────────────────────────────────────
-router.get('/:table', async (req, res, next) => {
+router.get('/:table', requireAuth, async (req, res, next) => {
     try {
         const meta = TABLES[req.params.table];
         if (!meta) return res.status(404).json({ error: 'Tabulka nenalezena' });

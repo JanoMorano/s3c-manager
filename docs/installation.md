@@ -17,7 +17,7 @@ Current application package baseline:
 
 | Area | Version baseline |
 |---|---|
-| Application release | 1.1.2 |
+| Application release | 1.2 |
 | Frontend runtime | Next.js 16.2, React 19.2, TypeScript 6.0 |
 | Frontend styling | Tailwind CSS 4.2, `@tailwindcss/postcss` 4.2, CSS Modules |
 | Middleware runtime | Express 5.2, PostgreSQL `pg` 8.20 |
@@ -42,7 +42,8 @@ cp .env.example .env
 Required:
 
 ```env
-# JWT signing secret — at least 32 random characters
+# JWT signing secret — at least 32 random characters.
+# Production startup refuses empty, weak, or placeholder-like values.
 JWT_SECRET=<openssl rand -base64 48>
 
 # PostgreSQL password
@@ -94,7 +95,7 @@ deployments.
 
 The UI and API share the same canonical locale model:
 
-- supported locales: `cs`, `en`, `sk`, `de`
+- supported locales: `cs`, `en`
 - no locale prefixes in routes
 - locale resolution order:
   1. authenticated user `preferred_lang`
@@ -102,11 +103,12 @@ The UI and API share the same canonical locale model:
   3. browser `Accept-Language`
   4. fallback `cs`
 
-Legacy values such as `cz`, `cze`, and `cs-CZ` are normalized to `cs`; `svk` normalizes to `sk`, and `ger` / `deu` normalize to `de`.
+Legacy Czech values such as `cz`, `cze`, and `cs-CZ` are normalized to `cs`. Retired SK/DE values now fall back to `cs`; existing user preferences are normalized by `31_locale_cs_en_only.sql`.
 
 During first install there is no authenticated user yet, so the wizard locale
-comes from the `sc_locale` cookie or the browser header. If demo data seeding is
-enabled during install, the demo dataset is created in that resolved locale.
+comes from the `sc_locale` cookie, browser header, or the CZE/ENG selector on
+the first installer window. If demo data seeding is enabled during install, the
+demo dataset is created in that resolved locale.
 
 ### C3 Taxonomy Module
 
@@ -250,7 +252,7 @@ Recommended cadence:
 
 | Variable | Default | Description |
 |---|---|---|
-| `APP_VERSION` | `1.1.2` | Application release version used by install/upgrade detection and visible release metadata |
+| `APP_VERSION` | `1.2` | Application release version used by install/upgrade detection and visible release metadata |
 | `PORT` | `4000` | Express middleware port |
 | `NEXT_PORT` | `3000` | Next.js port |
 | `CORS_ORIGINS` | `http://localhost:8080` | Allowed CORS origins |
@@ -268,7 +270,7 @@ Recommended cadence:
 | `INIT_WITH_C3_CAPABILITY_MAP_SEED` | `false` | load the baseline Spiral 7 capability map |
 | `DEMO_SEED_LOCALE` | system locale | force demo service copy locale, for example `en` or `cs` |
 
-When `INIT_WITH_TEST_SEEDS=true`, the demo dataset contains 8 services, 3 portfolios, 12 service offerings, 12 pricing flavours, owners, readiness blockers, a readiness exception, governance reviews, decisions, capability coverage examples, and a 3-level dependency chain. Enable the C3 seed flags as well when you want the demo capability maps and C3 entity evidence to be visible immediately.
+When `INIT_WITH_TEST_SEEDS=true`, the demo dataset contains 8 services, 3 portfolios, 12 service offerings, 12 legacy variant evidence records, owners, readiness blockers, a readiness exception, governance reviews, decisions, capability coverage examples, and a 3-level dependency chain. Enable the C3 seed flags as well when you want the demo capability maps and C3 entity evidence to be visible immediately.
 
 ### SSO
 
@@ -334,7 +336,7 @@ SQL file order:
 03_groups.sql            — group entities
 04_core.sql              — Service Catalogue core
 05_graph.sql             — ServiceRelation and ServiceRelationRaw
-06_pricing.sql           — ServiceFlavour and ServiceSla
+06_pricing.sql           — legacy ServiceFlavour evidence and ServiceSla
 07_domains.sql           — ServiceAvailableOn
 08_ownership.sql         — assignments, mappings, raw fields
 09_import.sql            — import pipeline tables

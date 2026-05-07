@@ -83,7 +83,7 @@ test_5_frontend() {
   blue "Smoke test 5 — Frontend availability"
   local code
   code="$(http_code "$FRONTEND_URL")"
-  if [ "$code" = "200" ] || [ "$code" = "304" ]; then
+  if [ "$code" = "200" ] || [ "$code" = "304" ] || [ "$code" = "307" ]; then
     record_pass "Frontend availability"
   else
     record_fail "Frontend availability" "HTTP $code"
@@ -105,9 +105,13 @@ manual_test() {
   local num="$1"
   local name="$2"
   blue "Smoke test $num — $name"
+  if [ ! -t 0 ]; then
+    record_skip "$name" "Manual test not executed in non-interactive mode."
+    return
+  fi
   yellow "Manual test required."
   read -r -p "Result for '$name' [p=pass / f=fail / s=skip]: " ans
-  case "${ans,,}" in
+  case "$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')" in
     p) record_pass "$name" ;;
     f) read -r -p "Failure note: " note; record_fail "$name" "$note" ;;
     *) record_skip "$name" "Manual test not executed." ;;

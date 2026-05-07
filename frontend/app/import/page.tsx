@@ -1,15 +1,20 @@
 /**
- * Import Review — GET /import/batches + GET /import/batches/:id
+ * Import history — GET /import/batches + GET /import/batches/:id
  * Shows import history and detailed errors per batch.
  */
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from '@/app/components/AppLink';
 import useSWR from 'swr';
 import { apiFetch } from '@/features/services/api/services.api';
 import { fetchImportBatch } from '@/features/services/api/editor.api';
 import type { ImportBatch, ImportBatchDetail, ImportBatchIssue } from '@/features/services/api/editor.api';
+import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
+import { hasRoleAccess } from '@/features/auth/roles';
+import { useInstallStatus } from '@/features/install/installStatus';
+import { useLocale } from '@/app/i18n/useI18n';
+import { helpIndexHref } from '@/app/lib/helpRoutes';
 import { format } from 'date-fns';
 import styles from './import.module.css';
 
@@ -64,9 +69,33 @@ interface C3EntityImportRunSummary {
 }
 
 export default function ImportReviewPage() {
+  const locale = useLocale();
+  const helpHref = `${helpIndexHref(locale)}#data`;
+  const { c3Visible } = useInstallStatus();
+  const [role, setRole] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showStubOnly, setShowStubOnly] = useState(false);
   const [selectedProfileKey, setSelectedProfileKey] = useState('s3c-service-catalogue-json');
+
+  useEffect(() => {
+    const syncRole = () => {
+      setRole(getAuthSnapshot()?.role ?? null);
+      setHydrated(true);
+    };
+    syncRole();
+    window.addEventListener('focus', syncRole);
+    window.addEventListener('storage', syncRole);
+    window.addEventListener(AUTH_STATE_EVENT, syncRole);
+    return () => {
+      window.removeEventListener('focus', syncRole);
+      window.removeEventListener('storage', syncRole);
+      window.removeEventListener(AUTH_STATE_EVENT, syncRole);
+    };
+  }, []);
+
+  const isExpertImportUser = hydrated && c3Visible && hasRoleAccess(role, 'admin');
+
   const { data: manifest } = useSWR<ExportManifestResponse>(
     '/api/v1/export/manifest?scope=import',
     apiFetch,
@@ -93,7 +122,7 @@ export default function ImportReviewPage() {
     { revalidateOnFocus: false }
   );
   const { data: c3EntityRuns } = useSWR<C3EntityImportRunSummary[]>(
-    '/api/v1/taxonomy/import-runs/latest',
+    isExpertImportUser ? '/api/v1/taxonomy/import-runs/latest' : null,
     apiFetch,
     { revalidateOnFocus: false }
   );
@@ -114,22 +143,21 @@ export default function ImportReviewPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Import Review</h1>
+        <h1 className={styles.pageTitle}>Import history</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {manifest?.contract_version && <span className={styles.uploadBtn}>Contract {manifest.contract_version}</span>}
           {manifest?.schema_version && <span className={styles.uploadBtn}>Schema {manifest.schema_version}</span>}
           <a href="/api/v1/export/bundle" className={styles.uploadBtn}>Export bundle →</a>
           <a href="/api/v1/export/manifest" className={styles.uploadBtn}>Export manifest →</a>
-          <a href="/api/health/import" className={styles.uploadBtn}>Import health →</a>
-          <a href="/import/upload" className={styles.uploadBtn}>Upload CSV →</a>
+          <a href="/import/upload" className={styles.uploadBtn}>Upload catalogue →</a>
         </div>
       </div>
 
       <section className={styles.profilePanel}>
         <label className={styles.profileSelector}>
-          <span>Import profile</span>
+          <span>Catalogue import/export profile</span>
           <select
-            aria-label="Import profile"
+            aria-label="Catalogue import/export profile"
             value={selectedProfileKey}
             onChange={(event) => setSelectedProfileKey(event.target.value)}
           >
@@ -151,7 +179,7 @@ export default function ImportReviewPage() {
           <a href="/api/v1/export/governance-report" className={styles.uploadBtn}>Governance report</a>
           <a href="/api/v1/export/capabilities/coverage" className={styles.uploadBtn}>Capability coverage</a>
           <a href="/api/v1/export/backstage/catalog-info" className={styles.uploadBtn}>Backstage YAML</a>
-          <Link href="/help#data" className={styles.uploadBtn}>Integration mappings</Link>
+          <Link href={helpHref} className={styles.uploadBtn}>Integration mappings</Link>
         </div>
       </section>
 
@@ -191,22 +219,20 @@ export default function ImportReviewPage() {
         <div className={styles.governanceImpact}>
           <strong>Governance impact</strong>
           <span>
-            Import profile {selectedProfile?.label ?? 'S3C service catalogue JSON'} can affect service ownership, C3 mapping, readiness and decision evidence. Commit is intentionally separated from dry run.
+            Catalogue import can affect service ownership, C3 mapping, readiness and decision evidence. Commit is intentionally separated from dry run.
           </span>
         </div>
       </section>
 
       {preflight && (
         <div className={styles.preflightBar}>
-          <div className={styles.preflightTitle}>Poslední preflight: {preflight.source_name}</div>
+          <div className={styles.preflightTitle}>Poslední dry-run: {preflight.source_name}</div>
           <div className={styles.preflightGrid}>
             <span className={styles.preflightPill}>Services {preflight.item_count}</span>
-            <span className={styles.preflightPill}>Flavours {preflight.flavour_count}</span>
-            <span className={styles.preflightPill}>Explicit relations {preflight.explicit_relation_count}</span>
-            <span className={styles.preflightPill}>Raw prerequisites {preflight.raw_prerequisite_count}</span>
+            <span className={styles.preflightPill}>Legacy variants {preflight.flavour_count}</span>
+            <span className={styles.preflightPill}>Relations {preflight.explicit_relation_count}</span>
             <span className={styles.preflightPill}>Stubs {preflight.stub_count}</span>
-            <span className={styles.preflightPill}>Unresolved refs {preflight.unresolved_ref_count}</span>
-            {preflight.source_hash_sha256 && <span className={styles.preflightPill}>Hash {preflight.source_hash_sha256.slice(0, 12)}…</span>}
+            <span className={styles.preflightPill}>Unclear refs {preflight.unresolved_ref_count}</span>
             <span className={styles.preflightPill}>{formatDate(preflight.created_at)}</span>
           </div>
         </div>
@@ -365,7 +391,7 @@ export default function ImportReviewPage() {
               {(parsedFlavourIssues.length > 0 || parsedSlaIssues.length > 0) && (
                 <div className={styles.parsedPanel}>
                   <div className={styles.parsedPanelHeader}>
-                    <span className={styles.detailTitle}>Parsované flavoury a SLA</span>
+                    <span className={styles.detailTitle}>Parsed legacy variants and SLA</span>
                   </div>
                   <div className={styles.parsedGrid}>
                     {parsedFlavourIssues.map((issue) => {
@@ -385,7 +411,7 @@ export default function ImportReviewPage() {
                                 <strong>{flavour.flavour_code ?? 'n/a'}</strong>
                                 <span>{flavour.title ?? 'Bez názvu'}</span>
                                 <span>{flavour.service_unit ?? '—'}</span>
-                                <span>{flavour.price_value != null ? `${flavour.price_value} ${flavour.currency_code ?? 'EUR'}` : 'bez ceny'}</span>
+                                <span>{flavour.price_value != null ? `${flavour.price_value} ${flavour.currency_code ?? 'EUR'}` : 'no legacy price'}</span>
                               </div>
                             ))}
                           </div>

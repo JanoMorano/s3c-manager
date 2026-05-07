@@ -8,6 +8,7 @@ import { apiFetch } from '@/features/services/api/services.api';
 import styles from './capabilities.module.css';
 
 type GovernanceMode = 'coverage' | 'gaps' | 'overlaps';
+type NavigationMode = 'route' | 'query';
 
 interface CapabilityService {
   service_id: string;
@@ -112,7 +113,11 @@ function ServicesCell({ services }: { services: CapabilityService[] }) {
   );
 }
 
-function FilterBar({ mode }: { mode: GovernanceMode }) {
+function modeHref(mode: GovernanceMode, navigationMode: NavigationMode) {
+  return navigationMode === 'query' ? `/capabilities?view=${mode}` : `/capabilities/${mode}`;
+}
+
+function FilterBar({ mode, navigationMode }: { mode: GovernanceMode; navigationMode: NavigationMode }) {
   return (
     <form className={styles.filterBar} method="get">
       <label>
@@ -138,7 +143,7 @@ function FilterBar({ mode }: { mode: GovernanceMode }) {
         </select>
       </label>
       <button type="submit">Apply filters</button>
-      {mode !== 'coverage' ? <Link href="/capabilities/coverage" className={styles.inlineLink}>Coverage matrix</Link> : null}
+      {mode !== 'coverage' ? <Link href={modeHref('coverage', navigationMode)} className={styles.inlineLink}>Coverage matrix</Link> : null}
     </form>
   );
 }
@@ -193,7 +198,15 @@ function CapabilityTable({ mode, items }: { mode: GovernanceMode; items: Capabil
   );
 }
 
-export function CapabilityGovernancePage({ mode }: { mode: GovernanceMode }) {
+export function CapabilityGovernancePage({
+  mode,
+  embedded = false,
+  navigationMode = 'route',
+}: {
+  mode: GovernanceMode;
+  embedded?: boolean;
+  navigationMode?: NavigationMode;
+}) {
   const search = useSearchParams();
   const copy = MODE_COPY[mode];
   const query = buildQuery(search);
@@ -202,19 +215,29 @@ export function CapabilityGovernancePage({ mode }: { mode: GovernanceMode }) {
   if (isLoading) return <div className={styles.state}>Loading capability governance...</div>;
   if (error || !data) return <div className={styles.state}>Capability governance is unavailable.</div>;
 
-  return (
-    <main className={styles.shell}>
-      <header className={styles.header}>
-        <div>
+  const content = (
+    <>
+      {!embedded && (
+        <header className={styles.header}>
+          <div>
+            <span className={styles.eyebrow}>Capability governance</span>
+            <h1 className={styles.title}>{copy.title}</h1>
+            <p className={styles.lead}>{copy.lead}</p>
+          </div>
+          <div className={styles.pills}>
+            <Link href="/capabilities" className={styles.pill}>Capability hub</Link>
+            <Link href="/c3/capability-map-spiral7" className={styles.pill}>Spiral 7 map</Link>
+          </div>
+        </header>
+      )}
+
+      {embedded && (
+        <section className={styles.panel}>
           <span className={styles.eyebrow}>Capability governance</span>
-          <h1 className={styles.title}>{copy.title}</h1>
-          <p className={styles.lead}>{copy.lead}</p>
-        </div>
-        <div className={styles.pills}>
-          <Link href="/capabilities" className={styles.pill}>Capability hub</Link>
-          <Link href="/spirals" className={styles.pill}>Spirals</Link>
-        </div>
-      </header>
+          <h2 className={styles.panelTitle}>{copy.title}</h2>
+          <p className={styles.bodyText}>{copy.lead}</p>
+        </section>
+      )}
 
       <section className={styles.kpiGrid} aria-label="Capability governance KPIs">
         <KpiCard label="Total" value={data.counts.total} hint="Capabilities in scope" />
@@ -223,12 +246,12 @@ export function CapabilityGovernancePage({ mode }: { mode: GovernanceMode }) {
       </section>
 
       <nav className={styles.tabs} aria-label="Capability governance sections">
-        <Link href="/capabilities/coverage" className={`${styles.tab} ${mode === 'coverage' ? styles.tabActive : ''}`}>Coverage</Link>
-        <Link href="/capabilities/gaps" className={`${styles.tab} ${mode === 'gaps' ? styles.tabActive : ''}`}>Gaps</Link>
-        <Link href="/capabilities/overlaps" className={`${styles.tab} ${mode === 'overlaps' ? styles.tabActive : ''}`}>Overlaps</Link>
+        <Link href={modeHref('coverage', navigationMode)} className={`${styles.tab} ${mode === 'coverage' ? styles.tabActive : ''}`}>Coverage</Link>
+        <Link href={modeHref('gaps', navigationMode)} className={`${styles.tab} ${mode === 'gaps' ? styles.tabActive : ''}`}>Gaps</Link>
+        <Link href={modeHref('overlaps', navigationMode)} className={`${styles.tab} ${mode === 'overlaps' ? styles.tabActive : ''}`}>Overlaps</Link>
       </nav>
 
-      <FilterBar mode={mode} />
+      <FilterBar mode={mode} navigationMode={navigationMode} />
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
@@ -240,6 +263,14 @@ export function CapabilityGovernancePage({ mode }: { mode: GovernanceMode }) {
         </div>
         <CapabilityTable mode={mode} items={data.items} />
       </section>
+    </>
+  );
+
+  if (embedded) return <section className={styles.governanceEmbedded}>{content}</section>;
+
+  return (
+    <main className={styles.shell}>
+      {content}
     </main>
   );
 }

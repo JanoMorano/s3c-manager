@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Operations cockpit, readiness, reviews and decisions - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">06 · Governance</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link active" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">06 Governance</p>
+        <h1>Operations cockpit, readiness, reviews and decisions</h1>
+        <p class="lead">Governance turns service catalogue evidence into auditable decisions. It covers readiness gates, review queues, decision records, exceptions, owner load and risk signals.</p>
+      </section>
+
+      <h2>Governance meaning</h2>
+      <p>The application does not only store services. It helps decide whether a service is ready to publish, change, operate or retire. The governance layer preserves why a decision was made and what evidence existed at that time.</p>
+
+      <h2>Route map</h2>
+      <table class="field-table"><thead><tr><th>Route</th><th>Purpose</th></tr></thead><tbody><tr><td>/operations</td><td>Operations cockpit with readiness and risk overview.</td></tr><tr><td>/operations/readiness</td><td>Readiness queue for services that need attention.</td></tr><tr><td>/operations/reviews</td><td>Governance review queue.</td></tr><tr><td>/operations/decisions</td><td>Decision log and exception history.</td></tr><tr><td>/operations/owner-load</td><td>Owner workload and responsibility distribution.</td></tr></tbody></table>
+
+      <h2>Readiness rules</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Owner missing</strong></span></span><p>Every published or reviewed service needs a responsible owner.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Offering evidence missing</strong></span></span><p>Users must understand what can be requested or consumed.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">C3 mapping missing</strong></span></span><p>Architecture and capability impact cannot be assessed.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Dependency classification missing</strong></span></span><p>Impact analysis cannot explain what breaks.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Review date missing</strong></span></span><p>Governance cannot maintain continual improvement cadence.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Exception missing</strong></span></span><p>Known unresolved gaps need an explicit decision.</p></article></div>
+
+      <h2>Governance reviews and decisions</h2>
+      <p>A reviewer can approve, reject, defer or record an exception. The decision should include scope, rationale, expiry or follow-up where applicable. This creates an audit trail rather than a hidden judgement in a field.</p>
+
+      <h2>Typical scenarios</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service blocked before publish</strong></span></span><p>Open readiness, fix missing evidence, request review, then record the decision.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service approved with risk</strong></span></span><p>Document the exception, owner, due date and mitigation path.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Owner is overloaded</strong></span></span><p>Use owner load to redistribute responsibility or prioritize reviews.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Capability gap accepted temporarily</strong></span></span><p>Record the accepted risk and review date.</p></article></div>
+
+      <figure class="screen-slot"><div>Screenshot: Governance<br><code>/img/help-en/06-governance.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="05-capabilities_c3.html">Previous: Capabilities and C3</a>
+        <a href="07-import.html">Next: Import</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

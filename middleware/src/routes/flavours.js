@@ -6,7 +6,6 @@ const audit   = require('../db/audit.repo');
 const { requireAuth } = require('../middleware/auth');
 const { canEdit, canAdmin } = require('../middleware/rbac');
 const { validateFlavour } = require('../services/validation');
-const { isActiveServiceStatus } = require('../services/readiness');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -26,10 +25,6 @@ function normalizeFlavourBody(body) {
     short_note: body.short_note ?? body.shortNote ?? null,
     flavour_status: body.flavour_status ?? body.flavourStatus ?? null
   };
-}
-
-function isActiveFlavourStatus(status) {
-    return ['available', 'active'].includes(String(status ?? '').toLowerCase());
 }
 
 // GET /api/v1/flavours?serviceId=WPS001

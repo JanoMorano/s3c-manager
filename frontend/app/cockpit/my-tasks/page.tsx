@@ -4,7 +4,7 @@ import Link from '@/app/components/AppLink';
 import PageHeader from '@/app/components/PageHeader';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
-import { useDashboardInbox, useMyServiceRequests } from '@/features/services/hooks/useServices';
+import { useDashboardInbox } from '@/features/services/hooks/useServices';
 import type {
   DashboardInboxItem,
   DashboardReviewAssignment,
@@ -75,31 +75,29 @@ function CollapsibleSection({ title, count, badge, defaultOpen = true, children 
 
 export default function MyTasksPage() {
   const inbox = useDashboardInbox();
-  const requests = useMyServiceRequests();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([inbox.mutate?.(), requests.mutate?.()]);
+    await inbox.mutate?.();
     setRefreshing(false);
-  }, [inbox, requests]);
+  }, [inbox]);
 
   const data = inbox.data;
-  const requestItems = requests.data?.items ?? [];
   const myOwnedServices: DashboardOwnedService[] = data?.my_owned_services ?? [];
   const myReviews: DashboardReviewAssignment[] = data?.my_reviews ?? [];
   const myBlockers: DashboardInboxItem[] = data?.my_blockers ?? data?.items ?? [];
   const myDecisions: DashboardDecisionItem[] = data?.my_decisions ?? [];
-  const openCount = myReviews.length + myBlockers.length + requestItems.length;
+  const openCount = myReviews.length + myBlockers.length;
 
-  if (inbox.isLoading && requests.isLoading) return <div className={styles.state}>Loading my tasks...</div>;
-  if (inbox.error && requests.error) return <div className={styles.stateError}>My tasks are not available.</div>;
+  if (inbox.isLoading) return <div className={styles.state}>Loading my tasks...</div>;
+  if (inbox.error) return <div className={styles.stateError}>My tasks are not available.</div>;
 
   return (
     <div className={styles.shell}>
       <PageHeader
         title="My Tasks"
-        purpose="Denní pracovní plocha pro vlastníka služby, reviewera a admina. Ukazuje jen moje reviews, blokátory, requesty a rozhodnutí."
+        purpose="Denní pracovní plocha pro vlastníka služby, reviewera a admina. Ukazuje moje reviews, blokátory a rozhodnutí."
         chips={[
           { label: `${openCount} open`, tone: openCount > 0 ? 'warn' : 'ok' },
           { label: `${myOwnedServices.length} owned`, tone: 'info' },
@@ -211,24 +209,6 @@ export default function MyTasksPage() {
             </div>
           )}
         </CollapsibleSection>
-
-        {/* 5. Service requests */}
-        {requestItems.length > 0 && (
-          <CollapsibleSection title="Moje requesty" count={requestItems.length} defaultOpen={false}>
-            <div className={govStyles.governanceList}>
-              {requestItems.map((request) => (
-                <Link key={request.id} href={request.service_id ? `/services/${request.service_id}` : '/catalogue'} className={govStyles.governanceRow}>
-                  <Badge variant="neutral">{request.status}</Badge>
-                  <span className={govStyles.rowMain}>
-                    <strong>{request.service_title || request.service_id || request.request_number}</strong>
-                    <span>{request.request_channel_type ?? 'internal'} · {formatDate(request.created_at)}</span>
-                  </span>
-                  <span className={govStyles.rowMetric}>Request</span>
-                </Link>
-              ))}
-            </div>
-          </CollapsibleSection>
-        )}
       </div>
     </div>
   );

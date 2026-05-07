@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Installation, first-run wizard and operational prerequisites - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">01 · Installation</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link active" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">01 Installation</p>
+        <h1>Installation, first-run wizard and operational prerequisites</h1>
+        <p class="lead">The installer prepares the database, the first administrator account, enabled modules and optional seed or import data. It is the only part of the application available before normal sign-in, therefore it is protected by installation state and setup token.</p>
+      </section>
+
+      <h2>Why the installer matters</h2>
+      <p>In an enterprise tool, installation is not just a technical form. It defines instance identity, security posture, database connectivity, first accountable administrator and enabled modules. From an ITIL perspective it moves the deployment into a ready-for-operation state. From a governance perspective it creates the first auditable base for service, capability and C3 management.</p>
+
+      <h2>Environment requirements</h2>
+      <table class="field-table"><thead><tr><th>Area</th><th>Minimum</th><th>Recommended</th><th>Why it matters</th></tr></thead><tbody><tr><td>CPU</td><td>2 vCPU</td><td>4 vCPU</td><td>Frontend, middleware, PostgreSQL, imports and graphs can run at the same time.</td></tr><tr><td>RAM</td><td>4 GB</td><td>8 GB or more</td><td>PostgreSQL, Next.js runtime and import dry-runs need memory for larger files.</td></tr><tr><td>Disk</td><td>10 GB</td><td>20 GB plus backup space</td><td>Database, uploads, exports, logs and backups need persistent storage.</td></tr><tr><td>Docker</td><td>Docker Engine 24+, Compose v2.20+</td><td>Current stable version</td><td>Standard local and production runtime.</td></tr><tr><td>Secrets</td><td>JWT secret and DB password</td><td>File secrets or vault</td><td>Authentication and database access must not depend on committed source files.</td></tr></tbody></table>
+
+      <h2>The 12 installer screens</h2>
+      <p>The wizard starts with an application description and CZE/ENG language selection, then checks instance state and setup token, stores instance configuration, verifies secrets and database connectivity, creates the first admin, enables modules, plans data, previews imports, executes installation and shows the final summary.</p>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">01 Welcome</strong></span></span><p>Application purpose and language choice.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">02 Setup token</strong></span></span><p>Instance state, setup token and install start.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">03 Configuration</strong></span></span><p>Name, public URL, timezone, storage path and HTTPS mode.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">04 Secrets</strong></span></span><p>JWT, DB credentials and safe secret handling checklist.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">05 Admin</strong></span></span><p>First local administrator and password rules.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">06 Connectivity</strong></span></span><p>PostgreSQL and schema readiness.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">07 Modules</strong></span></span><p>Service Catalogue Core and optional C3 Taxonomy.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">08 Data plan</strong></span></span><p>Reference data, business data and demo data choices.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">09 Upload</strong></span></span><p>Initial CSV, XLSX or JSON files.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">10 Preview</strong></span></span><p>Column, row, error and warning preview.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">11 Execute</strong></span></span><p>Final install, seed, import and execution log.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">12 Summary</strong></span></span><p>Result, version, schema, modules and import statistics.</p></article></div>
+
+      <h2>Key fields and choices</h2>
+      <table class="field-table"><thead><tr><th>Field / choice</th><th>Meaning</th><th>Validation</th><th>Impact</th></tr></thead><tbody><tr><td>Application environment</td><td>CZE or ENG environment.</td><td>Only cs and en are accepted.</td><td>Sets the installer language and default locale cookie.</td></tr><tr><td>Setup token</td><td>Secret token for write steps before login.</td><td>Must match server configuration.</td><td>Without it the instance cannot be bootstrapped safely.</td></tr><tr><td>Base URL</td><td>Public URL used by real users.</td><td>Should match the production reverse proxy URL.</td><td>Affects links, SSO callbacks, personal queues and exports.</td></tr><tr><td>Storage path</td><td>Writable path inside the app runtime.</td><td>Must exist and be mounted.</td><td>Used by uploads, imports, exports and future attachments.</td></tr><tr><td>First admin</td><td>Root local administrator account.</td><td>Requires strong password and unique username.</td><td>Starts RBAC and administration ownership.</td></tr></tbody></table>
+
+      <h2>Administrator panel after deployment</h2>
+      <p>After installation, administrators use Administration / Installation for readiness checks, schema information, repair signals, module state and operational diagnostics. It is not a second installer; it is a safe operational view of the installed instance.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Installation<br><code>/img/help-en/01-install.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="index.html">Previous: Index</a>
+        <a href="02-welcome.html">Next: Application purpose</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

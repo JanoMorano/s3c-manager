@@ -22,23 +22,26 @@ test('service detail exposes relationship studio and governance views', async ({
   await expect(page.getByRole('heading', { name: 'What needs attention' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: 'How this service fits' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /overview/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('button', { name: /offerings/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('button', { name: /request & support/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('button', { name: /coverage/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: /how to get it/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: /support\s*\/\s*sla/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: /relationships/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /governance/i })).toBeVisible({ timeout: 15_000 });
 
   await expect(page.getByRole('heading', { name: 'Service 360' }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('At a glance')).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: /request & support/i }).click();
-  await expect(page.getByRole('heading', { name: 'Request & Eligibility' })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: /how to get it/i }).click();
+  await expect(page.getByRole('heading', { name: 'How to get this service' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Available offerings' })).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: /support\s*\/\s*sla/i }).click();
   await expect(page.getByRole('heading', { name: 'Support' })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: /coverage/i }).click();
-  await expect(page.getByRole('heading', { name: 'Coverage', exact: true })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: /relationships/i }).click();
+  await expect(page.getByRole('heading', { name: 'Relationships' })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('button', { name: /governance/i }).click();
-  await expect(page.getByRole('heading', { name: 'Operational Metadata' })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('heading', { name: 'Relationships' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Governance facts' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Audit trail' })).toBeVisible({ timeout: 15_000 });
 });

@@ -11,6 +11,7 @@ frontend/.next
 npm-debug.log*
 .DS_Store
 coverage/
+backups/
 *.bak
 output/
 logs/

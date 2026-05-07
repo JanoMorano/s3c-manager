@@ -83,7 +83,7 @@ export function normalizeLegacyC3Path(pathname: string) {
   }
   if (pathname.startsWith('/admin/c3-data-objects/')) {
     const code = pathname.slice('/admin/c3-data-objects/'.length);
-    if (code && !code.includes('/')) return `/c3/data-objects/${code}/edit`;
+    if (code && !code.includes('/')) return `/c3/data-objects/${code}`;
   }
   if (pathname.startsWith('/admin/c3-application/')) {
     const code = pathname.slice('/admin/c3-application/'.length);

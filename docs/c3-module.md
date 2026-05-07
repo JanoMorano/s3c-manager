@@ -5,7 +5,6 @@
 The optional `C3_TAXONOMY` module extends the application with:
 
 - C3 taxonomy lists
-- the C3 dashboard
 - C3 entity detail pages plus authenticated editors for `Services`, `Applications`, `Data Objects`, and `Technology Interactions`
 - capability maps for:
   - `Spiral 6`
@@ -14,7 +13,7 @@ The optional `C3_TAXONOMY` module extends the application with:
 
 If the module is not activated during installation, both C3 UI and C3 APIs remain unavailable.
 
-At API level, only a small read-only allowlist stays public:
+At API level, C3 read and edit endpoints are part of the authenticated application API. Common read endpoints include:
 
 - `GET /api/v1/taxonomy/c3/types`
 - `GET /api/v1/taxonomy/c3/statuses`
@@ -23,7 +22,7 @@ At API level, only a small read-only allowlist stays public:
 - `GET /api/v1/taxonomy/c3`
 - detail lookups by code for services, applications, data objects, and technology interactions
 
-The C3 dashboard, capability maps, and capability-builder domains are served behind the authenticated app shell and require a logged-in user.
+Capability maps, C3 entity workspaces, and capability-builder domains are served behind the authenticated app shell and require a logged-in user.
 
 ## Spiral 6 vs Spiral 7
 
@@ -38,10 +37,11 @@ The C3 dashboard, capability maps, and capability-builder domains are served beh
 
 - active editable capability map
 - route: `/c3/capability-map-spiral7`
-- legacy alias: `/c3/capability-map`
 - sources:
   - baseline seed `shared/c3/capability-map-spiral7.json`
   - runtime builder data in `data.c3_capability_builder`
+
+The old `/c3/capability-map` compatibility route is not part of the v1.2 final surface.
 
 ## Activation During Installation
 
@@ -97,7 +97,7 @@ Application behavior:
 
 - Spiral 6 stays a read-only baseline
 - Spiral 7 is the active builder layer with editable service mappings
-- dashboard and capability-map pages are only rendered after application sign-in
+- capability-map and C3 workspace pages are only rendered after application sign-in
 
 ## Capability Coverage
 
@@ -119,7 +119,7 @@ The current implementation deliberately keeps PDF storage/viewer out of v1.1.2 s
 Three supported approaches:
 
 1. baseline JSON seed during init
-2. admin builder at `/admin/c3-capability-builder`
+2. admin builder at `/administration/c3-capability-builder`
 3. capability builder CSV/JSON import endpoints
 
 ## Import Scenarios
@@ -147,4 +147,4 @@ Three supported approaches:
 - keep Spiral 6 as a read-only historical reference
 - use Spiral 7 as the active working map
 - audit imports and builder changes
-- review service mappings through the C3 dashboard and capability map health blocks
+- review service mappings through the C3 entity workspace and capability map health blocks

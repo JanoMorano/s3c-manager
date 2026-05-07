@@ -1,6 +1,5 @@
 'use strict';
 const crypto = require('node:crypto');
-const path = require('node:path');
 const express   = require('express');
 const NodeCache = require('node-cache');
 const { getPool, getPlatformPool } = require('../db/pool');
@@ -65,7 +64,7 @@ const C3_TAXONOMY_IMPORT_TARGETS = {
 const CAPABILITY_BUILDER_IMPORT_TARGET = {
     key: 'c3-capability-builder',
     label: 'C3 Capability Map',
-    adminPath: '/admin/c3-capability-builder',
+    adminPath: '/administration/c3-capability-builder',
 };
 const REF_CACHE_KEYS = {
     portfolioGroups: ['ref_portfolio_groups', 'ref_global_service_groups'],
@@ -529,7 +528,7 @@ async function runC3TaxonomyImport(rawItems, { defaultItemType = null, spiralCod
                     itemStatus: item.item_status ?? null,
                 });
             }
-        } catch (_error) {
+        } catch {
             failed += 1;
         }
     }
@@ -575,7 +574,7 @@ async function getCapabilityCompletenessMap(uuids) {
     return new Map(rows.map((row) => [row.uuid, row.completeness_status]));
 }
 
-async function assertServiceMappingsAllowedForState(catalogId, nextMappings, translate = (key, params) => key) {
+async function assertServiceMappingsAllowedForState(catalogId, nextMappings, translate = (key, _params) => key) {
     const service = await getServiceStateByCatalogId(catalogId);
     if (!service || !isActiveServiceStatus(service.service_status)) return;
 
@@ -589,7 +588,7 @@ async function assertServiceMappingsAllowedForState(catalogId, nextMappings, tra
     }
 }
 
-async function updateC3ImportEntity(targetKey, entityId, body, translate = (key, params) => key) {
+async function updateC3ImportEntity(targetKey, entityId, body, translate = (key, _params) => key) {
     const targetConfig = C3_ENTITY_IMPORT_TARGETS[targetKey];
     if (!targetConfig) throw createHttpError(404, translate('taxonomy.errors.c3_entity_not_found'));
 
@@ -647,7 +646,7 @@ async function listCapabilityBuilderDomains() {
     return result;
 }
 
-function normalizeCapabilityMapTitle(value, translate = (key, params) => key) {
+function normalizeCapabilityMapTitle(value, translate = (key, _params) => key) {
     const title = String(value ?? '').trim();
     if (!title) throw createHttpError(400, translate('taxonomy.errors.page_title_required'));
     if (title.length > 200) throw createHttpError(400, translate('taxonomy.errors.page_title_too_long'));
@@ -863,7 +862,7 @@ async function buildCapabilityMapPayloadBySpiral(spiralCode, pageTitle) {
     return payload;
 }
 
-async function validateCapabilityBuilderPayload(payload, currentId = null, tableName = 'data.c3_capability_builder', maxLevel = 20, translate = (key, params) => key) {
+async function validateCapabilityBuilderPayload(payload, currentId = null, tableName = 'data.c3_capability_builder', maxLevel = 20, translate = (key, _params) => key) {
     const pageId = String(payload?.page_id ?? payload?.pageId ?? '').trim();
     const uuid = String(payload?.uuid ?? '').trim();
     const title = String(payload?.title ?? '').trim();
@@ -1094,7 +1093,7 @@ async function validateCapabilityBuilderImportRows(rawRows, translate = (key) =>
     };
 }
 
-async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', spiralCode = null, createdBy = null, translate = (key, params) => key } = {}) {
+async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceKind = 'json', spiralCode = null, createdBy = null, translate = (key, _params) => key } = {}) {
     const preview = await validateCapabilityBuilderImportRows(rawRows, translate);
     const parentWarningRows = new Set(preview.issues
         .filter((issue) => ['SELF_PARENT', 'UNKNOWN_PARENT'].includes(issue.issue_code))
@@ -1256,9 +1255,9 @@ async function importCapabilityBuilderRows(rawRows, { sourceName = null, sourceK
     };
 }
 
-// ── Public endpoints (before requireAuth) ────────────────────────────────────
-// GET /api/v1/taxonomy/c3/types — public, no auth (for catalogue filters)
-router.get('/c3/types', async (req, res, next) => {
+// ── C3 read endpoints require authentication ─────────────────────────────────
+// GET /api/v1/taxonomy/c3/types — authenticated read for catalogue filters.
+router.get('/c3/types', requireAuth, async (req, res, next) => {
     try {
         const result = await selectRows(getPool(), `
             SELECT DISTINCT item_type AS code
@@ -1273,8 +1272,8 @@ router.get('/c3/types', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// GET /api/v1/taxonomy/c3/statuses — public, no auth (for editor selects)
-router.get('/c3/statuses', async (req, res, next) => {
+// GET /api/v1/taxonomy/c3/statuses — authenticated read for editor selects.
+router.get('/c3/statuses', requireAuth, async (req, res, next) => {
     try {
         const result = await selectRows(getPool(), `
             SELECT DISTINCT item_status AS code
@@ -1289,7 +1288,7 @@ router.get('/c3/statuses', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3/parent-options', async (req, res, next) => {
+router.get('/c3/parent-options', requireAuth, async (req, res, next) => {
     try {
         const itemType = String(req.query.item_type ?? '').trim().toUpperCase();
         const params = [];
@@ -1309,8 +1308,8 @@ router.get('/c3/parent-options', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// GET /api/v1/taxonomy/security-classifications — public, no auth (for editor selects)
-router.get('/security-classifications', async (req, res, next) => {
+// GET /api/v1/taxonomy/security-classifications — authenticated read for editor selects.
+router.get('/security-classifications', requireAuth, async (req, res, next) => {
     try {
         const cacheKey = 'ref_security_classifications';
         const cached = cache.get(cacheKey);
@@ -1326,8 +1325,8 @@ router.get('/security-classifications', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// GET /api/v1/taxonomy/c3 — public read-only listing (for unauthenticated read-only views)
-router.get('/c3', async (req, res, next) => {
+// GET /api/v1/taxonomy/c3 — authenticated read-only listing.
+router.get('/c3', requireAuth, async (req, res, next) => {
     try {
         const search = parseTextFilter(req.query.search);
         const itemStatuses = parseCsvFilter(req.query.item_status, { maxItems: 10 });
@@ -1376,7 +1375,7 @@ router.get('/c3', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3-services/:code', async (req, res, next) => {
+router.get('/c3-services/:code', requireAuth, async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode(req, 'c3-services', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_service_not_found') });
@@ -1384,7 +1383,7 @@ router.get('/c3-services/:code', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3-applications/:code', async (req, res, next) => {
+router.get('/c3-applications/:code', requireAuth, async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode(req, 'c3-application', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_application_not_found') });
@@ -1392,7 +1391,7 @@ router.get('/c3-applications/:code', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3-data-objects/:code', async (req, res, next) => {
+router.get('/c3-data-objects/:code', requireAuth, async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode(req, 'c3-data-objects', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_data_object_not_found') });
@@ -1400,7 +1399,7 @@ router.get('/c3-data-objects/:code', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-router.get('/c3-technology-interactions/:code', async (req, res, next) => {
+router.get('/c3-technology-interactions/:code', requireAuth, async (req, res, next) => {
     try {
         const row = await getC3EntityDetailByCode(req, 'c3-technology-interactions', normalizeCodeParam(req.params.code));
         if (!row) return res.status(404).json({ error: tReq(req, 'taxonomy.errors.c3_technology_interaction_not_found') });

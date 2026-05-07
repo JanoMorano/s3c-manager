@@ -37,33 +37,6 @@ async function selectFirstNonEmpty(root: Page | Locator, label: string | RegExp)
   return candidate;
 }
 
-async function selectOptionByLabel(root: Page | Locator, label: string | RegExp, optionLabel: string | RegExp): Promise<void> {
-  const field = fieldByLabel(root, label);
-  await expect(field).toBeVisible({ timeout: 15_000 });
-  await expect
-    .poll(async () => await field.locator('option').count(), { timeout: 15_000 })
-    .toBeGreaterThan(1);
-
-  const options = await field.locator('option').evaluateAll((nodes) =>
-    nodes.map((node) => ({
-      value: (node as HTMLOptionElement).value,
-      text: node.textContent?.trim() ?? '',
-    })),
-  );
-
-  const matcher =
-    optionLabel instanceof RegExp
-      ? (text: string) => optionLabel.test(text)
-      : (text: string) => text.includes(optionLabel);
-
-  const candidate = options.find((option) => option.value && matcher(option.text));
-  if (!candidate) {
-    throw new Error(`No option matching ${String(optionLabel)} available for field ${String(label)}`);
-  }
-
-  await field.selectOption(candidate.value);
-}
-
 async function advanceWizardToCreate(page: Page): Promise<void> {
   for (let i = 0; i < 10; i += 1) {
     const createButton = page.getByRole('button', { name: /vytvořit službu|create service/i });
@@ -92,15 +65,13 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   const suffix = `${Date.now()}`.slice(-8);
   const serviceId = `AUTO${suffix}`;
   const serviceTitle = `[E2E] Max Service ${suffix}`;
-  const flavourTitle = `Enterprise ${suffix}`;
-  const c3Title = `[E2E] Capability ${suffix}`;
-  const c3ExternalId = `AUTO-C3-${suffix}`;
+  const offeringCode = `ENT-${suffix}`;
+  const offeringTitle = `Enterprise ${suffix}`;
 
   await loginWithConfiguredAdmin(page, credentials);
 
-  await page.goto('/management');
-  await expect(page.getByRole('heading', { name: /content admin/i })).toBeVisible({ timeout: 15_000 });
-
+  await page.goto('/services/list');
+  await expect(page.getByRole('heading', { name: /services/i })).toBeVisible({ timeout: 15_000 });
   await page.locator('a[href="/management/new-service"]').first().click();
   await expect(page).toHaveURL(/\/management\/new-service/, { timeout: 15_000 });
 
@@ -116,35 +87,20 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await page.getByRole('button', { name: /save changes/i }).click();
   await expect(page.getByText(/saved/i)).toBeVisible({ timeout: 15_000 });
 
-  const flavourSection = page.locator('#flavours');
-  await flavourSection.getByRole('button', { name: /\+ add pricing variant/i }).click();
-  await flavourSection.getByPlaceholder('Title *').fill(flavourTitle);
-  await flavourSection.getByPlaceholder('Unit').fill('month');
-  await flavourSection.getByPlaceholder('Price').fill('250');
-  await flavourSection.getByPlaceholder('Currency (e.g. EUR)').fill('EUR');
-  await flavourSection.getByPlaceholder('Billing period').fill('MONTHLY');
-  await flavourSection.getByPlaceholder('Display order').fill('1');
-  await flavourSection.getByPlaceholder('Short note').fill('Primary pricing variant for regression coverage.');
-  await flavourSection.getByPlaceholder('Pricing note (raw)').fill('Standard recurring fee.');
-  await flavourSection.getByPlaceholder('Dependency text').fill('Requires service owner approval.');
-  await flavourSection.locator('label', { hasText: /orderable/i }).locator('input[type="checkbox"]').check();
-  await flavourSection.getByRole('button', { name: /^add$/i }).click();
-  await expect(flavourSection.getByText(flavourTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
+  const offeringsSection = page.locator('#offerings');
+  await offeringsSection.getByRole('button', { name: /\+ add service offering/i }).click();
+  await fillField(offeringsSection, /offering code/i, offeringCode);
+  await fillField(offeringsSection, /^title$/i, offeringTitle);
+  await fillField(offeringsSection, /request channel type/i, 'portal');
+  await fillField(offeringsSection, /request channel url/i, `https://example.test/offering/${serviceId.toLowerCase()}`);
+  await fillField(offeringsSection, /lead time/i, '1 business day');
+  await offeringsSection.locator('label', { hasText: /default offering/i }).locator('input[type="checkbox"]').check();
+  await offeringsSection.locator('label', { hasText: /^requestable$/i }).locator('input[type="checkbox"]').check();
+  await offeringsSection.getByRole('button', { name: /add offering/i }).click();
+  await expect(offeringsSection.getByText(offeringTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
 
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 15_000 });
-
-  const availabilitySection = page.locator('#availability');
-  await availabilitySection.getByRole('button', { name: /\+ add flavour sla override/i }).click();
-  await selectOptionByLabel(availabilitySection, /flavour/i, flavourTitle);
-  await fillField(availabilitySection, /support window/i, '24x7');
-  await fillField(availabilitySection, /availability \(%\)/i, '99.95');
-  await fillField(availabilitySection, /restoration \(h\)/i, '2');
-  await fillField(availabilitySection, /delivery \(d\)/i, '1');
-  await fillField(availabilitySection, /sla note/i, 'Priority support with fast restoration.');
-  await fillField(availabilitySection, /priority model/i, 'P1/P2/P3');
-  await availabilitySection.getByRole('button', { name: /add sla/i }).click();
-  await expect(availabilitySection.getByText(flavourTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
 
   const relationshipsSection = page.locator('#relationships');
   await relationshipsSection.getByRole('button', { name: /\+ add relationship/i }).click();
@@ -153,23 +109,6 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await relationshipsSection.getByRole('button', { name: /add relation/i }).click();
   await expect(relationshipsSection.getByText('Regression dependency', { exact: false })).toBeVisible({ timeout: 15_000 });
   await expect(relationshipsSection.getByRole('link', { name: new RegExp(relationshipTarget.value) })).toBeVisible({ timeout: 15_000 });
-
-  await page.goto('/management/new-c3');
-  await expect(page).toHaveURL(/\/management\/new-c3/, { timeout: 15_000 });
-  await fillField(page, /^title \*$/i, c3Title);
-  await fillField(page, /external id/i, c3ExternalId);
-  await selectFirstNonEmpty(page, /item type/i);
-  const c3StatusField = fieldByLabel(page, /item status/i);
-  await c3StatusField.selectOption('approved').catch(async () => {
-    await selectFirstNonEmpty(page, /item status/i);
-  });
-  await fillField(page, /description/i, 'Capability created during maximal catalogue validation.');
-  await fillField(page, /source description/i, 'Playwright-created source description.');
-  await page.getByRole('button', { name: /create c3 capability/i }).click();
-  await expect(page).toHaveURL(/\/c3\/[^/]+$/, { timeout: 20_000 });
-  const c3Uuid = page.url().split('/c3/')[1]?.split('?')[0] ?? '';
-  expect(c3Uuid).not.toBe('');
-  await expect(page.getByRole('heading', { name: c3Title })).toBeVisible({ timeout: 15_000 });
 
   await page.goto(`/services/${serviceId}/edit`);
   await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 15_000 });
@@ -190,9 +129,9 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await expect(page.getByText('Business view')).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: /governance/i }).click();
   await expect(page.getByRole('heading', { name: /relationships/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('heading', { name: /pricing variants/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: /available offerings/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: /c3 taxonomy mapping/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(flavourTitle, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(offeringTitle, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Capability attached by max-flow validation.', { exact: false }).first()).toBeVisible({ timeout: 15_000 });
 
   await page.goto('/services/list');
@@ -201,8 +140,4 @@ test('max user flow: create service, enrich it, create C3 item, map it, and veri
   await expect(page).toHaveURL(new RegExp(`/services/list\\?[^#]*search=${serviceId}`), { timeout: 15_000 });
   await expect(page.getByText(serviceTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
 
-  await page.goto('/c3/list');
-  const c3Search = page.getByRole('searchbox', { name: /search c3 taxonomy|c3-taxonomie durchsuchen|hledat v c3 taxonomii|prehľadávať c3 taxonómiu/i });
-  await c3Search.fill(c3ExternalId);
-  await expect(page.getByText(c3Title, { exact: false })).toBeVisible({ timeout: 15_000 });
 });

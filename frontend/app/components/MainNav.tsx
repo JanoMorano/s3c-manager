@@ -3,16 +3,8 @@
 import Link from '@/app/components/AppLink';
 import { usePathname } from 'next/navigation';
 import { useInstallStatus } from '@/features/install/installStatus';
-import { usePersonaContext, type Persona } from '@/features/auth/PersonaContext';
 import styles from '../layout.module.css';
 import { C3_ROUTES } from '../lib/c3Routes';
-
-const PERSONA_LABELS: Record<Persona, string> = {
-  consumer: 'Consumer',
-  service_owner: 'Service Owner',
-  capability_manager: 'Capability Manager',
-  admin: 'Admin',
-};
 
 function NavPill({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
@@ -25,7 +17,6 @@ function NavPill({ href, label, active }: { href: string; label: string; active:
 export default function MainNav() {
   const pathname = usePathname() ?? '';
   const { c3Visible } = useInstallStatus();
-  const { persona } = usePersonaContext();
 
   return (
     <div className={styles.navLeft}>
@@ -39,7 +30,6 @@ export default function MainNav() {
       )}
       <NavPill href="/operations" label="Operations" active={pathname.startsWith('/operations')} />
       <NavPill href="/administration" label="Administration" active={pathname.startsWith('/administration')} />
-      <span className={styles.navDropdownTrigger} aria-label="Current persona">Mode: {PERSONA_LABELS[persona]}</span>
     </div>
   );
 }

@@ -40,11 +40,11 @@ test('buildDemoServices keeps Czech demo copy as the fallback locale', () => {
 test('demo service portfolio covers lifecycle and readiness states', () => {
     const services = buildDemoServices('en');
     const statuses = new Set(services.map((service) => service.service_status_code));
-    const lifecycleStages = new Set(services.map((service) => service.lifecycle_stage_code));
+    const lifecycleStates = new Set(services.map((service) => service.lifecycle_state));
     const portfolios = new Set(services.map((service) => service.portfolio_group_code));
 
     expect([...statuses]).toEqual(expect.arrayContaining(['active', 'planned', 'draft', 'deprecated', 'retired']));
-    expect([...lifecycleStages]).toEqual(expect.arrayContaining(['active', 'design', 'retiring', 'retired']));
+    expect([...lifecycleStates]).toEqual(expect.arrayContaining(['draft', 'live', 'deprecated', 'retired']));
     expect(portfolios.size).toBeGreaterThanOrEqual(2);
     expect(services.filter((service) => service.requestable).length).toBeGreaterThanOrEqual(5);
     expect(services.some((service) => service.service_id === 'DEMO-RPA-004')).toBe(true);

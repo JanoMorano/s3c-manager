@@ -82,62 +82,6 @@
   line-height: 1.65;
 }
 
-.lifecycleBar {
-  display: flex;
-  gap: 4px;
-  margin: var(--space-4) 0;
-}
-
-.lifecycleHint {
-  margin: calc(var(--space-2) * -1) 0 var(--space-4);
-  color: var(--color-text-muted);
-  font: var(--text-label-sm);
-}
-
-.lifecycleStep {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  padding: 7px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-subtle);
-  color: var(--color-text-muted);
-  font: var(--text-label-sm);
-  font-weight: 700;
-  text-align: center;
-}
-
-.lifecycleStepDone {
-  background: color-mix(in srgb, var(--color-success) 12%, var(--color-bg-surface));
-  color: var(--color-success);
-}
-
-.lifecycleStepNow {
-  background: var(--color-info);
-  color: var(--color-bg-surface);
-}
-
-.lifecycleStepNow::after {
-  content: "";
-  position: absolute;
-  bottom: -7px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid var(--color-info);
-}
-
-.lifecycleStepDeprecated {
-  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg-surface));
-  color: var(--color-warning);
-}
-
-.lifecycleStepRetired {
-  color: var(--color-text-muted);
-  text-decoration: line-through;
-}
-
 .questionGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1483,13 +1427,20 @@
   margin-bottom: var(--space-2);
 }
 
+.railHint {
+  margin-bottom: var(--space-3);
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.45;
+}
+
 .railItems { display: flex; flex-direction: column; gap: var(--space-3); }
 
 .quickLinks { display: flex; flex-direction: column; gap: var(--space-2); }
 .quickLinks a { font: var(--text-body-sm); color: var(--color-info); text-decoration: none; }
 .quickLinks a:hover { text-decoration: underline; }
 
-/* ── Pricing Variants ─────────────────��────────────────────────────────��─── */
+/* ── Legacy Variant Evidence ─────────────────��────────────────────────────────��─── */
 .flavourTable { display: flex; flex-direction: column; }
 
 .flavourHeader, .flavourRow {
@@ -1546,10 +1497,6 @@
 .scoreFixLink:hover { text-decoration: underline; }
 
 /* ── Inline status edit ──────────────────────────────────────────────────── */
-.inlineStatusBtn    { background: none; border: none; cursor: pointer; padding: 0; border-radius: var(--radius-sm); }
-.inlineStatusBtn:hover { opacity: .8; }
-.inlineStatusSelect { font: var(--text-label-md); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); background: var(--color-bg-surface); cursor: pointer; color: var(--color-text-primary); }
-
 /* ── Relation badges ───────────────────────────────────────────────────��─── */
 .relBadgeDanger { font: var(--text-label-sm); color: var(--color-danger); white-space: nowrap; }
 .relNote        { cursor: help; color: var(--color-text-muted); }
@@ -1557,7 +1504,7 @@
 /* ── SLA text block ──────────────────────────────────────────────────────── */
 .slaTextBlock { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border-default); display: flex; flex-direction: column; gap: var(--space-2); }
 
-/* ── Flavour extended ────────────────────────��───────────────────────────── */
+/* ── Legacy Variant Evidence extended ────────────────────────��───────────────────────────── */
 .flavourHeaderExt, .flavourRowExt {
   display: grid;
   grid-template-columns: 2fr 90px 100px 100px 100px 90px 90px 80px;
@@ -1645,6 +1592,8 @@
 .c3MappingRowPrimary   { background: var(--color-bg-subtle); }
 .c3ItemTitle           { display: flex; flex-direction: column; gap: 2px; }
 .c3PrimaryBadge        { color: var(--color-info); font-size: 10px; margin-right: 4px; }
+.c3ItemLink            { color: var(--color-info); text-decoration: none; font-weight: 600; }
+.c3ItemLink:hover      { text-decoration: underline; }
 .c3ItemCode            { font: var(--text-mono-sm); color: var(--color-text-muted); }
 .c3ItemTypeBadge       { display: inline-block; font: var(--text-label-sm); font-size: 11px; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--color-bg-subtle); border: 1px solid var(--color-border-default); color: var(--color-text-secondary); cursor: help; }
 .c3MappingTypeBadge    { display: inline-block; font: var(--text-label-sm); font-size: 11px; padding: 1px 8px; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--color-info) 10%, transparent); color: var(--color-info); border: 1px solid var(--color-info); }
@@ -1685,8 +1634,6 @@
   .relationshipPanel,
   .studioFactsPanel { grid-column: auto; grid-row: auto; }
   .questionGrid     { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lifecycleBar     { flex-wrap: wrap; }
-  .lifecycleStep    { flex: 1 1 30%; }
   .relationshipMap  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .relationshipMap::before { display: none; }
   .mapNodePrimary,
@@ -1716,7 +1663,6 @@
   .questionGrid,
   .relationshipMap,
   .summaryMiniRow { grid-template-columns: 1fr; }
-  .lifecycleStep { flex-basis: 100%; }
   .studioTask { grid-template-columns: 18px minmax(0, 1fr); }
   .studioTask em { grid-column: 2; }
   .header, .hero, .summaryStrip, .viewNav, .body { padding-left: var(--space-4); padding-right: var(--space-4); }

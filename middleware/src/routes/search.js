@@ -317,7 +317,7 @@ router.get('/global', async (req, res, next) => {
                         NULL AS description,
                         CONCAT('L', b.level, ' · ', b.domain_code) AS subtitle,
                         b.state AS status,
-                        CONCAT('/admin/c3-capability-builder?search=', b.page_id) AS href
+                        CONCAT('/administration/c3-capability-builder?search=', b.page_id) AS href
                     FROM data.v_c3capabilitybuilderlist b
                     WHERE
                         b.page_id ILIKE $1

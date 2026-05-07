@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>11 API - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">11 · API</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link active" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">11 API</p>
+        <h1>API parametry a integrační scénáře</h1>
+        <p class="lead">API S3C Manageru je REST JSON rozhraní pod prefixem <code>/api/v1</code>. Slouží pro integrace s ITSM, CMDB, EA repository, Backstage, importními pipeline, reportingem a auditními exporty.</p>
+      </section>
+
+      <h2>Teoretický význam API</h2>
+      <p>
+        API je smlouva mezi S3C Managerem a okolními systémy. V enterprise prostředí by API nemělo jen “nějak vracet data”. Musí držet stabilní identifikátory, role, audit, importní dry-run, exportní manifesty a jasné chování při chybách. Externí ITSM může řešit ticketing, CMDB může řešit CI/asset evidence a EA repository může držet modely; S3C Manager přes API poskytuje governance kontext služby, capability a C3 vazeb.
+      </p>
+      <div class="itil-note">
+        <strong>Procesní vazba:</strong> API podporuje ITIL integration mezi service catalogue, ITSM, CMDB a knowledge managementem. TOGAF/ArchiMate integrace využívá capability, application, data a technology vrstvy. Backstage export je vhodný pro developer portal, ale S3C zůstává governance cockpitem.
+      </div>
+
+      <h2>Obrazovky a dokumentační místa</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Export manifest<br><code>/img/help-cs/api-01-export-manifest.png</code></div></div><figcaption>Manifest popisuje dostupné exportní kontrakty bez staré route metadata kompatibility.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Integration flow<br><code>/img/help-cs/api-02-integration-flow.png</code></div></div><figcaption>Schéma napojení ITSM, CMDB, EA repository, Backstage a reporting pipeline.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Import dry-run API<br><code>/img/help-cs/api-03-import-dryrun.png</code></div></div><figcaption>Server-side dry-run jako povinná kontrola před automatizovaným commitem.</figcaption></figure>
+      </div>
+
+      <h2>Obecná pravidla API</h2>
+      <table class="field-table">
+        <thead><tr><th>Pravidlo</th><th>Popis</th><th>Dopad pro integraci</th><th>Chyba, které se vyhnout</th></tr></thead>
+        <tbody>
+          <tr><td>Base path</td><td>Všechny aplikační endpointy jsou pod <code>/api/v1</code>.</td><td>Reverse proxy musí propouštět prefix a cookies/headers.</td><td>Volat frontend route místo API route.</td></tr>
+          <tr><td>Auth</td><td>Local login, SSO a session/token model podle runtime.</td><td>Zápisy vyžadují přihlášení a roli.</td><td>Použít osobní admin účet pro automatizaci.</td></tr>
+          <tr><td>Role</td><td>viewer čte, editor zapisuje katalog/import, admin spravuje systém.</td><td>Integrace má mít minimální nutnou roli.</td><td>Dát admin token pipeline, která jen čte export.</td></tr>
+          <tr><td>Content-Type</td><td><code>application/json</code>, <code>text/csv</code>, <code>application/xml</code> podle endpointu.</td><td>Server parser se řídí typem obsahu.</td><td>Poslat CSV jako JSON.</td></tr>
+          <tr><td>Dry-run</td><td>Importní dry-run vrací report bez zápisu.</td><td>Automatizace má nejdřív validovat, až pak commitovat.</td><td>Commitovat neověřený soubor.</td></tr>
+          <tr><td>Stable IDs</td><td><code>service_id</code>, C3 <code>uuid</code>, external_id.</td><td>Upsert, graph, mapping a audit.</td><td>Přegenerovat ID při každém exportu.</td></tr>
+          <tr><td>Pagination</td><td><code>limit</code>, <code>offset</code>, případně <code>page</code>.</td><td>Velké katalogy se nečtou najednou.</td><td>Stahovat vše bez limitu v UI interakci.</td></tr>
+          <tr><td>Error handling</td><td>HTTP 4xx pro validaci/auth, 5xx pro server.</td><td>Integrace má ukládat response body a correlation kontext.</td><td>Ignorovat warnings v import issue.</td></tr>
+          <tr><td>Audit</td><td>Zápisy se mají projevit v audit logu nebo domain audit tabulkách.</td><td>Traceability pro governance a bezpečnost.</td><td>Obcházet API přímým DB zápisem.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Auth, session a preference</h2>
+      <table class="field-table">
+        <thead><tr><th>Endpoint</th><th>Metoda</th><th>Parametry / body</th><th>Výsledek</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>/auth/modes</code></td><td>GET</td><td>bez parametrů</td><td>Povolené způsoby přihlášení.</td><td>public</td></tr>
+          <tr><td><code>/auth/login</code></td><td>POST</td><td><code>username</code>, <code>password</code></td><td>Local login, session/token.</td><td>public</td></tr>
+          <tr><td><code>/auth/sso</code></td><td>GET</td><td>trusted headers z proxy</td><td>SSO login nebo redirect.</td><td>public přes proxy</td></tr>
+          <tr><td><code>/auth/me</code></td><td>GET</td><td>session/token</td><td>Aktuální uživatel, role, profil.</td><td>auth</td></tr>
+          <tr><td><code>/auth/me</code></td><td>PATCH</td><td><code>display_name</code>, <code>email</code>, <code>given_name</code>, <code>surname</code>, <code>department</code>, <code>phone</code></td><td>Upravený profil.</td><td>auth</td></tr>
+          <tr><td><code>/auth/change-password</code></td><td>POST</td><td><code>current_password</code>, <code>new_password</code></td><td>Změna lokálního hesla.</td><td>auth/local</td></tr>
+          <tr><td><code>/auth/logout</code></td><td>POST</td><td>session/token</td><td>Odhlášení.</td><td>auth</td></tr>
+          <tr><td><code>/auth/preferences</code></td><td>PUT</td><td><code>preferred_lang</code>, <code>preferred_theme</code>.</td><td>Jazyk a téma uložené přímo u uživatele.</td><td>auth</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Services API</h2>
+      <table class="field-table">
+        <thead><tr><th>Endpoint</th><th>Metoda</th><th>Parametry / body</th><th>Výsledek</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>/services</code></td><td>GET</td><td><code>q</code>, <code>search</code>, <code>status</code>, <code>service_type</code>, <code>portfolio_code</code>, <code>lifecycle_stage_code</code>, <code>criticality_code</code>, <code>review_due</code>, <code>owner</code>, <code>requestable</code>, <code>page</code>, <code>limit</code></td><td>Filtrovaný seznam služeb.</td><td>read</td></tr>
+          <tr><td><code>/services/export/csv</code></td><td>GET</td><td>stejné filtry jako list</td><td>CSV export aktuálního výběru.</td><td>read</td></tr>
+          <tr><td><code>/services/:id</code></td><td>GET</td><td><code>id</code> = service_id nebo interní ID podle implementace</td><td>Detail služby.</td><td>read</td></tr>
+          <tr><td><code>/services/:id/360</code></td><td>GET</td><td><code>id</code></td><td>Agregovaný Service 360 model.</td><td>read</td></tr>
+          <tr><td><code>/services</code></td><td>POST</td><td>service payload: <code>service_id</code>, <code>title</code>, type/status/lifecycle, popisy, owner, SLA, classification.</td><td>Nová služba.</td><td>editor</td></tr>
+          <tr><td><code>/services/:id</code></td><td>PUT/PATCH</td><td>Hlavní pole služby.</td><td>Aktualizovaná služba.</td><td>editor</td></tr>
+          <tr><td><code>/services/:id</code></td><td>DELETE</td><td><code>id</code></td><td>Soft/hard delete podle implementace.</td><td>admin</td></tr>
+          <tr><td><code>/services/:id/offerings</code></td><td>GET/POST/PUT/DELETE</td><td>offering_code, title, description, requestable, approval_required, lead_time, target_audience, support_tier, billing_model, price_reference, is_default, status.</td><td>Service offerings.</td><td>read/editor</td></tr>
+          <tr><td><code>/services/:id/support-model</code></td><td>GET/PUT</td><td>support owner, resolver group, hours, channel, escalation, maintenance.</td><td>Support model.</td><td>read/editor</td></tr>
+          <tr><td><code>/services/:id/audience</code></td><td>GET/PUT</td><td>audience type, business unit, region, eligibility, offering_id.</td><td>Audience policies.</td><td>read/editor</td></tr>
+          <tr><td><code>/services/:id/operational-links</code></td><td>GET/POST/PUT/DELETE</td><td>link_type, title, url, offering_id, sort_order.</td><td>Operational links.</td><td>read/editor</td></tr>
+          <tr><td><code>/services/:id/domains</code></td><td>PUT</td><td>domain codes array</td><td>Dostupnost služby v doménách.</td><td>editor</td></tr>
+          <tr><td><code>/services/:id/roles</code></td><td>GET/PUT</td><td>role assignments.</td><td>Ownership/steward/reviewer vazby.</td><td>read/editor</td></tr>
+          <tr><td><code>/services/:id/sla</code></td><td>GET/POST/DELETE</td><td>SLA override fields.</td><td>SLA záznamy.</td><td>read/editor</td></tr>
+          <tr><td><code>/services/:id/graph</code></td><td>GET</td><td><code>depth</code>, <code>mode</code></td><td>Graf jedné služby.</td><td>read</td></tr>
+          <tr><td><code>/services/:id/impact</code> nebo <code>/impact/services/:id</code></td><td>GET</td><td><code>direction</code>, <code>depth</code></td><td>Dopadová analýza.</td><td>read</td></tr>
+        </tbody>
+      </table>
+
+      <h2>C3, capabilities a taxonomy API</h2>
+      <table class="field-table">
+        <thead><tr><th>Endpoint</th><th>Metoda</th><th>Parametry / body</th><th>Výsledek</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>/taxonomy/c3</code></td><td>GET</td><td><code>q</code>, <code>item_type</code>, <code>status</code>, <code>parent_uuid</code>, <code>limit</code>, <code>offset</code></td><td>C3 taxonomy list.</td><td>read</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid</code></td><td>GET</td><td><code>uuid</code></td><td>C3 detail.</td><td>read</td></tr>
+          <tr><td><code>/taxonomy/c3</code></td><td>POST</td><td>C3 entity payload: uuid/title/item_type/parent/status/source/raw.</td><td>Nová C3 položka.</td><td>admin/editor podle konfigurace</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid</code></td><td>PUT/PATCH</td><td>C3 fields.</td><td>Aktualizovaná C3 položka.</td><td>admin/editor</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid</code></td><td>DELETE</td><td><code>uuid</code></td><td>Smazání/deaktivace C3 položky.</td><td>admin</td></tr>
+          <tr><td><code>/taxonomy/mapping/:serviceId</code></td><td>GET</td><td><code>serviceId</code></td><td>Mapování služby na C3.</td><td>read</td></tr>
+          <tr><td><code>/taxonomy/mapping/:serviceId</code></td><td>PUT</td><td><code>c3_uuid</code>, <code>mapping_type_code</code>, <code>is_primary</code>, <code>mapping_note</code></td><td>Upsert service C3 mappingu.</td><td>editor/admin</td></tr>
+          <tr><td><code>/capabilities/lvl3</code></td><td>GET</td><td>filters podle implementace.</td><td>L3 capability list.</td><td>read</td></tr>
+          <tr><td><code>/capabilities?view=coverage</code></td><td>GET</td><td><code>spiral</code>, <code>domain</code>, <code>lifecycle</code>, <code>owner</code>, <code>readiness</code></td><td>Coverage matrix.</td><td>read</td></tr>
+          <tr><td><code>/capabilities?view=gaps</code></td><td>GET</td><td>spiral/domain/owner/readiness filters.</td><td>Capability gaps.</td><td>read</td></tr>
+          <tr><td><code>/capabilities?view=overlaps</code></td><td>GET</td><td>spiral/domain/owner filters.</td><td>Capability overlaps.</td><td>read</td></tr>
+          <tr><td><code>/taxonomy/spiral</code></td><td>GET/POST</td><td>spiral code, title, status, active flag.</td><td>FMN spiral reference.</td><td>read/admin</td></tr>
+          <tr><td><code>/taxonomy/spiral/activate/:code</code></td><td>PUT</td><td><code>code</code></td><td>Aktivuje baseline.</td><td>admin</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid/links/app</code></td><td>GET/POST/DELETE</td><td><code>c3_application_id</code>, <code>link_role</code></td><td>Application links.</td><td>read/editor</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid/links/data-object</code></td><td>GET/POST/DELETE</td><td><code>c3_data_object_id</code>, <code>link_role</code></td><td>Data object links.</td><td>read/editor</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid/links/tin</code></td><td>GET/POST/DELETE</td><td><code>c3_tin_id</code>, <code>link_role</code></td><td>TIN links.</td><td>read/editor</td></tr>
+          <tr><td><code>/taxonomy/c3/:uuid/links/c3-service</code></td><td>GET/POST/DELETE</td><td><code>c3_service_id</code>, <code>link_role</code></td><td>C3 service links.</td><td>read/editor</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Graph a impact API</h2>
+      <table class="field-table">
+        <thead><tr><th>Endpoint</th><th>Parametry</th><th>Výsledek</th><th>Používá stránka</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /graph/overview</code></td><td>search/status/portfolio/service_type/relation/domain/compact podle UI.</td><td>Globální service graph.</td><td><code>/services/graph</code></td></tr>
+          <tr><td><code>POST /graph/overview/layout</code></td><td>node positions.</td><td>Uložený layout a audit.</td><td><code>/services/graph</code></td></tr>
+          <tr><td><code>GET /graph/c3-relations</code></td><td><code>search</code>, <code>domain_code</code>, <code>l3_page_id</code>, node type filters.</td><td>C3 graph relations.</td><td><code>/c3/capability-map-spiral7</code></td></tr>
+          <tr><td><code>GET /impact/services/:id</code></td><td><code>direction</code>, <code>depth</code></td><td>Impact paths.</td><td><code>/services/{id}/graph</code></td></tr>
+          <tr><td><code>GET /legacy variant evidences?all=1</code></td><td><code>all=1</code></td><td>Historical variant evidence nodes.</td><td><code>/services/graph</code></td></tr>
+          <tr><td><code>GET /taxonomy/domains</code></td><td>bez nebo filters.</td><td>Domain chips.</td><td><code>/services/graph</code>, C3 mapy.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Governance a readiness API</h2>
+      <table class="field-table">
+        <thead><tr><th>Endpoint</th><th>Metoda</th><th>Parametry / body</th><th>Výsledek</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>/readiness/summary</code></td><td>GET</td><td><code>limit</code>, volitelně <code>service_id</code></td><td>Counts, groups, rules, exceptions.</td><td>read</td></tr>
+          <tr><td><code>/readiness/services/:id</code></td><td>GET</td><td><code>id</code></td><td>Readiness jedné služby.</td><td>read</td></tr>
+          <tr><td><code>/readiness/services/:id/exceptions</code></td><td>POST</td><td><code>rule_key</code>, <code>reason</code>, <code>expires_at</code></td><td>Výjimka pravidla.</td><td>editor/admin</td></tr>
+          <tr><td><code>/readiness/services/:id/exceptions/:ruleKey</code></td><td>DELETE</td><td><code>ruleKey</code></td><td>Zrušení výjimky.</td><td>admin/editor</td></tr>
+          <tr><td><code>/governance/reviews</code></td><td>GET</td><td><code>limit</code>, filters podle implementace.</td><td>Review list.</td><td>read</td></tr>
+          <tr><td><code>/governance/reviews</code></td><td>POST</td><td><code>service_id</code>, <code>review_type</code>, <code>assigned_to</code>, <code>due_at</code></td><td>Nové review.</td><td>editor</td></tr>
+          <tr><td><code>/governance/reviews/:id</code></td><td>PATCH</td><td><code>status</code>, volitelně defer expiry.</td><td>Změna review statusu.</td><td>reviewer/editor</td></tr>
+          <tr><td><code>/governance/decisions</code></td><td>GET</td><td><code>limit</code>, <code>service_id</code>, <code>decision_type</code></td><td>Decision log.</td><td>read</td></tr>
+          <tr><td><code>/governance/decisions</code></td><td>POST</td><td><code>service_id</code>, <code>decision_type</code>, <code>decision</code>, <code>rationale</code>, <code>evidence</code>, <code>defer_expires_at</code></td><td>Nové rozhodnutí.</td><td>reviewer/editor</td></tr>
+          <tr><td><code>/governance/owner-load</code></td><td>GET</td><td><code>owner</code>, <code>limit</code></td><td>Owner load overview/detail.</td><td>read</td></tr>
+          <tr><td><code>/governance/owner-load/assignments</code></td><td>GET</td><td><code>owner</code>, <code>limit</code></td><td>Owner role assignments.</td><td>read</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Import, export a search API</h2>
+      <table class="field-table">
+        <thead><tr><th>Skupina</th><th>Endpoint</th><th>Parametry / body</th><th>Výsledek</th></tr></thead>
+        <tbody>
+          <tr><td>Import profiles</td><td><code>GET /import/profiles</code></td><td>bez</td><td>Seznam profilů/targetů.</td></tr>
+          <tr><td>Import batches</td><td><code>GET /import/batches</code>, <code>/import/batches/:id</code></td><td><code>limit</code>, batch id.</td><td>Governance audit sekce a detail importu.</td></tr>
+          <tr><td>Service CSV import</td><td><code>POST /import/services/csv</code>, <code>/dry-run</code></td><td>text/csv.</td><td>Commit nebo dry-run report.</td></tr>
+          <tr><td>Service JSON import</td><td><code>POST /import/services</code>, <code>/services/dry-run</code></td><td>JSON <code>items</code>, <code>relations</code>.</td><td>Commit nebo dry-run report.</td></tr>
+          <tr><td>C3 CSV/JSON import</td><td><code>POST /taxonomy/{target}/csv</code>, <code>/sync</code>, dry-run varianty.</td><td>CSV/JSON a target.</td><td>C3 import run.</td></tr>
+          <tr><td>ArchiMate XML</td><td><code>POST /taxonomy/c3/{target}/xml-archimate</code></td><td>XML, <code>dry_run=true</code>.</td><td>C3 taxonomy import.</td></tr>
+          <tr><td>Export manifest</td><td><code>GET /export/manifest</code></td><td><code>scope</code>.</td><td>JSON manifest.</td></tr>
+          <tr><td>Export bundle</td><td><code>GET /export/bundle</code></td><td>filters podle implementace.</td><td>Balík dat/export audit.</td></tr>
+          <tr><td>Export Backstage</td><td><code>GET /export/backstage/catalog-info</code></td><td>scope/options.</td><td>Backstage YAML/catalog-info.</td></tr>
+          <tr><td>Search</td><td><code>GET /search/global</code></td><td><code>q</code></td><td>Výsledky služeb, C3 a governance entit.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Admin a reference API</h2>
+      <table class="field-table">
+        <thead><tr><th>Endpoint</th><th>Metoda</th><th>Parametry / body</th><th>Výsledek</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>/admin/users</code></td><td>GET/POST</td><td>user fields.</td><td>List/create users.</td><td>admin</td></tr>
+          <tr><td><code>/admin/users/:id</code></td><td>PUT</td><td>user fields.</td><td>Update user.</td><td>admin</td></tr>
+          <tr><td><code>/admin/groups</code></td><td>GET/POST/DELETE</td><td>group fields.</td><td>Groups.</td><td>admin</td></tr>
+          <tr><td><code>/admin/groups/:id</code></td><td>GET/PUT</td><td>group info.</td><td>Group detail/update.</td><td>admin</td></tr>
+          <tr><td><code>/admin/groups/:id/permissions</code></td><td>PUT</td><td>permissions array/grid.</td><td>Updated permissions.</td><td>admin</td></tr>
+          <tr><td><code>/admin/groups/:id/members</code></td><td>GET/POST/DELETE</td><td>userSub.</td><td>Group members.</td><td>admin</td></tr>
+          <tr><td><code>/admin/web-settings</code></td><td>GET/PUT</td><td>config key/value draft.</td><td>SSO/web settings.</td><td>admin</td></tr>
+          <tr><td><code>/admin/logs</code></td><td>GET</td><td>filters podle implementace.</td><td>Audit logs.</td><td>admin</td></tr>
+          <tr><td><code>/ref/:table</code></td><td>GET/POST/PUT/DELETE</td><td>row fields podle tabulky.</td><td>Reference data CRUD.</td><td>authenticated read/admin write</td></tr>
+          <tr><td><code>/install/status</code>, <code>/install/summary</code>, <code>/install/repair</code>, <code>/install/seed-demo</code></td><td>GET/POST</td><td>podle akce.</td><td>Installation/admin runtime.</td><td>admin/install</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Integrační scénáře</h2>
+      <div class="route-list">
+        <div class="route-item"><strong>ITSM integrace</strong> ITSM může odkazovat na <code>request_channel_url</code>, zakládat externí ticket a ukládat <code>external_ticket_ref</code> v external request logu. S3C drží governance context; ticket execution zůstává v ITSM.</div>
+        <div class="route-item"><strong>CMDB integrace</strong> CMDB může dodávat service metadata, owner kontakty a vztahy. S3C není autodiscovery CMDB, ale umí číst/importovat governance metadata.</div>
+        <div class="route-item"><strong>EA/ArchiMate integrace</strong> ArchiMate XML a C3 taxonomy endpoints propojují business procesy, aplikace, datové objekty, technology services a capability.</div>
+        <div class="route-item"><strong>Backstage</strong> Export <code>/api/v1/export/backstage/catalog-info</code> poskytuje developer portal pohled, ale source of governance truth zůstává v S3C.</div>
+        <div class="route-item"><strong>Reporting/BI</strong> Export manifest, bundle a read-only endpoints slouží pro reporting; zápisové integrace musí používat dry-run a audit.</div>
+      </div>
+
+      <h2>Časté chyby integrací</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Dopad</th><th>Správný postup</th></tr></thead>
+        <tbody>
+          <tr><td>Integrace používá admin účet pro čtení.</td><td>Zbytečně velké riziko při kompromitaci.</td><td>Použít viewer nebo dedikovaný service account s nejmenší rolí.</td></tr>
+          <tr><td>Externí systém mění service_id.</td><td>Upsert založí duplicity.</td><td>Držet service_id jako trvalý business klíč.</td></tr>
+          <tr><td>Import pipeline ignoruje dry-run warnings.</td><td>Readiness a ref data se rozbijí až po commitu.</td><td>V CI/pipeline blokovat critical warnings podle pravidel organizace.</td></tr>
+          <tr><td>API consumer předpokládá, že C3 service = catalogue service.</td><td>Špatné mapování integrace.</td><td>Rozlišit C3 service entity a service_catalog service.</td></tr>
+          <tr><td>Direct DB write.</td><td>Obchází validaci, audit a cache.</td><td>Používat API; DB write jen migračně a s auditním záznamem.</td></tr>
+          <tr><td>Neukládá se response body při chybě.</td><td>Nelze zjistit, které pole selhalo.</td><td>Logovat status, endpoint, request id/correlation a response body.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="chapter-nav">
+        <a href="10-analysis.html">Předchozí: 10 Analýzy</a>
+        <a href="12-abbrevations.html">Další: 12 Zkratky</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

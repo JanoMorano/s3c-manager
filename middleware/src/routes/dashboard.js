@@ -177,11 +177,11 @@ router.get('/inbox', async (req, res, next) => {
                 )
                 UNION ALL
                 SELECT
-                    'pricing-' || service_id AS id,
-                    'pricing_gap' AS type,
+                    'offering-evidence-' || service_id AS id,
+                    'offering_evidence_gap' AS type,
                     title,
-                    'No active pricing flavour exists' AS description,
-                    '/services/' || service_id || '/edit#flavours' AS href,
+                    'No offering or legacy variant evidence exists' AS description,
+                    '/services/' || service_id || '/edit#offerings' AS href,
                     'info' AS severity,
                     updated_at AS created_at
                 FROM owned_services os

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>03 Cockpit - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">03 · Cockpit</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link active" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">03 Cockpit</p>
+        <h1>Hlavní dashboard a osobní pracovní plocha</h1>
+        <p class="lead">Cockpit je první obrazovka pro každodenní práci. Neříká jen “kolik máme služeb”, ale hlavně “co mám dnes opravit, schválit, ověřit nebo eskalovat”.</p>
+      </section>
+
+      <h2>Teoretický význam cockpit pohledu</h2>
+      <p>
+        S3C Manager pracuje s mnoha objekty: služba, offering, SLA, capability, C3 mapping, review, decision, import batch, owner a request. Cockpit z těchto objektů skládá prioritizovaný pracovní přehled. Je to provozní vrstva nad katalogem, ne další katalogová tabulka. Manažer vidí stav portfolia a rizik, service owner vidí svoje služby a blockery, reviewer vidí čekající rozhodnutí a admin vidí problémy kvality dat.
+      </p>
+      <div class="itil-note">
+        <strong>ITIL souvislost:</strong> Cockpit podporuje continual improvement, service validation, service catalogue management a service portfolio management. Jeho smyslem je převést stav evidence na akci: doplnit ownera, vyřešit readiness blocker, provést review, zapsat decision nebo otevřít impact analysis.
+      </div>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Home cockpit<br><code>/img/help-cs/cockpit-01-home.png</code></div></div><figcaption>Hlavní dashboard na <code>/</code> s PageHeaderem, KPI, osobními panely a portfolio signály.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>My Tasks<br><code>/img/help-cs/cockpit-02-my-tasks.png</code></div></div><figcaption>Osobní pracovní plocha na <code>/cockpit/my-tasks</code> s collapsible sekcemi.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Portfolio signals<br><code>/img/help-cs/cockpit-03-signals.png</code></div></div><figcaption>Rozbalená sekce “Další portfolio signály”: decisions, blockers, coverage, impact.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Quick entries<br><code>/img/help-cs/cockpit-04-quick-entries.png</code></div></div><figcaption>Rychlé vstupy do katalogu, seznamu služeb, readiness gate a impact analysis.</figcaption></figure>
+      </div>
+
+      <h2>Hlavní route a rozdíl mezi stránkami</h2>
+      <table class="field-table">
+        <thead><tr><th>Route</th><th>Účel</th><th>Kdo ji používá</th><th>Co zapisuje</th></tr></thead>
+        <tbody>
+          <tr><td><code>/</code></td><td>Výchozí governance cockpit po přihlášení. Ukazuje celkový stav portfolia a moje hlavní fronty.</td><td>Manažer, owner, reviewer, admin, architekt.</td><td>Nic přímo; odkazuje na stránky, kde se provádí oprava nebo rozhodnutí.</td></tr>
+          <tr><td><code>/cockpit/my-tasks</code></td><td>Detailní osobní pracovní plocha. Ukazuje moje reviews, blockery, owned services, decisions a request links.</td><td>Service owner, reviewer, admin.</td><td>Nic přímo; refreshuje data a naviguje na review, service detail nebo readiness.</td></tr>
+          <tr><td><code>/dashboard</code></td><td>Legacy alias.</td><td>Staré odkazy a bookmarky.</td><td>Přesměrovává na provozní/governance pohled, vlastní UI neobsahuje.</td></tr>
+          <tr><td><code>/operations</code></td><td>Operations cockpit pro širší governance řízení.</td><td>Reviewer, governance tým, service delivery manager.</td><td>Rozhodnutí a review se zapisují až v podstránkách operations.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Home cockpit: PageHeader</h2>
+      <p>
+        PageHeader je horní manažerské shrnutí stránky. Nemá nahrazovat KPI karty. Slouží k tomu, aby uživatel hned pochopil, jaký problém stránka řeší a jaké jsou čtyři nejdůležitější signály.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Co ukazuje</th><th>Proč existuje</th><th>Kam vede uživatele</th></tr></thead>
+        <tbody>
+          <tr><td>Title: Přehled řízení</td><td>Název stránky.</td><td>Potvrzuje, že uživatel není v katalogu ani editoru, ale v rozhodovacím cockpit pohledu.</td><td>Bez akce; orientační prvek.</td></tr>
+          <tr><td>Purpose</td><td>“Stav portfolia, rizik a rozhodnutí v jednom pohledu.”</td><td>Vysvětluje stránku manažerovi bez znalosti datového modelu.</td><td>Bez akce; definuje očekávání.</td></tr>
+          <tr><td>Chip Services</td><td>Celkový počet služeb.</td><td>Ukazuje velikost spravovaného portfolia.</td><td><code>/services/list</code> nebo <code>/portfolio</code>.</td></tr>
+          <tr><td>Chip Ready</td><td>Počet služeb připravených k publikaci nebo provoznímu schválení.</td><td>Pomáhá odlišit “existuje v katalogu” od “je governance-ready”.</td><td><code>/operations/readiness</code> a <code>/operations/reviews</code>.</td></tr>
+          <tr><td>Chip Blocked</td><td>Počet služeb blokovaných readiness pravidly.</td><td>Nejrychlejší signál nekvalitních nebo neprovozovatelných záznamů.</td><td>Service editor přes readiness detail.</td></tr>
+          <tr><td>Chip Gaps</td><td>Počet capability gaps.</td><td>Manažerský a architektonický signál, že schopnost není pokrytá službou.</td><td><code>/capabilities?view=gaps</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Home cockpit: KPI karty</h2>
+      <table class="field-table">
+        <thead><tr><th>KPI</th><th>Výpočet / zdroj</th><th>Co znamená</th><th>Co má uživatel udělat</th></tr></thead>
+        <tbody>
+          <tr><td>Services total</td><td><code>summary.total_services</code>, fallback <code>dashboardHeadline.services_count</code>, fallback počet completeness řádků.</td><td>Kolik služeb je v katalogu bez ohledu na kvalitu a lifecycle.</td><td>Otevřít Service list, pokud číslo nesedí s očekáváním portfolia.</td></tr>
+          <tr><td>Ready</td><td><code>summary.services_ready_for_publish</code>, fallback služby s completeness score alespoň 80 %.</td><td>Služby, které mají dost dat pro publikaci, review nebo provozní práci.</td><td>Poslat do review, publikovat nebo použít jako dobrý příklad pro ostatní vlastníky.</td></tr>
+          <tr><td>Blocked</td><td><code>summary.services_blocked_by_readiness</code>, fallback služby se score pod 50 %.</td><td>Služby, které mají blokující chybějící údaje nebo vazby.</td><td>Otevřít Readiness gate, najít blocker a doplnit pole v editoru.</td></tr>
+          <tr><td>Reviews overdue</td><td><code>summary.overdue_reviews</code>.</td><td>Review po termínu. Governance riziko, ne jen administrativní zpoždění.</td><td>Otevřít Reviews, rozhodnout, deferovat s důvodem nebo přeplánovat.</td></tr>
+          <tr><td>Capability gaps</td><td><code>summary.uncovered_capabilities</code>, fallback gaps z operations C3 mapping gap, fallback služby bez C3 mappingu.</td><td>Schopnosti bez služby, bez validovaného mappingu nebo s nedostatečným pokrytím.</td><td>Otevřít gaps, doplnit mapping, založit službu nebo zapsat architektonické rozhodnutí.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Home cockpit: osobní panely</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">01</span><div><h3>My owned services</h3><div class="step-meta"><span>service_role_assignment</span><span>owner load</span><span>attestation</span></div></div></header>
+          <p>Panel ukazuje služby, ke kterým má přihlášený uživatel vlastnickou nebo odpovědnostní vazbu. Není to náhodný seznam oblíbených služeb; je to pracovní fronta pro accountability.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Prvek řádku</th><th>Význam</th><th>Proč ho číst</th><th>Akce</th></tr></thead>
+            <tbody>
+              <tr><td>Title</td><td>Název služby.</td><td>Uživatel rychle pozná, o kterou službu jde.</td><td>Otevře <code>/services/{service_id}</code>.</td></tr>
+              <tr><td>Lifecycle nebo status</td><td><code>lifecycle_stage_code</code>, fallback <code>service_status</code>.</td><td>Owner ví, zda jde o draft, live, deprecated nebo retired službu.</td><td>U nečekaného stavu otevřít editor a zkontrolovat lifecycle.</td></tr>
+              <tr><td>Review date</td><td><code>next_review_due_at</code>.</td><td>Ukazuje, zda je služba blízko review nebo po termínu.</td><td>Naplánovat review nebo doplnit evidence před termínem.</td></tr>
+              <tr><td>Completeness pill</td><td><code>completeness_score</code>.</td><td>Rychlá kontrola kvality záznamu.</td><td>Při nízkém score otevřít editor a sub-nav badge.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">02</span><div><h3>My reviews</h3><div class="step-meta"><span>governance_review.assigned_to</span><span>due date</span><span>review modal</span></div></div></header>
+          <p>Panel ukazuje review přiřazená přihlášenému uživateli. Reviewer nemá procházet celý katalog; má otevřít právě ty služby, které čekají na jeho rozhodnutí.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Prvek řádku</th><th>Význam</th><th>Proč ho použít</th><th>Akce</th></tr></thead>
+            <tbody>
+              <tr><td>Service title</td><td>Služba čekající na review.</td><td>Identifikuje objekt rozhodnutí.</td><td>Otevřít <code>/operations/reviews?service_id=...</code>.</td></tr>
+              <tr><td>Review type</td><td>Typ posouzení: publish, lifecycle, exception, mapping apod.</td><td>Reviewer ví, jaký rámec rozhodnutí použít.</td><td>Podle typu otevřít readiness, Service 360 nebo impact.</td></tr>
+              <tr><td>Status</td><td>Stav review.</td><td>Rozlišuje pending, in progress, approved, rejected, deferred.</td><td>Aktualizovat přes review modal, ne drag-drop.</td></tr>
+              <tr><td>Due date</td><td>Termín review.</td><td>Overdue a due soon se zvýrazňují, protože zvyšují governance riziko.</td><td>Rozhodnout, delegovat nebo deferovat s rationale.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">03</span><div><h3>My blockers</h3><div class="step-meta"><span>readiness</span><span>evidence gaps</span><span>human language</span></div></div></header>
+          <p>Panel ukazuje readiness a evidence problémy vztahující se k uživateli nebo jeho službám. Blocker není “chyba stránky”, ale konkrétní práce, kterou musí owner/editor udělat.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Prvek řádku</th><th>Význam</th><th>Typické hodnoty</th><th>Oprava</th></tr></thead>
+            <tbody>
+              <tr><td>Severity badge</td><td>Závažnost položky.</td><td>danger, warning, info.</td><td>Danger řešit před review/publish, warning doplnit pro kvalitu evidence.</td></tr>
+              <tr><td>Title</td><td>Název blockeru.</td><td>Missing owner, Missing SLA, Missing capability, Missing request channel.</td><td>Otevřít service editor do příslušné sekce.</td></tr>
+              <tr><td>Description</td><td>Lidské vysvětlení problému.</td><td>Co chybí a proč je to riziko.</td><td>Řídit se “how to fix” textem readiness pravidla.</td></tr>
+              <tr><td>Type</td><td>Kategorie inbox položky.</td><td>readiness_blocker, review_due, missing_owner, exception_expiry.</td><td>Otevřít cílovou stránku z <code>href</code>.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">04</span><div><h3>My decisions a external request links</h3><div class="step-meta"><span>decision log</span><span>request_channel_url</span><span>audit</span></div></div></header>
+          <p>Panel spojuje poslední rozhodnutí a externí request odkazy. Pomáhá uživateli pochopit, co už bylo schváleno, odmítnuto, odloženo nebo požadováno.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Prvek</th><th>Význam</th><th>Co ovlivní</th><th>Kam vede</th></tr></thead>
+            <tbody>
+              <tr><td>Decision type</td><td>Typ rozhodnutí: publish, lifecycle, exception, mapping, retirement.</td><td>Auditní rámec rozhodnutí.</td><td><code>/operations/decisions</code> nebo detail služby.</td></tr>
+              <tr><td>Decision</td><td>approved, rejected, deferred, exception.</td><td>Říká, zda služba může pokračovat nebo musí být opravena.</td><td>Při rejected otevřít Service 360 a readiness.</td></tr>
+              <tr><td>External request reference</td><td>Identifikátor interního external request logu.</td><td>Stopa poptávky po službě bez plného ticketingu.</td><td>Detail služby nebo requestable katalog.</td></tr>
+              <tr><td>Status</td><td>Stav requestu.</td><td>Ukazuje, zda request čeká, běží, je splněn nebo zrušen.</td><td>Podle statusu otevřít službu nebo externí request channel.</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+
+      <h2>Další portfolio signály</h2>
+      <table class="field-table">
+        <thead><tr><th>Sekce</th><th>Co zobrazuje</th><th>Datový zdroj</th><th>Proč je důležitá</th></tr></thead>
+        <tbody>
+          <tr><td>Needs decision</td><td>Review a výjimky s governance dopadem.</td><td><code>dashboardInbox.items</code>.</td><td>Rozhodnutí nesmí zůstat schovaná v detailu služby.</td></tr>
+          <tr><td>Operational blockers</td><td>Služby bez ownera, bez SLA nebo bez capability mappingu.</td><td><code>operations.sections.missing_owners</code>, completeness data.</td><td>Ukazuje nejčastější důvody, proč služba není provozně čitelná.</td></tr>
+          <tr><td>Capability coverage</td><td>Gaps, overlaps a stale records.</td><td>Dashboard summary, operations C3 mapping gap, completeness updated_at.</td><td>Pomáhá architektovi a manažerovi řešit pokrytí schopností.</td></tr>
+          <tr><td>Impact / dependency risk</td><td>Počet vazeb, attention služby a deprecated služby.</td><td>Dashboard summary, completeness, service relations.</td><td>Před změnou služby ukazuje, kde hrozí dopad na jiné služby.</td></tr>
+          <tr><td>Recent decisions</td><td>Časová osa posledních decision/inbox/attention signálů.</td><td>Inbox items a completeness items.</td><td>Auditní kontext, co se v poslední době změnilo.</td></tr>
+          <tr><td>Rychlé vstupy</td><td>Katalog služeb, Service list, Readiness gate, Impact analysis.</td><td>Statické navigační odkazy.</td><td>Zkracuje cestu z poznání problému na opravu.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>My Tasks: KPI a ovládání</h2>
+      <p>
+        Stránka <code>/cockpit/my-tasks</code> je detailní osobní fronta. Je užitečná, když uživatel nechce vidět celé portfolio, ale jen to, co se týká jeho osoby, role nebo e-mailu.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Co znamená</th><th>Zdroj</th><th>Akce</th></tr></thead>
+        <tbody>
+          <tr><td>Chip open</td><td>Součet otevřených reviews, blockerů a requestů.</td><td><code>myReviews.length + myBlockers.length + myDecisions.length</code>.</td><td>Pokud je vyšší než 0, projít collapsible sekce shora dolů.</td></tr>
+          <tr><td>Chip owned</td><td>Počet služeb, kde má uživatel aktivní role assignment.</td><td><code>my_owned_services</code>.</td><td>Ověřit review due a readiness vlastněných služeb.</td></tr>
+          <tr><td>Primary action Review board</td><td>Odkaz na review workflow board.</td><td>Statický odkaz <code>/operations/reviews</code>.</td><td>Použít pro hromadné review workflow.</td></tr>
+          <tr><td>KPI My reviews</td><td>Počet review přiřazených uživateli.</td><td><code>my_reviews</code>.</td><td>Rozhodnout pending/overdue review.</td></tr>
+          <tr><td>KPI My blockers</td><td>Počet readiness/evidence blockerů.</td><td><code>my_blockers</code> nebo fallback inbox items.</td><td>Opravit chybějící data v editoru.</td></tr>
+          <tr><td>KPI Owned services</td><td>Počet vlastněných služeb.</td><td><code>service_role_assignment</code> přes dashboard inbox.</td><td>Zkontrolovat attestation a next review.</td></tr>
+          <tr><td>Tlačítko Obnovit</td><td>Znovu načte inbox a request odkazy.</td><td><code>inbox.mutate()</code> a <code>request links.mutate()</code>.</td><td>Použít po rozhodnutí, importu nebo doplnění služby.</td></tr>
+          <tr><td>Naposledy načteno</td><td>Čas zobrazení dat v UI.</td><td>Lokální čas prohlížeče.</td><td>Pomáhá poznat, zda uživatel pracuje s čerstvým pohledem.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>My Tasks: collapsible sekce</h2>
+      <table class="field-table">
+        <thead><tr><th>Sekce</th><th>Řádky obsahují</th><th>Zvýraznění</th><th>Kam kliknutí vede</th></tr></thead>
+        <tbody>
+          <tr><td>Moje reviews</td><td>Review status, service title, service id, review type a due date.</td><td>Overdue je danger, due soon je warning.</td><td><code>/operations/reviews</code>.</td></tr>
+          <tr><td>Readiness blokátory</td><td>Severity, title, description a type.</td><td>Danger pro blocker, warning pro varování, info pro informaci.</td><td><code>item.href</code> nebo <code>/operations</code>.</td></tr>
+          <tr><td>Moje služby (attestation)</td><td>Service title, service id, lifecycle/status a next review due.</td><td>Overdue/due soon podle termínu review.</td><td><code>/services/{service_id}</code>.</td></tr>
+          <tr><td>Poslední rozhodnutí</td><td>Decision badge, service title, service id, decision type a decided_at.</td><td>Approved success, rejected danger, ostatní neutral.</td><td><code>/services/{service_id}</code>.</td></tr>
+          <tr><td>Moje rozhodnutí a blockery</td><td>Request status, service title nebo external request reference, request channel a created_at.</td><td>Neutral badge podle statusu.</td><td>Detail služby nebo <code>/catalogue</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Datové vazby cockpitů</h2>
+      <table class="field-table">
+        <thead><tr><th>API / tabulka</th><th>Použití</th><th>Proč je důležité</th><th>Poznámka</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/stats/dashboard-headline</code></td><td>Headline KPI a fallback services count.</td><td>Rychlé portfolio číslo.</td><td>Read-only.</td></tr>
+          <tr><td><code>GET /api/v1/dashboard/inbox</code></td><td>Inbox items, my owned services, my reviews, my blockers, my decisions.</td><td>Hlavní personalizační zdroj.</td><td>Vázáno na uživatele, e-mail a role assignments.</td></tr>
+          <tr><td><code>GET /api/v1/dashboard/summary</code></td><td>Governance summary: total, ready, blocked, overdue, gaps, overlaps.</td><td>Manažerské KPI.</td><td>Agregovaný governance read model.</td></tr>
+          <tr><td><code>GET /api/v1/services/completeness</code></td><td>Completeness score, SLA, updated_at, C3 mapping a attention items.</td><td>Datová kvalita katalogu.</td><td>Používá se i pro fallbacky.</td></tr>
+          
+          <tr><td><code>GET /api/v1/dashboard/inbox</code></td><td>Moje rozhodnutí a blockery.</td><td>Osobní fronta rozhodnutí, blockerů a review bez ticketingu.</td><td>Request fulfilment běží mimo S3C Manager přes request_channel_url nebo externí ITSM.</td></tr>
+          <tr><td><code>service_role_assignment</code></td><td>Vazba uživatele na službu.</td><td>Personalizace “my owned services”.</td><td>Kvalita závisí na správném e-mailu/display name.</td></tr>
+          <tr><td><code>governance_review.assigned_to</code></td><td>Přiřazená review.</td><td>Personalizace reviewer fronty.</td><td>Reviewer musí mít konzistentní účet/e-mail.</td></tr>
+          <tr><td><code>governance_decision</code></td><td>Poslední rozhodnutí a auditní stopa.</td><td>Manažer vidí, proč byl stav schválen nebo odložen.</td><td>Rozhodnutí se nemají mazat bez auditního procesu.</td></tr>
+          <tr><td><code>service_c3_mapping</code></td><td>Capability gaps a coverage signály.</td><td>Bez mappingu nejde řídit capability pokrytí.</td><td>Oprava se dělá v service editoru nebo C3 workspace.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Jak cockpit používat podle role</h2>
+      <table class="field-table">
+        <thead><tr><th>Role</th><th>Co kontroluje jako první</th><th>Jaký je dobrý denní postup</th><th>Nejčastější chyba</th></tr></thead>
+        <tbody>
+          <tr><td>Manažer</td><td>Blocked, Reviews overdue, Capability gaps, Recent decisions.</td><td>Nejprve zjistit, zda existuje riziko pro publikaci/provoz, potom otevřít detail služby nebo portfolio.</td><td>Brát total services jako úspěch; důležitější je ready vs blocked.</td></tr>
+          <tr><td>Service owner</td><td>My owned services, My blockers, review date.</td><td>Opravit svoje blockery, doplnit support/offering/SLA, požádat o review.</td><td>Čekat na admina, i když blocker je v jeho vlastní službě.</td></tr>
+          <tr><td>Reviewer</td><td>My reviews, overdue/due soon, pre-flight readiness.</td><td>Otevřít review board, posoudit readiness, zapsat rationale a decision.</td><td>Měnit status bez rationale nebo bez kontroly dopadu.</td></tr>
+          <tr><td>Admin</td><td>Missing owners, data gaps, ownership a queue problémy.</td><td>Opravit role, uživatele, reference data, importy a systémové vazby.</td><td>Opravovat jednotlivé služby ručně, když problém je v referenčních datech.</td></tr>
+          <tr><td>Architekt</td><td>Capability gaps, overlaps, impact/dependency risk.</td><td>Otevřít coverage/gaps, zkontrolovat C3 mapping a navrhnout konsolidaci nebo novou službu.</td><td>Mapovat capability jen formálně bez rozlišení primary/supporting/enabling.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Provozní scénáře</h2>
+      <div class="callout-grid">
+        <article class="callout-card">
+          <h3>Ráno service ownera</h3>
+          <p>Otevře <code>/</code>, zkontroluje My blockers a My owned services. Pokud služba ukazuje missing SLA nebo missing support, jde do editoru a doplní konkrétní sekci.</p>
+        </article>
+        <article class="callout-card">
+          <h3>Review před publikací</h3>
+          <p>Reviewer otevře My reviews, přejde do review boardu, nechá načíst pre-flight readiness a rozhodne approve/reject/defer s rationale.</p>
+        </article>
+        <article class="callout-card">
+          <h3>Manažerský reporting</h3>
+          <p>Manažer sleduje Blocked, Reviews overdue, Capability gaps a Recent decisions. Nepotřebuje znát pole v DB, ale musí vědět, kdo má další krok.</p>
+        </article>
+        <article class="callout-card">
+          <h3>Architektonická mezera</h3>
+          <p>Capability gaps ukáže nepokrytou schopnost. Architekt otevře gaps, najde capability, zkontroluje C3 detail a rozhodne, zda doplnit mapping nebo založit službu.</p>
+        </article>
+      </div>
+
+      <h2>Rizika špatného čtení cockpit signálů</h2>
+      <table class="field-table">
+        <thead><tr><th>Riziko</th><th>Proč vadí</th><th>Správný výklad</th></tr></thead>
+        <tbody>
+          <tr><td>Vysoký počet služeb je považován za úspěch.</td><td>Počet neříká nic o kvalitě, ownerovi, readiness ani vazbách.</td><td>Porovnávat total s ready, blocked, overdue a gaps.</td></tr>
+          <tr><td>Blocked je brán jako technická chyba.</td><td>Blocker je governance signál, že chybí rozhodující údaj nebo vazba.</td><td>Otevřít readiness detail a opravit pole v editoru.</td></tr>
+          <tr><td>Capability gap se ignoruje, protože služba funguje.</td><td>Služba může technicky běžet, ale capability řízení nevidí pokrytí.</td><td>Doplnit C3/capability mapping nebo zapsat rozhodnutí o nepokrytí.</td></tr>
+          <tr><td>Review overdue se jen odloží bez rationale.</td><td>Audit později neuvidí, proč riziko trvalo.</td><td>Použít defer/exception s důvodem a expirací.</td></tr>
+          <tr><td>My Tasks je prázdné, ale role nejsou nastavené.</td><td>Uživatel může mít práci, ale systém ji neumí personalizovat.</td><td>Zkontrolovat role assignments, e-mail a governance reviewer assignment.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Vazby na další kapitoly</h2>
+      <div class="route-list">
+        <div class="route-item"><strong>Kapitola 04 Služby</strong> Popisuje, jak opravit konkrétní blocker v service editoru.</div>
+        <div class="route-item"><strong>Kapitola 05 Capabilities a C3</strong> Vysvětluje, co znamenají capability gaps, overlaps a C3 mapping.</div>
+        <div class="route-item"><strong>Kapitola 06 Governance</strong> Vysvětluje readiness gate, reviews, decisions, owner load a readiness and governance signals.</div>
+        <div class="route-item"><strong>Kapitola 10 Analýzy</strong> Vysvětluje impact analysis, grafy, dependency flow a diagnostiku chybějících vazeb.</div>
+      </div>
+
+      <div class="chapter-nav">
+        <a href="02-welcome.html">Předchozí: 02 Podstata aplikace</a>
+        <a href="04-services.html">Další: 04 Služby</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

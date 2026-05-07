@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S3C Manager - Help rozcestník</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">Český manuál · statické HTML · screenshot sloty připravené</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link active" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">Struktura je ručně udržovaná. Screenshoty patří do <code>docs/help-cs/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">Help rozcestník</p>
+        <h1>S3C Manager - uživatelský a administrátorský manuál</h1>
+        <p class="lead">
+          Manuál je rozdělený do 12 samostatných kapitol. Každá kapitola vysvětluje, k čemu daná část aplikace slouží, co je na obrazovce vidět, jaké má uživatel možnosti, která pole co znamenají a jaké vazby stránka vytváří na služby, C3, governance, databázi, API nebo externí systémy.
+        </p>
+      </section>
+
+      <h2>Jak s manuálem pracovat</h2>
+      <div class="index-toolbar">
+        <section class="index-panel">
+          <h3>Nejrychlejší cesta</h3>
+          <p>
+            Pokud aplikaci vidíte poprvé, začněte podstatou aplikace a potom přejděte do kapitoly podle své role. Každá stránka manuálu má stejný rytmus: účel obrazovky, screenshot slot, pole a volby, vazby na jiné části aplikace, dopad na data a doporučený postup.
+          </p>
+          <div class="index-actions">
+            <a class="index-action" href="02-welcome.html">Začít přehledem aplikace</a>
+            <a class="index-action" href="01-install.html">Instalovat novou instanci</a>
+            <a class="index-action" href="04-services.html">Spravovat službu</a>
+            <a class="index-action" href="11-api.html">Napojit API</a>
+          </div>
+        </section>
+        <section class="index-panel">
+          <h3>Pravidlo screenshotů</h3>
+          <p>
+            Screenshot sloty jsou připravené už teď. Stačí nahrát PNG do <code>docs/help-cs/img</code> pod názvem uvedeným v popisku. Text kapitoly zůstává ručně psaný, aby se po UI změně nepřepsala vysvětlení polí a vazeb.
+          </p>
+        </section>
+      </div>
+
+      <h2>Vyberte si roli</h2>
+      <div class="role-path-grid">
+        <article class="role-card">
+          <h3>Administrátor instance</h3>
+          <p>Řeší instalaci, uživatele, role, SSO, referenční data, importy, API přístupy, repair a provozní nastavení.</p>
+          <div class="role-links">
+            <a href="01-install.html">01 Instalace</a>
+            <a href="08-admin.html">08 Administrace</a>
+            <a href="11-api.html">11 API</a>
+            <a href="12-abbrevations.html">12 Zkratky</a>
+          </div>
+        </article>
+        <article class="role-card">
+          <h3>Service owner</h3>
+          <p>Spravuje kartu služby, nabídky, readiness, lifecycle, odpovědnosti, review a dopady změn na konzumenty.</p>
+          <div class="role-links">
+            <a href="03-cocpit.html">03 Cockpit</a>
+            <a href="04-services.html">04 Služby</a>
+            <a href="06-governance.html">06 Governance</a>
+            <a href="10-analysis.html">10 Analýzy</a>
+          </div>
+        </article>
+        <article class="role-card">
+          <h3>Architekt / capability manager</h3>
+          <p>Mapuje capability, C3 prvky, FMN spirals, aplikace, datové objekty, integrace a vazby mezi službami.</p>
+          <div class="role-links">
+            <a href="05-capabilities_c3.html">05 Capabilities a C3</a>
+            <a href="07-import.html">07 Import</a>
+            <a href="10-analysis.html">10 Analýzy</a>
+            <a href="11-api.html">11 API</a>
+          </div>
+        </article>
+        <article class="role-card">
+          <h3>Reviewer / manažer</h3>
+          <p>Sleduje fronty, rozhodnutí, blokery, rizika, výjimky, provozní připravenost a srozumitelný dopad změn.</p>
+          <div class="role-links">
+            <a href="03-cocpit.html">03 Cockpit</a>
+            <a href="06-governance.html">06 Governance</a>
+            <a href="10-analysis.html">10 Analýzy</a>
+            <a href="02-welcome.html">02 Podstata</a>
+          </div>
+        </article>
+      </div>
+
+      <figure class="screen-slot">
+        <div>Screenshot: úvodní rozcestník manuálu nebo hlavní aplikace<br><code>/img/help-cs/help-index.png</code></div>
+        <figcaption>Sem vložte screenshot rozcestníku nebo hlavního S3C Manager cockpit pohledu.</figcaption>
+      </figure>
+
+      <h2>Kapitoly manuálu</h2>
+      <div class="manual-entry-grid">
+        <a class="manual-entry-card" href="01-install.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">01</span><span><strong class="manual-entry-title">Instalace</strong><span class="manual-entry-subtitle">/install, /administration/installation</span></span></span>
+          <p>Hardware, runtime, Docker, knihovny, setup token, 12 kroků instalačního wizardu, admin bootstrap, moduly, import a repair.</p>
+          <span class="manual-entry-footer"><span>admin</span><span>bootstrap</span><span>bezpečnost</span></span>
+        </a>
+        <a class="manual-entry-card" href="02-welcome.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">02</span><span><strong class="manual-entry-title">Podstata aplikace</strong><span class="manual-entry-subtitle">účel a alternativy</span></span></span>
+          <p>K čemu S3C Manager slouží a kde leží mezi ITSM, EA, CMDB, service catalogue a governance nástroji.</p>
+          <span class="manual-entry-footer"><span>ITIL</span><span>TOGAF</span><span>portfolio</span></span>
+        </a>
+        <a class="manual-entry-card" href="03-cocpit.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">03</span><span><strong class="manual-entry-title">Cockpit</strong><span class="manual-entry-subtitle">/, /cockpit/my-tasks</span></span></span>
+          <p>Hlavní dashboard, moje úkoly, KPI, blokery, review fronty a další kroky pro jednotlivé role.</p>
+          <span class="manual-entry-footer"><span>dashboard</span><span>fronty</span><span>KPI</span></span>
+        </a>
+        <a class="manual-entry-card" href="04-services.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">04</span><span><strong class="manual-entry-title">Služby</strong><span class="manual-entry-subtitle">/catalogue, /services/*</span></span></span>
+          <p>Katalog služeb, Service list, Service 360, editor, portfolio, request flow, grafy a impact analysis.</p>
+          <span class="manual-entry-footer"><span>service owner</span><span>readiness</span><span>lifecycle</span></span>
+        </a>
+        <a class="manual-entry-card" href="05-capabilities_c3.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">05</span><span><strong class="manual-entry-title">Capabilities a C3</strong><span class="manual-entry-subtitle">/capabilities, /c3/*</span></span></span>
+          <p>Capability map, C3 workspace, vazby na aplikace, datové objekty, C3 services, TINs a FMN spirals.</p>
+          <span class="manual-entry-footer"><span>FMN</span><span>C3</span><span>coverage</span></span>
+        </a>
+        <a class="manual-entry-card" href="06-governance.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">06</span><span><strong class="manual-entry-title">Governance</strong><span class="manual-entry-subtitle">/operations/*</span></span></span>
+          <p>Operations cockpit, readiness, reviews, decision log, readiness and governance signals, owner load a provozní odpovědnosti.</p>
+          <span class="manual-entry-footer"><span>review</span><span>decision</span><span>risk</span></span>
+        </a>
+        <a class="manual-entry-card" href="07-import.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">07</span><span><strong class="manual-entry-title">Import</strong><span class="manual-entry-subtitle">/import, /administration/import</span></span></span>
+          <p>CSV, JSON, XLSX, ArchiMate XML, dry-run, sloupce, validační pravidla a importní audit.</p>
+          <span class="manual-entry-footer"><span>data</span><span>dry-run</span><span>audit</span></span>
+        </a>
+        <a class="manual-entry-card" href="08-admin.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">08</span><span><strong class="manual-entry-title">Administrace</strong><span class="manual-entry-subtitle">/administration/*</span></span></span>
+          <p>Users, groups, SSO, logs, reference data, capability builder, klasifikace, import a installation panel.</p>
+          <span class="manual-entry-footer"><span>RBAC</span><span>SSO</span><span>reference data</span></span>
+        </a>
+        <a class="manual-entry-card" href="09-user.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">09</span><span><strong class="manual-entry-title">Uživatel</strong><span class="manual-entry-subtitle">profil a preference</span></span></span>
+          <p>User menu, profil, jazyk, preference, heslo, role a vliv role na viditelnost a akce.</p>
+          <span class="manual-entry-footer"><span>profile</span><span>preference</span><span>role</span></span>
+        </a>
+        <a class="manual-entry-card" href="10-analysis.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">10</span><span><strong class="manual-entry-title">Analýzy</strong><span class="manual-entry-subtitle">grafy, workflow board, dopady</span></span></span>
+          <p>Jak číst grafy, workflow board, readiness diagnostiku, capability gaps, chybějící TIN a dopady změn.</p>
+          <span class="manual-entry-footer"><span>impact</span><span>graph</span><span>diagnostika</span></span>
+        </a>
+        <a class="manual-entry-card" href="11-api.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">11</span><span><strong class="manual-entry-title">API</strong><span class="manual-entry-subtitle">/api/v1/*</span></span></span>
+          <p>API skupiny, parametry, autentizace, role, import/export a integrační scénáře pro jiné aplikace.</p>
+          <span class="manual-entry-footer"><span>integrace</span><span>tokeny</span><span>endpointy</span></span>
+        </a>
+        <a class="manual-entry-card" href="12-abbrevations.html">
+          <span class="manual-entry-head"><span class="manual-entry-number">12</span><span><strong class="manual-entry-title">Zkratky</strong><span class="manual-entry-subtitle">slovník pojmů</span></span></span>
+          <p>Slovník zkratek a pojmů používaných v S3C Manageru, ITIL, TOGAF, C3 a FMN.</p>
+          <span class="manual-entry-footer"><span>glosář</span><span>ITIL</span><span>FMN</span></span>
+        </a>
+      </div>
+
+      <h2>Pravidlo pro screenshoty</h2>
+      <p>
+        U každé kapitoly jsou připravené sloty ve tvaru <code>/img/help-cs/&lt;nazev&gt;.png</code>. Po UI změně nahrajte konkrétní screenshot do složky <code>docs/help-cs/img</code> a ponechte název v popisku. Text manuálu se tím nemusí generovat znovu.
+      </p>
+      <div class="chapter-nav">
+        <span></span>
+        <a href="01-install.html">Pokračovat na 01 Instalace</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

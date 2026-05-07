@@ -19,8 +19,6 @@ async function mockImpactAnalysis(page: Page) {
     },
   ]);
 
-  let lastImpactUrl = '';
-
   await page.route('**/api/v1/**', async (route) => {
     const url = route.request().url();
 
@@ -74,7 +72,6 @@ async function mockImpactAnalysis(page: Page) {
     }
 
     if (url.includes('/api/v1/impact/services/SVC-IAM')) {
-      lastImpactUrl = url;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -111,23 +108,10 @@ async function mockImpactAnalysis(page: Page) {
     });
   });
 
-  return {
-    lastImpactUrl: () => lastImpactUrl,
-  };
 }
 
-test('impact analysis page renders impacted services, capabilities, entities, and paths', async ({ page }) => {
-  const tracker = await mockImpactAnalysis(page);
-
+test('legacy impact analysis route redirects to the service list', async ({ page }) => {
+  await mockImpactAnalysis(page);
   await page.goto('/services/impact');
-  await expect(page.getByRole('heading', { name: 'Impact Analysis' })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Identity Access Management/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Employee Portal/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Identity capability/ })).toBeVisible();
-  await expect(page.getByText('Mail Gateway')).toBeVisible();
-  await expect(page.getByText('svc:SVC-IAM -> c3:cap-iam -> app:app-mail')).toBeVisible();
-
-  await page.getByLabel('Direction').selectOption('upstream');
-  await page.getByRole('button', { name: /run analysis/i }).click();
-  await expect.poll(() => tracker.lastImpactUrl()).toContain('direction=upstream');
+  await expect(page).toHaveURL(/\/services\/list/);
 });

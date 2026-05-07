@@ -30,6 +30,18 @@ import type {
 
 const BASE = '/api/v1';
 
+export class ApiError extends Error {
+  status: number;
+  requestId: string | null;
+
+  constructor(message: string, status: number, requestId: string | null) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.requestId = requestId;
+  }
+}
+
 function buildApiRequestInit(extraHeaders: Record<string, string> = {}) {
   return {
     cache: 'no-store' as const,
@@ -39,6 +51,28 @@ function buildApiRequestInit(extraHeaders: Record<string, string> = {}) {
       ...extraHeaders,
     },
   };
+}
+
+async function buildApiError(res: Response): Promise<ApiError> {
+  let message = `API ${res.status}: ${res.statusText || 'Request failed'}`;
+  let payloadRequestId: string | null = null;
+
+  try {
+    const contentType = res.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      const payload = await res.json() as { error?: string; message?: string; request_id?: string };
+      payloadRequestId = payload.request_id ?? null;
+      message = payload.error || payload.message || message;
+    } else {
+      const text = await res.text();
+      if (text) message = `API ${res.status}: ${text}`;
+    }
+  } catch {
+    // Keep the generic status message when the error body is not readable.
+  }
+
+  const requestId = res.headers.get('x-request-id') || payloadRequestId;
+  return new ApiError(requestId ? `${message} (request ${requestId})` : message, res.status, requestId);
 }
 
 // Generic fetcher for SWR — throws on non-OK responses
@@ -57,8 +91,7 @@ export async function apiFetch<T>(url: string): Promise<T> {
     res = await fetch(url, buildApiRequestInit({ 'Cache-Control': 'no-cache' }));
   }
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API ${res.status}: ${text}`);
+    throw await buildApiError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -71,9 +104,12 @@ export interface ListParams {
   search?: string;
   status?: string;       // comma-separated
   type?: string;
+  owner?: string;
   portfolio?: string;
   domain?: string;
   lifecycle?: string;    // comma-separated lifecycle states
+  readiness?: string;
+  reviewDue?: string;
   requestable?: boolean;
   page?: number;
   limit?: number;
@@ -86,9 +122,12 @@ export function buildListUrl(params: ListParams = {}): string {
   if (params.search)               q.set('search',          params.search);
   if (params.status)               q.set('status',          params.status);
   if (params.type)                 q.set('service_type',    params.type);
+  if (params.owner)                q.set('owner',           params.owner);
   if (params.portfolio)            q.set('portfolio_group', params.portfolio);
   if (params.domain)               q.set('domain',          params.domain);
   if (params.lifecycle)            q.set('lifecycle_state', params.lifecycle);
+  if (params.readiness)            q.set('readiness',       params.readiness);
+  if (params.reviewDue)            q.set('review_due',      params.reviewDue);
   if (params.requestable != null)  q.set('requestable',     String(params.requestable));
   if (params.page)                 q.set('page',            String(params.page));
   if (params.limit)                q.set('limit',           String(params.limit));

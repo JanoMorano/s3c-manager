@@ -235,6 +235,7 @@ async function findAllDirect({
     lifecycleStageCode,
     criticalityCode,
     reviewDue,
+    readiness,
     requestable,
     sort = 'title',
     order = 'ASC',
@@ -347,6 +348,53 @@ async function findAllDirect({
     } else if (reviewDue === 'next_90') {
         filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
         filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
+    }
+    if (readiness === 'blocked') {
+        filters.push(`COALESCE(sc.completeness_score, 0) < 50`);
+    } else if (readiness === 'warning') {
+        filters.push(`COALESCE(sc.completeness_score, 0) >= 50`);
+        filters.push(`COALESCE(sc.completeness_score, 0) < 80`);
+    } else if (readiness === 'ready') {
+        filters.push(`COALESCE(sc.completeness_score, 0) >= 80`);
+    } else if (readiness === 'missing_owner') {
+        filters.push(`NOT EXISTS (
+            SELECT 1
+            FROM data.service_role_assignment sra_ready
+            WHERE sra_ready.service_id = sc.id
+              AND sra_ready.role_code = 'service_owner'
+              AND sra_ready.valid_to IS NULL
+        )`);
+    } else if (readiness === 'missing_capability') {
+        filters.push(`NOT EXISTS (
+            SELECT 1
+            FROM data.service_c3_mapping scm_ready
+            WHERE scm_ready.service_id = sc.id
+              AND scm_ready.is_primary = TRUE
+        )`);
+    } else if (readiness === 'missing_request') {
+        filters.push(`(
+            COALESCE(sc.requestable, FALSE) = TRUE
+            OR EXISTS (
+                SELECT 1
+                FROM data.service_offering so_requestable
+                WHERE so_requestable.service_id = sc.id
+                  AND so_requestable.status <> 'deleted'
+                  AND COALESCE(so_requestable.requestable, FALSE) = TRUE
+            )
+        )`);
+        filters.push(`NULLIF(BTRIM(COALESCE(sc.request_channel_type, '')), '') IS NULL`);
+        filters.push(`NULLIF(BTRIM(COALESCE(sc.request_channel_url, '')), '') IS NULL`);
+        filters.push(`NOT EXISTS (
+            SELECT 1
+            FROM data.service_offering so_channel
+            WHERE so_channel.service_id = sc.id
+              AND so_channel.status <> 'deleted'
+              AND COALESCE(so_channel.requestable, FALSE) = TRUE
+              AND (
+                NULLIF(BTRIM(COALESCE(so_channel.request_channel_type, '')), '') IS NOT NULL
+                OR NULLIF(BTRIM(COALESCE(so_channel.request_channel_url, '')), '') IS NOT NULL
+              )
+        )`);
     }
     if (requestable === true || requestable === 'true') {
         filters.push(`sc.requestable = TRUE`);
@@ -552,6 +600,119 @@ async function findAllForExport() {
         ORDER BY sc.portfolio_group_code, sc.service_type_code, sc.title
     `);
     return result.rows;
+}
+
+async function getCatalogQualitySummary() {
+    const result = await getPool().query(`
+        WITH active_services AS (
+            SELECT
+                sc.id,
+                sc.service_id,
+                sc.title,
+                sc.lifecycle_state,
+                sc.service_status_code,
+                sc.requestable,
+                sc.request_channel_type,
+                sc.request_channel_url,
+                COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at
+            FROM data.service_catalog sc
+            WHERE sc.is_deleted = FALSE
+              AND sc.is_stub = FALSE
+        ),
+        service_facts AS (
+            SELECT
+                svc.*,
+                EXISTS (
+                    SELECT 1
+                    FROM data.service_role_assignment sra
+                    WHERE sra.service_id = svc.id
+                      AND sra.role_code = 'service_owner'
+                      AND sra.valid_to IS NULL
+                ) AS has_owner,
+                EXISTS (
+                    SELECT 1
+                    FROM data.service_relation sr
+                    WHERE sr.is_deleted = FALSE
+                      AND (sr.from_service_id = svc.id OR sr.to_service_id = svc.id)
+                ) AS has_relation,
+                EXISTS (
+                    SELECT 1
+                    FROM data.service_c3_mapping scm
+                    WHERE scm.service_id = svc.id
+                      AND scm.is_primary = TRUE
+                ) AS has_primary_capability,
+                EXISTS (
+                    SELECT 1
+                    FROM data.service_offering so
+                    WHERE so.service_id = svc.id
+                      AND so.status <> 'deleted'
+                      AND COALESCE(so.requestable, FALSE) = TRUE
+                      AND (
+                          NULLIF(BTRIM(COALESCE(so.request_channel_type, '')), '') IS NOT NULL
+                          OR NULLIF(BTRIM(COALESCE(so.request_channel_url, '')), '') IS NOT NULL
+                      )
+                ) AS has_offering_request_channel
+            FROM active_services svc
+        ),
+        duplicate_titles AS (
+            SELECT LOWER(BTRIM(title)) AS title_key, MIN(title) AS title, COUNT(*)::integer AS service_count
+            FROM active_services
+            WHERE NULLIF(BTRIM(title), '') IS NOT NULL
+            GROUP BY LOWER(BTRIM(title))
+            HAVING COUNT(*) > 1
+        ),
+        duplicate_examples AS (
+            SELECT title, service_count
+            FROM duplicate_titles
+            ORDER BY service_count DESC, title
+            LIMIT 10
+        )
+        SELECT
+            COUNT(*)::integer AS total_services,
+            COUNT(*) FILTER (WHERE NOT has_owner)::integer AS missing_owner_count,
+            COUNT(*) FILTER (WHERE NOT has_relation)::integer AS missing_relation_count,
+            COUNT(*) FILTER (WHERE NOT has_primary_capability)::integer AS missing_capability_count,
+            COUNT(*) FILTER (
+                WHERE COALESCE(requestable, FALSE) = TRUE
+                  AND NULLIF(BTRIM(COALESCE(request_channel_type, '')), '') IS NULL
+                  AND NULLIF(BTRIM(COALESCE(request_channel_url, '')), '') IS NULL
+                  AND NOT has_offering_request_channel
+            )::integer AS missing_request_channel_count,
+            COUNT(*) FILTER (WHERE review_due_at IS NULL)::integer AS missing_review_date_count,
+            COUNT(*) FILTER (WHERE review_due_at < CURRENT_TIMESTAMP)::integer AS overdue_review_count,
+            COUNT(*) FILTER (
+                WHERE LOWER(COALESCE(lifecycle_state, service_status_code, '')) IN ('deprecated', 'retired')
+            )::integer AS deprecated_or_retired_count,
+            (
+                SELECT COUNT(*)::integer
+                FROM duplicate_titles
+            ) AS duplicate_title_group_count,
+            (
+                SELECT COALESCE(json_agg(json_build_object('title', title, 'count', service_count)), '[]'::json)
+                FROM duplicate_examples
+            ) AS duplicate_title_examples,
+            (
+                SELECT COUNT(*)::integer
+                FROM data.service_relation sr
+                WHERE sr.is_deleted = FALSE
+                  AND COALESCE(sr.is_verified, FALSE) = FALSE
+            ) AS unverified_relation_count
+        FROM service_facts
+    `);
+
+    return result.rows[0] ?? {
+        total_services: 0,
+        missing_owner_count: 0,
+        missing_relation_count: 0,
+        missing_capability_count: 0,
+        missing_request_channel_count: 0,
+        missing_review_date_count: 0,
+        overdue_review_count: 0,
+        deprecated_or_retired_count: 0,
+        duplicate_title_group_count: 0,
+        duplicate_title_examples: [],
+        unverified_relation_count: 0,
+    };
 }
 
 async function setDomains(serviceId, domainCodes) {
@@ -884,6 +1045,7 @@ module.exports = {
     findByServiceId,
     findById,
     findAllForExport,
+    getCatalogQualitySummary,
     create,
     update,
     softDelete,

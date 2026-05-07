@@ -92,13 +92,10 @@ const minimumRules = [
     rule({ rule_key: 'service_has_lifecycle_stage', title: 'Service has lifecycle stage', severity: 'P1', blocking: true }),
     rule({ rule_key: 'service_has_primary_capability_mapping', title: 'Service has primary capability', severity: 'P1', blocking: true }),
     rule({ rule_key: 'service_has_sla', title: 'Service has SLA', severity: 'P1', blocking: true }),
-    rule({ rule_key: 'service_has_dependency_classification', title: 'Service has dependencies', severity: 'P2', blocking: false }),
-    rule({ rule_key: 'service_has_review_date', title: 'Service has review date', severity: 'P2', blocking: false }),
-    rule({ rule_key: 'requestable_service_has_pricing', title: 'Requestable service has pricing', severity: 'P2', blocking: false }),
 ];
 
 describe('readiness rule evaluation', () => {
-    test('returns stable rule results with blockers, warnings, disabled rules, and valid exceptions', () => {
+    test('returns stable core rule results with blockers, disabled rules, and valid exceptions', () => {
         const { evaluateServiceReadinessState } = require('../services/readiness');
 
         const result = evaluateServiceReadinessState(
@@ -141,11 +138,6 @@ describe('readiness rule evaluation', () => {
                 exception: expect.objectContaining({ reason: 'Migration wave approved' }),
             }),
             expect.objectContaining({
-                rule_key: 'service_has_dependency_classification',
-                status: 'failed',
-                blocking: false,
-            }),
-            expect.objectContaining({
                 rule_key: 'disabled_rule',
                 status: 'disabled',
             }),
@@ -153,7 +145,7 @@ describe('readiness rule evaluation', () => {
         expect(result.is_publishable).toBe(false);
         expect(result.blockers).toContain('Service has owner');
         expect(result.blockers).not.toContain('Service has SLA');
-        expect(result.warnings).toContain('Service has dependencies');
+        expect(result.warnings).toEqual([]);
     });
 
     test('treats expired exceptions as failed rules', () => {
@@ -208,7 +200,7 @@ describe('readiness routes', () => {
         expect(repo.getServiceState).toHaveBeenCalledWith('SVC-IAM');
     });
 
-    test('GET /summary groups blockers, warnings, and ready services', async () => {
+    test('GET /summary groups blockers and ready services from core rules', async () => {
         const repo = require('../db/readiness.repo');
         repo.listRules.mockResolvedValue(minimumRules);
         repo.listServiceStates.mockResolvedValue([
@@ -223,12 +215,11 @@ describe('readiness routes', () => {
         expect(response.status).toBe(200);
         expect(response.body.counts).toEqual(expect.objectContaining({
             blockers: 1,
-            warnings: 1,
-            ready: 1,
+            warnings: 0,
+            ready: 2,
         }));
         expect(response.body.groups.blockers[0].service_id).toBe('SVC-BLOCKED');
-        expect(response.body.groups.warnings[0].service_id).toBe('SVC-WARN');
-        expect(response.body.groups.ready[0].service_id).toBe('SVC-READY');
+        expect(response.body.groups.ready.map((item) => item.service_id)).toEqual(['SVC-WARN', 'SVC-READY']);
     });
 
     test('POST /services/:id/exceptions creates and audits a rule exception', async () => {

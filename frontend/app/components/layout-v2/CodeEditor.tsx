@@ -1,7 +1,6 @@
 'use client';
 
-import Editor, { type OnMount } from '@monaco-editor/react';
-import { forwardRef, useEffect, useMemo, useRef, useState, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useMemo, useState, type ChangeEvent, type TextareaHTMLAttributes } from 'react';
 import styles from './CodeEditor.module.css';
 
 interface CodeEditorProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
@@ -9,6 +8,7 @@ interface CodeEditorProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElemen
   language?: string;
   onChange?: TextareaHTMLAttributes<HTMLTextAreaElement>['onChange'];
   onValueChange?: (value: string) => void;
+  // Kept for API compatibility with older call sites; plain textarea has no validation markers.
   onValidate?: (markers: unknown[]) => void;
   height?: string | number;
 }
@@ -19,88 +19,48 @@ const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(function Cod
     language = 'json',
     onChange,
     onValueChange,
-    onValidate,
+    onValidate: _onValidate,
     height,
     value,
     defaultValue,
     rows = 8,
+    style,
     ...props
   },
   ref,
 ) {
   const initialValue = useMemo(() => String(value ?? defaultValue ?? ''), [defaultValue, value]);
   const [editorValue, setEditorValue] = useState(initialValue);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editorHeight = height ?? Math.max(180, Number(rows) * 28);
+  const editorHeightValue = typeof editorHeight === 'number' ? `${editorHeight}px` : editorHeight;
+  void _onValidate;
 
   useEffect(() => {
     if (value == null) return;
     setEditorValue(String(value));
   }, [value]);
 
-  function assignRef(node: HTMLTextAreaElement | null) {
-    textareaRef.current = node;
-    if (typeof ref === 'function') ref(node);
-    else if (ref) ref.current = node;
-  }
-
-  function emitChange(nextValue: string) {
+  function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
+    const nextValue = event.target.value;
     setEditorValue(nextValue);
-    if (textareaRef.current) textareaRef.current.value = nextValue;
     onValueChange?.(nextValue);
-    if (onChange && textareaRef.current) {
-      onChange({
-        target: textareaRef.current,
-        currentTarget: textareaRef.current,
-      } as Parameters<NonNullable<typeof onChange>>[0]);
-    }
+    onChange?.(event);
   }
-
-  const handleMount: OnMount = (editor, monaco) => {
-    monaco.editor.setTheme('vs-dark');
-    if (language === 'json') {
-      monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-        validate: true,
-        allowComments: true,
-        schemas: [],
-      });
-    }
-    editor.layout();
-  };
 
   return (
     <div className={styles.wrap}>
       <span className={styles.header}>
         <strong>{label}</strong>
-        <span>Monaco · {language}</span>
+        <span>Text · {language}</span>
       </span>
-      <Editor
-        height={editorHeight}
-        theme="vs-dark"
-        language={language}
-        value={editorValue}
-        onChange={(nextValue) => emitChange(nextValue ?? '')}
-        onMount={handleMount}
-        onValidate={onValidate}
-        options={{
-          minimap: { enabled: false },
-          fontSize: 12,
-          lineNumbers: 'on',
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          tabSize: 2,
-          wordWrap: 'on',
-          renderLineHighlight: 'all',
-        }}
-      />
       <textarea
         {...props}
-        ref={assignRef}
-        className={styles.hiddenTextarea}
+        ref={ref}
+        className={[styles.editorTextarea, props.className].filter(Boolean).join(' ')}
         value={editorValue}
-        onChange={(event) => emitChange(event.target.value)}
-        aria-hidden="true"
-        tabIndex={-1}
+        onChange={handleChange}
+        rows={rows}
+        style={{ ...style, height: editorHeightValue }}
         spellCheck={false}
       />
     </div>

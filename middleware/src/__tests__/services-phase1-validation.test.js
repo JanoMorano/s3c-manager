@@ -56,11 +56,17 @@ describe('services phase 1 validation', () => {
     });
 
     test('validateLifecycleTransition blocks invalid lifecycle jump', () => {
-        const errors = validateLifecycleTransition('draft', 'live');
+        const errors = validateLifecycleTransition('live', 'draft');
 
         expect(errors).toEqual(expect.arrayContaining([
             expect.objectContaining({ field: 'lifecycle_state' }),
         ]));
+    });
+
+    test('validateLifecycleTransition maps legacy review states before transition checks', () => {
+        expect(validateLifecycleTransition('under_review', 'live')).toHaveLength(0);
+        expect(validateLifecycleTransition('approved', 'live')).toHaveLength(0);
+        expect(validateLifecycleTransition('active', 'deprecated')).toHaveLength(0);
     });
 
     test('validateLifecycleOperationalReadiness blocks live requestable service without support model and offering', () => {

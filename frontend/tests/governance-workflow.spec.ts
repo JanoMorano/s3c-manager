@@ -133,7 +133,7 @@ async function mockGovernanceWorkflow(page: Page) {
             id: 44,
             service_id: 'SVC-IAM',
             service_title: 'Identity Access Management',
-            decision_type: 'deferral',
+            decision_type: 'exception',
             decision: 'deferred',
             rationale: 'Owner remediation tracked in readiness queue.',
             decided_by: 'admin@example.com',
@@ -153,7 +153,7 @@ async function mockGovernanceWorkflow(page: Page) {
               id: 44,
               service_id: 'SVC-IAM',
               service_title: 'Identity Access Management',
-              decision_type: 'deferral',
+              decision_type: 'exception',
               decision: 'deferred',
               rationale: 'Owner remediation tracked in readiness queue.',
               decided_by: 'admin@example.com',
@@ -187,19 +187,23 @@ test('governance reviews and decision log support workflow actions', async ({ pa
   await expect(page.getByRole('heading', { name: 'Governance Reviews' })).toBeVisible();
   await expect(page.getByText('Identity Access Management')).toBeVisible();
   await expect(page.locator('article', { hasText: 'Identity Access Management' }).getByText('Overdue')).toBeVisible();
-  await page.getByRole('button', { name: /start review/i }).click();
+  await page.getByRole('button', { name: /^start$/i }).click();
+  await expect(page.getByRole('heading', { name: 'Review action' })).toBeVisible();
+  await page.getByRole('button', { name: /confirm action/i }).click();
   await expect.poll(() => tracker.wasReviewStarted()).toBe(true);
 
-  await page.getByLabel('Service ID').fill('SVC-PORTAL');
   await page.getByRole('button', { name: /request review/i }).click();
+  await page.getByLabel('Service ID').fill('SVC-PORTAL');
+  await page.getByRole('button', { name: /create review/i }).click();
   await expect.poll(() => tracker.wasReviewRequested()).toBe(true);
 
   await page.goto('/operations/decisions');
   await expect(page.getByRole('heading', { name: 'Decision Log' })).toBeVisible();
   await expect(page.getByText('Owner remediation tracked in readiness queue.')).toBeVisible();
-  await page.getByLabel('Decision service ID').fill('SVC-IAM');
-  await page.locator('select[name="decision"]').selectOption('deferred');
+  await page.getByRole('button', { name: /^record decision$/i }).first().click();
+  await page.getByLabel('Service ID').fill('SVC-IAM');
+  await page.getByRole('combobox', { name: /^Decision$/ }).selectOption('deferred');
   await page.getByLabel('Rationale').fill('Owner remediation tracked in readiness queue.');
-  await page.getByRole('button', { name: /record decision/i }).click();
+  await page.getByRole('button', { name: /^record decision$/i }).last().click();
   await expect.poll(() => tracker.wasDecisionCreated()).toBe(true);
 });

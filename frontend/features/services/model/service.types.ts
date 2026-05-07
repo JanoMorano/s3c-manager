@@ -41,6 +41,25 @@ export interface ServiceListResponse {
   limit: number;
 }
 
+export interface CatalogQualitySummary {
+  total_services: number;
+  missing_owner_count: number;
+  missing_relation_count: number;
+  missing_capability_count: number;
+  missing_request_channel_count: number;
+  missing_review_date_count: number;
+  overdue_review_count: number;
+  deprecated_or_retired_count: number;
+  duplicate_title_group_count: number;
+  duplicate_title_examples: Array<{ title: string; count: number }>;
+  unverified_relation_count: number;
+}
+
+export interface CatalogQualityResponse {
+  generated_at: string;
+  item: CatalogQualitySummary;
+}
+
 export interface ServiceOverviewRole {
   id: number | null;
   role_code: string;
@@ -361,6 +380,7 @@ export interface ServiceDetail {
   approval_required: boolean | null;
   fulfillment_lead_time_text: string | null;
   review_owner_user_id: number | null;
+  review_due_at: string | null;
   next_review_due_at: string | null;
   offerings: ServiceOffering[];
   primary_offering: ServiceOffering | null;
@@ -888,7 +908,7 @@ export interface DashboardHeadlineResponse {
 
 export interface DashboardInboxItem {
   id: string;
-  type: 'service_review' | 'c3_mapping_gap' | 'pricing_gap' | string;
+  type: 'service_review' | 'c3_mapping_gap' | 'offering_evidence_gap' | string;
   title: string;
   description: string;
   href: string;
@@ -1027,9 +1047,9 @@ export interface OperationsResponse {
     missing_owners: Array<Pick<CompletenessItem, 'service_id' | 'title' | 'service_status' | 'updated_at'>>;
     top_completeness: CompletenessItem[];
     deprecated_retired: CompletenessItem[];
-    pricing_patrol: {
+    offering_evidence: {
       total_services: number;
-      with_pricing: number;
+      with_evidence: number;
       coverage_percent: number;
       missing: CompletenessItem[];
     };

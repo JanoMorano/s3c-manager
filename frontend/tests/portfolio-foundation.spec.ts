@@ -107,18 +107,18 @@ async function mockAuthenticatedPortfolio(page: import('@playwright/test').Page)
   });
 }
 
-test('portfolio cockpit renders status and links to filtered services', async ({ page }) => {
+test('portfolio page renders status and links to portfolio detail', async ({ page }) => {
   await mockAuthenticatedPortfolio(page);
 
   await page.goto('/portfolio');
 
-  await expect(page.getByRole('heading', { name: /portfolio cockpit/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /portfolios/i })).toBeVisible();
   await expect(page.getByText('Application Services')).toBeVisible();
   await expect(page.getByText('Architecture Office')).toBeVisible();
-  await expect(page.getByText('2 overdue')).toBeVisible();
+  await expect(page.getByLabel('Portfolio list').getByText('2 overdue')).toBeVisible();
 
-  const serviceLink = page.getByRole('link', { name: /open filtered services for application services/i });
-  await expect(serviceLink).toHaveAttribute('href', /\/services\/list\?portfolio=APP/);
+  const detailLink = page.getByRole('link', { name: /open application services portfolio detail/i });
+  await expect(detailLink).toHaveAttribute('href', /\/portfolio\/APP/);
 
   await page.getByLabel('Status').selectOption('planning');
   await expect(page.getByText('Command Services')).toBeVisible();

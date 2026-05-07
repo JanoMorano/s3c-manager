@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 Governance - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">06 · Governance</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link active" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">06 Governance</p>
+        <h1>Operations cockpit, readiness, reviews a rozhodnutí</h1>
+        <p class="lead">Governance část odpovídá na otázku, zda je služba dostatečně popsaná, provozně připravená, architektonicky navázaná a schválená pro další lifecycle krok.</p>
+      </section>
+
+      <h2>Teoretický význam governance</h2>
+      <p>
+        Governance v S3C Manageru není byrokracie pro potvrzení formuláře. Je to auditovatelný mechanismus, který chrání katalog před tím, aby obsahoval “živé” služby bez ownera, request modelu, SLA, supportu, capability mapování, evidence rizik nebo vysvětlených výjimek. V praxi je to mezivrstva mezi service portfolio managementem, ITSM provozem, enterprise architekturou a projektovým/change řízením.
+      </p>
+      <p>
+        Dobrá governance říká: co služba je, kdo za ni odpovídá, zda ji lze publikovat, proč byla schválena, jaké riziko bylo přijato a kdy se má znovu ověřit. S3C Manager tím nenahrazuje ticketing ani CAB workflow v ITSM nástroji; dává jim srozumitelný kontext služby, capability a C3/FMN vazeb.
+      </p>
+      <div class="itil-note">
+        <strong>Procesní vazba:</strong> ITIL 4 pracuje se service value systemem, guiding principles, governance a continual improvement. S3C Manager tyto principy převádí do praktických front: readiness, reviews, decisions, owner load a readiness and governance signals. TOGAF doplňuje architektonický kontext capability a impactu, PMI/PMBOK doplňuje rozhodování nad hodnotou, rizikem a změnou.
+      </div>
+
+      <h2>Vazba na rámce a standardy</h2>
+      <table class="field-table">
+        <thead><tr><th>Rámec</th><th>Co říká</th><th>Jak se promítá v S3C Manageru</th><th>Odkaz</th></tr></thead>
+        <tbody>
+          <tr><td>ITIL 4</td><td>Service management, service value system, guiding principles, governance, continual improvement.</td><td>Readiness gate, reviews, service catalogue kvalita, owner accountability, continual improvement fronty.</td><td><a href="https://www.peoplecert.org/products/ITIL-4/itil-4-foundation">PeopleCert ITIL 4 Foundation</a></td></tr>
+          <tr><td>ITIL practice model</td><td>Practice má účel, role, informace, technologie, metriky a zlepšování.</td><td>Readiness pravidla mají title/why/how/evidence; review má assigned_to, due_at a decision.</td><td><a href="https://uat2.axelos.com/resource-hub/practice/readers-manual-itil-4-practice-guide">AXELOS ITIL practice guide reader manual</a></td></tr>
+          <tr><td>TOGAF</td><td>Enterprise Architecture má sjednocovat metody, komunikaci, architektonické rozhodování a capability plánování.</td><td>Capability coverage, C3 mapping, impact analysis a architektonické decisions.</td><td><a href="https://publications.opengroup.org/standards/togaf">The Open Group TOGAF Standard</a></td></tr>
+          <tr><td>TOGAF Business Capabilities</td><td>Business capability je stabilní stavební prvek business architektury.</td><td>Governance kontroluje, zda služba pokrývá capability a zda nejsou gaps/overlaps.</td><td><a href="https://www.opengroup.org/togaf/series-guides">TOGAF Series Guides</a></td></tr>
+          <tr><td>PMI / PMBOK</td><td>Projektové řízení má spojovat práci s hodnotou, stakeholdery, rizikem, změnou a governance.</td><td>Decision log, deferred/exception decisions, impact před lifecycle/change krokem.</td><td><a href="https://www.pmi.org/pmbok-guide-standards/foundational/pmbok">PMI PMBOK Guide</a></td></tr>
+          <tr><td>NATO FMN</td><td>FMN je řízený rámec lidí, procesů a technologií pro mission networks.</td><td>C3/FMN baseline, capability readiness, TIN vazby a spiral coverage.</td><td><a href="https://coi.nato.int/FMNPublic/SitePages/Home.aspx">NATO FMN public portal</a></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Operations cockpit<br><code>/img/help-cs/governance-01-operations.png</code></div></div><figcaption>Centrální provozní cockpit pro governance health, readiness and governance signals, owner load, readiness a C3 signály.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Readiness Gate<br><code>/img/help-cs/governance-02-readiness.png</code></div></div><figcaption>Publikační brána služeb: co chybí, proč to vadí, jak to opravit a kdy je povolena výjimka.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Reviews Workflow board<br><code>/img/help-cs/governance-03-reviews.png</code></div></div><figcaption>Review board bez drag-drop. Stav se mění přes modal s rationale a pre-flight readiness checkem.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Decision Log<br><code>/img/help-cs/governance-04-decisions.png</code></div></div><figcaption>Auditní evidence rozhodnutí: co bylo rozhodnuto, proč, kým, kdy, s jakým důkazem a dopadem.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Owner Load<br><code>/img/help-cs/governance-05-owner-load.png</code></div></div><figcaption>Vytížení vlastníků a detail služeb, kde má člověk odpovědnost.</figcaption></figure>
+      </div>
+
+      <h2>Route mapa governance</h2>
+      <table class="field-table">
+        <thead><tr><th>Route</th><th>Účel</th><th>Zapisuje data?</th><th>Typický uživatel</th></tr></thead>
+        <tbody>
+          <tr><td><code>/operations</code></td><td>Přehledový cockpit pro governance, health, offering evidence, owners a C3 signály.</td><td>Ne, naviguje na konkrétní workflow.</td><td>Manažer, governance lead, admin, service owner.</td></tr>
+          <tr><td><code>/operations/readiness</code></td><td>Fronta readiness pravidel a výjimek.</td><td>Ano, zapisuje readiness exceptions.</td><td>Owner, reviewer, admin.</td></tr>
+          <tr><td><code>/operations/reviews</code></td><td>Review board pro služby.</td><td>Ano, vytváří reviews a mění jejich status přes modal.</td><td>Reviewer, owner, governance tým.</td></tr>
+          <tr><td><code>/operations/decisions</code></td><td>Decision log a ruční záznam rozhodnutí.</td><td>Ano, zapisuje governance_decision.</td><td>Reviewer, manažer, auditor.</td></tr>
+          <tr><td><code>/operations/owner-load</code></td><td>Detail zátěže vlastníka přes URL query <code>?owner=...</code>.</td><td>Ne, úprava ownerů je v service editoru.</td><td>Service delivery manager, admin.</td></tr>
+          <tr><td><code>/services/{id}</code></td><td>Service 360 pohled na readiness, decisions a vazby.</td><td>Ne v business detailu; edituje se přes <code>/edit</code>.</td><td>Všechny role.</td></tr>
+          <tr><td><code>/services/{id}/edit</code></td><td>Oprava polí, která governance blokují.</td><td>Ano, mění službu, offeringy, support, SLA, C3 mapping.</td><td>Editor, owner, admin.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Operations cockpit</h2>
+      <p>
+        Operations cockpit na <code>/operations</code> je rozhodovací centrum. Neřeší detail každého pole, ale ukazuje, kde je potřeba zásah. Je vhodný pro ranní kontrolu stavu portfolia nebo pro governance meeting: co je blokované, co čeká na review, kde je přetížený owner, kde hrozí coverage gap a kde se blíží výjimka nebo review termín.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Tab / panel</th><th>Co ukazuje</th><th>Proč existuje</th><th>Kam vede</th></tr></thead>
+        <tbody>
+          <tr><td>Governance</td><td>Readiness and governance signals, owner load, capability overlap, review calendar, action queue signals.</td><td>Ukazuje nejdůležitější rozhodovací signály pohromadě.</td><td>Readiness, Reviews, Decisions, Owner Load.</td></tr>
+          <tr><td>Health</td><td>Completeness, readiness a katalogovou kvalitu.</td><td>Odděluje “záznam existuje” od “záznam je použitelný”.</td><td>Service editor a readiness gate.</td></tr>
+          <tr><td>Offering evidence</td><td>Pokrytí offering evidence, chybějící nabídky a cost evidence výjimky.</td><td>Requestable služba bez nabídky nebo vysvětlené evidence je governance riziko.</td><td>Service editor, Service Offerings.</td></tr>
+          <tr><td>Owners</td><td>Rozložení odpovědnosti podle ownerů.</td><td>Jedna přetížená osoba je provozní riziko a úzké hrdlo review.</td><td><code>/operations/owner-load?owner=...</code>.</td></tr>
+          <tr><td>C3</td><td>C3 mapping coverage, missing mappings, C3 map and C3 detail workflow state.</td><td>Architektura a FMN/C3 readiness se nesmí ztratit v katalogové tabulce.</td><td>Capability coverage, C3 list, C3 graph.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Readiness Gate: jak číst frontu</h2>
+      <p>
+        Readiness Gate na <code>/operations/readiness</code> je publikační a provozní brána služby. Říká, zda má služba minimální evidence pro publikaci, review nebo lifecycle přechod. Draft lze ukládat i s chybami, ale publish/review by neměl projít bez opravy nebo výjimky.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Význam</th><th>Co ovlivní</th><th>Jak s tím pracovat</th></tr></thead>
+        <tbody>
+          <tr><td>KPI Scanned</td><td>Počet služeb zahrnutých do readiness výpočtu.</td><td>Kontrola rozsahu výpočtu.</td><td>Pokud je číslo nízké, ověřit filtry/API nebo stav katalogu.</td></tr>
+          <tr><td>KPI Blocked</td><td>Služby s P0/P1 blokátorem.</td><td>Blokuje publish/review bez opravy nebo výjimky.</td><td>Začít zde, protože jde o největší governance riziko.</td></tr>
+          <tr><td>KPI Warnings</td><td>Služby s P2 nebo neblokujícími problémy.</td><td>Nezastaví draft, ale snižuje kvalitu evidence.</td><td>Řešit před review nebo plánovanou změnou.</td></tr>
+          <tr><td>KPI Ready</td><td>Služby bez aktivních blockerů/warnings.</td><td>Kandidát pro review, publish nebo provozní potvrzení.</td><td>Ověřit, zda má služba správný lifecycle a review date.</td></tr>
+          <tr><td>Exceptions expiring</td><td>Výjimky s expirací do 30 dnů.</td><td>Dočasně přijaté riziko se vrací do fronty.</td><td>Buď opravit evidence, nebo znovu rozhodnout s rationale.</td></tr>
+          <tr><td>Blocked / Warnings / Ready / Exceptions tab</td><td>Fronty služeb podle stavu pravidel.</td><td>Pomáhá pracovat prioritně, ne procházet celý katalog.</td><td>Postupovat shora: Blocked → Warnings → Exceptions → Ready.</td></tr>
+          <tr><td>Selected service row</td><td>Služba, primární pravidlo, status a odkaz.</td><td>Vybraná služba určuje pravý detail panel.</td><td>Kliknout na řádek a číst What/Why/How.</td></tr>
+          <tr><td>Detail panel</td><td>What is missing, Why it matters, Related process, How to fix.</td><td>Překládá technické pravidlo do lidské instrukce.</td><td>Podle How to fix otevřít editor nebo schválit výjimku.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Readiness pravidla</h2>
+      <table class="field-table">
+        <thead><tr><th>Rule key</th><th>Co kontroluje</th><th>Proč je důležité</th><th>Oprava</th></tr></thead>
+        <tbody>
+          <tr><td><code>service_has_owner</code></td><td>Služba má aktivního ownera nebo owner assignment.</td><td>Bez ownera není accountability, eskalace ani review odpovědnost.</td><td>V editoru doplnit Ownership a ideálně e-mail.</td></tr>
+          <tr><td><code>service_has_offering</code></td><td>Služba má alespoň jeden offering nebo legacy variant evidence.</td><td>Katalogová služba musí říkat, co lze konzumovat nebo požádat.</td><td>Doplnit Service Offerings nebo ověřit legacy evidence.</td></tr>
+          <tr><td><code>service_has_lifecycle_stage</code></td><td>Služba má lifecycle stage/state.</td><td>Bez lifecycle není jasné, zda jde o draft, live, deprecated nebo retired službu.</td><td>Nastavit lifecycle v editoru podle povolených přechodů.</td></tr>
+          <tr><td><code>service_has_primary_capability_mapping</code></td><td>Služba má primární capability/C3 mapping.</td><td>Bez mapování nelze řídit capability coverage, gaps ani impact.</td><td>Doplnit C3 mapping a označit primary.</td></tr>
+          <tr><td><code>service_has_complete_primary_capability</code></td><td>Primární capability má dostatečnou C3 evidence.</td><td>Mapping na neúplnou capability může vypadat správně, ale nedává architektonickou jistotu.</td><td>Doplnit applications, data objects, TIN nebo C3 service links.</td></tr>
+          <tr><td><code>service_has_sla</code></td><td>Služba má SLA, dostupnost, restoration, delivery nebo SLA záznam.</td><td>ITIL service level management potřebuje měřitelná nebo vysvětlená očekávání.</td><td>Doplnit SLA pole, SLA override nebo výjimku.</td></tr>
+          <tr><td><code>service_has_dependency_classification</code></td><td>Závislosti jsou klasifikované.</td><td>Change enablement a impact analysis potřebují vědět, zda je vazba kritická.</td><td>Doplnit relation type, criticality, mandatory nebo notes.</td></tr>
+          <tr><td><code>service_has_relations</code></td><td>Služba má relevantní upstream/downstream vztahy.</td><td>Bez vztahů se změna služby jeví izolovaně, i když izolovaná není.</td><td>Doplnit relationships v editoru.</td></tr>
+          <tr><td><code>service_has_review_date</code></td><td>Služba má next review due nebo review odpovědnost.</td><td>Evidence bez review stárne a ztrácí důvěryhodnost.</td><td>Doplnit review owner/date nebo založit governance review.</td></tr>
+          <tr><td><code>requestable_service_has_offering evidence</code></td><td>Legacy pravidlo pro cost evidence u requestable služby.</td><td>Konzument a manažer musí chápat nákladový nebo provozní dopad requestu.</td><td>Doplnit offering evidence, cost note nebo časově omezenou výjimku.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Readiness výjimka</h2>
+      <p>
+        Výjimka je časově omezené přijetí rizika. Není to mazání problému. Má být použita jen tehdy, když služba musí pokračovat, ale organizace vědomě přijímá, že něco ještě chybí. Výjimka se váže na konkrétní službu a konkrétní readiness pravidlo.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Pole</th><th>Povinné</th><th>Význam</th><th>Dopad</th></tr></thead>
+        <tbody>
+          <tr><td><code>rule_key</code></td><td>Ano</td><td>Pravidlo, ke kterému se výjimka vztahuje.</td><td>Výjimka neplatí obecně pro celou službu, jen pro daný blocker.</td></tr>
+          <tr><td><code>reason</code></td><td>Ano</td><td>Odůvodnění, proč je riziko dočasně přijatelné.</td><td>Bez dobrého důvodu je auditní stopa bezcenná.</td></tr>
+          <tr><td><code>expires_at</code></td><td>Doporučené</td><td>Datum, kdy výjimka přestává platit.</td><td>Zabraňuje nekonečným výjimkám.</td></tr>
+          <tr><td><code>approved_by</code></td><td>Odvozené</td><td>Uživatel, který výjimku uložil nebo schválil.</td><td>Accountability a audit.</td></tr>
+          <tr><td><code>created_at</code></td><td>Odvozené</td><td>Čas vzniku výjimky.</td><td>Pomáhá při review a compliance kontrole.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Governance Reviews</h2>
+      <p>
+        Reviews na <code>/operations/reviews</code> jsou pracovní workflow pro posouzení služby. Board není drag-drop. To je záměr: governance stav se nesmí měnit bez rationale a bez pre-flight readiness kontroly. Každá akce má projít modalem.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Pole / akce</th><th>Možnosti</th><th>Proč se používá</th><th>Dopad</th></tr></thead>
+        <tbody>
+          <tr><td><code>service_id</code></td><td>Service picker nebo text ID.</td><td>Určuje, kterou službu reviewer posuzuje.</td><td>Review i decision se vážou na Service 360.</td></tr>
+          <tr><td><code>review_type</code></td><td><code>publish</code>, <code>owner_review</code>, <code>coverage_review</code>, případně lokální typ.</td><td>Reviewer ví, jaký druh kontroly má provést.</td><td>Ovlivní decision_type a auditní interpretaci.</td></tr>
+          <tr><td><code>assigned_to</code></td><td>E-mail nebo user picker.</td><td>Personalizace My Tasks a odpovědnost reviewera.</td><td>Špatný e-mail znamená, že reviewer review nemusí vidět.</td></tr>
+          <tr><td><code>due_at</code></td><td>Datum.</td><td>Termín pro governance rozhodnutí.</td><td>Overdue signály v cockpit a reviews.</td></tr>
+          <tr><td>Lane Requested</td><td>pending/requested.</td><td>Review bylo vyžádáno, ale ještě nezačalo.</td><td>Reviewer má kliknout Start nebo vrátit zadavateli.</td></tr>
+          <tr><td>Lane In review</td><td>in_review.</td><td>Reviewer aktivně posuzuje službu.</td><td>Ukazuje práci v běhu.</td></tr>
+          <tr><td>Lane Decision needed</td><td>deferred nebo čekající rozhodnutí.</td><td>Review čeká na manažerské rozhodnutí nebo výjimku.</td><td>Vyžaduje rationale a často expires_at.</td></tr>
+          <tr><td>Lane Closed</td><td>approved, rejected, cancelled.</td><td>Workflow je uzavřený.</td><td>Záznam má být dohledatelný v decision logu.</td></tr>
+          <tr><td>Pre-flight readiness check</td><td>GET na readiness summary při otevření modalu.</td><td>Reviewer vidí aktuální blockery bez změny dat.</td><td>Side-effect-free kontrola před rozhodnutím.</td></tr>
+          <tr><td><code>rationale</code></td><td>Textové odůvodnění.</td><td>Vysvětluje schválení, zamítnutí nebo defer.</td><td>Povinné pro rejected/deferred; doporučené vždy.</td></tr>
+          <tr><td><code>evidence</code></td><td>Text, odkaz, číslo jednání, dokument.</td><td>Dává reviewerovi auditní důkaz.</td><td>Ukládá se do decision nebo související evidence.</td></tr>
+          <tr><td><code>defer_expires_at</code></td><td>Datum.</td><td>Odložené rozhodnutí musí mít konec.</td><td>Bez expirace se defer mění na skrytou výjimku.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Decision Log</h2>
+      <p>
+        Decision log na <code>/operations/decisions</code> je auditní paměť governance. Má odpovědět na otázku: kdo a proč dovolil, odmítl, odložil nebo zrušil další krok služby. Nepoužívejte ho jako obecné poznámky; každé rozhodnutí má mít jasný typ, výsledek a rationale.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Pole</th><th>Možnosti / formát</th><th>Význam</th><th>Vazba</th></tr></thead>
+        <tbody>
+          <tr><td><code>service_id</code></td><td>Existující služba.</td><td>Objekt rozhodnutí.</td><td><code>service_catalog</code>, Service 360.</td></tr>
+          <tr><td><code>decision_type</code></td><td><code>publish_approval</code>, <code>deferral</code>, <code>risk_acceptance</code>, lifecycle/mapping typy.</td><td>Rámec rozhodnutí.</td><td>Review, readiness, lifecycle, capability governance.</td></tr>
+          <tr><td><code>decision</code></td><td><code>approved</code>, <code>rejected</code>, <code>deferred</code>, <code>cancelled</code>.</td><td>Výsledek rozhodnutí.</td><td>Může odblokovat nebo vrátit workflow.</td></tr>
+          <tr><td><code>rationale</code></td><td>Text.</td><td>Proč bylo rozhodnuto právě takto.</td><td>Povinné pro rejected/deferred, doporučené pro approved.</td></tr>
+          <tr><td><code>evidence</code></td><td>Text/URL/reference.</td><td>Důkaz, zápis, link na schválení nebo ticket.</td><td>Auditní transparentnost.</td></tr>
+          <tr><td><code>decided_by</code></td><td>Uživatel/e-mail.</td><td>Kdo rozhodl.</td><td>Accountability a audit.</td></tr>
+          <tr><td><code>decided_at</code></td><td>Timestamp.</td><td>Kdy rozhodnutí vzniklo.</td><td>Timeline služby a audit.</td></tr>
+          <tr><td><code>expires_at</code> / defer expiry</td><td>Datum, pokud je relevantní.</td><td>Časová hranice dočasného rozhodnutí.</td><td>Readiness exceptions, deferred review.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Owner Load</h2>
+      <p>
+        Owner Load na <code>/operations/owner-load</code> ukazuje, zda není odpovědnost za služby koncentrovaná na příliš málo lidí. Bez query <code>?owner=...</code> stránka slouží jako přehled TOP vlastníků a vyhledávání. S query ukazuje detail jednoho ownera.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Význam</th><th>Proč je důležitý</th><th>Akce</th></tr></thead>
+        <tbody>
+          <tr><td>Owner picker/search</td><td>Vyhledání owner key, e-mailu nebo jména.</td><td>Vlastník může být v datech veden různě; picker pomáhá dohledání.</td><td>Otevře URL s <code>?owner=...</code>.</td></tr>
+          <tr><td>TOP 10 vlastníků</td><td>Stacked-bar přehled osob s největší zátěží.</td><td>Manažer vidí úzká hrdla a koncentraci odpovědnosti.</td><td>Vybrat vlastníka a otevřít detail.</td></tr>
+          <tr><td>Owned services</td><td>Počet služeb, kde má owner odpovědnost.</td><td>Objem portfolia na osobu.</td><td>Rozdělit role nebo aktualizovat ownership.</td></tr>
+          <tr><td>Live services</td><td>Kolik služeb je live/active.</td><td>Live služby jsou provozně náročnější než draft.</td><td>Kontrola supportu a review cadence.</td></tr>
+          <tr><td>Load score</td><td>Agregované skóre z počtu služeb, kritičnosti, lifecycle a review.</td><td>Jednodušší signál než dlouhá tabulka.</td><td>Prioritizovat redistribuci odpovědnosti.</td></tr>
+          <tr><td>Assignments table</td><td>Služba, role, status, organization, lifecycle, review due.</td><td>Ukazuje, kde přesně je owner zatížený.</td><td>Otevřít <code>/services/{id}/edit#ownership</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Readiness signals a action queue signals</h2>
+      <p>
+        Readiness and governance signals je manažerská syntéza. Neříká jen “někde je chyba”, ale seskupuje signály podle typu rizika. Hodí se pro portfolio review a continual improvement backlog.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Riziko</th><th>Typický zdroj</th><th>Co znamená</th><th>Doporučený postup</th></tr></thead>
+        <tbody>
+          <tr><td>Readiness blockers</td><td>Readiness summary.</td><td>Služby nejsou připravené pro publish/review.</td><td>Opravit pole nebo založit výjimku s expirací.</td></tr>
+          <tr><td>Overdue reviews</td><td>Governance reviews.</td><td>Rozhodování se zpožďuje, evidence stárne.</td><td>Přiřadit reviewera, rozhodnout, deferovat.</td></tr>
+          <tr><td>Missing owners</td><td>Owner assignments.</td><td>Neexistuje odpovědná osoba.</td><td>Doplnit service ownera a review ownera.</td></tr>
+          <tr><td>Capability gaps</td><td>Capability coverage/gaps.</td><td>Schopnost není pokrytá službou nebo ready službou.</td><td>Mapovat službu, založit službu, zapsat decision.</td></tr>
+          <tr><td>Overlaps</td><td>Capability overlaps, capability overlap.</td><td>Možná duplicita služeb nebo nákladů.</td><td>Spustit konsolidaci nebo zapsat zdůvodněnou redundanci.</td></tr>
+          <tr><td>Deprecated dependency</td><td>Impact analysis, service relations.</td><td>Živá služba závisí na deprecated/retired službě.</td><td>Naplánovat migraci a change communication.</td></tr>
+          <tr><td>Expiring exceptions</td><td>Readiness exceptions.</td><td>Dočasně přijaté riziko se vrátí.</td><td>Před expirací buď opravit, nebo znovu rozhodnout.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Role v governance procesu</h2>
+      <table class="field-table">
+        <thead><tr><th>Role</th><th>Co sleduje</th><th>Co zapisuje</th><th>Čemu se má vyhnout</th></tr></thead>
+        <tbody>
+          <tr><td>Service owner</td><td>Readiness vlastních služeb, owner load, overdue review.</td><td>Doplňuje service editor, žádá review, navrhuje výjimku.</td><td>Nenechávat službu live bez supportu, offeringu a SLA.</td></tr>
+          <tr><td>Reviewer</td><td>Review board, pre-flight readiness, Service 360 a impact.</td><td>Approve/reject/defer přes modal, decision rationale.</td><td>Měnit status bez odůvodnění nebo mimo modal.</td></tr>
+          <tr><td>Manažer</td><td>Readiness and governance signals, capability gaps, owner load, decisions.</td><td>Rozhoduje o výjimkách, riziku a prioritách zlepšení.</td><td>Řešit jen počet služeb bez kvality evidence.</td></tr>
+          <tr><td>Architekt</td><td>Capability coverage, C3 mapping, graph a impact.</td><td>Doporučuje mapping, opravuje C3 vazby, zapisuje architektonické decision.</td><td>Mapovat službu na příliš obecnou capability jen kvůli zelenému KPI.</td></tr>
+          <tr><td>Admin</td><td>Readiness rules, reference data, uživatele, audit logy.</td><td>Spravuje číselníky, role, výjimky a systémová nastavení.</td><td>Obcházet governance přímou úpravou DB bez auditní stopy.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>API a DB vazby</h2>
+      <table class="field-table">
+        <thead><tr><th>API / DB</th><th>Použití</th><th>Co ukládá / vrací</th><th>Poznámka</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/dashboard/summary</code></td><td>Operations a cockpit KPI.</td><td>Total, ready, blocked, overdue, gaps.</td><td>Read-only agregace.</td></tr>
+          <tr><td><code>GET /api/v1/governance/owner-load</code></td><td>Owner load overview/detail.</td><td>Owner score, counts, workload.</td><td>Query <code>owner</code> pro detail.</td></tr>
+          <tr><td><code>GET /api/v1/governance/owner-load/assignments</code></td><td>Detail ownera.</td><td>Role assignments a služby.</td><td>Oprava probíhá v service editoru.</td></tr>
+          <tr><td><code>GET /api/v1/readiness/summary</code></td><td>Readiness gate a review pre-flight.</td><td>Counts, groups, rules, exceptions.</td><td>GET musí být side-effect-free.</td></tr>
+          <tr><td><code>POST /api/v1/readiness/services/{id}/exceptions</code></td><td>Výjimka k pravidlu.</td><td>rule_key, reason, expires_at.</td><td>Zápis vyžaduje oprávnění.</td></tr>
+          <tr><td><code>GET/POST /api/v1/governance/reviews</code></td><td>Review board a request review.</td><td>Reviews, service_id, review_type, assigned_to, due_at.</td><td>POST zakládá pending review.</td></tr>
+          <tr><td><code>PATCH /api/v1/governance/reviews/{id}</code></td><td>Změna review statusu.</td><td>in_review, approved, rejected, deferred, cancelled.</td><td>Status měnit přes modal.</td></tr>
+          <tr><td><code>GET/POST /api/v1/governance/decisions</code></td><td>Decision log.</td><td>decision_type, decision, rationale, evidence.</td><td>Auditní stopa rozhodnutí.</td></tr>
+          <tr><td><code>readiness_rule</code></td><td>Konfigurace pravidel.</td><td>rule_key, severity, blocking, title_text, why_text, howto_text, evidence_hint.</td><td>Governance artefakt, ne frontend copy.</td></tr>
+          <tr><td><code>readiness_exception</code></td><td>Výjimky.</td><td>service_id, rule_key, reason, expires_at, approved_by.</td><td>Časově omezené přijetí rizika.</td></tr>
+          <tr><td><code>governance_review</code></td><td>Review workflow.</td><td>service_id, review_type, status, assigned_to, due_at.</td><td>Napájí My Tasks.</td></tr>
+          <tr><td><code>governance_decision</code></td><td>Decision log.</td><td>service_id, decision_type, decision, rationale, decided_by.</td><td>Napájí Service 360 audit.</td></tr>
+          <tr><td><code>service_role_assignment</code></td><td>Owner load a My Tasks.</td><td>Role člověka ke službě.</td><td>Nutná kvalita email/display_name.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Typické scénáře</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">A</span><div><h3>Služba je blocked před publish</h3><div class="step-meta"><span>readiness</span><span>editor</span><span>review</span></div></div></header>
+          <ol>
+            <li>Otevřete <code>/operations/readiness</code> a vyberte službu v Blocked frontě.</li>
+            <li>Přečtěte What/Why/How pro primární pravidlo.</li>
+            <li>Otevřete editor služby a doplňte chybějící sekci.</li>
+            <li>Vraťte se do readiness gate a ověřte, že blocker zmizel.</li>
+            <li>Teprve potom založte nebo dokončete governance review.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">B</span><div><h3>Reviewer schvaluje službu s rizikem</h3><div class="step-meta"><span>pre-flight</span><span>decision</span><span>exception</span></div></div></header>
+          <ol>
+            <li>Otevřete review card v <code>/operations/reviews</code>.</li>
+            <li>Při otevření modalu zkontrolujte pre-flight readiness.</li>
+            <li>Pokud riziko neblokuje nebo je akceptovatelné, zapište rationale.</li>
+            <li>U deferred rozhodnutí nastavte expiraci.</li>
+            <li>Ověřte výsledek v <code>/operations/decisions</code>.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">C</span><div><h3>Manažer řeší přetíženého ownera</h3><div class="step-meta"><span>owner load</span><span>portfolio</span><span>accountability</span></div></div></header>
+          <ol>
+            <li>Otevřete <code>/operations/owner-load</code>.</li>
+            <li>Vyberte ownera z TOP 10 nebo vyhledáním.</li>
+            <li>Seřaďte služby podle lifecycle a review due.</li>
+            <li>U kritických služeb ověřte, zda má owner reálnou kapacitu.</li>
+            <li>Přerozdělte role v service editoru a zapište rozhodnutí, pokud jde o governance změnu.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">D</span><div><h3>Capability gap má být dočasně akceptovaný</h3><div class="step-meta"><span>coverage</span><span>risk</span><span>decision</span></div></div></header>
+          <ol>
+            <li>Otevřete <code>/capabilities?view=gaps</code> a zjistěte, která capability chybí.</li>
+            <li>Zkontrolujte, zda neexistuje služba s chybným mappingem.</li>
+            <li>Pokud gap zůstává, zapište governance decision typu risk_acceptance.</li>
+            <li>Do rationale napište, proč je gap dočasně přijatelný a kdo jej vlastní.</li>
+            <li>Nastavte review termín nebo navazující projektový úkol mimo S3C Manager.</li>
+          </ol>
+        </article>
+      </div>
+
+      <h2>Časté chyby</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Dopad</th><th>Správný postup</th></tr></thead>
+        <tbody>
+          <tr><td>Výjimka bez expirace.</td><td>Dočasné riziko se stane trvalým a ztratí se tlak na opravu.</td><td>Každou výjimku časově omezit nebo naplánovat review.</td></tr>
+          <tr><td>Approved bez rationale.</td><td>Budoucí reviewer nepochopí, proč služba prošla.</td><td>Psát krátké, ale konkrétní odůvodnění i pro schválení.</td></tr>
+          <tr><td>Review status změněný mimo modal.</td><td>Chybí pre-flight a decision preview.</td><td>Status měnit jen přes review action modal.</td></tr>
+          <tr><td>Readiness se čte jako absolutní pravda.</td><td>Pravidlo může minout specifický kontext služby.</td><td>Pokud je pravidlo neaplikovatelné, použít výjimku s důvodem a expirací.</td></tr>
+          <tr><td>Owner load se ignoruje.</td><td>Jedna osoba drží příliš mnoho kritických služeb.</td><td>Pravidelně kontrolovat owner distribution a role assignments.</td></tr>
+          <tr><td>Capability gap se řeší jen založením služby.</td><td>Vzniká služba bez reálného procesu nebo ownera.</td><td>Nejprve ověřit existující služby, mapping a governance rozhodnutí.</td></tr>
+          <tr><td>Decision log se používá jako poznámkový blok.</td><td>Rozhodnutí ztrácí auditní hodnotu.</td><td>Zapisovat jen skutečná rozhodnutí s typem, výsledkem, důvodem a dopadem.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Vazby na další kapitoly</h2>
+      <div class="route-list">
+        <div class="route-item"><strong><a href="03-cocpit.html">03 Cockpit</a></strong> ukazuje governance signály v denní pracovní ploše a My Tasks.</div>
+        <div class="route-item"><strong><a href="04-services.html">04 Služby</a></strong> vysvětluje, která pole v editoru opravují readiness blockery.</div>
+        <div class="route-item"><strong><a href="05-capabilities_c3.html">05 Capabilities a C3</a></strong> popisuje coverage, gaps, overlaps a C3 map and C3 detail workflow state.</div>
+        <div class="route-item"><strong><a href="10-analysis.html">10 Analýzy</a></strong> ukazuje, jak před rozhodnutím spustit graph a impact analysis.</div>
+        <div class="route-item"><strong><a href="11-api.html">11 API</a></strong> popisuje governance, readiness a decision endpointy pro integrace.</div>
+      </div>
+
+      <div class="chapter-nav">
+        <a href="05-capabilities_c3.html">Předchozí: 05 Capabilities a C3</a>
+        <a href="07-import.html">Další: 07 Import</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

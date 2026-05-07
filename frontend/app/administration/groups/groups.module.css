@@ -1,0 +1,418 @@
+/* groups.module.css */
+
+/* ── Shell ───────────────────────────────────────────────────────────────── */
+.shell {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--muted, var(--color-text-secondary));
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btnPrimary {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.btnPrimary:hover { background: var(--color-info); }
+
+.btnSecondary {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.btnSecondary:hover { background: var(--color-bg-subtle); }
+
+.btnDanger {
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.btnDanger:hover { background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
+
+.btnSave {
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  background: var(--color-success);
+  color: var(--color-bg-surface);
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.btnSave:hover { background: var(--color-success); }
+.btnSave:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Group list table ────────────────────────────────────────────────────── */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+
+.groupTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.groupTable th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.groupTable td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-default);
+  vertical-align: middle;
+}
+
+.groupTable tr:last-child td {
+  border-bottom: none;
+}
+
+.groupTable tr:hover td {
+  background: var(--color-bg-subtle);
+}
+
+.codeBadge {
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: var(--color-border-default);
+  border-radius: 4px;
+  padding: 0.125rem 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.activeBadge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badgeActive   { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); }
+.badgeInactive { background: color-mix(in srgb, var(--color-danger) 10%, transparent); color: var(--color-danger); }
+
+.actionsCell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.linkBtn {
+  color: var(--color-info);
+  text-decoration: none;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+.linkBtn:hover { background: color-mix(in srgb, var(--color-info) 10%, transparent); }
+
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border-default);
+  margin-bottom: 1.5rem;
+}
+
+.tabBtn {
+  padding: 0.625rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: color 0.15s, border-color 0.15s;
+}
+.tabBtn:hover  { color: var(--color-text-primary); }
+.tabActive {
+  color: var(--color-info);
+  border-bottom-color: var(--color-info);
+}
+
+/* ── Info panel ──────────────────────────────────────────────────────────── */
+.infoPanel {
+  max-width: 540px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.formGroup label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.formGroup input,
+.formGroup textarea {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+.formGroup input:focus,
+.formGroup textarea:focus {
+  outline: none;
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-focus-ring) 20%, transparent);
+}
+.formGroup input[readOnly] {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.formGroup textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+.toggleOn  { background: var(--color-success); }
+.toggleOff { background: var(--color-border-default); }
+
+/* ── Permissions panel ───────────────────────────────────────────────────── */
+.permScope {
+  margin-bottom: 2rem;
+}
+
+.permScopeTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-info);
+}
+
+.permSection {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.permSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.permSectionTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+}
+
+.selectAllRow {
+  display: flex;
+  gap: 0.5rem;
+}
+.selectAllBtn {
+  font-size: 0.75rem;
+  color: var(--color-info);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.selectAllBtn:hover { text-decoration: underline; }
+
+.permissionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.375rem 1rem;
+}
+@media (max-width: 640px) {
+  .permissionsGrid { grid-template-columns: 1fr; }
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.checkboxItem input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--color-info);
+}
+
+.savePermBtn {
+  margin-top: 1rem;
+}
+
+/* ── Members panel ───────────────────────────────────────────────────────── */
+.membersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.addMemberRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.addMemberInput {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+.addMemberInput:focus {
+  outline: none;
+  border-color: var(--color-info);
+}
+
+.membersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.membersTable th {
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.membersTable td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-default);
+  vertical-align: middle;
+}
+
+.membersTable tr:last-child td { border-bottom: none; }
+
+/* ── Breadcrumb ──────────────────────────────────────────────────────────── */
+.breadcrumb {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.breadcrumb a {
+  color: var(--color-info);
+  text-decoration: none;
+}
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* ── Error / status ──────────────────────────────────────────────────────── */
+.errorBanner {
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.successBanner {
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.loading { color: var(--color-text-muted); padding: 2rem 0; }

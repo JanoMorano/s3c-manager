@@ -65,7 +65,7 @@ export default function PortfolioPage() {
   const { data, isLoading, error } = usePortfolioList();
   const [statusFilter, setStatusFilter] = useState('');
 
-  const portfolios = data?.items ?? [];
+  const portfolios = useMemo(() => data?.items ?? [], [data?.items]);
   const statusOptions = useMemo(
     () => Array.from(new Set(portfolios.map((item) => item.status_code).filter(Boolean))).sort(),
     [portfolios],

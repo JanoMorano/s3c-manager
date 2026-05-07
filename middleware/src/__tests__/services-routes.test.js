@@ -43,6 +43,7 @@ jest.mock('../db/pool', () => ({
 jest.mock('../db/services.repo', () => ({
     findAllDirect: jest.fn(),
     findByServiceId: jest.fn(),
+    getCatalogQualitySummary: jest.fn(),
     serviceIdExists: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -143,6 +144,37 @@ describe('services routes', () => {
         expect(lines[0]).toContain('"service_id","title","service_type"');
         expect(lines[1]).toContain('"SVC-1","\'=SUM(1,1) Service One","CF"');
         expect(lines[1]).not.toContain('\n');
+    });
+
+    test('GET /services/catalog-quality returns data quality summary', async () => {
+        const repo = require('../db/services.repo');
+        repo.getCatalogQualitySummary.mockResolvedValue({
+            total_services: 4,
+            missing_owner_count: 1,
+            missing_relation_count: 2,
+            missing_capability_count: 3,
+            missing_request_channel_count: 1,
+            missing_review_date_count: 1,
+            overdue_review_count: 1,
+            deprecated_or_retired_count: 0,
+            duplicate_title_group_count: 1,
+            duplicate_title_examples: [{ title: 'Duplicate', count: 2 }],
+            unverified_relation_count: 2,
+        });
+
+        const router = require('../routes/services');
+        const app = express();
+        app.use('/api/v1/services', router);
+
+        const response = await request(app).get('/api/v1/services/catalog-quality');
+
+        expect(response.status).toBe(200);
+        expect(response.body.item).toEqual(expect.objectContaining({
+            total_services: 4,
+            missing_owner_count: 1,
+            unverified_relation_count: 2,
+        }));
+        expect(response.body.generated_at).toBeTruthy();
     });
 
     test('GET /services/:id/overview returns Service 360 aggregate', async () => {

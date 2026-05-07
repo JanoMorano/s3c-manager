@@ -17,18 +17,10 @@ function normalizeSql(sql) {
 }
 
 describe('governance SQL views', () => {
-    test('exposes deterministic risk, owner load, contract, renewal, and advisor views', () => {
-        const sql = normalizeSql(readRepoFile('backend/db/postgres/schema/22_governance_views.sql'));
+    test('keeps owner load view used by the reduced operations surface', () => {
+        const sql = normalizeSql(readRepoFile('backend/db/postgres/schema/32_final_reduction_sunset_cleanup.sql'));
 
-        [
-            'v_service_risk_radar',
-            'v_owner_load',
-            'v_contract_overlap',
-            'v_contract_renewal_risk',
-            'v_gap_duplication_advisor',
-        ].forEach((viewName) => {
-            expect(sql).toContain(`create or replace view ${viewName}`);
-        });
+        expect(sql).toContain('create view v_owner_load');
 
         expect(sql).toContain("'unassigned'");
         expect(sql).toContain('owned_services * 1');
@@ -36,22 +28,21 @@ describe('governance SQL views', () => {
         expect(sql).toContain('critical_services * 3');
         expect(sql).toContain('readiness_blockers * 4');
         expect(sql).toContain('overdue_reviews * 3');
-        expect(sql).toContain('contract_gaps * 2');
         expect(sql).toContain('c3_gaps * 2');
         expect(sql).toContain('is_deleted = false');
         expect(sql).toContain('is_stub = false');
-        expect(sql).toContain("'/c3/' || c3_candidate_uuid");
-        expect(sql).toContain("'c3_capability'");
-        expect(sql).toContain("'missing_c3_mapping'::text");
+        expect(sql).not.toContain('from contract_service_link');
+        expect(sql).not.toContain('join contract_service_link');
+        expect(sql).not.toContain('contract_gaps');
     });
 
-    test('is wired into PostgreSQL init after contract governance schema', () => {
+    test('is wired into PostgreSQL init after governance views and locale cleanup', () => {
         const initScript = readRepoFile('init/init-db-postgres.sh');
 
-        const contractGovernanceIndex = initScript.indexOf('/pgdb/schema/21_contract_governance.sql');
         const governanceViewsIndex = initScript.indexOf('/pgdb/schema/22_governance_views.sql');
+        const finalCleanupIndex = initScript.indexOf('/pgdb/schema/32_final_reduction_sunset_cleanup.sql');
 
-        expect(contractGovernanceIndex).toBeGreaterThan(-1);
-        expect(governanceViewsIndex).toBeGreaterThan(contractGovernanceIndex);
+        expect(governanceViewsIndex).toBeGreaterThan(-1);
+        expect(finalCleanupIndex).toBeGreaterThan(governanceViewsIndex);
     });
 });

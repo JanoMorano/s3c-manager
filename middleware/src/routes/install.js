@@ -62,7 +62,7 @@ async function checkNotReady(req, res, next) {
             });
         }
         next();
-    } catch (err) {
+    } catch {
         // If the DB is not available, allow the request through for fresh installs.
         next();
     }
@@ -124,7 +124,7 @@ async function requireInstallWriteAccess(req, res, next) {
 // Returns current installation state, detected mode, version, and modules.
 // This is the first endpoint called by the frontend.
 // ---------------------------------------------------------------------------
-router.get('/status', async (req, res, next) => {
+router.get('/status', async (req, res) => {
     try {
         const pool = getPlatformPool();
         const { mode, status, row } = await installSvc.detectInstallMode(pool);
@@ -139,7 +139,9 @@ router.get('/status', async (req, res, next) => {
                 WHERE role = 'admin' AND is_active = TRUE
             `);
             adminExists = parseInt(adminCheck.rows[0]?.cnt || '0') > 0;
-        } catch {}
+        } catch {
+            adminExists = false;
+        }
 
         return res.json({
             mode,
@@ -205,7 +207,7 @@ router.post('/start', requireInstallWriteAccess, checkNotReady, async (req, res,
 // Connectivity check: returns results for wizard step 5.
 // Internal error details are logged server-side and never exposed in the response.
 // ---------------------------------------------------------------------------
-router.post('/check-db', requireInstallWriteAccess, async (req, res, next) => {
+router.post('/check-db', requireInstallWriteAccess, async (req, res) => {
     try {
         const pool = getPlatformPool();
         const results = await installSvc.checkConnectivity(pool);
@@ -245,19 +247,6 @@ router.post('/bootstrap-admin', requireInstallWriteAccess, checkNotReady, async 
     try {
         const pool = getPlatformPool();
 
-        try {
-            const adminCheck = await pool.query(
-                `SELECT COUNT(*) AS cnt FROM platform.users WHERE role = 'admin' AND is_active = TRUE`
-            );
-            if (parseInt(adminCheck.rows[0]?.cnt || '0') > 0) {
-                return res.status(409).json({
-                    error: 'Administrátorský účet již existuje. Pro správu účtů použijte admin sekci.',
-                });
-            }
-        } catch {
-            // DB not ready yet — allow bootstrap for fresh install
-        }
-
         const { username, displayName, email, password, mustChangePassword } = req.body || {};
 
         if (!username || !displayName || !email || !password) {
@@ -282,7 +271,8 @@ router.post('/bootstrap-admin', requireInstallWriteAccess, checkNotReady, async 
         return res.json({
             ok: true,
             user_id: result.userId,
-            username: username.trim().toLowerCase(),
+            username: result.username || username.trim().toLowerCase(),
+            mode: result.mode || 'created',
         });
     } catch (err) {
         next(err);
@@ -333,7 +323,6 @@ router.post('/config', requireInstallWriteAccess, checkNotReady, async (req, res
 // ---------------------------------------------------------------------------
 router.post('/modules', requireInstallWriteAccess, checkNotReady, async (req, res, next) => {
     try {
-        const pool = getPlatformPool();
         const activateC3 = req.body?.activate_c3 === true;
 
         // SERVICE_CATALOGUE_CORE is always active; the UI cannot change it.

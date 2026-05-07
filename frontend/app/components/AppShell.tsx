@@ -4,6 +4,7 @@
  *
  * /install  → fullscreen without navigation or auth guard (install wizard owns its shell).
  * /login    → fullscreen without navigation, but still guarded by install readiness.
+ * /help*    → fullscreen in-app manual, guarded like the application.
  * other     → sidebar shell: left sidebar (brand + nav + user) + right column (topbar + page).
  */
 import { usePathname } from 'next/navigation';
@@ -38,6 +39,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Login has no app shell, but it still needs install readiness routing.
   if (pathname.startsWith('/login')) {
+    return <AuthGuard>{children}</AuthGuard>;
+  }
+
+  // Help manuals must stay visually 1:1 with the manual CSS and outside app chrome.
+  if (
+    pathname.startsWith('/help') ||
+    pathname.startsWith('/help-cs') ||
+    pathname.startsWith('/help-en')
+  ) {
     return <AuthGuard>{children}</AuthGuard>;
   }
 
@@ -80,7 +90,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <TopBar />
 
           {/* Page content */}
-          <main id="main-content" className={styles.pageContent}>
+          <main id="main-content" className={styles.pageContent} tabIndex={-1}>
             <AuthGuard>{children}</AuthGuard>
           </main>
 

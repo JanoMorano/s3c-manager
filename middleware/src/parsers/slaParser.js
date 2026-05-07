@@ -24,7 +24,7 @@ function parseSla(serviceId, raw) {
   // Skip lines containing "24x7" or "24/7"; they describe the support window.
   const restorationNums = [];
   for (const line of raw.split(/\r?\n/)) {
-    if (/24\s*[x\/]\s*7/i.test(line)) continue;
+    if (/24\s*[x/]\s*7/i.test(line)) continue;
     for (const m of line.matchAll(/(\d+)\s+hours?/gi)) {
       const n = parseInt(m[1]);
       if (!isNaN(n) && n > 0 && n <= 8760) restorationNums.push(n);
@@ -45,7 +45,7 @@ function parseSla(serviceId, raw) {
 
   // ── Support window ──────────────────────────────────────────────────────────
   let supportWindowCode = 'business_hours';
-  if (/24\s*[x\/]\s*7|round[- ]?the[- ]?clock|continuous.*support|always.*available/i.test(raw)) {
+  if (/24\s*[x/]\s*7|round[- ]?the[- ]?clock|continuous.*support|always.*available/i.test(raw)) {
     supportWindowCode = '24x7';
   } else if (/best.?effort|no.*sla|no.*guarantee/i.test(raw)) {
     supportWindowCode = 'best_effort';

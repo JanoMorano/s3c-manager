@@ -17,11 +17,12 @@ test('admin import/export flow: review page renders and protected exports respon
   expect([401, 403]).toContain(unauthorizedBundle.status());
 
   await loginWithConfiguredAdmin(page, credentials);
-  await page.goto('/admin/import');
-  await expect(page.getByRole('heading', { name: /import review/i })).toBeVisible({ timeout: 15_000 });
+  await page.goto('/administration/import');
+  await expect(page.getByRole('heading', { name: /import history/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('link', { name: /export manifest/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('link', { name: /export bundle/i })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('button', { name: /raw relace|raw relations/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: /raw relace|raw relations/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /expert\/debug tools/i })).toHaveCount(0);
 
   const loginResponse = await request.post('http://localhost:8080/api/v1/auth/login', {
     data: {

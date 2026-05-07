@@ -114,6 +114,67 @@
   background: var(--color-bg-workspace);
 }
 
+.graphTextAlternative {
+  max-height: 230px;
+  overflow: auto;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+
+.graphTextHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.graphTextHeader h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--text-title-sm);
+}
+
+.graphTextHeader span {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.graphRelationList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.graphRelationList li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(80px, .7fr) minmax(120px, 1.2fr) auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px dashed var(--color-border-default);
+  color: var(--color-text-secondary);
+  font: var(--text-body-sm);
+}
+
+.graphRelationList li:first-child {
+  border-top: 0;
+}
+
+.graphRelationList strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.graphRelationList span,
+.graphRelationList small {
+  color: var(--color-text-muted);
+}
+
 .flowSurface {
   position: relative;
   z-index: 1;
@@ -330,4 +391,5 @@
   .rail { border-right: none; border-bottom: 1px solid var(--color-border-default); }
   .canvasWrap { flex-direction: column; }
   .panel { width: 100%; border-left: none; border-top: 1px solid var(--color-border-default); }
+  .graphRelationList li { grid-template-columns: 1fr; }
 }

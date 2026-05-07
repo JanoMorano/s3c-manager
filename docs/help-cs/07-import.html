@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>07 Import - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">07 · Import</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link active" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">07 Import</p>
+        <h1>Import dat, dry-run, validace a audit</h1>
+        <p class="lead">Import slouží k naplnění katalogu služeb, C3 taxonomy, capability builderu a FMN spiral dat z externích zdrojů. Každý import musí projít parsingem, normalizací, řešením referencí, dry-run kontrolou a auditovatelným commitem.</p>
+      </section>
+
+      <h2>Teorie importního procesu</h2>
+      <p>
+        Import není jen upload souboru. Je to řízený ETL proces: parse → normalize → taxonomy resolve → dry-run → validate → upsert → audit → review. Dry-run má běžet server-side, protože pouze server zná databázi, referenční integritu, existující služby, C3 UUID, duplicate rules, importní hash a pravidla pro stub služby.
+      </p>
+      <p>
+        S3C Manager má importní část navrženou tak, aby zdrojová data nepoškodila governance model. Neznámý číselník nemá potichu vytvořit špatnou hodnotu, chybějící service ID nemá založit nečitelnou službu a C3/FMN import musí být dohledatelný podle spiral baseline a zdrojového souboru.
+      </p>
+      <div class="itil-note">
+        <strong>Procesní vazba:</strong> Import podporuje ITIL information and technology dimension, service catalogue management, service configuration management, knowledge management a continual improvement. TOGAF/ArchiMate kontext je důležitý u XML/EA importů: modelovací zdroj se převádí do governance evidence, ne do plnohodnotného EA repository.
+      </div>
+
+      <h2>Vazba na rámce a standardy</h2>
+      <table class="field-table">
+        <thead><tr><th>Rámec</th><th>Jak souvisí s importem</th><th>Co z toho plyne pro uživatele</th><th>Odkaz</th></tr></thead>
+        <tbody>
+          <tr><td>ITIL 4</td><td>Data o službách musí podporovat hodnotu, governance, service value chain a continual improvement.</td><td>Import není jednorázové nalití dat; po importu se řeší readiness, owner, SLA a requestability.</td><td><a href="https://www.peoplecert.org/products/ITIL-4/itil-4-foundation">PeopleCert ITIL 4 Foundation</a></td></tr>
+          <tr><td>TOGAF</td><td>Architektonická data mají být konzistentní, dohledatelná a komunikovatelná mezi stakeholdery.</td><td>Capability/C3 import musí držet parent/child, UUID, popisy a baseline kontext.</td><td><a href="https://publications.opengroup.org/standards/togaf">The Open Group TOGAF Standard</a></td></tr>
+          <tr><td>ArchiMate</td><td>Otevřený jazyk pro popis vazeb mezi business, aplikacemi, daty a technologií.</td><td>ArchiMate XML se importuje jako evidence, která se má po importu ověřit v C3 graphu.</td><td><a href="https://publications.opengroup.org/standards/archimate">The Open Group ArchiMate Standard</a></td></tr>
+          <tr><td>NATO FMN</td><td>FMN spojuje lidi, procesy a technologie v řízených mission network baseline.</td><td>C3/FMN import musí mít správnou spiral a zachovat provenance.</td><td><a href="https://coi.nato.int/FMNPublic/SitePages/Home.aspx">NATO FMN public portal</a></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Import workspace<br><code>/img/help-cs/import-01-workspace.png</code></div></div><figcaption>Wizard styl: Profile → Upload → Dry run → Validate → Commit → Review.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Import upload<br><code>/img/help-cs/import-02-upload.png</code></div></div><figcaption>Výběr targetu, spiral baseline, souboru, dry-run a commit akce.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Preflight report<br><code>/img/help-cs/import-03-preflight.png</code></div></div><figcaption>Report bez zápisu: row count, blockers, warnings, unresolved refs a download JSON.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Import review<br><code>/img/help-cs/import-04-review.png</code></div></div><figcaption>Governance audit sekce batchů, import quality report, stub služby a poslední C3 importy.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Admin import<br><code>/img/help-cs/import-05-admin-review.png</code></div></div><figcaption>Detailní audit batchů, raw relations, raw fields a reparse pipeline.</figcaption></figure>
+      </div>
+
+      <h2>Route mapa importu</h2>
+      <table class="field-table">
+        <thead><tr><th>Route</th><th>Účel</th><th>Zapisuje data?</th><th>Kdy ji použít</th></tr></thead>
+        <tbody>
+          <tr><td><code>/import</code></td><td>Import review pro běžnou kontrolu importů, stub služeb, import quality report a poslední C3 importy.</td><td>Ne.</td><td>Po každém importu nebo před governance kontrolou.</td></tr>
+          <tr><td><code>/import/upload</code></td><td>Upload jednoho souboru do Service Catalogue, C3, FMN nebo builder targetu.</td><td>Ano, po commit/import akci.</td><td>Když máte konkrétní CSV/JSON/XLSX/XML soubor.</td></tr>
+          <tr><td><code>/administration/import</code></td><td>Admin audit importů, raw relations a reparse.</td><td>Ano, reparse mění vztahová data.</td><td>Když import proběhl, ale relationships/raw fields potřebují opravu.</td></tr>
+          <tr><td><code>/administration/installation</code></td><td>Instalační seed/demo/import workflow.</td><td>Ano.</td><td>Jen při instalaci, obnově nebo demo seeding.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Import workspace: kroky procesu</h2>
+      <table class="field-table">
+        <thead><tr><th>Krok</th><th>Co se děje</th><th>Co kontrolovat</th><th>Co se stane při chybě</th></tr></thead>
+        <tbody>
+          <tr><td>Profile</td><td>Uživatel vybírá importní profil nebo target.</td><td>Zda importujete service catalogue, C3 taxonomy, applications, data objects, services, TINs, capability builder nebo ArchiMate.</td><td>Špatný target způsobí špatné mapování sloupců.</td></tr>
+          <tr><td>Upload</td><td>Nahrání souboru nebo výběr serverové složky.</td><td>Příponu, encoding, delimiter, velikost souboru a citlivost dat.</td><td>Frontend odmítne nepodporovaný formát, server odmítne nečitelný payload.</td></tr>
+          <tr><td>Dry run</td><td>Server parsuje a validuje bez zápisu.</td><td>Row count, unresolved refs, duplicate keys, missing required columns, blockers.</td><td>Dry-run vrátí report; DB se nemění.</td></tr>
+          <tr><td>Validate</td><td>Uživatel čte report a rozhoduje, zda lze pokračovat.</td><td>Zda chyby nejsou blokující a zda warnings dávají smysl.</td><td>Blockery vyřešit ve zdrojovém souboru, ref data nebo targetu.</td></tr>
+          <tr><td>Commit</td><td>Server provede insert/update/upsert a zapíše audit.</td><td>Že commit odpovídá stejnému souboru jako dry-run.</td><td>Chyby jdou do import_issue a batch summary.</td></tr>
+          <tr><td>Review</td><td>Kontrola výsledku v <code>/import</code>, readiness, C3 mapách a service listu.</td><td>Stub services, import quality report, coverage, readiness blockery.</td><td>Opravit data, reparse raw nebo spustit nový import.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Podporované formáty a targety</h2>
+      <table class="field-table">
+        <thead><tr><th>Target</th><th>Formáty</th><th>Endpoint</th><th>Co vyžaduje</th></tr></thead>
+        <tbody>
+          <tr><td>Service Catalogue S3C</td><td>CSV, JSON</td><td><code>/api/v1/import/services/csv</code>, <code>/api/v1/import/services</code></td><td>Stabilní <code>service_id</code>, <code>title</code>, ref kódy.</td></tr>
+          <tr><td>National CSV</td><td>CSV</td><td>Profil podle konfigurace.</td><td>Sloupce mapované do kanonických service polí.</td></tr>
+          <tr><td>C3 Taxonomy</td><td>CSV, JSON, XLSX</td><td><code>/api/v1/taxonomy/c3/csv</code>, <code>/sync</code>, <code>/api/v1/taxonomy/c3/xlsx</code></td><td>UUID, title, parent, item_type, spiral.</td></tr>
+          <tr><td>C3 Applications</td><td>CSV, JSON</td><td><code>/api/v1/taxonomy/c3-applications/csv</code>, <code>/sync</code></td><td>Kód aplikace, title, status, source.</td></tr>
+          <tr><td>C3 Data Objects</td><td>CSV, JSON</td><td><code>/api/v1/taxonomy/c3-data-objects/csv</code>, <code>/sync</code></td><td>Kód objektu, title, description, status.</td></tr>
+          <tr><td>C3 Services</td><td>CSV, JSON</td><td><code>/api/v1/taxonomy/c3-services/csv</code>, <code>/sync</code></td><td>C3 service code, title, status, source.</td></tr>
+          <tr><td>Technology Interactions / TINs</td><td>CSV, JSON</td><td><code>/api/v1/taxonomy/c3-technology-interactions/csv</code>, <code>/sync</code></td><td>TIN code, title, linked apps/data/services podle zdroje.</td></tr>
+          <tr><td>Capability Builder</td><td>CSV, JSON</td><td>Builder import endpoint podle konfigurace.</td><td>Capability level, domain, parent, spiral mapping.</td></tr>
+          <tr><td>FMN ArchiMate</td><td>XML, XLSX</td><td><code>/api/v1/taxonomy/c3/{target}/xml-archimate</code>, <code>/api/v1/taxonomy/c3/xlsx?target_key=...</code></td><td>Správný target key, XML elementy, property refs, spiral baseline.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>CSV import služeb: sloupce</h2>
+      <table class="field-table">
+        <thead><tr><th>Sloupec</th><th>Povinnost</th><th>Význam</th><th>Co ovlivní</th></tr></thead>
+        <tbody>
+          <tr><td><code>service_id</code></td><td>Povinný</td><td>Unikátní business identifikátor služby.</td><td>Upsert, URL, relations, audit. Bez něj nelze poznat insert/update.</td></tr>
+          <tr><td><code>title</code></td><td>Povinný</td><td>Název služby.</td><td>Katalog, search, Service 360, reviews.</td></tr>
+          <tr><td><code>service_type_code</code></td><td>Doporučený</td><td>Typ služby, například CF, ES, SS.</td><td>Filtry, reporting, new service validation.</td></tr>
+          <tr><td><code>service_status_code</code></td><td>Doporučený</td><td>Stav služby: active, planned, retired, deprecated.</td><td>List, lifecycle mapping, visibility.</td></tr>
+          <tr><td><code>short_description</code></td><td>Doporučený</td><td>Krátký popis služby.</td><td>Manažerská čitelnost a search.</td></tr>
+          <tr><td><code>business_summary</code></td><td>Doporučený</td><td>Business shrnutí pro katalog.</td><td>Business view v Service 360.</td></tr>
+          <tr><td><code>consumer_value</code></td><td>Doporučený</td><td>Hodnota pro konzumenta.</td><td>Katalogový detail a request rozhodování.</td></tr>
+          <tr><td><code>portfolio_group_code</code></td><td>Doporučený</td><td>Portfolio skupina.</td><td>Portfolio dashboard a governance reporting.</td></tr>
+          <tr><td><code>global_service_group_code</code></td><td>Doporučený</td><td>Globální skupina služby.</td><td>Ref table resolution; neznámý kód vytvoří warning.</td></tr>
+          <tr><td><code>service_line_code</code></td><td>Volitelný</td><td>Service line nebo delivery oblast.</td><td>Owner load, reporting, service classification.</td></tr>
+          <tr><td><code>organizational_element_code</code></td><td>Volitelný</td><td>Organizační prvek.</td><td>Reporting odpovědnosti.</td></tr>
+          <tr><td><code>service_owner</code></td><td>Doporučený</td><td>Vlastník služby.</td><td>Readiness, owner load, My Tasks.</td></tr>
+          <tr><td><code>service_owner_email</code></td><td>Doporučený</td><td>E-mail vlastníka.</td><td>Přiřazování review, osobní fronty, personalizace.</td></tr>
+          <tr><td><code>service_url</code></td><td>Volitelný</td><td>Externí URL služby.</td><td>Operational link nebo reference; musí být validní URL.</td></tr>
+          <tr><td><code>requestable</code></td><td>Volitelný</td><td>Zda lze službu požádat.</td><td>Publish gate vyžaduje request channel/default offering.</td></tr>
+          <tr><td><code>request_channel_url</code></td><td>Podmíněný</td><td>URL requestu pro requestable službu.</td><td>Konzument a readiness gate.</td></tr>
+          <tr><td><code>sla_availability</code></td><td>Volitelný</td><td>Dostupnost služby.</td><td>SLA readiness a Service 360.</td></tr>
+          <tr><td><code>source_local_id</code>, <code>source_sp_id</code>, <code>source_etag</code></td><td>Volitelný</td><td>Provenance externího zdroje.</td><td>Reconcile budoucích importů a audit.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>JSON import služeb</h2>
+      <p>
+        JSON import je vhodný, když zdrojový systém umí exportovat strukturovaná data včetně offerings, legacy variant evidence a relationships. Import engine podporuje některé aliasy jako <code>serviceId</code> pro <code>service_id</code> nebo <code>status</code> pro <code>service_status_code</code>.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Objekt</th><th>Typická pole</th><th>Proč existuje</th><th>Dopad</th></tr></thead>
+        <tbody>
+          <tr><td><code>items[]</code></td><td><code>service_id</code>, <code>title</code>, <code>serviceType</code>, <code>status</code>, popisy.</td><td>Vlastní služby.</td><td>Upsert do service_catalog.</td></tr>
+          <tr><td><code>items[].legacy variant evidences[]</code></td><td><code>service_unit</code>, <code>service_rate_eur</code>, <code>billing_period_code</code>.</td><td>Historická variantní evidence ze starších zdrojů.</td><td>Offering evidence readiness.</td></tr>
+          <tr><td><code>relations[]</code></td><td><code>from_service_id</code>, <code>to_service_id</code>, <code>relation_type_code</code>.</td><td>Závislosti mezi službami.</td><td>Service graph, impact analysis.</td></tr>
+          <tr><td><code>source_name</code></td><td>Název zdroje.</td><td>Audit importu.</td><td>import_batch, import quality report.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>C3 a FMN importní pole</h2>
+      <table class="field-table">
+        <thead><tr><th>Pole</th><th>Význam</th><th>Proč je důležité</th><th>Kam se promítá</th></tr></thead>
+        <tbody>
+          <tr><td><code>uuid</code></td><td>Stabilní identifikátor C3 položky.</td><td>Bez UUID nelze spolehlivě navázat parent, služby a graph.</td><td>C3 detail, C3 graph, service_c3_mapping.</td></tr>
+          <tr><td><code>title</code></td><td>Název C3 položky.</td><td>Čitelnost mapy a search.</td><td>C3 list, maps, graph.</td></tr>
+          <tr><td><code>parent_uuid</code> / <code>parent_id</code></td><td>Nadřazená položka.</td><td>Strom capability a agregace coverage.</td><td>Capability map.</td></tr>
+          <tr><td><code>level</code> / <code>level_num</code></td><td>Úroveň ve stromu.</td><td>L1/L2/L3 mapování a reporting.</td><td>Capability overview.</td></tr>
+          <tr><td><code>item_type</code></td><td>Capability, application, data object, C3 service, TIN.</td><td>Řídí family workspace a graph node type.</td><td>C3 entity routes.</td></tr>
+          <tr><td><code>external_id</code></td><td>ID ze zdrojové taxonomy.</td><td>Reconcile a audit.</td><td>Import review, exact search.</td></tr>
+          <tr><td><code>source_external_id</code></td><td>Původní externí ID.</td><td>Traceability k FMN/EA zdroji.</td><td>C3 detail.</td></tr>
+          <tr><td><code>data_source</code>, <code>data_qualifier</code></td><td>Původ a kvalita dat.</td><td>Rozlišení importovaného, lokálního a provizorního záznamu.</td><td>Governance status, C3 editor.</td></tr>
+          <tr><td><code>ss_overall_status</code>, <code>ss_baseline_status</code></td><td>Stav vůči source/baseline.</td><td>FMN spiral reporting.</td><td>Spirals, C3 map and C3 detail workflow.</td></tr>
+          <tr><td><code>spiral_code</code></td><td>Spiral baseline importu.</td><td>Rozlišení aktivní a historické baseline.</td><td>ref_spiral_baseline, spiral membership.</td></tr>
+          <tr><td><code>script_raw</code>, <code>datasets_raw</code>, <code>standards_raw</code>, <code>references_raw</code>, <code>provenance_raw</code></td><td>Raw importní evidence.</td><td>Audit a dohledání zdroje.</td><td>C3 entity workspace dark code editor.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>ArchiMate XML mapping</h2>
+      <table class="field-table">
+        <thead><tr><th>ArchiMate element / property</th><th>Target key</th><th>C3 pole</th><th>Poznámka</th></tr></thead>
+        <tbody>
+          <tr><td><code>BusinessProcess</code></td><td><code>business-processes</code></td><td>item_type <code>BP</code></td><td>Business procesy se importují jako C3/capability evidence, ne jako BPM workflow engine.</td></tr>
+          <tr><td><code>BusinessRole</code></td><td><code>business-roles</code></td><td>item_type <code>BR</code></td><td>Role v architektonickém modelu, ne aplikační RBAC role.</td></tr>
+          <tr><td><code>TechnologyService</code></td><td><code>coi-services</code>, <code>communications-services</code>, <code>core-services</code></td><td>item_type <code>CI</code>, <code>CO</code>, <code>CR</code></td><td>Target určuje typ C3 služby.</td></tr>
+          <tr><td><code>ApplicationService</code></td><td><code>user-applications</code></td><td>item_type <code>UA</code></td><td>Aplikační service evidence.</td></tr>
+          <tr><td><code>element@identifier</code> / <code>propid-40</code></td><td>libovolný ArchiMate target</td><td><code>uuid</code></td><td>Stabilní identita importovaného prvku.</td></tr>
+          <tr><td><code>name xml:lang="en"</code></td><td>libovolný target</td><td><code>title</code></td><td>Hlavní název entity.</td></tr>
+          <tr><td><code>documentation xml:lang="en"</code></td><td>libovolný target</td><td><code>description</code></td><td>Popis entity.</td></tr>
+          <tr><td><code>propid-45</code></td><td>libovolný target</td><td><code>references_raw</code>, segment URL jako <code>external_id</code></td><td>Reference na zdrojový model.</td></tr>
+          <tr><td><code>propid-50</code></td><td>libovolný target</td><td><code>source_external_id</code></td><td>Původní externí ID.</td></tr>
+          <tr><td><code>propid-25</code></td><td>libovolný target</td><td><code>provenance_raw</code></td><td>Původ dat.</td></tr>
+          <tr><td><code>propid-30</code></td><td>libovolný target</td><td><code>data_qualifier</code></td><td>Kvalifikace dat.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Dry-run report</h2>
+      <table class="field-table">
+        <thead><tr><th>Prvek reportu</th><th>Co znamená</th><th>Kdy blokuje commit</th><th>Jak opravit</th></tr></thead>
+        <tbody>
+          <tr><td>Parsed rows</td><td>Počet řádků nebo objektů, které parser přečetl.</td><td>Když je 0 nebo výrazně nesedí s očekáváním.</td><td>Zkontrolovat delimiter, sheet, encoding, target.</td></tr>
+          <tr><td>Insert / update plan</td><td>Kolik záznamů vznikne nebo se změní.</td><td>Když update plán nečekaně přepisuje velký počet záznamů.</td><td>Ověřit service_id/uuid/external_id.</td></tr>
+          <tr><td>Warnings</td><td>Neznámé ref kódy, nepodporované sloupce, neúplné vazby.</td><td>Obvykle neblokují, ale snižují kvalitu.</td><td>Doplnit reference data nebo opravit sloupce.</td></tr>
+          <tr><td>Errors</td><td>Chybějící povinné pole, neparsovatelný formát, neplatný target.</td><td>Ano.</td><td>Opravit zdroj nebo target config.</td></tr>
+          <tr><td>Unresolved refs</td><td>Ref kódy nebo UUID, které server nenašel.</td><td>Podle typu. C3 parent obvykle silnější problém než volitelný ref.</td><td>Naimportovat parent/ref data nebo opravit hodnotu.</td></tr>
+          <tr><td>Stub candidates</td><td>Služby, které mohou vzniknout jen jako external_reference stub.</td><td>Pokud stuby nejsou v daném procesu povolené.</td><td>Doplnit plný záznam služby nebo vypnout/vyřešit stub source.</td></tr>
+          <tr><td>Download preflight JSON</td><td>Stažení reportu.</td><td>Ne.</td><td>Použít jako přílohu k review nebo chybovému hlášení.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Import Review</h2>
+      <p>
+        Stránka <code>/import</code> je read-only kontrolní panel. Je určena pro běžného editora nebo ownera, který chce pochopit, co se po importu stalo. Technické opravy raw relations a reparse patří do <code>/administration/import</code>.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Co ukazuje</th><th>Proč je důležitý</th><th>Kam vede</th></tr></thead>
+        <tbody>
+          <tr><td>Import profile select</td><td>Filtr batchů podle profilu.</td><td>Oddělí service import od C3 nebo FMN importů.</td><td>Batch list.</td></tr>
+          <tr><td>Jen stuby</td><td>Filtr auto-created stub services.</td><td>Stuby jsou nedokončené záznamy, které musí někdo doplnit.</td><td><code>/services/{service_id}</code>.</td></tr>
+          <tr><td>Batch list</td><td>Soubor, čas, status, počty OK/warn/error.</td><td>Auditní přehled importů.</td><td>Batch detail.</td></tr>
+          <tr><td>Batch detail</td><td>Řádky, chyby, warnings, import_issue.</td><td>Umožní dohledat konkrétní řádek a pole.</td><td>Service detail, admin import.</td></tr>
+          <tr><td>Import quality report</td><td>Počty itemů, legacy variants, relations, missing targets, stubs, unresolved refs.</td><td>Kontrola datového kontraktu se zdrojem.</td><td>Oprava zdrojového souboru nebo reference data.</td></tr>
+          <tr><td>Latest C3 imports</td><td>Poslední C3/FMN import run.</td><td>Ověření, zda C3 mapy pracují s novými daty.</td><td>C3 list, capability map, admin import.</td></tr>
+          <tr><td>Export bundle / manifest</td><td>Stažení auditního/exportního výstupu.</td><td>Podklad pro kontrolu mimo aplikaci.</td><td><code>/api/v1/export/bundle</code>, <code>/api/v1/export/manifest</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Admin Import a reparse</h2>
+      <p>
+        Admin import na <code>/administration/import</code> je hlubší kontrola. Používá se, když běžný import review nestačí: raw relations se nepřevádějí, raw fields nejsou správně interpretované nebo je potřeba provést reparse bez ručního zásahu do databáze.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Význam</th><th>Co ovlivní</th><th>Riziko</th></tr></thead>
+        <tbody>
+          <tr><td>Status filter</td><td>all, ok, warn, error.</td><td>Zúží import review na problémové batch/row záznamy.</td><td>Filtr nesmí nahradit čtení detailu chyby.</td></tr>
+          <tr><td>Batches tab</td><td>Governance audit sekce importů a jejich detail.</td><td>Audit a dohledání chyb.</td><td>Staré batch záznamy mohou být archivované podle retention.</td></tr>
+          <tr><td>Raw relace</td><td>Nezpracované relationship řádky.</td><td>Po reparse mohou vzniknout nebo změnit service_relation.</td><td>Reparse mění data, proto vyžaduje admin/edit oprávnění.</td></tr>
+          <tr><td>Raw fields per služba</td><td>Importní raw field evidence pro konkrétní service ID.</td><td>Pomáhá zjistit, proč se pole nezobrazilo ve structured editoru.</td><td>Ne vše raw má být automaticky převáděno.</td></tr>
+          <tr><td>Reparse single row</td><td>Přeparsuje jeden raw relation záznam.</td><td>Bezpečnější oprava než reparse all.</td><td>Použít při cílené opravě.</td></tr>
+          <tr><td>Reparse all</td><td>Přeparsuje více raw relations.</td><td>Hromadná oprava vztahových dat.</td><td>Používat po kontrole a ideálně po záloze.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Importní audit a retention</h2>
+      <table class="field-table">
+        <thead><tr><th>Objekt</th><th>Co drží</th><th>Proč je důležitý</th><th>Typický problém</th></tr></thead>
+        <tbody>
+          <tr><td><code>import_batch</code></td><td>Soubor, uživatel, parser version, hash, row_count, ok/warn/error count, notes.</td><td>Hlavní auditní záznam importu.</td><td>Bez batch ID se těžko hledá chyba.</td></tr>
+          <tr><td><code>import_row</code></td><td>Řádek, service_id, raw_json, status.</td><td>Dohledání konkrétního řádku.</td><td>Chyba na řádku může být jen warning, ne fatal error.</td></tr>
+          <tr><td><code>import_issue</code></td><td>Severity, issue_code, field_name, raw_value, message, resolved.</td><td>Vysvětluje, co se stalo a proč.</td><td>Ignorované warnings se projeví jako readiness problémy.</td></tr>
+          <tr><td><code>import_contract_report</code></td><td>Kontrakt, counts, unresolved refs, missing targets, stubs.</td><td>Kontrola kvality zdrojového kontraktu.</td><td>Zdrojový systém mění sloupce bez domluvy.</td></tr>
+          <tr><td><code>service_relation_raw</code></td><td>Raw relationships k reparse.</td><td>Umožňuje opravit vztahy po importu bez ruční DB změny.</td><td>Nejednoznačné target služby.</td></tr>
+          <tr><td><code>audit_retention_policy</code></td><td>Retention a archive pravidla pro import/graph audit.</td><td>Produkční provoz nemůže držet audit nekonečně bez politiky.</td><td>Staré záznamy mohou být archivované.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Co dělat po importu</h2>
+      <ol>
+        <li>Otevřete <code>/import</code> a vyberte poslední batch.</li>
+        <li>Zkontrolujte počty inserted, updated, failed, warnings a import quality report.</li>
+        <li>Pokud vznikly stub služby, otevřete jejich detail a doplňte je v editoru.</li>
+        <li>Otevřete <code>/services/list</code> a ověřte, že služby mají správný status, typ a portfolio.</li>
+        <li>Otevřete <code>/operations/readiness</code> a zkontrolujte nové blockery.</li>
+        <li>U C3/FMN importu otevřete <code>/c3/list</code>, capability map, <code>/capabilities?view=coverage</code> a <code>/c3/capability-map-spiral7</code>.</li>
+        <li>Pokud se import dotýká kritických služeb, zapište decision nebo otevřete governance review.</li>
+      </ol>
+
+      <h2>Časté chyby</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Dopad</th><th>Správný postup</th></tr></thead>
+        <tbody>
+          <tr><td>Commit bez dry-run.</td><td>Chyby se zjistí až po zápisu a opravují se hůř.</td><td>Vždy spustit preflight dry-run a uložit report u větších importů.</td></tr>
+          <tr><td>Nový service_id pro existující službu.</td><td>Vznikne duplicita místo update.</td><td>Udržovat stabilní service_id v externím zdroji.</td></tr>
+          <tr><td>Neznámé reference se ignorují.</td><td>Portfolio/type/status se uloží jako null nebo warning a readiness se zhorší.</td><td>Před importem doplnit reference data nebo opravit kódy.</td></tr>
+          <tr><td>Špatná spiral baseline.</td><td>Capability map a coverage budou ukazovat data v nesprávném FMN kontextu.</td><td>Ověřit selectedSpiral a active baseline před commitem.</td></tr>
+          <tr><td>Raw pole se bere jako plnohodnotná governance evidence.</td><td>Manažer nerozumí službě nebo capability.</td><td>Po importu převést důležité raw informace do strukturovaných polí.</td></tr>
+          <tr><td>Stub služby zůstanou v katalogu bez doplnění.</td><td>Impact graph má uzly, které nejsou reálné služby.</td><td>Pravidelně filtrovat “Jen stuby” a doplňovat/rušit je.</td></tr>
+          <tr><td>Reparse all bez kontroly.</td><td>Může změnit větší množství relationships.</td><td>Nejdřív reparse single row, pak reparse all až po kontrole a záloze.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Vazby na další kapitoly</h2>
+      <div class="route-list">
+        <div class="route-item"><strong><a href="04-services.html">04 Služby</a></strong> vysvětluje, jak doplnit importované nebo stub služby v editoru.</div>
+        <div class="route-item"><strong><a href="05-capabilities_c3.html">05 Capabilities a C3</a></strong> ukazuje, jak se C3 import projeví v maps, graphu a coverage.</div>
+        <div class="route-item"><strong><a href="06-governance.html">06 Governance</a></strong> navazuje readiness, reviews a decisions po importu.</div>
+        <div class="route-item"><strong><a href="08-admin.html">08 Administrace</a></strong> popisuje reference data, admin import, bulk folder a installation import.</div>
+        <div class="route-item"><strong><a href="11-api.html">11 API</a></strong> obsahuje importní endpointy a parametry pro automatizace.</div>
+      </div>
+
+      <div class="chapter-nav">
+        <a href="06-governance.html">Předchozí: 06 Governance</a>
+        <a href="08-admin.html">Další: 08 Administrace</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

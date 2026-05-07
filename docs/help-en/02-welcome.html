@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What S3C Manager is and where it fits in enterprise governance - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">02 · Application purpose</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link active" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">02 Application overview</p>
+        <h1>What S3C Manager is and where it fits in enterprise governance</h1>
+        <p class="lead">S3C Manager is best used as a governance-first cockpit above services, capabilities, C3/FMN relations and readiness. It is not a ticketing system, monitoring platform, full CMDB or replacement for an Enterprise Architecture repository.</p>
+      </section>
+
+      <h2>Short definition</h2>
+      <p>The application answers practical portfolio and governance questions: what services exist, who owns them, which capabilities and C3 elements they support, whether they are ready for publication or change, where coverage gaps exist and what will be affected by a change.</p>
+
+      <h2>What it is and what it is not</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Governance cockpit</strong></span></span><p>Decision, readiness, ownership, exception and review context in one place.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service catalogue</strong></span></span><p>A managed catalogue of services, offerings, owners, lifecycle state and consumer-facing context.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Capability and C3/FMN cockpit</strong></span></span><p>Mapping between services, business capabilities, C3 capabilities, spirals, applications and data objects.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Not ticketing or monitoring</strong></span></span><p>It references operational readiness and decisions, but does not replace incident queues or live telemetry.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Not a full CMDB</strong></span></span><p>It keeps service-relevant dependencies and ownership, not every infrastructure configuration item.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Not an EA repository</strong></span></span><p>It supports architecture mapping without becoming a full ArchiMate modelling repository.</p></article></div>
+
+      <h2>Best use</h2>
+      <p>Use S3C Manager when an organization needs a shared decision surface between service management, architecture, ITSM and project delivery. It is especially useful before service publication, during portfolio review, while resolving capability gaps, and before change or release decisions.</p>
+
+      <h2>Process place in the organization</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service intake / demand</strong></span></span><p>Capture a new service or change request with owner, purpose, lifecycle and initial capability context.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service portfolio management</strong></span></span><p>Classify services by portfolio, lifecycle, criticality, duplication and risk.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Architecture and capability mapping</strong></span></span><p>Map services to capabilities, C3 elements, applications, data objects and integrations.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service design</strong></span></span><p>Complete offering, SLA, support model, dependencies, reviewers and security attributes.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Readiness gate</strong></span></span><p>Check whether the service can be published, changed or retired.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Governance review</strong></span></span><p>Approve, reject, defer or record an exception as an auditable decision.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Change / release / transition</strong></span></span><p>Use impact analysis before changing a service, capability or C3 item.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Operate and improve</strong></span></span><p>Track due reviews, warnings, governance queue, owner load, gaps and overlaps.</p></article></div>
+
+      <h2>When not to deploy it</h2>
+      <p>Do not use S3C Manager as the only tool for incident handling, monitoring, detailed asset discovery or complex enterprise modelling. In those cases it should integrate with the specialist system and keep only the governance and catalogue context.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Application purpose<br><code>/img/help-en/02-welcome.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="01-install.html">Previous: Installation</a>
+        <a href="03-cocpit.html">Next: Cockpit</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

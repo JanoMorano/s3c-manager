@@ -8,8 +8,6 @@
     150px
     150px
     150px
-    64px
-    110px
     144px;
   align-items: center;
   gap: 0 var(--space-4);
@@ -31,9 +29,7 @@
 }
 .selected  { background: color-mix(in srgb, var(--color-info) 10%, transparent); }
 
-/* Density */
-.comfortable { min-height: 74px; }
-.compact     { min-height: 48px; padding-block: var(--space-2); }
+.row { min-height: 74px; }
 
 /* Header */
 .header {
@@ -158,27 +154,12 @@
   white-space: nowrap;
 }
 
-.counter,
-.dependencyCount {
-  color: var(--color-text-primary);
-  font: var(--text-label-md);
-  white-space: nowrap;
-}
-
 /* Column refs */
 .colService    { min-width: 0; overflow: hidden; }
 .colLifecycle  { display: flex; align-items: center; gap: var(--space-2); }
 .colOwner      { display: grid; gap: 2px; min-width: 0; overflow: hidden; }
 .colReadiness  { display: grid; gap: 4px; min-width: 0; }
 .colCapability { min-width: 0; overflow: hidden; }
-.colC3         { display: flex; align-items: center; }
-.colDeps       {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
-  min-width: 0;
-}
 .colNextAction { color: var(--color-info); font: var(--text-label-md); white-space: nowrap; }
 
 /* Lifecycle dot — small colored circle next to status pill */
@@ -195,9 +176,7 @@
     grid-template-columns: minmax(220px, 1fr) 120px 140px 120px 120px;
   }
 
-  .colCapability,
-  .colC3,
-  .colDeps {
+  .colCapability {
     display: none;
   }
 }

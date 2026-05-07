@@ -36,12 +36,15 @@ export default function NavGlobalSearch() {
   const [paletteBusy, setPaletteBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: global search mirrors the /search query when that route is active. */
   useEffect(() => {
     if (pathname === '/search') {
       setQuery(searchParams?.get('query') ?? '');
     }
   }, [pathname, searchParams]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: palette state is intentionally synchronized with debounced query/network results. */
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -84,12 +87,13 @@ export default function NavGlobalSearch() {
       controller.abort();
     };
   }, [paletteOpen, query]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next = query.trim();
     setPaletteOpen(false);
-    router.push(next ? `/search?query=${encodeURIComponent(next)}` : '/search');
+    router.push(next ? `/services/list?search=${encodeURIComponent(next)}` : '/services/list');
   }
 
   function goTo(href: string) {
@@ -122,7 +126,7 @@ export default function NavGlobalSearch() {
       {paletteOpen && query.trim().length >= 2 && (
         <div className={styles.commandPalette} role="dialog" aria-label="Command palette search results">
           {paletteBusy && <div className={styles.commandState}>Searching…</div>}
-          {!paletteBusy && palette && palette.total === 0 && <div className={styles.commandState}>No results. Press Enter for full search.</div>}
+          {!paletteBusy && palette && palette.total === 0 && <div className={styles.commandState}>{t('nav.global_search_no_results_service_list')}</div>}
           {!paletteBusy && palette && palette.total > 0 && PALETTE_GROUPS.map(([key, label]) => {
             const items = palette.groups?.[key] ?? [];
             if (!items.length) return null;
@@ -140,7 +144,7 @@ export default function NavGlobalSearch() {
             );
           })}
           <button type="button" className={styles.commandFooter} onMouseDown={(event) => event.preventDefault()} onClick={() => handleSubmit({ preventDefault: () => undefined } as FormEvent<HTMLFormElement>)}>
-            Open full search for “{query.trim()}”
+            {t('nav.global_search_open_service_list', { query: query.trim() })}
           </button>
         </div>
       )}

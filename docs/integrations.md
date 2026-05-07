@@ -155,12 +155,12 @@ Practical guidance:
 
 ## Export Endpoints
 
-- `/api/v1/export/services`
-- `/api/v1/export/portfolio`
-- `/api/v1/export/capabilities/coverage`
-- `/api/v1/export/readiness`
-- `/api/v1/export/decisions`
+- `/api/v1/export/manifest`
+- `/api/v1/export/bundle`
 - `/api/v1/export/governance-report`
+- `/api/v1/export/capability-map-hierarchy`
+- `/api/v1/export/c3-relationships`
+- `/api/v1/export/capabilities/coverage`
 - `/api/v1/export/backstage/catalog-info`
 
 ## Dry-Run First

@@ -4,7 +4,7 @@ const { resolveRequestLocale, tReq } = require('../utils/i18n');
 
 test('prefers authenticated user locale, then locale cookie, then accept-language', async () => {
     expect(resolveRequestLocale({ user: { preferred_lang: 'en' } })).toBe('en');
-    expect(resolveRequestLocale({ user: { preferred_lang: 'de-DE' } })).toBe('de');
+    expect(resolveRequestLocale({ user: { preferred_lang: 'de-DE' } })).toBe('cs');
     expect(resolveRequestLocale({ headers: { cookie: 'sc_locale=en' } })).toBe('en');
     expect(resolveRequestLocale({ headers: { 'accept-language': 'en-US,en;q=0.9' } })).toBe('en');
 });

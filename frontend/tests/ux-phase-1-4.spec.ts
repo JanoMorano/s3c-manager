@@ -1,41 +1,9 @@
-import { expect, test } from '@playwright/test';
-import path from 'node:path';
-
-const requireFromTest = require;
-const dotenv = requireFromTest('../../middleware/node_modules/dotenv');
-const jwt = requireFromTest('../../middleware/node_modules/jsonwebtoken');
+import { expect, test, type Page } from '@playwright/test';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
-dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
-function signedAccessToken() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET is required for UX smoke auth cookie');
-  return jwt.sign(
-    {
-      sub: Number(process.env.SMOKE_ADMIN_ID ?? 1),
-      username: process.env.SMOKE_ADMIN_USERNAME ?? 'ux-smoke',
-      role: 'admin',
-      display_name: 'UX Smoke',
-      preferred_lang: 'cs',
-    },
-    secret,
-    {
-      expiresIn: '30m',
-      issuer: 'service-catalogue',
-      audience: 'service-catalogue-ui',
-    },
-  );
-}
-
-async function authenticate(page, preferredLang = 'cs') {
-  await page.context().addCookies([
-    { name: 'sc_access_token', value: signedAccessToken(), url: BASE_URL },
-    { name: 'sc_locale', value: preferredLang, url: BASE_URL },
-  ]);
-  await page.addInitScript((snapshot) => {
-    sessionStorage.setItem('sc_auth_snapshot', JSON.stringify(snapshot));
-  }, {
+function authSnapshot(preferredLang = 'cs') {
+  return {
     id: 1,
     username: 'ux-smoke',
     display_name: 'UX Smoke',
@@ -43,26 +11,105 @@ async function authenticate(page, preferredLang = 'cs') {
     auth_provider: 'local',
     preferred_lang: preferredLang,
     must_change_password: false,
+  };
+}
+
+async function mockAuthenticatedUx(page: Page, preferredLang = 'cs') {
+  let currentLang = preferredLang;
+
+  await page.context().addCookies([
+    { name: 'sc_access_token', value: 'test-access-token', url: BASE_URL },
+    { name: 'sc_locale', value: preferredLang, url: BASE_URL },
+  ]);
+
+  await page.addInitScript((snapshot) => {
+    sessionStorage.setItem('sc_auth_snapshot', JSON.stringify(snapshot));
+  }, authSnapshot(preferredLang));
+
+  await page.route('**/api/v1/install/status', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'READY',
+        modules: [
+          { code: 'SERVICE_CATALOGUE_CORE', enabled: true, ui_visible: true, api_enabled: true },
+          { code: 'C3_TAXONOMY', enabled: true, ui_visible: true, api_enabled: true },
+        ],
+      }),
+    });
+  });
+
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(authSnapshot(currentLang)),
+    });
+  });
+
+  await page.route('**/api/v1/auth/preferences', async (route) => {
+    let body: Record<string, string> = {};
+    try {
+      body = route.request().postDataJSON() as Record<string, string>;
+    } catch {
+      body = {};
+    }
+    currentLang = body.preferred_lang ?? currentLang;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ preferred_lang: currentLang }),
+    });
+  });
+
+  await page.route('**/api/v1/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+
+  await page.route('**/api/v1/capabilities/lvl3', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          uuid: 'cap-identity',
+          page_id: 'C3-1.1',
+          title: 'Identity Management',
+          slug: 'identity-management',
+          parent: { title: 'Enterprise Services' },
+          available_spirals: ['Spiral_7'],
+        },
+      ]),
+    });
+  });
+
+  await page.route('**/api/v1/services?owner=**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [], total: 0, page: 1, limit: 100 }),
+    });
   });
 }
 
-test('phase 1-4 UX smoke: unified C3 dashboard, locale switch, theme switch', async ({ page }) => {
-  await authenticate(page);
-  await page.goto('/c3/dashboard', { waitUntil: 'domcontentloaded' });
+test('reduced UX smoke: capability workspace, locale switch, theme switch', async ({ page }) => {
+  await mockAuthenticatedUx(page);
+  await page.goto('/capabilities', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.getByRole('heading', { name: 'C3 Dashboard' })).toBeVisible();
-  const dashboardTabs = page.getByRole('navigation', { name: /C3 dashboard sections/i });
-  await expect(dashboardTabs.getByRole('link', { name: /overview|přehled|übersicht/i })).toBeVisible();
-  await expect(dashboardTabs.getByRole('link', { name: /health|zdraví|status/i })).toBeVisible();
-  await expect(dashboardTabs.getByRole('link', { name: /mappings|mapování|zuordnungen/i })).toBeVisible();
-  await expect(dashboardTabs.getByRole('link', { name: /imports|importy|importe/i })).toBeVisible();
-  await expect(dashboardTabs.getByRole('link', { name: /review|revize|prüfung/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Schopnosti' })).toBeVisible();
+  await expect(page.locator('a[href="/capabilities?view=coverage"]').first()).toBeVisible();
+  await expect(page.locator('a[href="/c3/capability-map-spiral7"]').first()).toBeVisible();
 
   await page.goto('/user-info', { waitUntil: 'domcontentloaded' });
-  await page.locator('select[name="preferred_lang"]').selectOption('de');
-  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await page.locator('select[name="preferred_lang"]').selectOption('en');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
-  const themeButton = page.getByRole('button', { name: /přepínač motivu|theme switch|designauswahl/i });
+  const themeButton = page.getByRole('button', { name: /přepínač motivu|theme switch/i });
   const beforeTheme = await page.locator('html').getAttribute('data-theme');
   await themeButton.click();
   await expect.poll(async () => page.locator('html').getAttribute('data-theme')).not.toBe(beforeTheme);

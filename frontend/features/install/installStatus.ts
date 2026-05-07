@@ -76,14 +76,14 @@ export function markInstallReady(modules: InstallModuleInfo[] = []) {
 }
 
 export function isModuleEnabled(status: InstallStatusSnapshot | null | undefined, moduleCode: string) {
-  const module = status?.modules?.find((item) => item.code === moduleCode);
-  return Boolean(module?.enabled);
+  const moduleInfo = status?.modules?.find((item) => item.code === moduleCode);
+  return Boolean(moduleInfo?.enabled);
 }
 
 export function isModuleUiVisible(status: InstallStatusSnapshot | null | undefined, moduleCode: string) {
-  const module = status?.modules?.find((item) => item.code === moduleCode);
-  if (!module) return false;
-  return Boolean(module.enabled && (module.ui_visible ?? true));
+  const moduleInfo = status?.modules?.find((item) => item.code === moduleCode);
+  if (!moduleInfo) return false;
+  return Boolean(moduleInfo.enabled && (moduleInfo.ui_visible ?? true));
 }
 
 export function useInstallStatus() {

@@ -60,8 +60,8 @@ function serviceScore(service, flavours = []) {
 function serviceScoreDetailed(service, flavours = []) {
     const passed = [], failed = [], breakdown = [];
     for (const [weight, name, testFn] of CHECKPOINTS) {
-        let ok = false;
-        try { ok = !!testFn(service, flavours); } catch {}
+        let ok;
+        try { ok = !!testFn(service, flavours); } catch { ok = false; }
         breakdown.push({ name, weight, passed: ok });
         if (ok) passed.push(name); else failed.push(name);
     }

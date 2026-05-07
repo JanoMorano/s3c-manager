@@ -139,9 +139,11 @@ export default function C3CapabilityBuilderPage() {
   const [settingsErrorMessage, setSettingsErrorMessage] = useState<string | null>(null);
   const [settingsOk, setSettingsOk] = useState<string | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: local draft mirrors async map settings before the admin edits them. */
   useEffect(() => {
     if (settings?.page_title) setPageTitleDraft(settings.page_title);
   }, [settings]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function handleSaveMapSettings() {
     setSettingsSaving(true);
@@ -349,9 +351,11 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const deferredSearch = useDeferredValue(search);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: URL query remains the source for the admin search draft. */
   useEffect(() => {
     setSearch(searchParams?.get('search') ?? '');
   }, [searchParams]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const sortedDomains = useMemo(
     () => [...(domains ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.code.localeCompare(b.code, 'cs')),

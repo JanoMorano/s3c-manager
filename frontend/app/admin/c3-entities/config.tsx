@@ -22,7 +22,7 @@ interface LinkedEntity {
 
 export const c3DataObjectsConfig: C3EntityConfig = {
   title: 'C3 Data Objects',
-  subtitle: 'Editovatelný seznam importovaných C3 Data Objects.',
+  subtitle: 'Read-only katalog importovaných C3 Data Objects. Úpravy probíhají přes expert import.',
   endpoint: '/api/v1/taxonomy/c3-data-objects',
   exactSearchKeys: ['data_object_code', 'uuid'],
   columns: [

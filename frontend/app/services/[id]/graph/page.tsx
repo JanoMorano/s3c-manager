@@ -1,5 +1,5 @@
 /**
- * Service Graph v2 — service dependencies + flavours + C3 podgraf
+ * Service Graph v2 — service dependencies + legacy variant evidence + C3 subgraph
  */
 'use client';
 
@@ -55,7 +55,7 @@ const COLUMN_X: Record<ServiceGraphV2Node['node_kind'], number> = {
 
 const NODE_KIND_LABEL: Record<ServiceGraphV2Node['node_kind'], string> = {
   service: 'Service',
-  flavour: 'Flavour',
+  flavour: 'Legacy variant',
   c3_capability: 'Capability',
   c3_tin: 'Technology Interaction',
   c3_application: 'Application',
@@ -223,7 +223,7 @@ export default function GraphPage({ params }: Props) {
   const [depth, setDepth] = useState(2);
   const [selectedNode, setSelectedNode] = useState<ServiceGraphV2Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<ServiceGraphV2Edge | null>(null);
-  const [edgeType, setEdgeType] = useState<GraphEdgeType>('straight');
+  const [edgeType, setEdgeType] = useState<GraphEdgeType>('smoothstep');
   const [lineStyleMode, setLineStyleMode] = useState<GraphLineStyleMode>('auto');
   const graphCanvasRef = useRef<HTMLDivElement | null>(null);
   const { data: serviceList } = useServices({ limit: 500, sort: 'service_id', order: 'ASC' });
@@ -356,17 +356,17 @@ export default function GraphPage({ params }: Props) {
           <div className={shellStyles.typeList}>
             <button
               type="button"
+              className={`${shellStyles.typeBtn} ${edgeType === 'smoothstep' ? shellStyles.typeBtnOn : ''}`}
+              onClick={() => setEdgeType('smoothstep')}
+            >
+              Pravoúhlé
+            </button>
+            <button
+              type="button"
               className={`${shellStyles.typeBtn} ${edgeType === 'straight' ? shellStyles.typeBtnOn : ''}`}
               onClick={() => setEdgeType('straight')}
             >
               Přímé
-            </button>
-            <button
-              type="button"
-              className={`${shellStyles.typeBtn} ${edgeType === 'smoothstep' ? shellStyles.typeBtnOn : ''}`}
-              onClick={() => setEdgeType('smoothstep')}
-            >
-              Zaoblené
             </button>
           </div>
         </FilterGroup>
@@ -395,7 +395,7 @@ export default function GraphPage({ params }: Props) {
             <div className={shellStyles.meta}>Blockers: {graphData.readiness.blockers.length}</div>
             <div className={shellStyles.meta}>Warnings: {graphData.readiness.warnings.length}</div>
             <div className={shellStyles.meta}>Primary C3: {graphData.readiness.primary_c3_code ?? '—'}</div>
-            <div className={shellStyles.meta}>Flavours: {graphData.readiness.active_flavour_count}</div>
+            <div className={shellStyles.meta}>Legacy variants: {graphData.readiness.active_flavour_count}</div>
           </FilterGroup>
         )}
 
@@ -511,7 +511,7 @@ export default function GraphPage({ params }: Props) {
                 <PanelRow label="Capability">
                   {graphData.readiness.primary_c3_completeness_status ?? '—'}
                 </PanelRow>
-                <PanelRow label="Flavours">{graphData.readiness.active_flavour_count}</PanelRow>
+                <PanelRow label="Legacy variants">{graphData.readiness.active_flavour_count}</PanelRow>
                 {graphData.readiness.blockers.length > 0 ? (
                   <div className={localStyles.edgePanelBlock}>
                     <strong>Blockers</strong>

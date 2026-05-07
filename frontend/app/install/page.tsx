@@ -2,26 +2,28 @@
 /**
  * /app/install/page.tsx — Install wizard
  *
- * 11 steps as defined in APP_FLOW.md:
- *   1  Welcome / mode detection
- *   2  System configuration
- *   3  Secret validation
- *   4  Admin bootstrap
- *   5  Connectivity check
- *   6  Module plan
- *   7  Data package plan
- *   8  Import upload (optional)
- *   9  Import preview
- *  10  Execute
- *  11  Final summary
+ * 12 steps as defined in APP_FLOW.md:
+ *   1  Welcome / application description / language
+ *   2  Setup token / mode detection
+ *   3  System configuration
+ *   4  Secret validation
+ *   5  Admin bootstrap
+ *   6  Connectivity check
+ *   7  Module plan
+ *   8  Data package plan
+ *   9  Import upload (optional)
+ *  10  Import preview
+ *  11  Execute
+ *  12  Final summary
  *
  * The frontend only reads state from the API — it never determines install state itself.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { markInstallReady } from '@/app/components/AuthGuard';
-import { useT } from '@/app/i18n/useI18n';
+import { useI18n } from '@/app/i18n/useI18n';
+import type { Locale } from '@/app/i18n/messages';
 import styles from './install.module.css';
 
 // ---------------------------------------------------------------------------
@@ -107,6 +109,7 @@ interface StepDef {
 
 const STEPS: StepDef[] = [
   { id: 'welcome',     label: 'install.step.welcome' },
+  { id: 'setup-token', label: 'install.step.setup_token' },
   { id: 'config',      label: 'install.step.config' },
   { id: 'secrets',     label: 'install.step.secrets' },
   { id: 'admin',       label: 'install.step.admin' },
@@ -118,6 +121,21 @@ const STEPS: StepDef[] = [
   { id: 'execute',     label: 'install.step.execute' },
   { id: 'summary',     label: 'install.step.summary' },
 ];
+
+const STEP_INDEX = {
+  welcome: 0,
+  setupToken: 1,
+  config: 2,
+  secrets: 3,
+  admin: 4,
+  connectivity: 5,
+  modules: 6,
+  dataPlan: 7,
+  upload: 8,
+  preview: 9,
+  execute: 10,
+  summary: 11,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Small reusable components
@@ -142,17 +160,17 @@ function Spinner({ dark }: { dark?: boolean }) {
 // ---------------------------------------------------------------------------
 
 export default function InstallPage() {
-  const t = useT();
+  const { t, locale, setLocale } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [errorSteps, setErrorSteps] = useState<Set<number>>(new Set());
 
-  // Step 1 — detection
+  // Step 2 — detection
   const [installInfo, setInstallInfo] = useState<InstallStatusResponse | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  // Step 2 — system config
+  // Step 3 — system config
   const [sysConfig, setSysConfig] = useState<SysConfig>({
     app_name: 'Service Catalogue',
     base_url: '',
@@ -164,7 +182,7 @@ export default function InstallPage() {
   const [configSaved, setConfigSaved] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
 
-  // Step 4 — admin form
+  // Step 5 — admin form
   const [adminForm, setAdminForm] = useState({
     username: '',
     displayName: '',
@@ -175,32 +193,32 @@ export default function InstallPage() {
   });
   const [adminErrors, setAdminErrors] = useState<Partial<Record<string, string>>>({});
 
-  // Step 5 — connectivity
+  // Step 6 — connectivity
   const [connectivity, setConnectivity] = useState<ConnectivityChecks | null>(null);
   const [checkingConn, setCheckingConn] = useState(false);
 
-  // Step 6 — modules
+  // Step 7 — modules
   const [activateC3, setActivateC3] = useState(false);
   const [seedDemoData, setSeedDemoData] = useState(false);
 
-  // Step 8 — upload (multi-file)
+  // Step 9 — upload (multi-file)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 9 — import previews (per-file)
+  // Step 10 — import previews (per-file)
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
 
   // Step 11 — import results (per-file)
   const [importResults, setImportResults] = useState<ImportResult[]>([]);
 
-  // Step 10 — execute
+  // Step 11 — execute
   const [executing, setExecuting] = useState(false);
   const [executeProgress, setExecuteProgress] = useState(0);
   const [executeLog, setExecuteLog] = useState<string[]>([]);
   const [executeError, setExecuteError] = useState<string | null>(null);
 
-  // Step 11 — summary
+  // Step 12 — summary
   const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
 
   // Global error
@@ -218,9 +236,11 @@ export default function InstallPage() {
   // ---------------------------------------------------------------------------
   // Load install status on mount
   // ---------------------------------------------------------------------------
+  /* eslint-disable react-hooks/exhaustive-deps -- U5: installer status is loaded once on mount; fetchInstallStatus owns its internal state. */
   useEffect(() => {
     fetchInstallStatus();
   }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   async function fetchInstallStatus() {
     setLoadingStatus(true);
@@ -414,14 +434,14 @@ export default function InstallPage() {
       setInstallLockedError(false);
       setGlobalError(null);
       return true;
-    } catch (err) {
+    } catch {
       setInstallLockedError(false);
       setGlobalError(t('install.page.start_error'));
       return false;
     }
   }
 
-  async function handleWelcomeNext() {
+  async function handleSetupTokenNext() {
     if (isStarting) return;
     setIsStarting(true);
     try {
@@ -444,7 +464,7 @@ export default function InstallPage() {
       const data = await res.json();
       if (!res.ok) { setConfigError(data.error || t('install.page.config_save_failed')); return; }
       setConfigSaved(true);
-      markDone(1);
+      markDone(STEP_INDEX.config);
       goNext();
     } catch {
       setConfigError(t('install.page.config_load_failed'));
@@ -508,9 +528,9 @@ export default function InstallPage() {
       const data = await res.json();
       setConnectivity(data.checks);
       if (data.ok) {
-        markDone(4);
+        markDone(STEP_INDEX.connectivity);
       } else {
-        markError(4);
+        markError(STEP_INDEX.connectivity);
       }
     } catch {
       setConnectivity({
@@ -519,7 +539,7 @@ export default function InstallPage() {
         platform_schema: false,
         errors: [t('install.page.connectivity.middleware_unavailable')],
       });
-      markError(4);
+      markError(STEP_INDEX.connectivity);
     } finally {
       setCheckingConn(false);
     }
@@ -557,14 +577,15 @@ export default function InstallPage() {
       const data = await res.json();
       if (!res.ok) {
         setAdminErrors({ general: data.error || t('install.page.admin.create_failed') });
-        markError(3);
+        markError(STEP_INDEX.admin);
         return;
       }
-      markDone(3);
+      setInstallInfo(prev => prev ? { ...prev, admin_exists: true } : prev);
+      markDone(STEP_INDEX.admin);
       goNext();
     } catch {
       setAdminErrors({ general: t('install.page.admin.create_error') });
-      markError(3);
+      markError(STEP_INDEX.admin);
     }
   }
 
@@ -610,7 +631,7 @@ export default function InstallPage() {
 
       if (!res.ok || !data.ok) {
         setExecuteError(data.error || t('install.page.execute.failed'));
-        markError(9);
+        markError(STEP_INDEX.execute);
         setExecuting(false);
         return;
       }
@@ -697,15 +718,15 @@ export default function InstallPage() {
       setExecuteProgress(100);
 
       logMsg(t('install.page.execute.log.completed'));
-      markDone(9);
+      markDone(STEP_INDEX.execute);
 
       // Set AuthGuard cache to READY immediately — prevents redirect loop
       markInstallReady(readyModules);
 
       setTimeout(() => goNext(), 800);
-    } catch (err) {
+    } catch {
       setExecuteError(t('install.page.execute.unexpected_error'));
-      markError(9);
+      markError(STEP_INDEX.execute);
     } finally {
       setExecuting(false);
     }
@@ -751,6 +772,44 @@ export default function InstallPage() {
       <>
         <h1 className={styles.panelTitle}>{t('install.page.welcome_title')}</h1>
         <p className={styles.panelSubtitle}>{t('install.page.welcome_subtitle')}</p>
+
+        <div className={styles.descriptionPanel}>
+          <strong>{t('install.page.description_title')}</strong>
+          <p>{t('install.page.description_body')}</p>
+        </div>
+
+        <div className={styles.languagePanel}>
+          <label className={styles.label} htmlFor="install-locale">
+            {t('install.page.environment_label')}
+          </label>
+          <select
+            id="install-locale"
+            className={styles.input}
+            value={locale}
+            onChange={(event) => setLocale(event.target.value as Locale)}
+          >
+            <option value="cs">{t('install.page.environment_cze')}</option>
+            <option value="en">{t('install.page.environment_eng')}</option>
+          </select>
+          <span className={styles.fieldHint}>{t('install.page.environment_hint')}</span>
+        </div>
+
+        <div className={styles.actions}>
+          <div />
+          <button className={styles.btnPrimary} onClick={goNext} disabled={loadingStatus}>
+            {loadingStatus ? <Spinner /> : null}
+            {t('common.continue')} →
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  function renderStep1_SetupToken() {
+    return (
+      <>
+        <h1 className={styles.panelTitle}>{t('install.page.setup_token_title')}</h1>
+        <p className={styles.panelSubtitle}>{t('install.page.setup_token_subtitle')}</p>
 
         {renderModeBadge()}
 
@@ -813,8 +872,8 @@ export default function InstallPage() {
         )}
 
         <div className={styles.actions}>
-          <div />
-          <button className={styles.btnPrimary} onClick={handleWelcomeNext} disabled={loadingStatus || isStarting}>
+          <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
+          <button className={styles.btnPrimary} onClick={handleSetupTokenNext} disabled={loadingStatus || isStarting}>
             {(loadingStatus || isStarting) ? <Spinner /> : null}
             {isStarting ? t('common.loading') : t('install.page.start_button')}
           </button>
@@ -823,7 +882,7 @@ export default function InstallPage() {
     );
   }
 
-  function renderStep1_Config() {
+  function renderStep2_Config() {
     return (
       <>
         <h1 className={styles.panelTitle}>{t('install.page.config_title')}</h1>
@@ -938,6 +997,8 @@ export default function InstallPage() {
   }
 
   function renderStep3_Admin() {
+    const adminAccountSaved = completedSteps.has(3) || installInfo?.admin_exists;
+
     return (
       <>
         <h1 className={styles.panelTitle}>{t('install.page.admin_title')}</h1>
@@ -1041,7 +1102,7 @@ export default function InstallPage() {
         <div className={styles.actions}>
           <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
           <button className={styles.btnPrimary} onClick={handleAdminBootstrap}>
-            {t('install.page.admin.create_account')} →
+            {adminAccountSaved ? t('install.page.admin.save_account') : t('install.page.admin.create_account')} →
           </button>
         </div>
       </>
@@ -1535,7 +1596,6 @@ export default function InstallPage() {
               const totalInserted = importResults.reduce((s, r) => s + (r.inserted ?? 0), 0);
               const totalUpdated  = importResults.reduce((s, r) => s + (r.updated  ?? 0), 0);
               const totalFailed   = importResults.reduce((s, r) => s + (r.failed   ?? 0), 0);
-              const allOk = importResults.every(r => r.ok);
               return (
                 <>
                   <div className={styles.metaItem}>
@@ -1624,7 +1684,8 @@ export default function InstallPage() {
 
   const STEP_RENDERERS = [
     renderStep0_Welcome,
-    renderStep1_Config,
+    renderStep1_SetupToken,
+    renderStep2_Config,
     renderStep2_Secrets,
     renderStep3_Admin,
     renderStep4_Connectivity,
@@ -1661,7 +1722,7 @@ export default function InstallPage() {
     <div className={styles.shell}>
       <div className={styles.header}>
         <span className={styles.headerLogo}>{t('home.title')}</span>
-        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.1.2'}</span>
+        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.2'}</span>
       </div>
 
       <div className={styles.main}>

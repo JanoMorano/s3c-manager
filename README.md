@@ -8,15 +8,13 @@ Lightweight, self-hosted service and capability governance cockpit for organizat
 
 > **Stack:** Next.js 16.2 · React 19.2 · Express 5.2 · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.1.2 - Governance Cockpit & Layout v2
+## What's New in V1.2 - Help Alignment & Docker Readiness
 
-- Layout v2 governance shell with persona-oriented sidebar groups, richer top bar, shared page headers, and cleaner cockpit typography.
-- Home now behaves as a daily governance cockpit with personal service ownership, reviews, blockers, requests, and decisions.
-- Service 360 combines business and technical views, a Service Relationship Studio, readiness context, lifecycle signal, C3 mappings, dependencies, and audit context.
-- Operations pages now cover readiness, reviews, decision log, owner load, and impact analysis with manager-readable evidence and admin action queues.
-- C3 and capability areas now expose board/workspace views for coverage, gaps, overlaps, graph relationships, code editing, and C3 entity governance.
-- Administration, import, search, and onboarding flows were aligned to the v1/v2 layout proposals, including user KPIs, saved searches, import wizard flow, and horizontal wizard progress.
-- Runtime, package, Docker Compose, Portainer, install fallback, `.env.example`, release notes, and visible UI version metadata are aligned to `1.1.2`.
+- Czech and English in-app help are aligned to the current reduced product surface and no longer describe removed user workflows as active screens.
+- Main help runs through `/help-cs` and `/help-en`; compatibility help routes remain available only as legacy entry points.
+- Governance copy focuses on readiness, reviews, decisions, owner load, capability coverage, service graphs, and import/data quality.
+- Deprecated API compatibility surfaces remain explicit 410 endpoints and are tracked outside user help in the API deprecation inventory.
+- Runtime, package metadata, Docker Compose defaults, installer fallback, `.env.example`, and visible UI version metadata are aligned to `1.2`.
 
 See [Governance Cockpit](docs/governance-cockpit.md) for the end-to-end operating model.
 
@@ -34,7 +32,7 @@ S3C Manager provides:
 
 - a governed IT, business, technical, and application service catalogue
 - service portfolio, lifecycle, readiness, ownership, and review management
-- service offerings, pricing, SLA, support model, and contract-oriented metadata
+- service offerings, SLA, support model, and contract-oriented metadata
 - relationship graphs between services, capabilities, C3 entities, applications, and data objects
 - capability and C3/FMN coverage, gap, overlap, and consolidation analysis
 - governance review, decision history, audit trails, and import pipelines
@@ -143,7 +141,7 @@ Runtime dependency versions are controlled by the committed package manifests an
 
 - Service Catalogue: list, detail, edit, history, dashboard
 - Service Graph: full catalogue graph and per-service dependency graph
-- Pricing & SLA: flavours, billing model, support windows
+- Offerings & SLA: requestable variants, service-level evidence, support windows
 - Service Governance: readiness signals, ownership, review evidence, and decision support
 - Capability Governance: capability coverage, gaps, overlaps, and consolidation evidence
 - Imports: CSV/JSON dry-run + commit + audit trail
@@ -154,7 +152,7 @@ Runtime dependency versions are controlled by the committed package manifests an
 
 | Module | Mandatory | Description |
 |---|---|---|
-| `SERVICE_CATALOGUE_CORE` | Yes | service catalogue, relations, pricing, imports |
+| `SERVICE_CATALOGUE_CORE` | Yes | service catalogue, relations, offerings, imports |
 | `C3_TAXONOMY` | No | C3 taxonomy, capability map, C3 dashboard |
 
 If `C3_TAXONOMY` is not enabled during installation, the application runs as a pure Service Catalogue deployment without C3 navigation, C3 dashboards, or C3 API overlays.
@@ -174,7 +172,7 @@ Minimum required variables:
 
 See the full list in [docs/installation.md](docs/installation.md).
 
-## v1.1.2 Preview Screenshots
+## v1.2 Preview Screenshots
 
 The `screenshots/v1.1-en` folder contains English screenshots from the current v1.1 release line. They show the real UI after the capability cockpit redesign, including the installer, service onboarding, operations cockpit, service graph, and dependency flow view.
 
@@ -182,7 +180,7 @@ The `screenshots/v1.1-en` folder contains English screenshots from the current v
 |---|---|
 | [00-install.png](screenshots/v1.1-en/00-install.png) | First-run installer with setup steps, local deployment configuration, module readiness, and execution feedback before the application is marked ready. |
 | [01-new-service.png](screenshots/v1.1-en/01-new-service.png) | New Service onboarding flow for creating a business service, including service identity, ownership, requestability, consumer value, C3 mapping, and review-oriented fields. |
-| [02-operations.png](screenshots/v1.1-en/02-operations.png) | Operations cockpit for service governance: KPI cards, readiness signals, decision queues, evidence lists, lifecycle cleanup, pricing patrol, and owner-oriented actions. |
+| [02-operations.png](screenshots/v1.1-en/02-operations.png) | Operations cockpit for service governance: KPI cards, readiness signals, decision queues, evidence lists, lifecycle cleanup, and owner-oriented actions. |
 | [03-service-graph.png](screenshots/v1.1-en/03-service-graph.png) | Service graph view showing service relationships, dependency context, graph controls, and visual navigation across linked services. |
 | [04-service-dep.png](screenshots/v1.1-en/04-service-dep.png) | Dependency Flow view showing how consumer needs, business services, enabling services, C3 capabilities, and FMN requirements connect end-to-end. |
 
@@ -201,6 +199,7 @@ These screenshots are static preview assets. To interact with the product, run t
 - [Modules](docs/modules.md)
 - [Demo Guide](DEMO.md)
 - [Upgrade Guide](docs/upgrade.md)
+- [V1.2 Release Notes](docs/releases/v1.2.md)
 - [V1.1.2 Release Notes](docs/releases/v1.1.2.md)
 
 ## Import Examples
@@ -236,24 +235,6 @@ See [SECURITY.md](SECURITY.md).
 - production TLS termination is expected on a reverse proxy in front of the app
 - GitHub Security Advisories for disclosure
 - local development and tests must use the normal login flow, explicit JWTs, or mocked auth; there is no `DEBUG_BYPASS_AUTH` path
-
-## Support development
-
-<table>
-  <tr>
-    <td align="center"><strong>$4 - Czech wire transfer</strong></td>
-    <td align="center"><strong>$10 - Czech wire transfer</strong></td>
-    <td align="center"><strong>$20 - Czech wire transfer</strong></td>
-    <td align="center"><strong>Revolut support</strong></td>
-  </tr>
-  <tr>
-    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_4USD.png"><img src="donations/Coffee_4USD.png" width="150"></a></td>
-    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_10USD.png"><img src="donations/Coffee_10USD.png" width="150"></a></td>
-    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/Coffee_20USD.png"><img src="donations/Coffee_20USD.png" width="150"></a></td>
-    <td><a href="https://github.com/JanoMorano/s3c-manager/blob/main/donations/revolut_qr.jpg"><img src="donations/revolut_qr.jpg" width="150"></a></td>
-    
-  </tr>
-</table>
 
 ## Note About Badges and Release URLs
 

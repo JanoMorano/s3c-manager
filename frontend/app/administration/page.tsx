@@ -20,7 +20,7 @@ export default function AdministrationPage() {
           icon: '👥',
         },
         {
-          href: '/admin/groups',
+          href: '/administration/groups',
           title: t('administration.card.groups.title'),
           desc: t('administration.card.groups.desc'),
           icon: '🔐',
@@ -38,25 +38,25 @@ export default function AdministrationPage() {
       cards: c3Visible
         ? [
             {
-              href: '/admin/installation',
+              href: '/administration/installation',
               title: t('administration.card.installation.title'),
               desc: t('administration.card.installation.desc'),
               icon: '🛠️',
             },
             {
-              href: '/admin/catalogue-ref',
+              href: '/administration/catalogue-ref',
               title: t('administration.card.catalogue_ref.title'),
               desc: t('administration.card.catalogue_ref.desc'),
               icon: '🗃️',
             },
             {
-              href: '/admin/c3-ref',
+              href: '/administration/c3-ref',
               title: t('administration.card.c3_ref.title'),
               desc: t('administration.card.c3_ref.desc'),
               icon: '🧩',
             },
             {
-              href: '/admin/c3-capability-builder',
+              href: '/administration/c3-capability-builder',
               title: t('administration.card.c3_builder.title'),
               desc: t('administration.card.c3_builder.desc'),
               icon: '🧱',
@@ -64,13 +64,13 @@ export default function AdministrationPage() {
           ]
         : [
             {
-              href: '/admin/installation',
+              href: '/administration/installation',
               title: t('administration.card.installation.title'),
               desc: t('administration.card.installation.desc'),
               icon: '🛠️',
             },
             {
-              href: '/admin/catalogue-ref',
+              href: '/administration/catalogue-ref',
               title: t('administration.card.catalogue_ref.title'),
               desc: t('administration.card.catalogue_ref.desc'),
               icon: '🗃️',
@@ -87,7 +87,7 @@ export default function AdministrationPage() {
           icon: '📋',
         },
         {
-          href: '/admin/import',
+          href: '/administration/import',
           title: t('administration.card.import_audit.title'),
           desc: t('administration.card.import_audit.desc'),
           icon: '📥',

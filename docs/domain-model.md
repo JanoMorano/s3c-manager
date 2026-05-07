@@ -12,7 +12,7 @@ This document defines the canonical service and capability governance model for 
 | Business Service | A service described in terms of consumer value or business outcome. | May depend on technical or application services. |
 | Technical Service | A service described in terms of technical enablement, platform, infrastructure, or operational support. | Should still have ownership and readiness metadata. |
 | Application Service | A service exposed or enabled by a software application or application component. | Useful for Backstage, EA, and CMDB alignment. |
-| Service Offering | A requestable or selectable variant of a service, usually with SLA, pricing, unit, support model, or delivery terms. | Existing flavours are treated as the current offering-like concept. |
+| Service Offering | A requestable or selectable variant of a service, usually with SLA, cost evidence, unit, support model, or delivery terms. | Existing legacy variants are treated as read-only historical evidence. |
 | Capability | A stable ability the organization needs, independent of a specific service implementation. | Can be business, operational, technical, or C3-oriented. |
 | C3 Capability | A command, control, and communication capability represented in the C3 taxonomy module. | Can be mapped to services and FMN Spiral structures. |
 | FMN Spiral | A Spiral baseline or target context used to organize C3 capability readiness and coverage. | Spiral-specific readiness is an analysis dimension. |
@@ -29,7 +29,7 @@ This document defines the canonical service and capability governance model for 
 Service Portfolio
   -> Service
       -> Service Offering
-      -> SLA / Pricing / Support Model
+      -> SLA / Offering Evidence / Support Model
       -> Owner / Steward / Reviewer
       -> Lifecycle / Review Due Date / Criticality
       -> Service Relations
@@ -97,7 +97,7 @@ Minimum readiness rules should cover:
 - service has at least one offering or an explicit exception
 - service has a lifecycle stage
 - active or requestable service has SLA/support metadata or an explicit exception
-- requestable service has pricing/contract metadata or an explicit exception
+- requestable service has offering/cost evidence or an explicit exception
 - service has a primary capability or C3 mapping where the C3 module is enabled
 - service dependencies are classified
 - service has a review due date

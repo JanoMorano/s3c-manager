@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glossary of abbreviations, terms and statuses - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">12 · Abbreviations</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link active" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">12 Abbreviations</p>
+        <h1>Glossary of abbreviations, terms and statuses</h1>
+        <p class="lead">This chapter explains frequent terms used in S3C Manager, ITIL, TOGAF, C3, FMN, APIs and workflow states. It helps managers, administrators and architects use the same vocabulary.</p>
+      </section>
+
+      <h2>Application terms</h2>
+      <table class="field-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td>Service</td><td>Managed catalogue item with owner, lifecycle, offering, support and governance context.</td></tr><tr><td>Offering evidence</td><td>Consumer-facing proof of what can be requested or consumed.</td></tr><tr><td>Readiness</td><td>Set of checks showing whether a service is ready for publication, change or operation.</td></tr><tr><td>Decision</td><td>Auditable governance record such as approve, reject, defer or exception.</td></tr><tr><td>Capability</td><td>Business or mission ability supported by services and C3 elements.</td></tr><tr><td>C3</td><td>Command, Control and Communication taxonomy context.</td></tr><tr><td>FMN spiral</td><td>Baseline grouping used for capability and C3 context.</td></tr></tbody></table>
+
+      <h2>ITIL and ITSM</h2>
+      <table class="field-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td>SLA</td><td>Service Level Agreement.</td></tr><tr><td>OLA</td><td>Operational Level Agreement.</td></tr><tr><td>Service catalogue</td><td>Authoritative user-facing list of services.</td></tr><tr><td>Change enablement</td><td>Controlled process for evaluating and approving changes.</td></tr><tr><td>Continual improvement</td><td>Ongoing cycle of reviewing and improving services.</td></tr></tbody></table>
+
+      <h2>TOGAF, EA and ArchiMate</h2>
+      <table class="field-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td>EA</td><td>Enterprise Architecture.</td></tr><tr><td>Capability map</td><td>Structured map of organizational or mission capabilities.</td></tr><tr><td>Application component</td><td>Architecture element representing an application.</td></tr><tr><td>Data object</td><td>Architecture element representing data used or produced by services.</td></tr></tbody></table>
+
+      <h2>Workflow statuses</h2>
+      <table class="field-table"><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td>Draft</td><td>Service is being prepared and is not ready for normal consumption.</td></tr><tr><td>Active</td><td>Service is published or operational.</td></tr><tr><td>Retiring</td><td>Service is being phased out.</td></tr><tr><td>Retired</td><td>Service is no longer active.</td></tr><tr><td>Approved</td><td>Reviewer accepted the decision scope.</td></tr><tr><td>Deferred</td><td>Decision is postponed.</td></tr><tr><td>Exception</td><td>Known gap or risk is accepted under documented conditions.</td></tr></tbody></table>
+
+      <h2>How to use the glossary</h2>
+      <p>When a cockpit badge or field name is unclear, open the glossary first, then continue to the chapter for that application area. This keeps users aligned on the same meaning before they change data or record a decision.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Abbreviations<br><code>/img/help-en/12-abbrevations.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="11-api.html">Previous: API</a>
+        <span></span>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { getConfiguredAdminCredentials } from './admin-credentials';
 
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
+
 /**
  * Demo data smoke tests.
  *
@@ -27,6 +29,9 @@ async function loginAndGetToken(page: Page): Promise<string> {
 }
 
 test('health endpoint returns ready', async ({ page }) => {
+  const base = new URL(BASE_URL);
+  test.skip(base.port === '3000', 'Backend readiness endpoint is only available in the full stack, not the standalone Next dev server.');
+
   const res = await page.request.get('/api/health/ready');
   expect(res.status()).toBe(200);
 });

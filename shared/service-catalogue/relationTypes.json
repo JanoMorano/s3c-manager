@@ -1,0 +1,25 @@
+{
+  "editable": [
+    "prerequisite",
+    "underlying",
+    "replaces",
+    "depends_on",
+    "related_to",
+    "provided_by"
+  ],
+  "accepted": [
+    "depends_on",
+    "prerequisite",
+    "underlying",
+    "requires_account",
+    "uses",
+    "provides",
+    "replaces",
+    "integrates_with",
+    "related_to",
+    "part_of",
+    "replaced_by",
+    "provided_by",
+    "child_of"
+  ]
+}

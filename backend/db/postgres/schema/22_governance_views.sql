@@ -339,7 +339,6 @@ WITH service_base AS (
         CASE WHEN sc.service_type_code IN ('CF', 'CFS') THEN 1 ELSE 0 END AS critical_flag,
         CASE WHEN sc.next_review_due_at IS NULL OR sc.next_review_due_at < CURRENT_TIMESTAMP THEN 1 ELSE 0 END AS overdue_review_flag,
         CASE WHEN support.support_model_count = 0 OR owner.email IS NULL AND owner.display_name IS NULL THEN 1 ELSE 0 END AS readiness_blocker_flag,
-        CASE WHEN contract_link.contract_link_count = 0 THEN 1 ELSE 0 END AS contract_gap_flag,
         CASE WHEN mapping.c3_mapping_count = 0 THEN 1 ELSE 0 END AS c3_gap_flag
     FROM service_catalog sc
     LEFT JOIN LATERAL (
@@ -357,13 +356,6 @@ WITH service_base AS (
         WHERE sm.service_id = sc.id
     ) support ON TRUE
     LEFT JOIN LATERAL (
-        SELECT COUNT(*)::integer AS contract_link_count
-        FROM contract_service_link csl
-        JOIN contract c ON c.contract_id = csl.contract_id
-        WHERE csl.service_id = sc.id
-          AND c.status IN ('draft', 'active')
-    ) contract_link ON TRUE
-    LEFT JOIN LATERAL (
         SELECT COUNT(*)::integer AS c3_mapping_count
         FROM service_c3_mapping scm
         WHERE scm.service_id = sc.id
@@ -380,7 +372,6 @@ WITH service_base AS (
         SUM(critical_flag)::integer AS critical_services,
         SUM(readiness_blocker_flag)::integer AS readiness_blockers,
         SUM(overdue_review_flag)::integer AS overdue_reviews,
-        SUM(contract_gap_flag)::integer AS contract_gaps,
         SUM(c3_gap_flag)::integer AS c3_gaps
     FROM service_base
     GROUP BY owner_key, owner_name, owner_email
@@ -394,7 +385,6 @@ SELECT
     critical_services,
     readiness_blockers,
     overdue_reviews,
-    contract_gaps,
     c3_gaps,
     (
         owned_services * 1
@@ -402,7 +392,6 @@ SELECT
         + critical_services * 3
         + readiness_blockers * 4
         + overdue_reviews * 3
-        + contract_gaps * 2
         + c3_gaps * 2
     )::integer AS owner_load_score
 FROM owner_stats;

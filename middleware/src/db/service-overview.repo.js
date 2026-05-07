@@ -8,7 +8,6 @@ const operationalLinksRepo = require('./operational-links.repo');
 const flavoursRepo = require('./flavours.repo');
 const relationsRepo = require('./relations.repo');
 const auditRepo = require('./audit.repo');
-const governanceRepo = require('./governance.repo');
 const { getPool } = require('./pool');
 const { getServiceReadiness } = require('../services/readiness');
 
@@ -287,11 +286,25 @@ function buildCapabilityMappings(service, mappings) {
         }));
 }
 
-function buildGovernanceRisks(items) {
-    const highSeverity = new Set(['P0', 'P1', 'critical', 'high']);
+function buildGovernanceRisks(readiness) {
+    const blockers = Array.isArray(readiness?.blockers) ? readiness.blockers : [];
+    const warnings = Array.isArray(readiness?.warnings) ? readiness.warnings : [];
+    const items = [
+        ...blockers.map((reason, index) => ({
+            key: `readiness-blocker-${index + 1}`,
+            severity: 'P1',
+            reason,
+        })),
+        ...warnings.map((reason, index) => ({
+            key: `readiness-warning-${index + 1}`,
+            severity: 'P3',
+            reason,
+        })),
+    ];
+
     return {
         count: items.length,
-        high_count: items.filter((item) => highSeverity.has(String(item.severity ?? ''))).length,
+        high_count: blockers.length,
         items,
     };
 }
@@ -377,7 +390,6 @@ async function getServiceOverview(serviceId) {
         slaRecords,
         c3MappingsRaw,
         readiness,
-        governanceRisksRaw,
         auditRows,
     ] = await Promise.all([
         safeRead(() => offeringsRepo.listByService(catalogId), []),
@@ -390,7 +402,6 @@ async function getServiceOverview(serviceId) {
         safeRead(() => getSlaRecords(serviceId), []),
         safeRead(() => getC3Mappings(serviceId), []),
         safeRead(() => getServiceReadiness(serviceId), null),
-        safeRead(() => governanceRepo.listServiceRisks({ serviceId, limit: 10, offset: 0 }), []),
         safeRead(() => auditRepo.findByRecord('ServiceCatalog', serviceId, 10), []),
     ]);
 
@@ -403,7 +414,7 @@ async function getServiceOverview(serviceId) {
     const dependencies = buildDependencies(serviceId, relations, service.dependencies ?? service.dependencies_json ?? []);
     const c3Mappings = normalizeC3Mappings(service, c3MappingsRaw);
     const capabilityMappings = buildCapabilityMappings(service, c3Mappings);
-    const governanceRisks = buildGovernanceRisks(governanceRisksRaw);
+    const governanceRisks = buildGovernanceRisks(readiness);
     const auditSummary = buildAuditSummary(auditRows);
     const missingActions = buildMissingActions({
         service,

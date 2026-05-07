@@ -16,10 +16,9 @@
 
 const crypto = require('crypto');
 const bcrypt  = require('bcrypt');
-const { getPlatformPool } = require('../db/pool');
 const logger  = require('../utils/logger');
 
-const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.1.2';
+const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.2';
 const INSTALL_SCHEMA_VERSION = process.env.SCHEMA_VERSION || '2.2.1';
 const BCRYPT_ROUNDS = 12;
 
@@ -148,12 +147,6 @@ async function getCurrentRelease(pool) {
 // ---------------------------------------------------------------------------
 
 async function transitionTo(pool, newStatus, performedBy = 'system', extraFields = {}) {
-    const updates = {
-        install_status: newStatus,
-        updated_at: 'CURRENT_TIMESTAMP',
-        ...extraFields,
-    };
-
     const setClauses = Object.keys(extraFields).map((k, i) => `${k} = $${i + 2}`);
     const values = [newStatus, ...Object.values(extraFields)];
 
@@ -274,21 +267,11 @@ async function checkConnectivity(pool) {
 // ---------------------------------------------------------------------------
 
 /**
- * Creates the first administrative user.
+ * Creates or updates the first administrative user while the install wizard is not READY.
  * The password is hashed with bcrypt and never stored in plaintext.
- * Returns { ok, userId } or { ok: false, error }.
+ * Returns { ok, userId, mode } or { ok: false, error }.
  */
 async function bootstrapAdmin(pool, { username, displayName, email, password, mustChangePassword = false }, performedBy = 'installer') {
-    // Check whether an admin already exists
-    const existing = await pool.query(`
-        SELECT id FROM platform.users
-        WHERE role = 'admin' AND is_active = TRUE
-        LIMIT 1
-    `);
-    if (existing.rows.length > 0) {
-        return { ok: false, error: 'Admin účet již existuje. Použijte repair flow pro reset.' };
-    }
-
     // Password policy — minimum length and character-class combination
     if (!password || password.length < 10) {
         return { ok: false, error: 'Heslo musí mít alespoň 10 znaků.' };
@@ -301,7 +284,69 @@ async function bootstrapAdmin(pool, { username, displayName, email, password, mu
         return { ok: false, error: 'Heslo musí obsahovat velká písmena, malá písmena, číslice a speciální znak.' };
     }
 
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedDisplayName = displayName.trim();
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    const existing = await pool.query(`
+        SELECT id, username
+        FROM platform.users
+        WHERE role = 'admin' AND is_active = TRUE
+        ORDER BY id ASC
+        LIMIT 2
+    `);
+
+    if (existing.rows.length > 1) {
+        return {
+            ok: false,
+            error: 'V instalaci existuje více aktivních admin účtů. Dokončete správu účtů v administraci nebo použijte repair flow.',
+        };
+    }
+
+    if (existing.rows.length === 1) {
+        const userId = existing.rows[0].id;
+        const conflict = await pool.query(`
+            SELECT id
+            FROM platform.users
+            WHERE LOWER(username) = LOWER($1) AND id <> $2
+            LIMIT 1
+        `, [normalizedUsername, userId]);
+
+        if (conflict.rows.length > 0) {
+            return { ok: false, error: 'Zvolené uživatelské jméno už používá jiný účet.' };
+        }
+
+        const result = await pool.query(`
+            UPDATE platform.users
+            SET username = $1,
+                display_name = $2,
+                email = $3,
+                role = 'admin',
+                is_active = TRUE,
+                auth_provider = 'local',
+                password_hash = $4,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $5
+            RETURNING id
+        `, [
+            normalizedUsername,
+            normalizedDisplayName,
+            normalizedEmail,
+            passwordHash,
+            userId,
+        ]);
+
+        await setAdminMustChangePassword(pool, mustChangePassword);
+
+        await logInstallEvent(pool, 'ADMIN_BOOTSTRAP_UPDATE', {
+            user_id: result.rows[0].id,
+            username: normalizedUsername,
+        }, performedBy);
+
+        logger.info(`install.service: admin bootstrap updated — user ID ${result.rows[0].id}`);
+        return { ok: true, userId: result.rows[0].id, username: normalizedUsername, mode: 'updated' };
+    }
 
     const result = await pool.query(`
         INSERT INTO platform.users
@@ -309,30 +354,33 @@ async function bootstrapAdmin(pool, { username, displayName, email, password, mu
         VALUES ($1, $2, $3, 'admin', TRUE, 'local', $4)
         RETURNING id
     `, [
-        username.trim().toLowerCase(),
-        displayName.trim(),
-        email.trim().toLowerCase(),
+        normalizedUsername,
+        normalizedDisplayName,
+        normalizedEmail,
         passwordHash,
     ]);
 
     const userId = result.rows[0].id;
 
-    // Persist the must_change_password flag in app_config
-    if (mustChangePassword) {
-        await pool.query(`
-            INSERT INTO platform.app_config (config_key, config_value, config_type, description)
-            VALUES ('auth.admin_must_change_password', 'true', 'boolean', 'Admin must change password on first login')
-            ON CONFLICT (config_key) DO UPDATE SET config_value = 'true', updated_at = CURRENT_TIMESTAMP
-        `);
-    }
+    await setAdminMustChangePassword(pool, mustChangePassword);
 
     await logInstallEvent(pool, 'ADMIN_BOOTSTRAP', {
         user_id: userId,
-        username: username.trim().toLowerCase(),
+        username: normalizedUsername,
     }, performedBy);
 
     logger.info(`install.service: admin bootstrap OK — user ID ${userId}`);
-    return { ok: true, userId };
+    return { ok: true, userId, username: normalizedUsername, mode: 'created' };
+}
+
+async function setAdminMustChangePassword(pool, mustChangePassword) {
+    await pool.query(`
+        INSERT INTO platform.app_config (config_key, config_value, config_type, description)
+        VALUES ('auth.admin_must_change_password', $1, 'boolean', 'Admin must change password on first login')
+        ON CONFLICT (config_key) DO UPDATE
+        SET config_value = EXCLUDED.config_value,
+            updated_at = CURRENT_TIMESTAMP
+    `, [mustChangePassword ? 'true' : 'false']);
 }
 
 async function hasActiveAdminAccount(pool) {
@@ -415,7 +463,7 @@ async function getModules(pool) {
 // This function only registers state in module_registry and advances states.
 // ---------------------------------------------------------------------------
 
-async function executeInstall(pool, { activateC3, seedDemoData = false, importJobId = null, locale = null }, lockToken, performedBy = 'installer') {
+async function executeInstall(pool, { activateC3, seedDemoData = false, importJobId: _importJobId = null, locale = null }, lockToken, performedBy = 'installer') {
     try {
         await transitionTo(pool, 'INSTALL_IN_PROGRESS', performedBy, {
             started_at: new Date().toISOString(),

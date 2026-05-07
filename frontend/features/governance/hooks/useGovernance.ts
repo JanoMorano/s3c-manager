@@ -1,8 +1,6 @@
 import useSWR from 'swr';
 import { apiFetch } from '@/features/services/api/services.api';
 import type {
-  AdvisorFinding,
-  ContractOverlapRow,
   GovernanceDecision,
   GovernanceFilters,
   GovernanceResponse,
@@ -10,8 +8,6 @@ import type {
   OwnerAssignmentRow,
   OwnerLoadRow,
   ReadinessSummaryResponse,
-  RenewalRiskRow,
-  ServiceRiskFinding,
 } from '../types';
 
 function buildUrl(path: string, filters: GovernanceFilters = {}) {
@@ -37,14 +33,6 @@ const swrOptions = {
   revalidateOnFocus: false,
 };
 
-export function useServiceRiskRadar(filters: GovernanceFilters = {}) {
-  return useSWR<GovernanceResponse<ServiceRiskFinding>>(
-    buildUrl('risk-radar', filters),
-    apiFetch,
-    swrOptions
-  );
-}
-
 export function useOwnerLoad(filters: GovernanceFilters = {}) {
   return useSWR<GovernanceResponse<OwnerLoadRow>>(
     buildUrl('owner-load', filters),
@@ -56,30 +44,6 @@ export function useOwnerLoad(filters: GovernanceFilters = {}) {
 export function useOwnerAssignments(filters: GovernanceFilters = {}) {
   return useSWR<GovernanceResponse<OwnerAssignmentRow>>(
     filters.owner ? buildUrl('owner-load/assignments', filters) : null,
-    apiFetch,
-    swrOptions
-  );
-}
-
-export function useContractOverlap(filters: GovernanceFilters = {}) {
-  return useSWR<GovernanceResponse<ContractOverlapRow>>(
-    buildUrl('contract-overlap', filters),
-    apiFetch,
-    swrOptions
-  );
-}
-
-export function useRenewalCalendar(filters: GovernanceFilters = {}) {
-  return useSWR<GovernanceResponse<RenewalRiskRow>>(
-    buildUrl('renewal-calendar', filters),
-    apiFetch,
-    swrOptions
-  );
-}
-
-export function useGovernanceAdvisor(filters: GovernanceFilters = {}) {
-  return useSWR<GovernanceResponse<AdvisorFinding>>(
-    buildUrl('advisor', filters),
     apiFetch,
     swrOptions
   );

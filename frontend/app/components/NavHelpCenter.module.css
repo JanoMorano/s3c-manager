@@ -17,99 +17,29 @@
   font: var(--text-label-sm);
 }
 
-.trigger,
-.contextBtn {
+.helpLink {
   width: 100%;
   display: inline-flex;
   justify-content: flex-start;
   align-items: center;
+  gap: 8px;
   border: 1px solid color-mix(in srgb, var(--color-sidebar-muted, var(--color-text-muted)) 18%, transparent);
   border-radius: var(--radius-lg);
   background: transparent;
   color: var(--color-sidebar-muted, var(--color-text-secondary));
   padding: var(--space-1) var(--space-2);
   font: var(--text-body-sm);
-  cursor: pointer;
   min-height: 34px;
   text-decoration: none;
 }
 
-.trigger:hover,
-.contextBtn:hover {
+.helpLink:hover,
+.helpLinkActive {
   background: color-mix(in srgb, var(--color-sidebar-active, var(--color-action-primary)) 16%, transparent);
   color: var(--color-sidebar-text, var(--color-text-primary));
 }
 
-.trigger:focus-visible,
-.contextBtn:focus-visible,
-.fullHelpLink:focus-visible,
-.resultLink:focus-visible {
+.helpLink:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
-}
-
-.content {
-  max-width: min(760px, 96vw);
-  width: min(760px, 96vw);
-  max-height: min(86vh, 900px);
-}
-
-.contextHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-subtle);
-  font: var(--text-label-md);
-  color: var(--color-text-primary);
-}
-
-.fullHelpLink {
-  color: var(--color-info);
-  white-space: nowrap;
-  font: var(--text-label-md);
-}
-
-.contextSection {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.contextSection h3 {
-  margin: 0;
-  font: var(--text-title-sm);
-  color: var(--color-text-primary);
-}
-
-.contextSection ul {
-  margin: 0;
-  padding-left: 1.1rem;
-  display: grid;
-  gap: var(--space-1);
-}
-
-.contextSection li {
-  color: var(--color-text-secondary);
-  font: var(--text-body-sm);
-}
-
-.resultLink {
-  color: var(--color-info);
-  font: var(--text-label-md);
-}
-
-@media (max-width: 900px) {
-  .content {
-    width: 96vw;
-    max-width: 96vw;
-    padding: var(--space-4);
-  }
-
-  .contextHeader {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
