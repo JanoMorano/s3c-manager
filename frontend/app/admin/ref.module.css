@@ -36,6 +36,37 @@
 .tab:hover   { color: var(--color-text-primary); }
 .tabActive   { color: var(--color-action-primary); border-bottom-color: var(--color-action-primary); font-weight: 600; }
 
+.advancedRefGroup {
+  margin: calc(var(--space-5) * -1) 0 var(--space-5);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-canvas) 84%, var(--color-warning, #f59e0b) 16%);
+  overflow: hidden;
+}
+
+.advancedRefSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.advancedRefSummary small {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.advancedRefGroup .tabs {
+  margin: 0;
+  padding: 0 var(--space-4);
+  background: var(--color-bg-surface);
+}
+
 /* ── Editor panel ───────────────────────────────────────────────────────────── */
 .editorPanel {
   background: var(--color-bg-surface);

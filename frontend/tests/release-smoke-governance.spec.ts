@@ -72,7 +72,7 @@ async function mockGovernanceRelease(page: Page) {
           links: {
             governance_health: '/operations',
             readiness_queue: '/operations/readiness',
-            capability_coverage: '/capabilities/coverage',
+            capability_coverage: '/capabilities?view=coverage',
             review_deadlines: '/operations/reviews',
             owner_load: '/operations/owner-load',
             recent_decisions: '/operations/decisions',
@@ -93,7 +93,7 @@ async function mockGovernanceRelease(page: Page) {
             missing_owners: [{ service_id: 'DEMO-DOC-006', title: 'Document Collaboration Workspace', completeness_score: 42, service_status: 'draft' }],
             top_completeness: [{ service_id: 'DEMO-OBS-007', title: 'Observability Command Center', completeness_score: 96, service_status: 'active' }],
             deprecated_retired: [],
-            pricing_patrol: { total_services: 8, with_pricing: 7, coverage_percent: 88, missing: [] },
+            offering_evidence: { total_services: 8, with_evidence: 7, coverage_percent: 88, missing: [] },
             c3_mapping_gap: [{ item_type: 'CP', total_count: 4, mapped_count: 3, gap_count: 1 }],
           },
         }),
@@ -260,16 +260,16 @@ test('release governance cockpit smoke renders the core pages', async ({ page })
   await mockGovernanceRelease(page);
 
   await page.goto('/operations');
-  await expect(page.getByRole('heading', { name: /decision cockpit/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /operations queue/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /readiness queue/i })).toHaveAttribute('href', '/operations/readiness');
 
   await page.goto('/portfolio');
-  await expect(page.getByRole('heading', { name: /portfolio cockpit/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /portfolios/i })).toBeVisible();
   await expect(page.getByText('Shared Services')).toBeVisible();
 
   await page.goto('/operations/readiness');
-  await expect(page.getByRole('heading', { name: /readiness queue/i })).toBeVisible();
-  await expect(page.getByText('Document Collaboration Workspace')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /readiness gate/i })).toBeVisible();
+  await expect(page.getByText('Document Collaboration Workspace').first()).toBeVisible();
 
   await page.goto('/operations/reviews');
   await expect(page.getByRole('heading', { name: /governance reviews/i })).toBeVisible();
@@ -279,12 +279,11 @@ test('release governance cockpit smoke renders the core pages', async ({ page })
   await expect(page.getByRole('heading', { name: /decision log/i })).toBeVisible();
   await expect(page.getByText('Primary capability evidence is incomplete.')).toBeVisible();
 
-  await page.goto('/capabilities/coverage');
+  await page.goto('/capabilities?view=coverage');
   await expect(page.getByRole('heading', { name: /capability coverage/i })).toBeVisible();
   await expect(page.getByText('Platform Integration Capability')).toBeVisible();
   await expect(page.getByText('Uncovered Mission Workflow')).toBeVisible();
 
   await page.goto('/services/impact');
-  await expect(page.getByRole('heading', { name: /impact analysis/i })).toBeVisible();
-  await expect(page.getByText('Process Automation Service')).toBeVisible();
+  await expect(page).toHaveURL(/\/services\/list/);
 });

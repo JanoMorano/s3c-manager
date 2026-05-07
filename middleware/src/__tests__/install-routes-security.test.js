@@ -48,7 +48,7 @@ const mockRequireAuth = jest.fn((req, res, next) => {
     };
     next();
 });
-const mockCanAdmin = jest.fn((req, res, next) => res.status(403).json({ error: 'Forbidden' }));
+const mockCanAdmin = jest.fn((req, res, _next) => res.status(403).json({ error: 'Forbidden' }));
 jest.mock('../middleware/auth', () => ({
     requireAuth: (...args) => mockRequireAuth(...args),
 }));
@@ -314,6 +314,48 @@ describe('install route security', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.ok).toBe(true);
+    });
+
+    test('POST /bootstrap-admin can update the in-progress bootstrap admin account', async () => {
+        const installSvc = require('../services/install.service');
+        installSvc.bootstrapAdmin.mockResolvedValueOnce({
+            ok: true,
+            userId: 2,
+            username: 'admin',
+            mode: 'updated',
+        });
+        const app = buildApp();
+
+        const response = await request(app)
+            .post('/api/v1/install/bootstrap-admin')
+            .set(validHeaders)
+            .send({
+                username: 'Admin',
+                displayName: 'Admin User',
+                email: 'admin@example.com',
+                password: 'Admin123!',
+                mustChangePassword: false,
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(expect.objectContaining({
+            ok: true,
+            user_id: 2,
+            username: 'admin',
+            mode: 'updated',
+        }));
+        expect(installSvc.bootstrapAdmin).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                username: 'Admin',
+                displayName: 'Admin User',
+                email: 'admin@example.com',
+                password: 'Admin123!',
+                mustChangePassword: false,
+            }),
+            'Admin',
+        );
+        expect(queryMock).not.toHaveBeenCalled();
     });
 
     test.each([

@@ -16,7 +16,8 @@
 }
 
 /* Status variants */
-.active     { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); border-color: var(--color-success); }
+.active,
+.live       { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); border-color: var(--color-success); }
 .planned    { background: color-mix(in srgb, var(--color-info) 10%, transparent); color: var(--color-info); border-color: var(--color-info); }
 .retired    { background: var(--color-bg-subtle); color: var(--color-text-secondary); border-color: var(--color-border-default); }
 .deprecated { background: var(--color-bg-surface)7d6; color: var(--color-warning); border-color: var(--color-warning); }

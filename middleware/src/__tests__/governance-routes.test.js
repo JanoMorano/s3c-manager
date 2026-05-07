@@ -16,13 +16,8 @@ jest.mock('../middleware/rbac', () => ({
 }));
 
 jest.mock('../db/governance.repo', () => ({
-    listServiceRisks: jest.fn(),
     listOwnerLoad: jest.fn(),
     listOwnerAssignments: jest.fn(),
-    listContractOverlap: jest.fn(),
-    listRenewalRisks: jest.fn(),
-    listAdvisorFindings: jest.fn(),
-    dismissFinding: jest.fn(),
     listReviews: jest.fn(),
     createReview: jest.fn(),
     updateReview: jest.fn(),
@@ -50,26 +45,6 @@ describe('governance routes', () => {
         app.use('/api/v1/governance', router);
         return app;
     }
-
-    test('GET /risk-radar returns filtered findings', async () => {
-        const repo = require('../db/governance.repo');
-        repo.listServiceRisks.mockResolvedValue([
-            { finding_key: 'service:1:missing-owner', severity: 'P0' },
-        ]);
-
-        const response = await request(buildApp())
-            .get('/api/v1/governance/risk-radar?severity=P0&limit=10');
-
-        expect(response.status).toBe(200);
-        expect(response.body.items).toEqual([
-            { finding_key: 'service:1:missing-owner', severity: 'P0' },
-        ]);
-        expect(repo.listServiceRisks).toHaveBeenCalledWith(expect.objectContaining({
-            severity: ['P0'],
-            limit: 10,
-            offset: 0,
-        }));
-    });
 
     test('GET /owner-load returns owner score rows', async () => {
         const repo = require('../db/governance.repo');
@@ -115,20 +90,4 @@ describe('governance routes', () => {
         }));
     });
 
-    test('POST /findings/:id/dismiss stores dismissal reason and actor', async () => {
-        const repo = require('../db/governance.repo');
-        repo.dismissFinding.mockResolvedValue({ finding_id: 123, dismissal_id: 77 });
-
-        const response = await request(buildApp())
-            .post('/api/v1/governance/findings/owner%3Aowner%40example.com%3Aoverloaded/dismiss')
-            .send({ reason: 'Ownership delegated' });
-
-        expect(response.status).toBe(200);
-        expect(response.body.item).toEqual({ finding_id: 123, dismissal_id: 77 });
-        expect(repo.dismissFinding).toHaveBeenCalledWith({
-            findingId: 'owner:owner@example.com:overloaded',
-            reason: 'Ownership delegated',
-            actor: 'admin@example.com',
-        });
-    });
 });

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
 import './globals.css';
+import './_help/help.css';
 import AppShell from './components/AppShell';
 import I18nProvider from './i18n/I18nProvider';
-import { PersonaProvider } from '@/features/auth/PersonaContext';
 import { ThemeProvider } from '@/features/theme/ThemeContext';
 import { getLocaleBootstrapScript } from './i18n/bootstrap';
 import { resolveLocaleFromHeader } from '../../shared/i18n/locales';
@@ -11,7 +11,7 @@ import { normalizeSupportedLocale } from '../../shared/i18n/core';
 
 export const metadata: Metadata = {
   title: 'Service Catalogue',
-  description: 'Internal service catalogue — graph + pricing + SLA + taxonomy',
+  description: 'Internal service catalogue for ownership, readiness, offerings, and capability mapping',
   icons: {
     icon: '/favicon.svg',
   },
@@ -35,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   `;
 
   return (
-    <html lang={resolvedLocale}>
+    <html lang={resolvedLocale} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
         <script dangerouslySetInnerHTML={{ __html: getLocaleBootstrapScript() }} />
@@ -43,9 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <I18nProvider initialLocale={resolvedLocale}>
           <ThemeProvider>
-            <PersonaProvider>
-              <AppShell>{children}</AppShell>
-            </PersonaProvider>
+            <AppShell>{children}</AppShell>
           </ThemeProvider>
         </I18nProvider>
       </body>

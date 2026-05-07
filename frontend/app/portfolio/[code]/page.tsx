@@ -138,7 +138,7 @@ export default function PortfolioDetailPage({ params }: Props) {
           </div>
           <Link href={`/services/list?portfolio=${encodeURIComponent(portfolio.portfolio_code)}`} className={styles.inlineAction}>Filtered services</Link>
           <Link href="/operations/reviews" className={styles.inlineAction}>Governance reviews</Link>
-          <Link href="/operations/owner-load" className={styles.inlineAction}>Owner load</Link>
+          <Link href="/operations#owner-load" className={styles.inlineAction}>Owner load</Link>
         </article>
       </section>
 

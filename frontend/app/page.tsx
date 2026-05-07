@@ -10,7 +10,6 @@ import {
   useDashboardHeadline,
   useDashboardInbox,
   useDashboardSummary,
-  useMyServiceRequests,
   useOperationsDashboard,
 } from '@/features/services/hooks/useServices';
 import type { CompletenessItem, DashboardInboxItem } from '@/features/services/model/service.types';
@@ -65,7 +64,6 @@ export default function HomePage() {
   const decisionSummary = useDashboardSummary();
   const operations = useOperationsDashboard();
   const dashboard = useDashboard();
-  const myRequests = useMyServiceRequests();
 
   const completenessItems = completeness.data ?? [];
   const inboxItems = inbox.data?.items ?? [];
@@ -73,7 +71,6 @@ export default function HomePage() {
   const myReviews = inbox.data?.my_reviews ?? [];
   const myBlockers = inbox.data?.my_blockers ?? inboxItems;
   const myDecisions = inbox.data?.my_decisions ?? [];
-  const requestItems = myRequests.data?.items ?? [];
   const summary = decisionSummary.data?.summary;
   const dashboardSummary = dashboard.data?.summary;
   const operationSections = operations.data?.sections;
@@ -134,7 +131,7 @@ export default function HomePage() {
       <section className={styles.decisionGrid} aria-label="Personal work cockpit">
         <DecisionPanel
           title="My owned services"
-          href="/operations/owner-load"
+          href="/operations#owner-load"
           linkLabel="Owner load"
         >
           {myOwnedServices.length ? (
@@ -216,18 +213,8 @@ export default function HomePage() {
                 href={`/services/${item.service_id}`}
               />
             ))}
-            {requestItems.slice(0, 2).map((item) => (
-              <SignalRow
-                key={`request-${item.id}`}
-                title={item.service_title ?? item.service_id ?? item.request_number}
-                meta={`${item.request_number} · ${item.status} · ${formatDateTime(item.created_at)}`}
-                pill="request"
-                tone={item.status === 'cancelled' ? 'bad' : item.status === 'fulfilled' ? 'ok' : 'info'}
-                href={item.service_id ? `/services/${item.service_id}` : '/services/list?requestable=true'}
-              />
-            ))}
-            {myDecisions.length === 0 && requestItems.length === 0 && (
-              <p className={styles.empty}>Zatím nemáte evidované rozhodnutí ani service request.</p>
+            {myDecisions.length === 0 && (
+              <p className={styles.empty}>Zatím nemáte evidované rozhodnutí.</p>
             )}
           </div>
         </DecisionPanel>
@@ -266,33 +253,33 @@ export default function HomePage() {
             linkLabel="Readiness gate"
           >
             <div className={styles.signalList}>
-              <SignalRow title={`${missingOwners.length} služeb bez ownera`} meta="Bez ownera neexistuje eskalace ani odpovědnost." pill="missing owner" tone="bad" href="/operations/owner-load" />
+              <SignalRow title={`${missingOwners.length} služeb bez ownera`} meta="Bez ownera neexistuje eskalace ani odpovědnost." pill="missing owner" tone="bad" href="/operations#owner-load" />
               <SignalRow title={`${missingSla.length} služeb bez SLA`} meta={missingSla[0]?.title ?? 'SLA je nutné pro service design a support model.'} pill="missing SLA" tone={missingSla.length ? 'warn' : 'ok'} href="/services/list?missing=sla" />
-              <SignalRow title={`${missingCapability.length} služeb bez capability mappingu`} meta={missingCapability[0]?.title ?? 'Capability mapování umožní coverage a impact analýzu.'} pill="missing capability" tone={missingCapability.length ? 'warn' : 'ok'} href="/capabilities/gaps" />
+              <SignalRow title={`${missingCapability.length} služeb bez capability mappingu`} meta={missingCapability[0]?.title ?? 'Capability mapování umožní coverage a dopadové rozhodování.'} pill="missing capability" tone={missingCapability.length ? 'warn' : 'ok'} href="/capabilities?view=gaps" />
             </div>
           </DecisionPanel>
 
           <DecisionPanel
             title="Capability coverage"
             lead="Mezery, překryvy a slabé mapování."
-            href="/capabilities/coverage"
+            href="/capabilities?view=coverage"
             linkLabel="Coverage"
           >
             <div className={styles.signalList}>
-              <SignalRow title={`${formatNumber(capabilityGaps)} capability gaps`} meta={missingCapability[0]?.title ?? 'Žádná významná mezera v aktuálním výběru.'} pill="gap" tone={capabilityGaps ? 'warn' : 'ok'} href="/capabilities/gaps" />
-              <SignalRow title={`${formatNumber(capabilityOverlaps)} overlaps`} meta="Více služeb může pokrývat stejnou schopnost podobným způsobem." pill="overlap" tone={capabilityOverlaps ? 'warn' : 'ok'} href="/capabilities/overlaps" />
+              <SignalRow title={`${formatNumber(capabilityGaps)} capability gaps`} meta={missingCapability[0]?.title ?? 'Žádná významná mezera v aktuálním výběru.'} pill="gap" tone={capabilityGaps ? 'warn' : 'ok'} href="/capabilities?view=gaps" />
+              <SignalRow title={`${formatNumber(capabilityOverlaps)} overlaps`} meta="Více služeb může pokrývat stejnou schopnost podobným způsobem." pill="overlap" tone={capabilityOverlaps ? 'warn' : 'ok'} href="/capabilities?view=overlaps" />
               <SignalRow title={`${staleRecords.length} stale records`} meta={staleRecords[0]?.title ?? 'Záznamy mají aktuální datum změny.'} pill="freshness" tone={staleRecords.length ? 'warn' : 'ok'} href="/services/list?sort=updated_at&order=ASC" />
             </div>
           </DecisionPanel>
 
           <DecisionPanel
-            title="Impact / dependency risk"
-            lead="Vazby důležité před změnou nebo vyřazením."
-            href="/services/impact"
-            linkLabel="Impact"
+            title="Service relationships"
+            lead="Vazby důležité před změnou nebo vyřazením jsou dostupné z detailu služby."
+            href="/services/list"
+            linkLabel="Vybrat službu"
           >
             <div className={styles.signalList}>
-              <SignalRow title={`${formatNumber(dashboardSummary?.total_relations ?? 0)} evidovaných vazeb`} meta="Každá významná změna služby má začít impact analýzou." pill="dependencies" tone="info" href="/services/dependency-flow" />
+              <SignalRow title={`${formatNumber(dashboardSummary?.total_relations ?? 0)} evidovaných vazeb`} meta="Každá významná změna služby má začít kontrolou vztahů na detailu konkrétní služby." pill="dependencies" tone="info" href="/services/list" />
               <SignalRow title={`${attentionItems.length} služeb s attention signálem`} meta={attentionItems[0]?.title ?? 'Aktuálně nejsou vidět služby vyžadující opravu.'} pill="attention" tone={attentionItems.length ? 'warn' : 'ok'} href="/services/list" />
               <SignalRow title={`${formatNumber(dashboardSummary?.deprecated_services ?? 0)} deprecated services`} meta="Dosluhující služby potřebují náhradu, výjimku nebo retirement plán." pill="lifecycle" tone={dashboardSummary?.deprecated_services ? 'warn' : 'ok'} href="/services/list?lifecycle=deprecated" />
             </div>
@@ -338,9 +325,9 @@ export default function HomePage() {
             </div>
             <div className={styles.quickGrid}>
               <Link href="/catalogue" className={styles.quickLink}><span>Katalog služeb</span><span>Browse</span></Link>
-              <Link href="/services/list?view=list" className={styles.quickLink}><span>Service list</span><span>Správa</span></Link>
+              <Link href="/services/list" className={styles.quickLink}><span>Service list</span><span>Správa</span></Link>
               <Link href="/operations/readiness" className={styles.quickLink}><span>Readiness gate</span><span>Blokery</span></Link>
-              <Link href="/services/impact" className={styles.quickLink}><span>Impact analysis</span><span>Vazby</span></Link>
+              <Link href="/services/list" className={styles.quickLink}><span>Service relationships</span><span>Detail služby</span></Link>
             </div>
           </article>
         </section>

@@ -697,7 +697,7 @@
   margin-bottom: var(--space-5);
 }
 
-/* Row 3 — most expensive flavours (3fr) + service owner (1fr), matching the By Status/Type/Domain + By Portfolio proportions */
+/* Row 3 — legacy variant evidence (3fr) + service owner (1fr), matching the By Status/Type/Domain + By Portfolio proportions */
 .insightsRow {
   display: grid;
   grid-template-columns: 3fr 1fr;
@@ -716,7 +716,7 @@
 .cardTitle { font: var(--text-title-sm); color: var(--color-text-primary); margin-bottom: var(--space-4); }
 .chartHint { margin-top: calc(var(--space-4) * -0.5); margin-bottom: var(--space-3); font: var(--text-body-sm); color: var(--color-text-muted); }
 
-/* Row 4 — 4 governance blocks (No Pricing Variants removed) */
+/* Row 4 — 4 governance blocks (legacy variant panel removed) */
 .bottomRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -926,7 +926,7 @@
 .topBar   { height: 6px; background: var(--color-bg-canvas); border-radius: var(--radius-pill); overflow: hidden; }
 .topBarFill { height: 100%; border-radius: var(--radius-pill); transition: width .3s; }
 
-/* Pricing coverage summary */
+/* Offering evidence coverage summary */
 .pricingStats { display: flex; flex-direction: column; gap: var(--space-4); }
 .pricingStat  { display: flex; flex-direction: column; gap: var(--space-2); }
 .pricingStatRow { display: flex; justify-content: space-between; align-items: baseline; }

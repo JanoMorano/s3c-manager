@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>09 Uživatel - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">09 · Uživatel</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link active" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">09 Uživatel</p>
+        <h1>User menu, profil, preference a role</h1>
+        <p class="lead">Uživatelská část určuje, kdo je přihlášený, jakou má roli, jaký jazyk a pohled preferuje a zda může zapisovat do katalogu, governance, C3 nebo administrace.</p>
+      </section>
+
+      <h2>Teoretický význam uživatelského profilu</h2>
+      <p>
+        Profil uživatele není jen osobní nastavení. V S3C Manageru e-mail, display name, role, provider a jazyk ovlivňují personalizaci cockpit, přiřazení review, auditní stopu, owner load a viditelnost menu. Špatně vyplněný profil způsobí, že reviewer neuvidí své úkoly, owner nebude správně vyhodnocen a decision log bude nečitelný.
+      </p>
+      <p>
+        Uživatel má v aplikaci dvě vrstvy identity: autentizační identitu, která říká kdo je přihlášený, a governance identitu, která říká jakou odpovědnost má vůči službám, review a rozhodnutím. Tyto vrstvy se potkávají v e-mailu, display name a role assignments.
+      </p>
+      <div class="itil-note">
+        <strong>ITIL souvislost:</strong> Accountability ve službovém řízení vyžaduje jasné role a odpovědnost. Uživatelský profil podporuje RACI logiku, service ownership, review assignment a auditní traceability.
+      </div>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>User menu<br><code>/img/help-cs/user-01-menu.png</code></div></div><figcaption>Menu v topbaru s profilem, rolí, user info a logout.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>User profile<br><code>/img/help-cs/user-02-profile.png</code></div></div><figcaption>Profil, jazyk, preference, heslo, session detail a owned services.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Password change<br><code>/img/help-cs/user-03-password.png</code></div></div><figcaption>Změna hesla lokálního účtu. SSO účty se mění v identity provideru.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Owned services<br><code>/img/help-cs/user-04-owned-services.png</code></div></div><figcaption>Služby, kde je uživatel owner nebo má role assignment.</figcaption></figure>
+      </div>
+
+      <h2>User menu</h2>
+      <table class="field-table">
+        <thead><tr><th>Položka</th><th>Význam</th><th>Co ovlivní</th><th>Poznámka</th></tr></thead>
+        <tbody>
+          <tr><td>Jméno uživatele</td><td>Zobrazuje display name nebo username.</td><td>Orientace, kdo je přihlášený.</td><td>Pokud je špatně, opravit v profilu nebo administraci.</td></tr>
+          <tr><td>Role badge</td><td>viewer, editor nebo admin.</td><td>Očekávání, co uživatel může měnit.</td><td>Role není totéž co service owner.</td></tr>
+          <tr><td>User Info</td><td>Odkaz na <code>/user-info</code>.</td><td>Profil, preference, heslo, owned services.</td><td>Hlavní místo pro osobní nastavení.</td></tr>
+          <tr><td>Log Out</td><td>Odhlášení.</td><td>Ukončí session/refresh token.</td><td>U sdílených stanic používat vždy.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Profilová pole</h2>
+      <table class="field-table">
+        <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace / doporučení</th></tr></thead>
+        <tbody>
+          <tr><td><code>given_name</code></td><td>Křestní jméno.</td><td>Profil a auditní čitelnost.</td><td>U SSO může přicházet z trusted headeru.</td></tr>
+          <tr><td><code>surname</code></td><td>Příjmení.</td><td>Profil a auditní čitelnost.</td><td>Udržovat shodné s AD/HR.</td></tr>
+          <tr><td><code>display_name</code></td><td>Jméno zobrazované v aplikaci.</td><td>Reviews, decisions, audit, owner load.</td><td>Má být lidsky čitelné, ne jen login.</td></tr>
+          <tr><td><code>email</code></td><td>Kontaktní e-mail.</td><td>Assigned_to, personal queues, My Tasks, owner matching.</td><td>Lowercase a platný formát. Kritické pro personalizaci.</td></tr>
+          <tr><td><code>department</code></td><td>Oddělení nebo organizační jednotka.</td><td>Owner reporting a governance kontext.</td><td>Sladit s organizací.</td></tr>
+          <tr><td><code>phone</code></td><td>Telefon.</td><td>Kontaktní informace pro owner/reviewer situace.</td><td>Volitelné.</td></tr>
+          <tr><td><code>preferred_lang</code></td><td>Preferovaný jazyk UI.</td><td>i18n texty, locale cookie a demo/help fallback.</td><td>Podporované hodnoty: <code>cs</code>, <code>en</code>, <code>.</td></tr>
+          <tr><td>Session detail toggle</td><td>Zobrazí technické informace o přihlášení.</td><td>Diagnostika SSO/local session.</td><td>Užitečné při řešení “proč mám jinou roli”.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Preference</h2>
+      <table class="field-table">
+        <thead><tr><th>Preference</th><th>Možnosti</th><th>Co ovlivní</th><th>Kde se projeví</th></tr></thead>
+        <tbody>
+          <tr><td>Language</td><td><code>cs</code>, <code>en</code>, <code>.</td><td>Jazyk UI a lokalizované texty.</td><td>Celá aplikace, help, i18n context.</td></tr>
+          <tr><td>Persona</td><td>consumer, service_owner, reviewer, admin podle konfigurace.</td><td>Výchozí akcent informací.</td><td>Home, Service 360, My Tasks.</td></tr>
+          <tr><td>View mode</td><td>Business / Technical.</td><td>Množství detailu v Service 360 a dalších pohledech.</td><td>Service detail; editor view switch má být skrytý.</td></tr>
+          <tr><td>Density</td><td>Comfortable / compact.</td><td>Hustota tabulek a listů.</td><td>Service list, admin lists, C3 list.</td></tr>
+          <tr><td>Saved views</td><td>Uložené filtry.</td><td>Rychlý návrat k pracovnímu výběru.</td><td>Service list, search, budoucí saved views.</td></tr>
+          <tr><td>Default landing page</td><td>Home, My Tasks, Catalogue, Operations podle role.</td><td>Kam uživatel míří po loginu.</td><td>Login redirect / homepage preference.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Změna hesla</h2>
+      <table class="field-table">
+        <thead><tr><th>Pole</th><th>Význam</th><th>Validace</th><th>Kdy se nepoužívá</th></tr></thead>
+        <tbody>
+          <tr><td><code>current</code></td><td>Současné heslo.</td><td>Server ověřuje proti lokálnímu účtu.</td><td>SSO/AD účet heslo nemění v S3C Manageru.</td></tr>
+          <tr><td><code>next</code></td><td>Nové heslo.</td><td>Musí splnit serverovou politiku.</td><td>Nepoužívat sdílená nebo slabá hesla.</td></tr>
+          <tr><td><code>confirm</code></td><td>Potvrzení nového hesla.</td><td>Musí se shodovat s <code>next</code>.</td><td>Chrání před překlepem.</td></tr>
+          <tr><td>Submit</td><td>Změní heslo.</td><td>Volá <code>POST /api/v1/auth/change-password</code>.</td><td>Po změně se doporučuje znovu přihlásit.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Role vs. odpovědnost</h2>
+      <p>
+        Aplikační role říká, co uživatel technicky smí. Service role assignment říká, za co odpovídá. Admin může mít právo změnit službu, ale nemusí být jejím ownerem. Viewer může být manažer, který jen čte rozhodnutí. Editor může být service owner, ale nemusí spravovat uživatele.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Vrstva</th><th>Příklady</th><th>Kde se nastavuje</th><th>Co ovlivní</th></tr></thead>
+        <tbody>
+          <tr><td>Aplikační role</td><td>viewer, editor, admin.</td><td><code>/administration/users</code>.</td><td>Serverová práva a menu.</td></tr>
+          <tr><td>RBAC skupina</td><td>Service editors, C3 stewards, Security reviewers.</td><td><code>/administration/groups</code>.</td><td>Field-level view/edit/ref práva.</td></tr>
+          <tr><td>Service role assignment</td><td>service_owner, reviewer, steward, technical_owner.</td><td>Service editor Ownership.</td><td>My Tasks, owner load, review context.</td></tr>
+          <tr><td>Review assignment</td><td><code>assigned_to</code> e-mail v governance review.</td><td><code>/operations/reviews</code>.</td><td>My reviews a overdue signal.</td></tr>
+          <tr><td>Decision actor</td><td><code>decided_by</code>.</td><td>Decision modal/log.</td><td>Audit a accountability.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Owned services</h2>
+      <p>
+        Panel Owned services ukazuje služby, kde je přihlášený uživatel uveden jako owner nebo má relevantní role assignment. Je to osobní pracovní mapa odpovědnosti, ne seznam oblíbených služeb.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Sloupec</th><th>Význam</th><th>Proč ho číst</th><th>Akce</th></tr></thead>
+        <tbody>
+          <tr><td>Service ID</td><td>Stabilní identifikátor služby.</td><td>Pro komunikaci, exporty a ticket/reference.</td><td>Otevře Service 360.</td></tr>
+          <tr><td>Title</td><td>Název služby.</td><td>Rychlá orientace.</td><td>Otevřít detail nebo editor podle role.</td></tr>
+          <tr><td>Role</td><td>Jakou odpovědnost má uživatel.</td><td>Owner/steward/reviewer mají jinou práci.</td><td>Pokud je role chybná, opravit v service editoru.</td></tr>
+          <tr><td>Status / lifecycle</td><td>Stav služby.</td><td>Live a deprecated služby vyžadují jinou pozornost než draft.</td><td>U deprecated zkontrolovat impact/retirement.</td></tr>
+          <tr><td>Review due</td><td>Termín další kontroly.</td><td>Pomáhá prioritizovat práci.</td><td>Při overdue založit/otevřít review.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Osobní pracovní fronty</h2>
+      <p>
+        Aplikace používá dashboard/inbox read model a uživatelský profil jako zdroj osobních pracovních front. My Tasks skládá odpovědnosti ze služeb, review, rozhodnutí a readiness signálů; nejde o samostatný notifikační inbox s vlastní DB tabulkou.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Objekt</th><th>Význam</th><th>Co obsahuje</th><th>Dopad</th></tr></thead>
+        <tbody>
+          <tr><td><code>dashboard/inbox read model</code></td><td>Agregovaný osobní pracovní pohled.</td><td>Owned services, assigned reviews, blockers, decisions a readiness signály.</td><td>Základ pro My Tasks a operations queues.</td></tr>
+          <tr><td><code>dashboard/inbox user slice</code></td><td>Výřez pro konkrétního uživatele.</td><td>E-mail, role assignments a governance vazby.</td><td>Osobní fronta bez samostatné notification tabulky.</td></tr>
+          <tr><td><code>platform.users.preferred_lang</code>, <code>preferred_theme</code></td><td>Uživatelský jazyk a téma.</td><td>Jazyk CS/EN a vizuální téma.</td><td>Per-user UX bez změny globální konfigurace.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Typické scénáře</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">A</span><div><h3>Nevidím svoje review</h3><div class="step-meta"><span>email</span><span>assigned_to</span><span>my tasks</span></div></div></header>
+          <ol>
+            <li>Otevřete <code>/user-info</code> a zkontrolujte e-mail.</li>
+            <li>Porovnejte jej s hodnotou <code>assigned_to</code> v review.</li>
+            <li>Pokud nesedí, požádejte admina o opravu profilu nebo review assignmentu.</li>
+            <li>Po opravě obnovte <code>/cockpit/my-tasks</code>.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">B</span><div><h3>Chci méně technický pohled</h3><div class="step-meta"><span>role</span><span>navigation</span><span>language</span></div></div></header>
+          <ol>
+            <li>V profilu nastavte personu consumer nebo service_owner.</li>
+            <li>Ve Service 360 použijte Business view.</li>
+            <li>Pokud se pohled neukládá, zkontrolujte lokální stav prohlížeče a jazyk/téma v profilu.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">C</span><div><h3>Nemohu změnit heslo</h3><div class="step-meta"><span>local</span><span>SSO</span><span>admin</span></div></div></header>
+          <ol>
+            <li>Zkontrolujte, zda je účet local nebo AD/SSO.</li>
+            <li>Pokud je SSO, heslo se mění v externím identity provideru.</li>
+            <li>Pokud je local, zadejte current, next a confirm.</li>
+            <li>Při problému požádejte admina o reset lokálního hesla.</li>
+          </ol>
+        </article>
+      </div>
+
+      <h2>API a DB vazby</h2>
+      <table class="field-table">
+        <thead><tr><th>API / DB</th><th>Použití</th><th>Co ukládá / vrací</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/auth/me</code></td><td>Načtení profilu a session.</td><td>Aktuální uživatel, role, provider, profilová pole.</td></tr>
+          <tr><td><code>PATCH /api/v1/auth/me</code></td><td>Uložení profilu.</td><td>display_name, email, given_name, surname, department, phone.</td></tr>
+          <tr><td><code>PUT /api/v1/auth/preferences</code></td><td>Uložení jazyka a tématu.</td><td><code>preferred_lang</code>, <code>preferred_theme</code>.</td></tr>
+          <tr><td><code>POST /api/v1/auth/change-password</code></td><td>Změna lokálního hesla.</td><td>current_password, new_password.</td></tr>
+          <tr><td><code>POST /api/v1/auth/logout</code></td><td>Odhlášení.</td><td>Ruší session/refresh token.</td></tr>
+          <tr><td><code>GET /api/v1/services?owner=...</code></td><td>Owned services.</td><td>Seznam služeb podle ownera.</td></tr>
+          <tr><td><code>platform.users</code></td><td>Uživatelé.</td><td>Identity, role, provider, preferred_lang.</td></tr>
+          <tr><td><code>platform.refresh_tokens</code></td><td>Session model.</td><td>Refresh/session evidence.</td></tr>
+          <tr><td><code>data.service_role_assignment</code></td><td>Odpovědnosti ke službám.</td><td>Role člověka ke službě.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Časté chyby</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Dopad</th><th>Správný postup</th></tr></thead>
+        <tbody>
+          <tr><td>Role se bere jen jako popisek v UI.</td><td>Uživatel očekává editaci, i když má viewer roli.</td><td>Oprávnění řeší serverové role a skupiny.</td></tr>
+          <tr><td>Prázdný nebo špatný e-mail.</td><td>Nefungují My Tasks, reviews a osobní fronty.</td><td>Udržovat e-mail jako hlavní governance identifikátor.</td></tr>
+          <tr><td>Sdílený účet.</td><td>Decision log a audit nejsou důvěryhodné.</td><td>Každý uživatel má mít vlastní účet.</td></tr>
+          <tr><td>Local heslo pro SSO účet.</td><td>Uživatel čeká změnu v aplikaci, ale identitu řídí AD/SSO.</td><td>SSO hesla měnit v identity provideru.</td></tr>
+          <tr><td>Display name jako “admin”.</td><td>Auditní log neříká, kdo konkrétně rozhodl.</td><td>Používat jméno osoby nebo systémového účtu s jasným účelem.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="chapter-nav">
+        <a href="08-admin.html">Předchozí: 08 Administrace</a>
+        <a href="10-analysis.html">Další: 10 Analýzy</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

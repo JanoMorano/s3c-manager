@@ -238,7 +238,7 @@ function _resolveDomainCode(val, map) {
   // 3a) Strip parentheses and everything after them: "Nexus (including relay)" → "Nexus"
   //     Strip "[exceptional...]": "Vertex [exceptional...]" → "Vertex"
   const strippedParens = s
-    .replace(/\s*[\[(][^\])\n]*[\])].*$/, '')
+    .replace(/\s*[[(][^\])\n]*[\])].*$/, '')
     .trim();
   if (strippedParens && strippedParens !== s) {
     if (map.codes.has(strippedParens)) return strippedParens;
@@ -253,7 +253,7 @@ function _resolveDomainCode(val, map) {
     const byD = map.byName.get(strippedDash.toLowerCase());
     if (byD) return byD;
     // Parentheses remaining after dash stripping.
-    const strippedBoth = strippedDash.replace(/\s*[\[(][^\])\n]*[\])].*$/, '').trim();
+    const strippedBoth = strippedDash.replace(/\s*[[(][^\])\n]*[\])].*$/, '').trim();
     if (strippedBoth && strippedBoth !== strippedDash) {
       if (map.codes.has(strippedBoth)) return strippedBoth;
       const byB = map.byName.get(strippedBoth.toLowerCase());
@@ -866,7 +866,7 @@ async function upsertPrerequisiteFallback(serviceId, item, username, errors) {
 // ─── Underlying Services → ServiceRelation(type=underlying) ──────────────────
 // Parses "Underlying Services" SP field (multiline service IDs or JSON array).
 // Uses SERVICE_ID pattern: uppercase letters + digits + optional dot/dash suffix.
-const _SERVICE_ID_RE = /\b([A-Z]{2,6}\d{3,4}(?:[.\-]\d+[A-Z]?)?)\b/g;
+const _SERVICE_ID_RE = /\b([A-Z]{2,6}\d{3,4}(?:[.-]\d+[A-Z]?)?)\b/g;
 
 function _extractServiceIds(text) {
   if (!text) return [];

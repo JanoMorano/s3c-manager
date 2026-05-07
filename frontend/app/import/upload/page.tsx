@@ -1,17 +1,16 @@
 /**
  * Import Upload — drag & drop CSV/JSON/XLSX → the corresponding import endpoint
  *
- * Groups:
- *   Service Catalogue — NCIA Service Catalogue, National Service Catalogue
- *   C3 Taxonomy       — C3 Taxonomy, C3 Application, C3 Data Object,
- *                       C3 Services, C3 Technology Interactions
- *   FMN Spirals       — C3 Capability Map + 9 FMN XLSX taxonomy targets
+ * Default import is intentionally small: service catalogue CSV/JSON, plus
+ * C3 baseline/capability map when the C3 module is active. Detailed C3/FMN
+ * targets stay in the admin expert section so the page does not look like a
+ * generic integration studio.
  *
  * The Spiral selector at the top sets the spiral_code for all C3/FMN imports.
  */
 'use client';
 
-import { useState, useCallback, useEffect, useRef, DragEvent } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
 import useSWR from 'swr';
@@ -339,6 +338,12 @@ interface SpiralBaseline {
   notes: string | null;
 }
 
+interface SpiralResponse {
+  active: SpiralBaseline | string | null;
+  all?: SpiralBaseline[];
+  baselines?: SpiralBaseline[];
+}
+
 type DryRunSummary = ImportPreflightSummary | C3EntityDryRunSummary;
 
 function isServicePreflight(summary: DryRunSummary): summary is ImportPreflightSummary {
@@ -356,12 +361,30 @@ interface ImportResult {
 }
 
 const SECTION_LABELS: Record<TargetSection, string> = {
-  'service-catalogue': 'Service Catalogue',
-  'c3-taxonomy': 'C3 Taxonomy',
-  'fmn-spirals': 'FMN Spirals',
+  'service-catalogue': 'Katalog služeb',
+  'c3-taxonomy': 'C3 baseline',
+  'fmn-spirals': 'Capability map',
 };
 
 const SECTION_ORDER: TargetSection[] = ['service-catalogue', 'c3-taxonomy', 'fmn-spirals'];
+const DEFAULT_C3_TARGETS = new Set<Target>(['c3', 'c3-capability-builder']);
+const FALLBACK_SPIRALS: SpiralBaseline[] = [
+  { id: 6, spiral_code: 'Spiral_6', spiral_label: 'Spiral 6', is_active: false, notes: null },
+  { id: 7, spiral_code: 'Spiral_7', spiral_label: 'Spiral 7', is_active: true, notes: null },
+];
+
+function isDefaultTarget(option: (typeof TARGET_OPTIONS)[number], c3Visible: boolean) {
+  return option.section === 'service-catalogue' || (c3Visible && DEFAULT_C3_TARGETS.has(option.value));
+}
+
+function spiralNumber(code: string) {
+  return Number(code.match(/^Spiral_(\d+)$/)?.[1] ?? Number.MAX_SAFE_INTEGER);
+}
+
+function activeSpiralCode(data: SpiralResponse | undefined) {
+  if (!data?.active) return null;
+  return typeof data.active === 'string' ? data.active : data.active.spiral_code;
+}
 
 export default function ImportUploadPage() {
   const router = useRouter();
@@ -386,7 +409,8 @@ export default function ImportUploadPage() {
     };
   }, []);
 
-  const canSeeSeedStatus = hydrated && c3Visible && hasRoleAccess(role, 'editor');
+  const isExpertImportUser = hydrated && c3Visible && hasRoleAccess(role, 'admin');
+  const canSeeSeedStatus = isExpertImportUser;
 
   const { data: seedStatus } = useSWR<SeedStatus>(
     canSeeSeedStatus ? '/api/v1/admin/seed-status' : null,
@@ -394,7 +418,7 @@ export default function ImportUploadPage() {
     { revalidateOnFocus: false },
   );
 
-  const { data: spiralData } = useSWR<{ active: string | null; baselines: SpiralBaseline[] }>(
+  const { data: spiralData } = useSWR<SpiralResponse>(
     canSeeSeedStatus ? '/api/v1/taxonomy/spiral' : null,
     apiFetch,
     { revalidateOnFocus: false },
@@ -402,18 +426,31 @@ export default function ImportUploadPage() {
 
   // Spiral selection: default to active baseline from server, then user can override
   const [selectedSpiral, setSelectedSpiral] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (spiralData?.active && selectedSpiral === null) {
-      setSelectedSpiral(spiralData.active);
+  const serverActiveSpiral = activeSpiralCode(spiralData);
+  const availableSpirals = useMemo(() => {
+    const byCode = new Map<string, SpiralBaseline>();
+    FALLBACK_SPIRALS.forEach((spiral) => byCode.set(spiral.spiral_code, spiral));
+    (spiralData?.baselines ?? spiralData?.all ?? []).forEach((spiral) => {
+      if (spiral?.spiral_code) byCode.set(spiral.spiral_code, spiral);
+    });
+    if (spiralData?.active && typeof spiralData.active !== 'string') {
+      byCode.set(spiralData.active.spiral_code, spiralData.active);
     }
-  }, [spiralData, selectedSpiral]);
+    return [...byCode.values()].sort((left, right) => spiralNumber(left.spiral_code) - spiralNumber(right.spiral_code));
+  }, [spiralData]);
 
-  const effectiveSpiral = selectedSpiral ?? spiralData?.active ?? 'Spiral_6';
-  const availableSpirals = spiralData?.baselines ?? [
-    { id: 1, spiral_code: 'Spiral_6', spiral_label: 'Spiral 6', is_active: true, notes: null },
-    { id: 2, spiral_code: 'Spiral_7', spiral_label: 'Spiral 7', is_active: false, notes: null },
-  ];
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: upload defaults to the active spiral once server metadata is available. */
+  useEffect(() => {
+    if (serverActiveSpiral && selectedSpiral === null) {
+      setSelectedSpiral(serverActiveSpiral);
+    }
+  }, [selectedSpiral, serverActiveSpiral]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const effectiveSpiral = selectedSpiral
+    ?? serverActiveSpiral
+    ?? availableSpirals.find((spiral) => spiral.is_active)?.spiral_code
+    ?? 'Spiral_7';
 
   const [target, setTarget] = useState<Target>('services');
   const [format, setFormat] = useState<Format>('csv');
@@ -426,15 +463,24 @@ export default function ImportUploadPage() {
   const [preflighting, setPreflighting] = useState(false);
   const [preflight, setPreflight] = useState<DryRunSummary | null>(null);
 
-  const visibleTargetOptions = c3Visible
-    ? TARGET_OPTIONS
-    : TARGET_OPTIONS.filter((item) => item.section === 'service-catalogue');
+  const defaultTargetOptions = useMemo(
+    () => TARGET_OPTIONS.filter((item) => isDefaultTarget(item, c3Visible)),
+    [c3Visible],
+  );
+  const expertTargetOptions = useMemo(
+    () => isExpertImportUser
+      ? TARGET_OPTIONS.filter((item) => c3Visible && !isDefaultTarget(item, c3Visible))
+      : [],
+    [c3Visible, isExpertImportUser],
+  );
+  const visibleTargetOptions = useMemo(
+    () => [...defaultTargetOptions, ...expertTargetOptions],
+    [defaultTargetOptions, expertTargetOptions],
+  );
   const targetConfig = visibleTargetOptions.find((item) => item.value === target) ?? visibleTargetOptions[0];
   const spiral = targetConfig.usesSpiral ? effectiveSpiral : null;
-  const visibleSectionOrder = c3Visible
-    ? SECTION_ORDER
-    : SECTION_ORDER.filter((section) => section === 'service-catalogue');
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: target/format state is clamped when available import modules change. */
   useEffect(() => {
     if (!visibleTargetOptions.some((item) => item.value === target)) {
       const nextTarget = visibleTargetOptions[0];
@@ -448,6 +494,7 @@ export default function ImportUploadPage() {
       setError(null);
     }
   }, [target, visibleTargetOptions]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const acceptedExtensions = format === 'csv'
     ? ['.csv', '.txt']
@@ -494,7 +541,7 @@ export default function ImportUploadPage() {
 
   const handleTargetChange = (t: Target) => {
     const nextTarget = visibleTargetOptions.find((item) => item.value === t) ?? visibleTargetOptions[0];
-    setTarget(t);
+    setTarget(nextTarget.value);
     if (!nextTarget.supportedFormats.includes(format)) {
       setFormat(nextTarget.supportedFormats[0]);
     }
@@ -724,11 +771,22 @@ export default function ImportUploadPage() {
       </div>
 
       <div className={styles.body}>
+        <section className={styles.guidancePanel}>
+          <div>
+            <h2>Bezpečný import katalogu</h2>
+            <p>Nahrajte CSV nebo JSON katalog služeb, nejdřív spusťte dry-run a teprve po kontrole issues potvrďte import.</p>
+          </div>
+          <ol>
+            <li>Dry-run ukáže chyby před zápisem.</li>
+            <li>Commit vytvoří dávku, issues a auditní stopu.</li>
+            <li>Rollback: použijte export bundle/manifest z historie importů.</li>
+          </ol>
+        </section>
 
         {/* ── Spiral selector ─────────────────────────────────────────────── */}
         {c3Visible && (
           <div className={styles.spiralStrip}>
-            <span className={styles.spiralLabel}>FMN Spiral baseline:</span>
+            <span className={styles.spiralLabel}>C3 baseline:</span>
             <div className={styles.spiralToggleGroup}>
               {availableSpirals.map((sp) => (
                 <button
@@ -744,7 +802,7 @@ export default function ImportUploadPage() {
               ))}
             </div>
             <span className={styles.spiralHint}>
-              Spiral se zapíše do sloupce <code>fmn_spiral</code> u každého C3 a FMN záznamu.
+              Hodnota se zapíše do C3/FMN evidence u importů, které baseline používají.
             </span>
           </div>
         )}
@@ -752,7 +810,7 @@ export default function ImportUploadPage() {
         {/* ── Seed status ──────────────────────────────────────────────────── */}
         {seedStatus && (
           <div className={styles.seedInfo}>
-            <div className={styles.seedInfoTitle}>Aktivní C3 baseline</div>
+            <div className={styles.seedInfoTitle}>Expert C3 evidence</div>
             <div className={styles.seedInfoGrid}>
               <span className={styles.seedPill}>Taxonomy {seedStatus.taxonomy.total}</span>
               <span className={styles.seedPill}>Services {seedStatus.entities.services}</span>
@@ -773,9 +831,10 @@ export default function ImportUploadPage() {
           </div>
         )}
 
-        {/* ── Target selection — three groups ─────────────────────────────── */}
-        {visibleSectionOrder.map((section) => {
-          const sectionTargets = visibleTargetOptions.filter((t) => t.section === section);
+        {/* ── Default target selection ────────────────────────────────────── */}
+        {SECTION_ORDER.map((section) => {
+          const sectionTargets = defaultTargetOptions.filter((t) => t.section === section);
+          if (sectionTargets.length === 0) return null;
           return (
             <div key={section} className={styles.targetSection}>
               <div className={styles.targetSectionLabel}>{SECTION_LABELS[section]}</div>
@@ -794,6 +853,39 @@ export default function ImportUploadPage() {
             </div>
           );
         })}
+
+        {isExpertImportUser && expertTargetOptions.length > 0 && (
+          <section className={styles.expertPanel}>
+            <div className={styles.expertHeader}>
+              <div>
+                <h2>Expert C3/FMNs import</h2>
+                <p>Jen pro administrační a taxonomy práci. Běžný katalogový import výše zůstává hlavní cesta.</p>
+              </div>
+              <span className={styles.expertBadge}>admin</span>
+            </div>
+            {SECTION_ORDER.map((section) => {
+              const sectionTargets = expertTargetOptions.filter((t) => t.section === section);
+              if (sectionTargets.length === 0) return null;
+              return (
+                <div key={`expert-${section}`} className={styles.targetSection}>
+                  <div className={styles.targetSectionLabel}>{SECTION_LABELS[section]}</div>
+                  <div className={styles.toggleGroup}>
+                    {sectionTargets.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`${styles.toggleBtn} ${target === option.value ? styles.toggleBtnActive : ''}`}
+                        onClick={() => handleTargetChange(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         {/* ── Active spiral indicator for C3/FMN ──────────────────────────── */}
         {c3Visible && targetConfig.usesSpiral && (
@@ -928,7 +1020,7 @@ export default function ImportUploadPage() {
               disabled={!file || uploading || preflighting}
               onClick={handleDryRun}
             >
-              {preflighting ? 'Počítám…' : 'Preflight dry-run'}
+              {preflighting ? 'Počítám…' : 'Dry-run (zkontrolovat)'}
             </button>
           )}
           <button
@@ -943,7 +1035,7 @@ export default function ImportUploadPage() {
         {/* ── Preflight result ─────────────────────────────────────────────── */}
         {preflight && (
           <div className={styles.preflightBox}>
-            <strong>Preflight summary</strong>
+            <strong>Výsledek dry-run</strong>
             <div className={styles.preflightMeta}>
               <span>{isServicePreflight(preflight) ? preflight.source_name : preflight.label}</span>
               {isServicePreflight(preflight) && preflight.source_hash_sha256 && (
@@ -956,16 +1048,16 @@ export default function ImportUploadPage() {
             {isServicePreflight(preflight) ? (
               <>
                 <div className={styles.preflightGrid}>
-                  <span className={styles.preflightPill}>Services {preflight.item_count}</span>
-                  <span className={styles.preflightPill}>Flavours {preflight.flavour_count}</span>
-                  <span className={styles.preflightPill}>Explicit relations {preflight.explicit_relation_count}</span>
-                  <span className={styles.preflightPill}>Raw prerequisites {preflight.raw_prerequisite_count}</span>
-                  <span className={styles.preflightPill}>Missing targets {preflight.missing_target_count}</span>
-                  <span className={styles.preflightPill}>Stubs {preflight.stub_count}</span>
-                  <span className={styles.preflightPill}>Unresolved refs {preflight.unresolved_ref_count}</span>
+                  <span className={styles.preflightPill}>Služby {preflight.item_count}</span>
+                  <span className={styles.preflightPill}>Varianty {preflight.flavour_count}</span>
+                  <span className={styles.preflightPill}>Vazby {preflight.explicit_relation_count}</span>
+                  <span className={styles.preflightPill}>Zdrojové vazby k dořešení {preflight.raw_prerequisite_count}</span>
+                  <span className={styles.preflightPill}>Chybějící služby {preflight.missing_target_count}</span>
+                  <span className={styles.preflightPill}>Dočasné záznamy {preflight.stub_count}</span>
+                  <span className={styles.preflightPill}>Nejasné reference {preflight.unresolved_ref_count}</span>
                 </div>
                 <div className={styles.preflightSection}>
-                  <div className={styles.preflightSectionTitle}>Missing targets</div>
+                  <div className={styles.preflightSectionTitle}>Chybějící služby</div>
                   {preflight.missing_targets.length === 0 ? (
                     <div className={styles.emptyNote}>Žádné chybějící target služby.</div>
                   ) : (
@@ -982,7 +1074,7 @@ export default function ImportUploadPage() {
                   )}
                 </div>
                 <div className={styles.preflightSection}>
-                  <div className={styles.preflightSectionTitle}>Unresolved refs</div>
+                  <div className={styles.preflightSectionTitle}>Nejasné reference</div>
                   {preflight.unresolved_refs.length === 0 ? (
                     <div className={styles.emptyNote}>Žádné nerozpoznané reference.</div>
                   ) : (

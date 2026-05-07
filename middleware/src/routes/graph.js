@@ -106,7 +106,7 @@ async function buildOverviewPayload(query, options = {}) {
 
     if (!includeC3) {
         return {
-            nodes: filteredServiceNodes.map(({ service_pk, ...node }) => node),
+            nodes: filteredServiceNodes.map(({ service_pk: _servicePk, ...node }) => node),
             edges: serviceEdges,
         };
     }
@@ -138,7 +138,7 @@ async function buildOverviewPayload(query, options = {}) {
     const mappedCapabilityUuids = [...new Set(mappingEdgesResult.rows.map((edge) => String(edge.target ?? '').replace(/^c3:/, '')).filter(Boolean))];
     if (mappedCapabilityUuids.length === 0) {
         return {
-            nodes: filteredServiceNodes.map(({ service_pk, ...node }) => ({
+            nodes: filteredServiceNodes.map(({ service_pk: _servicePk, ...node }) => ({
                 ...node,
                 code: node.service_id,
                 status: node.service_status,
@@ -269,7 +269,7 @@ async function buildOverviewPayload(query, options = {}) {
         if (!nodeMap.has(node.id)) nodeMap.set(node.id, node);
     };
 
-    filteredServiceNodes.forEach(({ service_pk, ...node }) => {
+    filteredServiceNodes.forEach(({ service_pk: _servicePk, ...node }) => {
         upsertNode({
             ...node,
             code: node.service_id,

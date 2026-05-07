@@ -76,6 +76,24 @@ async function mockCapabilityGovernance(page: Page) {
       ],
     };
 
+    if (url.includes('/api/v1/capabilities/lvl3')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            uuid: 'cap-iam',
+            page_id: 'C3-IAM',
+            title: 'Identity capability',
+            slug: 'cap-bmc-identity',
+            parent: { title: 'Battlespace Management' },
+            available_spirals: ['Spiral_7'],
+          },
+        ]),
+      });
+      return;
+    }
+
     if (url.includes('/api/v1/capabilities/coverage')) {
       await route.fulfill({
         status: 200,
@@ -126,17 +144,18 @@ async function mockCapabilityGovernance(page: Page) {
 test('capability governance pages render coverage, gaps, and overlaps', async ({ page }) => {
   await mockCapabilityGovernance(page);
 
-  await page.goto('/capabilities/coverage');
+  await page.goto('/capabilities?view=coverage');
+  await expect(page.getByRole('heading', { name: 'Capability workspace' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Capability Coverage' })).toBeVisible();
   await expect(page.getByText('Identity capability')).toBeVisible();
   await expect(page.getByRole('link', { name: /Identity Access Management/ })).toHaveAttribute('href', '/services/SVC-IAM');
   await expect(page.getByRole('link', { name: /Identity capability/ })).toHaveAttribute('href', '/capabilities/cap-bmc-identity');
 
-  await page.goto('/capabilities/gaps');
+  await page.goto('/capabilities?view=gaps');
   await expect(page.getByRole('heading', { name: 'Capability Gaps' })).toBeVisible();
   await expect(page.getByText('Map services to uncovered C3 requirements.')).toBeVisible();
 
-  await page.goto('/capabilities/overlaps');
+  await page.goto('/capabilities?view=overlaps');
   await expect(page.getByRole('heading', { name: 'Capability Overlaps' })).toBeVisible();
   await expect(page.getByText('Review duplicate service support and document intended ownership.')).toBeVisible();
   await expect(page.getByText('SVC-SSO')).toBeVisible();

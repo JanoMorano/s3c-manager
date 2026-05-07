@@ -1,7 +1,8 @@
 'use client';
 
-import { type FormEvent, useMemo, useState, useEffect } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
 import Link from '@/app/components/AppLink';
+import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/app/components/PageHeader';
 import { ReviewActionModal, ServicePicker, UserPicker, type ReviewActionValue } from '@/app/components/layout-v2';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
@@ -13,7 +14,7 @@ import useSWR from 'swr';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../governance.module.css';
 
-type ReviewView = 'board' | 'list' | 'calendar';
+type ReviewView = 'board' | 'list';
 type ReviewActionStatus = 'in_review' | 'approved' | 'rejected' | 'deferred' | 'cancelled';
 
 interface ReviewActionState {
@@ -94,6 +95,9 @@ function ReviewCard({ item, onAction }: { item: GovernanceReview; onAction: (sta
         <span>{item.assigned_to ?? 'Unassigned'}</span>
       </div>
       <div className={govStyles.reviewActions}>
+        <Link href={`/services/${encodeURIComponent(item.service_id)}`}>Open detail</Link>
+        <Link href={`/services/${encodeURIComponent(item.service_id)}/edit#readiness-governance`}>Open editor on this rule</Link>
+        <Link href={`/operations/decisions?service_id=${encodeURIComponent(item.service_id)}`}>Decision context</Link>
         {item.status !== 'in_review' && item.status !== 'approved' && item.status !== 'rejected' && (
           <button type="button" onClick={() => onAction('in_review', item)}>Start</button>
         )}
@@ -106,7 +110,9 @@ function ReviewCard({ item, onAction }: { item: GovernanceReview; onAction: (sta
 }
 
 export default function GovernanceReviewsPage() {
-  const { data, isLoading, error, mutate } = useGovernanceReviews({ limit: 200 });
+  const searchParams = useSearchParams();
+  const serviceFilter = searchParams?.get('service_id') ?? '';
+  const { data, isLoading, error, mutate } = useGovernanceReviews({ limit: 200, serviceId: serviceFilter || undefined });
   const [view, setView] = useState<ReviewView>('board');
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestDraft, setRequestDraft] = useState({ service_id: '', review_type: 'publish', assigned_to: '', due_at: '' });
@@ -128,7 +134,7 @@ export default function GovernanceReviewsPage() {
     { revalidateOnFocus: false },
   );
 
-  const reviews = data?.items ?? [];
+  const reviews = useMemo(() => data?.items ?? [], [data?.items]);
   const overdue = reviews.filter((item) => item.overdue).length;
   const inReview = reviews.filter((item) => item.status === 'in_review').length;
   const closed = reviews.filter((item) => ['approved', 'rejected', 'cancelled'].includes(item.status)).length;
@@ -138,15 +144,6 @@ export default function GovernanceReviewsPage() {
       ...column,
       items: reviews.filter((review) => column.statuses.includes(review.status)),
     }));
-  }, [reviews]);
-
-  const byDueDate = useMemo(() => {
-    const groups = new Map<string, GovernanceReview[]>();
-    for (const review of reviews) {
-      const key = formatDate(review.due_at);
-      groups.set(key, [...(groups.get(key) ?? []), review]);
-    }
-    return Array.from(groups.entries());
   }, [reviews]);
 
   async function requestReview(event: FormEvent<HTMLFormElement>) {
@@ -210,6 +207,7 @@ export default function GovernanceReviewsPage() {
           { label: `${reviews.length} open`, tone: 'info' },
           { label: `${overdue} overdue`, tone: overdue > 0 ? 'bad' : 'ok' },
           { label: `${closed} closed`, tone: 'neutral' },
+          ...(serviceFilter ? [{ label: `Service ${serviceFilter}`, tone: 'info' as const }] : []),
         ]}
         primaryAction={{ label: 'Decision log', href: '/operations/decisions' }}
       />
@@ -222,14 +220,14 @@ export default function GovernanceReviewsPage() {
 
       <section className={govStyles.reviewToolbar} aria-label="Review controls">
         <div className={govStyles.segmented}>
-          {(['board', 'list', 'calendar'] as ReviewView[]).map((nextView) => (
+          {(['board', 'list'] as ReviewView[]).map((nextView) => (
             <button
               key={nextView}
               type="button"
               className={view === nextView ? govStyles.segmentActive : ''}
               onClick={() => setView(nextView)}
             >
-              {nextView === 'board' ? 'Board' : nextView === 'list' ? 'List' : 'Calendar'}
+              {nextView === 'board' ? 'Board' : 'List'}
             </button>
           ))}
         </div>
@@ -267,24 +265,6 @@ export default function GovernanceReviewsPage() {
               ))}
             </div>
           )}
-        </section>
-      )}
-
-      {view === 'calendar' && (
-        <section className={govStyles.calendarGrid} aria-label="Review calendar">
-          {byDueDate.map(([date, items]) => (
-            <article key={date} className={govStyles.governancePanel}>
-              <div className={govStyles.panelHeader}>
-                <h2 className={govStyles.panelTitle}>{date}</h2>
-                <span className={govStyles.panelCount}>{items.length}</span>
-              </div>
-              <div className={govStyles.governanceList}>
-                {items.map((item) => (
-                  <ReviewCard key={item.id} item={item} onAction={(status, review) => { setAction({ item: review, status }); setModalError(null); }} />
-                ))}
-              </div>
-            </article>
-          ))}
         </section>
       )}
 

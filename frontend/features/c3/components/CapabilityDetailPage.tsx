@@ -135,7 +135,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
   const uuid = initialUuid ?? resolvedParams?.uuid ?? '';
   const isEdit = mode === 'edit';
   const locale = useLocale();
-  const [role, setRole]           = useState<string | null>(null);
+  const [role]                    = useState<string | null>(() => getAuthSnapshot()?.role ?? null);
   const [form, setForm]           = useState<FormState | null>(null);
   const [saving, setSaving]       = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -154,8 +154,8 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
   const { data: c3Statuses } = useSWR<string[]>(isEdit ? `${BASE}/c3/statuses` : null, apiFetch, { revalidateOnFocus: false });
   const { data: c3AllItems } = useSWR<C3ListItem[]>(`${BASE}/c3`, apiFetch, { revalidateOnFocus: false });
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- U5: edit form hydrates from async C3 item data before user changes it.
   useEffect(() => { if (isEdit && item && !form) setForm(itemToForm(item)); }, [form, isEdit, item]);
-  useEffect(() => { setRole(getAuthSnapshot()?.role ?? null); }, []);
 
   // Mark form dirty on every field change
   const set = useCallback((key: keyof FormState, value: string | number | null) => {

@@ -100,7 +100,7 @@ test('service mapping preview can be saved and reflected on capability dashboard
 
     await page.goto(`/services/${serviceId}/edit`);
     await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 15_000 });
-    const c3Section = page.locator('#c3mapping');
+    const c3Section = page.locator('#readiness-governance');
     await expect(c3Section).toBeVisible({ timeout: 15_000 });
     await c3Section.getByRole('button', { name: /assign c3 taxonomy|přiřadit c3 taxonomii|priradiť c3 taxonómiu|c3-taxonomie zuweisen/i }).click();
 

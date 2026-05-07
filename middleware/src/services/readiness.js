@@ -48,7 +48,12 @@ function lifecycleMatches(rule, row) {
 
 const RULE_EVALUATORS = {
     service_has_owner: (row) => toCount(row.owner_count) > 0,
-    service_has_offering: (row) => toCount(row.offering_count) > 0 || toCount(row.active_flavour_count) > 0,
+    service_has_offering: (row) => (
+        toCount(row.offering_count) > 0
+        || toCount(row.active_flavour_count) > 0
+        || toCount(row.priced_flavour_count) > 0
+        || Boolean(row.has_price_note)
+    ),
     service_has_lifecycle_stage: (row) => hasValue(row.lifecycle_stage_code) || hasValue(row.lifecycle_state) || hasValue(row.service_status),
     service_has_primary_capability_mapping: (row) => toCount(row.primary_mapping_count) === 1 && hasValue(row.primary_c3_uuid),
     service_has_complete_primary_capability: (row) => Boolean(row.has_complete_primary_capability),
@@ -187,7 +192,7 @@ function buildServiceReadiness(row, rules = {}) {
         },
         {
             rule_key: 'service_has_offering',
-            title: 'Služba zatím nemá aktivní nebo available flavour.',
+            title: 'Služba zatím nemá offering ani legacy variant evidence.',
             severity: 'P2',
             enabled: true,
             blocking: Boolean(rules.requireActiveFlavour),

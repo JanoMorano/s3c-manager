@@ -1,6 +1,6 @@
 /**
  * ServiceCard — grid-view card for the service catalogue list.
- * Shows: status dot, title, short description, lifecycle badge,
+ * Shows: title, short description, lifecycle badge,
  * requestable chip, domain tags, owner avatar and readiness progress bar.
  */
 import Link from '@/app/components/AppLink';
@@ -8,23 +8,20 @@ import { ProgressBar } from '@/design-system/controls';
 import type { ServiceListItem } from '../model/service.types';
 import styles from './ServiceCard.module.css';
 
-const STATUS_COLOR: Record<string, string> = {
-  active:     'var(--color-success)',
-  live:       'var(--color-success)',
-  deprecated: 'var(--color-warning)',
-  retired:    'var(--color-text-muted)',
-  draft:      'var(--color-info)',
-  planned:    'var(--color-info)',
+const LIFECYCLE_COLOR: Record<string, string> = {
+  draft:      'neutral',
+  live:       'success',
+  deprecated: 'warning',
+  retired:    'danger',
 };
 
-const LIFECYCLE_COLOR: Record<string, string> = {
-  draft:        'neutral',
-  under_review: 'info',
-  approved:     'success',
-  live:         'success',
-  deprecated:   'warning',
-  retired:      'danger',
-};
+function normalizeLifecycleState(value: string | null | undefined) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['live', 'active', 'published', 'production'].includes(normalized)) return 'live';
+  if (['deprecated', 'retiring'].includes(normalized)) return 'deprecated';
+  if (normalized === 'retired') return 'retired';
+  return 'draft';
+}
 
 function readinessTone(score: number): 'success' | 'warning' | 'danger' {
   if (score >= 80) return 'success';
@@ -44,8 +41,8 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service }: ServiceCardProps) {
-  const statusColor = STATUS_COLOR[service.service_status ?? 'draft'] ?? 'var(--color-text-muted)';
-  const lifecycleVariant = LIFECYCLE_COLOR[service.lifecycle_state ?? ''] ?? 'neutral';
+  const lifecycle = normalizeLifecycleState(service.lifecycle_state ?? service.service_status);
+  const lifecycleVariant = LIFECYCLE_COLOR[lifecycle] ?? 'neutral';
   const completeness = service.completeness_score ?? 0;
   const ownerName = service.service_owner ?? service.vlastnik ?? null;
   const domains = service.available_on
@@ -54,19 +51,12 @@ export function ServiceCard({ service }: ServiceCardProps) {
 
   return (
     <Link href={`/services/${service.service_id}`} className={styles.card}>
-      {/* Top row: status dot + title + lifecycle badge */}
+      {/* Top row: title + one lifecycle badge */}
       <div className={styles.top}>
-        <span
-          className={styles.statusDot}
-          style={{ background: statusColor }}
-          title={service.service_status ?? 'unknown'}
-        />
         <span className={styles.title}>{service.title}</span>
-        {service.lifecycle_state && (
-          <span className={`${styles.lifecycleBadge} ${styles[`lc_${lifecycleVariant}`]}`}>
-            {service.lifecycle_state.replace('_', ' ')}
-          </span>
-        )}
+        <span className={`${styles.lifecycleBadge} ${styles[`lc_${lifecycleVariant}`]}`}>
+          {lifecycle}
+        </span>
       </div>
 
       {/* Description */}

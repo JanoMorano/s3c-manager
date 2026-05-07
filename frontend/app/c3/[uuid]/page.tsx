@@ -19,7 +19,7 @@ export default function C3ItemPreviewPage({ params }: Props) {
         apiPath={`/api/v1/taxonomy/c3/capability-map-spiral${spiralNumber}`}
         defaultTitle={`C3 Taxonomy Catalogue — Baseline ${spiralNumber}`}
         activeSpiralCode={spiralCode}
-        builderHref="/admin/c3-capability-builder"
+        builderHref="/administration/c3-capability-builder"
         emptyStateDescription={`Pro Spiral ${spiralNumber} zatím nejsou v builderu žádné položky.`}
       />
     );

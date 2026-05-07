@@ -39,7 +39,7 @@ export interface ServiceUpdateBody {
   operational_notes_raw?: string;
   sla_restoration_text?: string;
   sla_delivery_text?: string;
-  // Table A gaps
+  // Legacy import evidence fields
   exclusions?: string;
   service_area?: string;
   customer_type?: string | null;

@@ -29,7 +29,7 @@ Each signal links to the deeper operational page that owns the work.
 ## Recommended Operating Flow
 
 1. Create or import the service record.
-2. Add at least one service offering and pricing/SLA evidence.
+2. Add at least one service offering and SLA/cost evidence.
 3. Assign owner, steward, or reviewer roles.
 4. Map the service to a primary capability or C3 item.
 5. Open Service 360 and resolve readiness blockers.
@@ -46,10 +46,9 @@ Each signal links to the deeper operational page that owns the work.
 | Readiness Queue | `/operations/readiness` | named rule results, blockers, warnings, and exceptions |
 | Governance Reviews | `/operations/reviews` | review request, assignment, status, and deadlines |
 | Decision Log | `/operations/decisions` | auditable approval, rejection, deferral, and retirement decisions |
-| Capability Coverage | `/capabilities/coverage` | coverage matrix by capability, spiral, readiness, and service count |
-| Capability Gaps | `/capabilities/gaps` | uncovered, incomplete, or not-ready capabilities |
-| Capability Overlaps | `/capabilities/overlaps` | duplicated or over-supported capabilities |
-| Service Impact | `/services/impact` | upstream/downstream impact paths across services and C3 evidence |
+| Capability Workspace | `/capabilities` | coverage, gaps, overlaps, readiness, and mapped service evidence |
+| Global Service Graph | `/services/graph` | portfolio-level dependency and C3 relationship reading |
+| Service Graph | `/services/{service_id}/graph` | upstream/downstream impact paths for one service |
 | Service 360 | `/services/{service_id}` | one service's owners, offerings, mappings, readiness, decisions, dependencies, and audit |
 
 ## Readiness Semantics
@@ -64,7 +63,7 @@ Readiness is evaluated as named rules. The default rules cover:
 - service has SLA or valid exception
 - service has dependency classification
 - service has review date
-- requestable service has pricing or valid exception
+- requestable service has offering evidence or valid exception
 
 Exceptions are auditable, rule-specific, and can expire. Use them for time-bound governance waivers, not as a substitute for service data.
 
@@ -85,7 +84,7 @@ With `INIT_WITH_TEST_SEEDS=true`, the demo dataset includes:
 
 - 8 services across active, planned, draft, deprecated, and retired states
 - 3 portfolios and more than 6 owners/groups
-- 12 service offerings and 12 pricing flavours
+- 12 service offerings and 12 legacy variant evidence records
 - one draft service with readiness blockers
 - one readiness exception for a planned automation service
 - governance reviews and decision log entries

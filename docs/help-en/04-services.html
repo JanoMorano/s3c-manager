@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service catalogue, Service 360 and service editor - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">04 · Services</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link active" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">04 Services</p>
+        <h1>Service catalogue, Service 360 and service editor</h1>
+        <p class="lead">The service area is the core working space for service owners and catalogue administrators. It covers catalogue browsing, service list, service detail, graph view, editor, portfolio and new service intake.</p>
+      </section>
+
+      <h2>Why the service catalogue matters</h2>
+      <p>A service is the main governance object. It connects consumer value, ownership, lifecycle, offering evidence, support model, dependencies, capability mapping and governance decisions.</p>
+
+      <h2>Main pages</h2>
+      <table class="field-table"><thead><tr><th>Page</th><th>Route</th><th>Purpose</th></tr></thead><tbody><tr><td>Catalogue browse</td><td>/catalogue</td><td>Business-friendly entry point for browsing service portfolios and audience views.</td></tr><tr><td>Service list</td><td>/services/list</td><td>Operational list with filters, search, columns and export.</td></tr><tr><td>Service graph</td><td>/services/graph</td><td>Visual relation map across services and dependencies.</td></tr><tr><td>Service detail</td><td>/services/{id}</td><td>Service 360 view for owners, support, request and governance context.</td></tr><tr><td>Service detail graph</td><td>/services/{id}/graph</td><td>Focused graph around one service and its dependencies.</td></tr><tr><td>Service editor</td><td>/services/{id}/edit</td><td>Controlled edit form for lifecycle, owner, offering, support and mappings.</td></tr><tr><td>New service wizard</td><td>/management/new-service</td><td>Guided creation of a new catalogue service.</td></tr></tbody></table>
+
+      <h2>Important editor areas</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Service identity</strong></span></span><p>Service ID, title, summary, portfolio, domain, audience and lifecycle state.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Publish gate</strong></span></span><p>Rules that prevent publication when required evidence is missing.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Lifecycle rules</strong></span></span><p>Controlled transitions such as draft, active, retiring and retired.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Offering evidence</strong></span></span><p>Consumer-facing service offering, requestability, channel and value statement.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Relationships</strong></span></span><p>Dependencies, replacements, related services and impact paths.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">C3 mapping</strong></span></span><p>Links from the service to capabilities, C3 services, applications and data objects.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Support model</strong></span></span><p>Owner, reviewer, support contacts, SLA and operational links.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Audience policies</strong></span></span><p>Who may request or consume the service and under what constraints.</p></article></div>
+
+      <h2>Readiness rules connected to a service</h2>
+      <p>Readiness warnings usually come from missing owner, missing summary, incomplete C3 mapping, missing offering evidence, missing review date, unclear dependency classification or absent exception. Fix the source field rather than hiding the warning.</p>
+
+      <h2>Typical scenarios</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Create a service</strong></span></span><p>Use the new service wizard, add owner and purpose, then complete mappings and readiness evidence.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Prepare for publication</strong></span></span><p>Open readiness, resolve missing fields, request review and record the decision.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Assess change impact</strong></span></span><p>Open the service graph and dependencies before editing relationships or lifecycle.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Retire a service</strong></span></span><p>Check replacements, consumers, decisions and dependencies before moving to retired.</p></article></div>
+
+      <h2>Common mistakes</h2>
+      <p>Avoid using raw import evidence as the primary business description. Do not publish a service without owner, offering evidence and review context. Do not change dependencies without checking impact analysis.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Services<br><code>/img/help-en/04-services.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="03-cocpit.html">Previous: Cockpit</a>
+        <a href="05-capabilities_c3.html">Next: Capabilities and C3</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

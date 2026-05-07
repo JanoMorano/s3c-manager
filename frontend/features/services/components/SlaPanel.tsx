@@ -84,7 +84,7 @@ export function SlaPanel({ summary, detail }: SlaPanelProps) {
               <span>Availability</span>
               <span>Restoration</span>
               <span>Delivery</span>
-              <span>Flavour</span>
+              <span>Legacy variant</span>
               <span>Priority model</span>
               <span>Note / Source</span>
             </div>

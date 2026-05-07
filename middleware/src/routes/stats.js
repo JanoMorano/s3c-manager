@@ -3,25 +3,13 @@ const express    = require('express');
 const NodeCache  = require('node-cache');
 const { getPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
-const { canAdmin } = require('../middleware/rbac');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
-const { findAllForExport, updateScore } = require('../db/services.repo');
-const flRepo       = require('../db/flavours.repo');
-const { serviceScore } = require('../services/scoring');
 const config = require('../config');
 
 const router = express.Router();
 router.use(requireAuth);
 
 const cache = new NodeCache({ stdTTL: config.cache.dashboardTtl, checkperiod: 60 });
-
-function csvEscapeCell(value) {
-    const normalized = String(value ?? '')
-        .replace(/\r\n|\r|\n/g, ' ')
-        .replace(/^\s*([=+\-@])/, "'$1")
-        .replace(/"/g, '""');
-    return `"${normalized}"`;
-}
 
 async function loadDashboardStats() {
     const CACHE_KEY = 'dashboard_stats';
@@ -244,8 +232,8 @@ function buildOperationsPayload(dashboard, completeness, missingOwners) {
     const deprecatedRetired = completeness
         .filter((service) => ['deprecated', 'retired'].includes(service.service_status))
         .slice(0, 10);
-    const withPricing = activeCompleteness.filter((service) => normalizeNumber(service.flavour_count) > 0);
-    const withoutPricing = activeCompleteness.filter((service) => normalizeNumber(service.flavour_count) === 0).slice(0, 10);
+    const withOfferingEvidence = activeCompleteness.filter((service) => normalizeNumber(service.flavour_count) > 0);
+    const withoutOfferingEvidence = activeCompleteness.filter((service) => normalizeNumber(service.flavour_count) === 0).slice(0, 10);
     const c3MappingGap = (dashboard.c3_coverage ?? [])
         .map((row) => ({
             item_type: row.item_type,
@@ -262,11 +250,11 @@ function buildOperationsPayload(dashboard, completeness, missingOwners) {
             missing_owners: missingOwners,
             top_completeness: topCompleteness,
             deprecated_retired: deprecatedRetired,
-            pricing_patrol: {
+            offering_evidence: {
                 total_services: activeCompleteness.length,
-                with_pricing: withPricing.length,
-                coverage_percent: percent(withPricing.length, activeCompleteness.length),
-                missing: withoutPricing,
+                with_evidence: withOfferingEvidence.length,
+                coverage_percent: percent(withOfferingEvidence.length, activeCompleteness.length),
+                missing: withoutOfferingEvidence,
             },
             c3_mapping_gap: c3MappingGap,
         },
@@ -330,83 +318,6 @@ router.get('/completeness', async (req, res, next) => {
             ORDER BY sc.title ASC
         `);
         res.json(res2.rows);
-    } catch (err) { next(err); }
-});
-
-// ─── GET /stats/export ────────────────────────────────────────────────────────
-// Returns data as JSON for client-side export (SheetJS in FE)
-// or accepts ?format=csv for server-side CSV.
-// SECURITY: bulk export restricted to admin users.
-router.get('/export', canAdmin, async (req, res, next) => {
-    try {
-        const services = await findAllForExport();
-        const format   = req.query.format || 'json';
-
-        if (format === 'csv') {
-            const cols = [
-                'service_id', 'title', 'service_type', 'service_status',
-                'unit_of_measure', 'sla_availability',
-                'sla_delivery', 'sla_restoration',
-                'portfolio_group', 'summary',   // aliases in SC_COLUMNS; do not change
-            ];
-            const header = cols.join(';');
-            const rows   = services.map(s => cols.map(c => {
-                const val = s[c] ?? '';
-                return csvEscapeCell(val);
-            }).join(';'));
-            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', 'attachment; filename="service-catalogue.csv"');
-            return res.send('\uFEFF' + [header, ...rows].join('\n')); // BOM for Excel
-        }
-
-        res.json(services);
-    } catch (err) { next(err); }
-});
-
-// ─── GET /stats/domains ───────────────────────────────────────────────────────
-// Service counts by domain (ServiceAvailableOn M:N).
-router.get('/domains', async (req, res, next) => {
-    try {
-        const result = await getPool().query(`
-            SELECT
-                sao.domain_code,
-                COUNT(DISTINCT sao.service_id) AS service_count
-            FROM data.service_available_on sao
-            INNER JOIN data.service_catalog sc
-                ON sc.id = sao.service_id AND sc.is_deleted = FALSE AND sc.is_stub = FALSE
-            GROUP BY sao.domain_code
-            ORDER BY service_count DESC
-        `);
-        res.json(result.rows);
-    } catch (err) { next(err); }
-});
-
-// ─── POST /stats/recalculate (admin) ─────────────────────────────────────────
-// Recalculates completeness_score for all active non-stub services.
-// Synchronous by design; suitable for catalogues up to roughly 500 services.
-router.post('/recalculate', canAdmin, async (req, res, next) => {
-    try {
-        const services = await findAllForExport();
-        let updated = 0;
-        const errors  = [];
-
-        for (const svc of services) {
-            try {
-                const flavours = await flRepo.findByService(svc.service_id);
-                const score    = serviceScore(svc, flavours);
-                await updateScore(svc.service_id, score);
-                updated++;
-            } catch (err) {
-                errors.push({ service_id: svc.service_id, error: err.message });
-            }
-        }
-
-        cache.flushAll();
-        res.json({
-            message:  `Přepočet dokončen: ${updated} služeb aktualizováno`,
-            updated,
-            errors:   errors.length ? errors : undefined,
-        });
     } catch (err) { next(err); }
 });
 

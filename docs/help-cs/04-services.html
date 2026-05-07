@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>04 Služby - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">04 · Služby</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link active" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">04 Služby</p>
+        <h1>Katalog služeb, Service 360 a editor služby</h1>
+        <p class="lead">Služba je hlavní řízený objekt aplikace. Katalog říká, co organizace poskytuje, Service 360 vysvětluje souvislosti a editor drží všechna pole, která rozhodují o readiness, governance, capability coverage a provozní použitelnosti.</p>
+      </section>
+
+      <h2>Teoretický význam katalogu služeb</h2>
+      <p>
+        V ITIL pojetí je service catalogue řízený zdroj pravdy o službách dostupných uživatelům a organizaci. V S3C Manageru katalog není jen seznam názvů. Každá služba má vlastnictví, lifecycle, request model, offeringy, SLA, support, dependency vazby, capability mapping, C3 mapping, readiness pravidla a governance historii.
+      </p>
+      <div class="itil-note">
+        <strong>Pravidlo pro uživatele:</strong> služba je dobře založená teprve tehdy, když jí rozumí konzument, service owner, reviewer i manažer. Technický název a jeden owner nestačí. Musí být jasné, co služba poskytuje, komu, za jakých podmínek, kdo ji podporuje, na čem závisí a jaké capability/C3 prvky pokrývá.
+      </div>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Catalogue browse<br><code>/img/help-cs/services-01-catalogue.png</code></div></div><figcaption>Business katalog pro procházení podle portfolio, audience a domain.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Service list<br><code>/img/help-cs/services-02-list.png</code></div></div><figcaption>Pracovní seznam všech služeb s filtry, řazením, view mode, density a exportem.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Service 360<br><code>/img/help-cs/services-03-service-360.png</code></div></div><figcaption>Detail služby s headerem, lifecycle, Relationship Studio, Business/Technical tabs a governance panelem.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Service editor<br><code>/img/help-cs/services-04-editor.png</code></div></div><figcaption>Editor s vertikálním sticky sub-nav, validation badges a sticky save bar.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>New service wizard<br><code>/img/help-cs/services-05-new-service.png</code></div></div><figcaption>Guided založení nové služby s horizontálním step trackerem.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Service audit trail<br><code>/img/help-cs/services-06-history.png</code></div></div><figcaption>Auditní stopa v detailu služby pod governance panelem: kdo změnil co, kdy a s jakým diffem.</figcaption></figure>
+      </div>
+
+      <h2>Hlavní stránky a jejich účel</h2>
+      <table class="field-table">
+        <thead><tr><th>Route</th><th>Účel</th><th>Typ práce</th><th>Kdo ji používá</th></tr></thead>
+        <tbody>
+          <tr><td><code>/catalogue</code></td><td>Business přehled katalogu a attention services.</td><td>Read-only browse, orientace, vstup do requestable služeb.</td><td>Konzument, manažer, service owner.</td></tr>
+          <tr><td><code>/services/list</code></td><td>Administrativní seznam všech služeb.</td><td>Filtrování, řazení, export, hromadná orientace.</td><td>Editor, admin, owner, architekt.</td></tr>
+          <tr><td><code>/services/{id}</code></td><td>Service 360 detail jedné služby.</td><td>Čtení souvislostí, readiness, offerings, supportu, coverage a decisions.</td><td>Všechny role podle oprávnění.</td></tr>
+          <tr><td><code>/services/{id}/edit</code></td><td>Hlavní editor služby.</td><td>Zápis polí, kolekcí, vazeb, C3 mappingu, supportu a operational links.</td><td>Editor, admin, vlastník se zápisovým právem.</td></tr>
+          <tr><td><code>/management/new-service</code></td><td>Wizard pro založení nové služby.</td><td>Vytvoření draft záznamu a redirect do editoru.</td><td>Owner, editor, admin.</td></tr>
+          <tr><td><code>/services/{id}#governance</code></td><td>Governance audit sekce změn služby.</td><td>Read-only audit trail.</td><td>Admin, reviewer, auditor, owner.</td></tr>
+          <tr><td><code>/services/{id}/graph</code></td><td>Graf vazeb jedné služby.</td><td>Dopadové čtení závislostí.</td><td>Architekt, owner, reviewer.</td></tr>
+          <tr><td><code>/services/{id}/graph</code></td><td>Impact analysis přes služby, capability a C3 evidence.</td><td>Analýza před změnou, release nebo retirementem.</td><td>Reviewer, architekt, change manager.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Catalogue browse</h2>
+      <p>
+        Catalogue browse je pro uživatele, který nechce číst celou administrativní tabulku. Má odpovědět na otázky: “Jaké služby existují?”, “Která služba je pro mě?”, “Je objednatelná?”, “Kdo ji podporuje?” a “Kde si ji vyžádám?”.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Co ukazuje</th><th>Proč existuje</th><th>Vazba</th></tr></thead>
+        <tbody>
+          <tr><td>KPI / headline</td><td>Počet služeb, live/draft/review, average completeness, C3 mapped.</td><td>Rychlá kontrola kvality katalogu.</td><td><code>GET /api/v1/stats/dashboard-headline</code>, completeness data.</td></tr>
+          <tr><td>Browse by Portfolio</td><td>Karty nebo skupiny služeb podle portfolio.</td><td>Konzument a manažer přemýšlí podle oblasti hodnoty, ne podle DB tabulky.</td><td><code>portfolio_group_code</code>.</td></tr>
+          <tr><td>Browse by Audience</td><td>Služby podle cílové skupiny nebo eligibility.</td><td>Uživatel vidí, které služby jsou pro něj relevantní.</td><td><code>target_audience_summary</code>, audience policies.</td></tr>
+          <tr><td>Browse by Domain</td><td>Služby podle domény nebo capability oblasti.</td><td>Pomáhá architektovi a managerovi procházet službové portfolio po kontextu.</td><td>Domains, C3/capability mapping.</td></tr>
+          <tr><td>Attention services</td><td>Služby s nízkou completeness, readiness blockery nebo čekajícím review.</td><td>Katalog nemá být jen katalog; má ukazovat, kde je evidence slabá.</td><td>Service detail nebo editor.</td></tr>
+          <tr><td>Request a service</td><td>Vstup do requestable katalogu.</td><td>Konzument nemá hledat technický editor.</td><td><code>/services/list?requestable=true</code> nebo detailní request flow.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Service list: filtry, view a sloupce</h2>
+      <table class="field-table">
+        <thead><tr><th>Ovládací prvek / sloupec</th><th>Význam</th><th>Proč ho použít</th><th>API / URL</th></tr></thead>
+        <tbody>
+          <tr><td>Search</td><td>Fulltext přes service ID, název, popis, ownera, audience a související texty.</td><td>Rychlé nalezení služby podle business nebo technického pojmu.</td><td><code>q</code> nebo <code>search</code>.</td></tr>
+          <tr><td>Status</td><td>Legacy/public status služby: active, retired, deprecated, draft.</td><td>Zpětná kompatibilita a jednoduchý provozní pohled.</td><td><code>service_status</code>.</td></tr>
+          <tr><td>Lifecycle</td><td>Governance workflow stav: draft, under_review, approved, live, deprecated, retired.</td><td>Řídí publish gate, review a lifecycle bar.</td><td><code>lifecycle_state</code>.</td></tr>
+          <tr><td>Portfolio</td><td>Portfolio group.</td><td>Manažerské členění služeb.</td><td><code>portfolio_group</code> / <code>portfolio_group_code</code>.</td></tr>
+          <tr><td>Service Type</td><td>Business, technical, application nebo lokální typ podle reference data.</td><td>Odlišuje konzumní službu od podpůrné nebo aplikační služby.</td><td><code>service_type</code>.</td></tr>
+          <tr><td>Requestable</td><td>Filtr “pouze objednatelné” nebo “neobjednatelné”.</td><td>Konzument hledá služby, které může skutečně požádat.</td><td><code>requestable=true/false</code>.</td></tr>
+          <tr><td>Domain chips</td><td>Domény, na kterých je služba dostupná nebo relevantní.</td><td>Pomáhá filtrovat podle síťového/provozního nebo capability kontextu.</td><td><code>service_available_on</code>.</td></tr>
+          <tr><td>Sort</td><td>Řazení podle service_id, title, status, type, portfolio, updated_at.</td><td>Rychlá práce v dlouhém seznamu.</td><td><code>sort</code>, <code>order</code>.</td></tr>
+          <tr><td>Density</td><td>Comfortable nebo compact.</td><td>Comfortable pro čtení detailů, compact pro práci s mnoha řádky.</td><td>UI preference/local state.</td></tr>
+          <tr><td>View mode</td><td>List/card pohled.</td><td>Karty jsou čitelnější pro browse, list je vhodnější pro správu.</td><td><code>view=list/card</code>.</td></tr>
+          <tr><td>Saved views</td><td>Uložené filtry.</td><td>Uživatel se rychle vrátí k vlastnímu pracovnímu výběru.</td><td>Lokální preference nebo budoucí user preferences.</td></tr>
+          <tr><td>Export CSV</td><td>Export aktuálního datasetu.</td><td>Reporting, audit, kontrola mimo aplikaci.</td><td><code>GET /api/v1/services/export/csv</code>.</td></tr>
+          <tr><td>Completeness / readiness bar</td><td>Procentuální kvalita záznamu.</td><td>Ukazuje, zda služba není jen založená, ale také spravovatelná.</td><td>Completeness/readiness výpočet.</td></tr>
+          <tr><td>Primary capability</td><td>Hlavní capability nebo C3 mapping.</td><td>Rychle ukáže, zda služba zapadá do capability řízení.</td><td><code>service_c3_mapping</code>.</td></tr>
+          <tr><td>Edit action</td><td>Otevře editor služby.</td><td>Nejrychlejší oprava chybějících polí.</td><td><code>/services/{id}/edit</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Service 360: hlavička a taby</h2>
+      <table class="field-table">
+        <thead><tr><th>Panel / tab</th><th>Co je zde vidět</th><th>Proč je to důležité</th><th>Kam vede</th></tr></thead>
+        <tbody>
+          <tr><td>Service 360 header</td><td>Název, service ID, summary, owner, lifecycle, status, ready/blocked signály.</td><td>Manažer okamžitě pozná, co služba je a zda je provozně čitelná.</td><td>Edit, request channel, graph, governance audit.</td></tr>
+          <tr><td>Lifecycle bar</td><td>draft → under_review → approved → live → deprecated → retired.</td><td>Odděluje manažerský lifecycle od legacy statusu.</td><td>Editor a governance review.</td></tr>
+          <tr><td>Relationship Studio</td><td>Capability, C3, dependencies, applications, data objects, process links.</td><td>Ukazuje, co se může rozbít při změně služby.</td><td>Service graph, impact, C3 detail.</td></tr>
+          <tr><td>Overview</td><td>Business summary, consumer value, scope, key facts, readiness blockers/warnings.</td><td>Business view pro konzumenta a manažera.</td><td>Editor sekce Description a Catalogue Access.</td></tr>
+          <tr><td>Offerings</td><td>Service offerings, default offering a případná legacy variant evidence.</td><td>Říká, co lze reálně požádat nebo vybrat.</td><td>Offering editor, request flow.</td></tr>
+          <tr><td>Request &amp; Eligibility</td><td>Requestable, request channel, approval, lead time, audience policies.</td><td>Konzument ví, zda má na službu nárok a jak ji získat.</td><td>Externí ITSM, formulář, e-mail nebo portál uvedený v <code>request_channel_url</code>.</td></tr>
+          <tr><td>Support</td><td>Support owner, resolver group, hours, channel, escalation, maintenance.</td><td>Provoz ví, kdo službu podporuje a jak eskalovat.</td><td>Support model editor a operational links.</td></tr>
+          <tr><td>Dependencies</td><td>Vazby na jiné služby a jejich impact metadata.</td><td>Základ pro change enablement a impact analysis.</td><td><code>/services/{id}/graph</code>, <code>/services/graph</code>.</td></tr>
+          <tr><td>Coverage</td><td>Capability/C3 coverage a primary mapping.</td><td>Ukazuje, jak služba podporuje schopnosti.</td><td><code>/capabilities/{slug}</code>, <code>/c3/{uuid}</code>.</td></tr>
+          <tr><td>Governance</td><td>Readiness, reviews, decisions, exceptions, score breakdown.</td><td>Auditovatelný stav schválení a rizik.</td><td><code>/operations/reviews</code>, <code>/operations/decisions</code>.</td></tr>
+          <tr><td>Audit</td><td>Governance audit sekce změn a diff.</td><td>Traceability pro audit, support a review.</td><td><code>/services/{id}#governance</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Editor služby: práce s formulářem</h2>
+      <div class="callout-grid">
+        <article class="callout-card"><h3>Vertikální sub-nav</h3><p>Editor má sticky sub-nav, ne horizontální taby. Červený badge znamená chybějící povinné pole, oranžový warning a zelený splněnou sekci.</p></article>
+        <article class="callout-card"><h3>Sticky save bar</h3><p>Save bar má stavy clean, dirty, saving a error. Clean je skrytý, dirty upozorňuje na neuložené změny, saving ukazuje probíhající zápis a error vyžaduje opravu.</p></article>
+        <article class="callout-card"><h3>Service ID</h3><p><code>service_id</code> je po vytvoření trvale read-only. Slouží jako business klíč pro URL, import, vztahy, exporty a reporting.</p></article>
+        <article class="callout-card"><h3>Publish gate</h3><p>Draft lze uložit i s chybějícími údaji. Publish nebo lifecycle posun blokuje readiness gate, například když requestable služba nemá channel nebo default offering.</p></article>
+      </div>
+
+      <h2>Editor: hlavní pole služby</h2>
+      <table class="field-table">
+        <thead><tr><th>Sekce</th><th>Pole</th><th>Proč se používá</th><th>Co ovlivní / validace</th></tr></thead>
+        <tbody>
+          <tr><td>Basic Identity</td><td><code>service_id</code></td><td>Stabilní business identifikátor služby.</td><td>URL, import/export, relationships, audit. Po vytvoření read-only.</td></tr>
+          <tr><td>Basic Identity</td><td><code>title</code></td><td>Čitelný název služby pro konzumenty a manažery.</td><td>Povinné. Zobrazuje se všude: katalog, Service 360, grafy, review.</td></tr>
+          <tr><td>Basic Identity</td><td><code>service_type</code></td><td>Rozlišuje business/technical/application nebo lokální typ služby.</td><td>Povinný select z reference data; ovlivňuje filtry a reporting.</td></tr>
+          <tr><td>Basic Identity</td><td><code>service_status</code></td><td>Legacy/public stav služby.</td><td>active, retired, deprecated, draft. Nezaměňovat s lifecycle_state.</td></tr>
+          <tr><td>Description</td><td><code>summary</code></td><td>Krátký popis do listu a karet.</td><td>Pomáhá vyhledávání a manažerské čitelnosti; doporučeno stručné.</td></tr>
+          <tr><td>Description</td><td><code>detailed_description</code></td><td>Delší popis fungování služby.</td><td>Zobrazuje se v detailu, pomáhá reviewerovi pochopit rozsah.</td></tr>
+          <tr><td>Description</td><td><code>value_proposition</code></td><td>Proč služba existuje a jakou hodnotu přináší.</td><td>Business orientace, vhodné pro manažera a konzumenta.</td></tr>
+          <tr><td>Description</td><td><code>business_purpose</code></td><td>Jaký business problém nebo outcome služba řeší.</td><td>Pomáhá portfolio a capability alignmentu.</td></tr>
+          <tr><td>Description</td><td><code>service_features</code></td><td>Klíčové funkce služby.</td><td>Vysvětluje, co uživatel získá; nemá být interní technický dump.</td></tr>
+          <tr><td>Description</td><td><code>scope_text</code></td><td>Co je a není v rozsahu služby.</td><td>Snižuje spory o očekávání, request odkazy a support.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>business_summary</code></td><td>Business-friendly shrnutí pro katalog.</td><td>Viditelné v business view a catalogue browse.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>consumer_value</code></td><td>Hodnota z pohledu uživatele.</td><td>Pomáhá konzumentovi rozhodnout, zda službu potřebuje.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>lifecycle_state</code></td><td>Governance workflow stav.</td><td>draft, under_review, approved, live, deprecated, retired; transition rules.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>requestable</code></td><td>Říká, zda lze službu požádat.</td><td>Pokud true, vyžaduje request channel a ideálně default offering/support.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>request_channel_type</code></td><td>Typ kanálu pro požadavek: ITSM portal, email, form, external URL apod.</td><td>Readiness/publish gate pro requestable služby.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>request_channel_url</code></td><td>Konkrétní odkaz na objednání nebo externí ticketing.</td><td>URL validace. Zobrazuje se jako request akce.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>target_audience_summary</code></td><td>Textové shrnutí cílové skupiny.</td><td>Katalog, eligibility a business view.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>fulfillment_lead_time_text</code></td><td>Očekávaná doba dodání.</td><td>Konzument ví, kdy službu dostane; ITIL request expectation.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>approval_required</code></td><td>Zda request potřebuje schválení.</td><td>Vysvětluje request flow; může odkazovat na externí workflow.</td></tr>
+          <tr><td>Classification</td><td><code>portfolio_group_code</code></td><td>Zařazení služby do portfolia.</td><td>Portfolio detail, reporting, manažerské členění.</td></tr>
+          <tr><td>Classification</td><td><code>security_classification</code></td><td>Bezpečnostní klasifikace služby.</td><td>Governance, audience, exporty a bezpečnostní reporting.</td></tr>
+          <tr><td>Classification</td><td><code>service_area</code></td><td>Oblast služby.</td><td>Pomocné třídění, filtry a reporting.</td></tr>
+          <tr><td>Classification</td><td><code>global_service_group_code</code></td><td>Globální skupina služby.</td><td>Seskupení napříč portfolii a organizacemi.</td></tr>
+          <tr><td>Classification</td><td><code>service_line_code</code></td><td>Servisní linka.</td><td>Operational reporting, ownership a service delivery pohled.</td></tr>
+          <tr><td>Classification</td><td><code>organizational_element_code</code></td><td>Organizační prvek odpovědný za službu.</td><td>Reporting odpovědnosti a owner load.</td></tr>
+          <tr><td>Ownership</td><td><code>service_owner</code></td><td>Hlavní vlastník služby.</td><td>Readiness, owner load, My Tasks, escalation.</td></tr>
+          <tr><td>Ownership</td><td><code>service_owner_email</code></td><td>E-mail vlastníka.</td><td>Validuje se e-mail; používá se pro personalizaci a review assignment.</td></tr>
+          <tr><td>Ownership</td><td><code>service_owner_org</code></td><td>Organizace vlastníka.</td><td>Reporting odpovědnosti a eskalace.</td></tr>
+          <tr><td>Ownership</td><td><code>vlastnik</code>, <code>vlastnik_org</code></td><td>Lokální/sekundární owner pole.</td><td>Kompatibilita s českými zdroji a importy.</td></tr>
+          <tr><td>Ownership</td><td><code>manager</code>, <code>manager_org</code></td><td>Manažer nebo odpovědná manažerská jednotka.</td><td>Escalation, portfolio a governance review.</td></tr>
+          <tr><td>Availability</td><td><code>sla_availability</code></td><td>Dostupnost v procentech.</td><td>Číselné pole 0-100; readiness a Service 360.</td></tr>
+          <tr><td>Availability</td><td><code>sla_restoration</code></td><td>Obnova služby v čase.</td><td>SLA a support expectation.</td></tr>
+          <tr><td>Availability</td><td><code>sla_delivery</code></td><td>Doba dodání nebo fulfilment SLA.</td><td>Request expectation a catalogue view.</td></tr>
+          <tr><td>Availability</td><td><code>available_on</code> / domains</td><td>Domény nebo prostředí, kde je služba dostupná.</td><td>Filtry, service_available_on vazební tabulka.</td></tr>
+          <tr><td>Governance / technical</td><td><code>retired_note</code></td><td>Důvod vyřazení nebo retirement poznámka.</td><td>Nutné pro retired/deprecated služby.</td></tr>
+          <tr><td>Governance / technical</td><td><code>source_url</code></td><td>Odkaz na zdrojovou evidenci.</td><td>Audit importu, CMDB, Confluence nebo EA vazba.</td></tr>
+          <tr><td>Governance / technical</td><td><code>unit_of_measure</code>, <code>charging_basis</code></td><td>Jednotka spotřeby a základ evidence nákladů.</td><td>Offering evidence a historická cost evidence.</td></tr>
+          <tr><td>Governance / technical</td><td><code>rate_note</code>, <code>ordering_note</code>, <code>exclusions</code></td><td>Doplňující obchodní a objednávkové poznámky.</td><td>Katalogové vysvětlení pro konzumenta a service ownera.</td></tr>
+          <tr><td>Governance / technical</td><td><code>operational_notes_raw</code></td><td>Raw provozní poznámky.</td><td>Audit/import; používat opatrně, ideálně strukturovat do support modelu.</td></tr>
+          <tr><td>Governance / technical</td><td><code>sla_restoration_text</code>, <code>sla_delivery_text</code></td><td>Textové SLA vysvětlení.</td><td>Když číselná hodnota nestačí nebo je SLA smluvní text.</td></tr>
+          <tr><td>Governance / technical</td><td><code>customer_type</code>, <code>notes_json</code></td><td>Strukturované nebo importní doplňky.</td><td>Raw/extended data; nemá nahrazovat běžná pole.</td></tr>
+          <tr><td>Raw / import</td><td><code>prerequisites_json</code>, <code>dependencies_json</code>, <code>training_refs</code></td><td>Importované JSON vazby nebo doplňková evidence.</td><td>Podklad pro převod do relationships, support nebo operational links.</td></tr>
+          <tr><td>Raw / import</td><td><code>source_local_id</code>, <code>source_sp_id</code>, <code>source_etag</code></td><td>Provenance z importu nebo SharePoint/externího zdroje.</td><td>Reconcile importů a audit zdrojových dat.</td></tr>
+          <tr><td>Raw / import</td><td><code>is_stub</code>, <code>is_deleted</code>, <code>is_available_status_ambiguous</code></td><td>Technické flagy kvality záznamu.</td><td>Admin/import diagnostika; běžný owner je obvykle neupravuje.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Lifecycle transition rules</h2>
+      <table class="field-table">
+        <thead><tr><th>Ze stavu</th><th>Povolený přechod</th><th>Proč</th><th>Typická podmínka</th></tr></thead>
+        <tbody>
+          <tr><td>draft</td><td>under_review</td><td>Služba je připravena k posouzení.</td><td>Základní identity, owner, popis a kontext doplněny.</td></tr>
+          <tr><td>under_review</td><td>draft, approved</td><td>Reviewer vrací k opravě nebo schvaluje.</td><td>Review modal s rationale.</td></tr>
+          <tr><td>approved</td><td>under_review, live</td><td>Schválená služba může jít do live nebo zpět na dopracování.</td><td>Readiness pass nebo vědomá exception.</td></tr>
+          <tr><td>live</td><td>deprecated</td><td>Live služba se připravuje na stažení nebo náhradu.</td><td>Impact analysis a retirement/transition plán.</td></tr>
+          <tr><td>deprecated</td><td>live, retired</td><td>Služba se může vrátit do live nebo být vyřazena.</td><td>Manažerské rozhodnutí, dependencies a komunikace konzumentům.</td></tr>
+          <tr><td>retired</td><td>deprecated</td><td>Obnovení z retired jen jako řízený návrat.</td><td>Silný governance důvod a auditní stopa.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Podformuláře a kolekce služby</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">01</span><div><h3>SLA override</h3><div class="step-meta"><span>service_sla</span><span>support promise</span><span>readiness</span></div></div></header>
+          <p>SLA override zpřesňuje SLA na úrovni služby nebo legacy variant evidence. Používá se, když hlavní SLA pole nestačí nebo je potřeba více SLA záznamů.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Dopad</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>legacy variant evidence</code> / <code>flavour_code</code></td><td>Vazba SLA na historickou servisní variantu.</td><td>Detailní legacy variant expectation.</td><td>Musí patřit ke stejné službě.</td></tr>
+              <tr><td><code>support_window_code</code></td><td>Okno podpory: 8x5, 16x5, 24x7 apod.</td><td>Support a SLA pohled.</td><td>Reference data nebo text dle konfigurace.</td></tr>
+              <tr><td><code>availability_pct</code></td><td>Dostupnost v procentech.</td><td>SLA, readiness, Service 360.</td><td>0-100.</td></tr>
+              <tr><td><code>restoration_hours</code></td><td>Obnova v hodinách.</td><td>Incident/restoration expectation.</td><td>Nezáporné číslo.</td></tr>
+              <tr><td><code>delivery_days</code></td><td>Doba dodání ve dnech.</td><td>Request fulfilment expectation.</td><td>Nezáporné číslo.</td></tr>
+              <tr><td><code>sla_note_raw</code></td><td>Textová poznámka SLA.</td><td>Audit a vysvětlení výjimky.</td><td>Volný text.</td></tr>
+              <tr><td><code>priority_model_raw</code></td><td>Priority model pro incidenty nebo požadavky.</td><td>Support a escalation kontext.</td><td>Volný/raw text.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">02</span><div><h3>Legacy variant evidence</h3><div class="step-meta"><span>service_flavour</span><span>legacy</span><span>cost evidence</span></div></div></header>
+          <p>Legacy variant evidence je historická kapacitní, nákladová nebo SLA varianta služby. Pro nové varianty se používá Service Offering; legacy evidence zůstává kvůli auditům, importům a exportům.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Proč vyplnit</th><th>Validace / dopad</th></tr></thead>
+            <tbody>
+              <tr><td><code>flavour_code</code></td><td>Interní identifikátor varianty.</td><td>Stabilní reference pro import/export.</td><td>Unikátní v kontextu služby.</td></tr>
+              <tr><td><code>title</code></td><td>Název varianty.</td><td>Konzument chápe rozdíl Standard/Premium/Enterprise.</td><td>Povinné pro čitelnost.</td></tr>
+              <tr><td><code>service_unit</code></td><td>Jednotka spotřeby: user, GB, instance, site.</td><td>Vysvětluje historickou cost evidence.</td><td>Volný text nebo reference.</td></tr>
+              <tr><td><code>price_value</code></td><td>Cena za jednotku.</td><td>Cost evidence a porovnání variant.</td><td>Číslo; prázdné znamená bez ceny/neznámé.</td></tr>
+              <tr><td><code>currency_code</code></td><td>Měna: CZK, EUR, USD.</td><td>Reporting a export.</td><td>Reference měn.</td></tr>
+              <tr><td><code>billing_period_code</code></td><td>Perioda účtování: monthly, annually, one-time.</td><td>Rozlišuje CAPEX/OPEX a očekávání konzumenta.</td><td>Reference period.</td></tr>
+              <tr><td><code>initiation_cost</code></td><td>Jednorázový zaváděcí náklad.</td><td>Pomáhá u služeb s onboarding nákladem.</td><td>Číslo.</td></tr>
+              <tr><td><code>lifecycle_cost</code></td><td>Náklad životního cyklu.</td><td>Manažerský TCO kontext.</td><td>Číslo.</td></tr>
+              <tr><td><code>lifetime_years</code></td><td>Očekávaná životnost varianty.</td><td>Portfolio a budgeting.</td><td>Číslo v letech.</td></tr>
+              <tr><td><code>nations_rate</code></td><td>Specifická sazba nebo JSON pro národní sazby.</td><td>Vhodné pro multi-nation/FMNs kontext.</td><td>Raw text/JSON, opatrně upravovat.</td></tr>
+              <tr><td><code>dependency_text</code></td><td>Text závislostí varianty.</td><td>Pokud se liší podle varianty.</td><td>Ideálně později převést do structured relationships.</td></tr>
+              <tr><td><code>short_note</code></td><td>Krátká poznámka do přehledu.</td><td>Vysvětlí variantu jednou větou.</td><td>Volný text.</td></tr>
+              <tr><td><code>pricing_note_raw</code></td><td>Podrobné historické cost/evidence podmínky.</td><td>Audit evidence a ruční import.</td><td>Raw text.</td></tr>
+              <tr><td><code>delivery_note</code></td><td>Poznámka k dodání.</td><td>Rozdíly v lead time mezi variantami.</td><td>Volný text.</td></tr>
+              <tr><td><code>technical_note</code></td><td>Technická poznámka varianty.</td><td>Rozdíly v parametrech nebo omezeních.</td><td>Volný text, ne pro business popis.</td></tr>
+              <tr><td><code>display_order</code></td><td>Pořadí zobrazení.</td><td>Nejdůležitější varianta může být nahoře.</td><td>Číslo.</td></tr>
+              <tr><td><code>flavour_status_code</code></td><td>Stav varianty.</td><td>Deprecated varianta zůstává viditelná pro audit, ale nemá být objednatelná.</td><td>Reference status.</td></tr>
+              <tr><td><code>is_orderable</code></td><td>Zda je varianta objednatelná.</td><td>Katalog a request expectation.</td><td>Pokud true, zkontrolovat request/offering vazbu.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">03</span><div><h3>Service Offerings</h3><div class="step-meta"><span>service_offering</span><span>request flow</span><span>default offering</span></div></div></header>
+          <p>Offering je objednatelná nebo publikovatelná nabídka služby. Requestable služba má mít alespoň jeden default offering, jinak konzument neví, co přesně požaduje.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Dopad</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>offering_code</code></td><td>Unikátní kód nabídky.</td><td>Import/export a stabilní reference.</td><td>Unikátní v rámci služby.</td></tr>
+              <tr><td><code>title</code></td><td>Název nabídky.</td><td>Zobrazuje se konzumentům.</td><td>Povinné pro čitelnost.</td></tr>
+              <tr><td><code>description</code></td><td>Popis nabídky.</td><td>Vysvětluje, co offering obsahuje.</td><td>Volný text.</td></tr>
+              <tr><td><code>status</code></td><td>draft, active, deprecated apod.</td><td>Řídí viditelnost a životní cyklus offeringu.</td><td>Reference status.</td></tr>
+              <tr><td><code>requestable</code></td><td>Zda lze tuto konkrétní nabídku požádat.</td><td>Request flow a katalog.</td><td>Pokud true, vyžaduje channel nebo service-level channel.</td></tr>
+              <tr><td><code>approval_required</code></td><td>Zda offering vyžaduje schválení.</td><td>Konzument ví, zda čeká approval.</td><td>Boolean.</td></tr>
+              <tr><td><code>request_channel_type</code></td><td>Typ kanálu pro offering.</td><td>Umožní různé kanály pro různé offeringy.</td><td>Reference nebo text.</td></tr>
+              <tr><td><code>request_channel_url</code></td><td>URL objednávkového kanálu.</td><td>Přímý odkaz na ITSM/formulář.</td><td>URL validace.</td></tr>
+              <tr><td><code>lead_time_text</code></td><td>Doba dodání offeringu.</td><td>Jasné očekávání konzumenta.</td><td>Text, např. 2 pracovní dny.</td></tr>
+              <tr><td><code>support_tier_code</code></td><td>Tier podpory.</td><td>Provozní očekávání a escalation.</td><td>Reference tier.</td></tr>
+              <tr><td><code>is_default</code></td><td>Výchozí nabídka služby.</td><td>Business view a request flow používají jako primární nabídku.</td><td>Requestable služba by měla mít právě jeden rozumný default.</td></tr>
+              <tr><td><code>display_order</code></td><td>Pořadí zobrazení.</td><td>Řízení pořadí v katalogu.</td><td>Číslo.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">04</span><div><h3>Relationships</h3><div class="step-meta"><span>service_relation</span><span>impact analysis</span><span>dependency flow</span></div></div></header>
+          <p>Relationship popisuje vazbu služby na jinou službu. Bez těchto vazeb nefunguje dopadová analýza ani change/release rozhodování.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Dopad</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>from_service_id</code></td><td>Zdrojová služba.</td><td>Kořen vztahu.</td><td>Aktuální služba nebo vybraná služba.</td></tr>
+              <tr><td><code>to_service_id</code></td><td>Cílová služba.</td><td>Na co služba závisí nebo s čím souvisí.</td><td>Nesmí být self-loop.</td></tr>
+              <tr><td><code>relation_type</code></td><td>Typ vazby: depends_on, prerequisite, underlying, replaces, related_to, provided_by.</td><td>Výklad dopadu v grafu a impact analysis.</td><td>Reference relation type.</td></tr>
+              <tr><td><code>relation_label</code></td><td>Krátký popis vazby.</td><td>Čitelný text pro uživatele.</td><td>Volitelný.</td></tr>
+              <tr><td><code>relation_note</code></td><td>Delší poznámka.</td><td>Vysvětlení složité závislosti.</td><td>Volný text.</td></tr>
+              <tr><td><code>impact_mode</code></td><td>Jak změna dopadne: hard_stop, degraded, none.</td><td>Impact analysis a change prioritizace.</td><td>Volit z definovaných hodnot.</td></tr>
+              <tr><td><code>impact_level</code></td><td>Závažnost dopadu: high, medium, low.</td><td>Risk a release rozhodnutí.</td><td>Reference/enum.</td></tr>
+              <tr><td><code>pace_code</code></td><td>Tempo změny: system of record, engagement, innovation apod.</td><td>Architektonická interpretace rizika.</td><td>Reference pace.</td></tr>
+              <tr><td><code>is_verified</code></td><td>Zda byla vazba ručně ověřena.</td><td>Důvěryhodnost dopadové analýzy.</td><td>Boolean.</td></tr>
+              <tr><td><code>is_mandatory</code></td><td>Zda je vazba povinná pro fungování služby.</td><td>Silnější impact při změně cílové služby.</td><td>Boolean.</td></tr>
+              <tr><td><code>is_inferred</code>, <code>parse_confidence</code></td><td>Vazba vznikla parserem/importem a má míru jistoty.</td><td>Admin pozná, co je potřeba ručně ověřit.</td><td>Audit/import, neupravovat bez kontroly.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">05</span><div><h3>C3 mapping</h3><div class="step-meta"><span>service_c3_mapping</span><span>coverage</span><span>FMN</span></div></div></header>
+          <p>C3 mapping propojuje katalogovou službu s C3/capability entitou. Je to hlavní vazba mezi službou a capability coverage. Bez ní služba může být provozně popsaná, ale architektura neví, jakou schopnost podporuje.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>c3_uuid</code></td><td>UUID C3 entity.</td><td>Service 360 coverage, C3 detail, capability map, gaps/overlaps.</td><td>Musí existovat v C3 taxonomy.</td></tr>
+              <tr><td><code>mapping_type_code</code></td><td>Typ vazby: primary, supporting, enabling, dependent nebo lokální mapping type.</td><td>Výklad coverage a impact.</td><td>Reference mapping type.</td></tr>
+              <tr><td><code>is_primary</code></td><td>Zda je mapování primární.</td><td>Primary capability v Service listu a coverage.</td><td>Obvykle má být jeden hlavní primary mapping.</td></tr>
+              <tr><td><code>mapping_note</code></td><td>Poznámka, proč mapování existuje.</td><td>Audit a reviewer vysvětlení.</td><td>Volný text.</td></tr>
+              <tr><td>Preview mapping</td><td>Náhled dopadu mapování před uložením.</td><td>Ukáže capability, spiral, missing requirements a coverage delta.</td><td><code>POST /api/v1/services/{id}/preview-mapping</code>.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">06</span><div><h3>Support model</h3><div class="step-meta"><span>service_support_model</span><span>operations</span><span>resolver group</span></div></div></header>
+          <p>Support model říká, kdo službu podporuje a jak. Requestable nebo live služba bez support modelu je governance riziko, protože konzument neví, co dělat při problému.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Proč vyplnit</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>offering_id</code></td><td>Vazba na konkrétní offering, nebo null pro službu obecně.</td><td>Různé offeringy mohou mít různé support modely.</td><td>Offering musí patřit ke stejné službě.</td></tr>
+              <tr><td><code>support_owner_name</code></td><td>Vlastník podpory.</td><td>Odpovědnost za support.</td><td>Doporučené pro readiness.</td></tr>
+              <tr><td><code>resolver_group</code></td><td>Tým řešící incidenty/požadavky.</td><td>Provozní eskalace.</td><td>Doporučené pro requestable/live služby.</td></tr>
+              <tr><td><code>support_hours_code</code></td><td>Okno podpory.</td><td>Očekávání dostupnosti supportu.</td><td>Reference nebo text.</td></tr>
+              <tr><td><code>support_channel</code></td><td>Kanál podpory: ITSM, email, telefon, Teams.</td><td>Uživatel ví, kam hlásit problém.</td><td>Text/URL podle kanálu.</td></tr>
+              <tr><td><code>review_cadence</code></td><td>Periodicita review support modelu.</td><td>Continual improvement.</td><td>Text nebo reference.</td></tr>
+              <tr><td><code>escalation_path</code></td><td>Eskalační cesta.</td><td>Řízení závažných incidentů a manažerská eskalace.</td><td>Volný text.</td></tr>
+              <tr><td><code>maintenance_window</code></td><td>Okno plánované údržby.</td><td>Change/release plánování.</td><td>Volný text.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">07</span><div><h3>Audience policies</h3><div class="step-meta"><span>service_audience_policy</span><span>eligibility</span><span>consumer view</span></div></div></header>
+          <p>Audience policy definuje, kdo může službu nebo offering používat. Pomáhá zabránit tomu, aby konzument žádal službu, na kterou nemá nárok nebo která není určena pro jeho organizační skupinu.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Dopad</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>offering_id</code></td><td>Vazba na offering nebo celou službu.</td><td>Specifická eligibility podle varianty.</td><td>Offering musí patřit ke stejné službě.</td></tr>
+              <tr><td><code>audience_type</code></td><td>Typ audience: Internal, External, Partner, Operations, End User, Application Teams.</td><td>Katalogové filtrování a request eligibility.</td><td>Reference nebo řízený text.</td></tr>
+              <tr><td><code>business_unit</code></td><td>Business unit nebo organizační oblast.</td><td>Řízení oprávněné skupiny.</td><td>Volný text/reference.</td></tr>
+              <tr><td><code>region_code</code></td><td>Region nebo země.</td><td>Geografická dostupnost a governance.</td><td>Reference regionů.</td></tr>
+              <tr><td><code>eligibility_rule</code></td><td>Pravidlo způsobilosti.</td><td>Vysvětluje, kdo službu může požadovat.</td><td>Psát lidsky, ne interní zkratkou.</td></tr>
+              <tr><td><code>notes</code></td><td>Doplňující poznámka.</td><td>Kontext pro výjimky a special cases.</td><td>Volný text.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card">
+          <header><span class="install-step-number">08</span><div><h3>Operational links</h3><div class="step-meta"><span>service_operational_link</span><span>externí systémy</span><span>runbook</span></div></div></header>
+          <p>Operational links propojují službu s externími systémy. S3C Manager nemá nahradit ITSM, monitoring nebo Confluence; má na ně vést jasné odkazy v kontextu služby.</p>
+          <table class="field-table compact">
+            <thead><tr><th>Pole</th><th>Význam</th><th>Dopad</th><th>Validace</th></tr></thead>
+            <tbody>
+              <tr><td><code>offering_id</code></td><td>Odkaz se vztahuje ke konkrétnímu offeringu nebo celé službě.</td><td>Přesnější kontext pro konzumenta nebo provoz.</td><td>Offering musí patřit ke stejné službě.</td></tr>
+              <tr><td><code>link_type</code></td><td>Typ odkazu: incident_dashboard, change_calendar, knowledge_base, support_doc, review_doc, cmdb apod.</td><td>Uživatel ví, kam odkaz vede.</td><td>Reference nebo řízený text.</td></tr>
+              <tr><td><code>title</code></td><td>Zobrazovaný název odkazu.</td><td>Čitelný text v Service 360.</td><td>Povinné.</td></tr>
+              <tr><td><code>url</code></td><td>Cílová URL.</td><td>Otevírá externí systém.</td><td>URL validace.</td></tr>
+              <tr><td><code>sort_order</code></td><td>Pořadí zobrazení.</td><td>Nejdůležitější odkazy nahoře.</td><td>Číslo.</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+
+      <h2>New service wizard</h2>
+      <p>
+        New service wizard slouží k rychlému založení minimálního draft záznamu. Nevyplňuje všech 80+ polí. Jeho cílem je vytvořit službu s jasnou identitou, vlastníkem, lifecycle a základním request/capability kontextem, poté uživatele poslat do editoru.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Krok wizardu</th><th>Typická pole</th><th>Proč existuje</th><th>Co následuje</th></tr></thead>
+        <tbody>
+          <tr><td>Identity</td><td>Service ID, title, service type, lifecycle.</td><td>Vznikne jednoznačný záznam služby.</td><td>Redirect do editoru po vytvoření.</td></tr>
+          <tr><td>Value</td><td>Summary, consumer value, business purpose.</td><td>Služba má být srozumitelná konzumentovi.</td><td>Doplnit detailní description a scope.</td></tr>
+          <tr><td>Request</td><td>Requestable, request channel, lead time, approval.</td><td>Řekne, zda a jak lze službu požádat.</td><td>Doplnit offering a support model.</td></tr>
+          <tr><td>Ownership</td><td>Owner, owner e-mail, org, manager.</td><td>Bez ownera není accountability.</td><td>Zkontrolovat role assignments.</td></tr>
+          <tr><td>Classification</td><td>Portfolio, security classification, service line, org element.</td><td>Manažerské zařazení.</td><td>Doplnit reference data, pokud chybí.</td></tr>
+          <tr><td>Capability/C3</td><td>Primary capability nebo C3 UUID.</td><td>První coverage a architecture vazba.</td><td>Doplnit mapping role a preview v editoru.</td></tr>
+          <tr><td>Review</td><td>Souhrn a create.</td><td>Uživatel zkontroluje draft před vytvořením.</td><td>Uložit draft a pokračovat do editoru.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Governance audit sekce služby</h2>
+      <table class="field-table">
+        <thead><tr><th>Sloupec</th><th>Význam</th><th>Proč se používá</th><th>Zdroj</th></tr></thead>
+        <tbody>
+          <tr><td>Čas</td><td>Kdy změna proběhla.</td><td>Audit a troubleshooting.</td><td><code>performed_at</code> / <code>changed_at</code>.</td></tr>
+          <tr><td>Akce</td><td>Create, update, delete nebo podobná operace.</td><td>Rozlišuje typ zásahu.</td><td><code>action</code>.</td></tr>
+          <tr><td>Entita / pole</td><td>Co bylo změněno.</td><td>Reviewer vidí konkrétní dopad.</td><td><code>changed_fields</code>.</td></tr>
+          <tr><td>Uživatel</td><td>Kdo změnu provedl.</td><td>Accountability.</td><td><code>performed_by</code> / <code>changed_by</code>.</td></tr>
+          <tr><td>Old/new value</td><td>Původní a nová hodnota nebo JSON diff.</td><td>Auditní důkaz.</td><td><code>old_value</code>, <code>new_value</code>, <code>new_values</code>.</td></tr>
+          <tr><td>Client IP</td><td>Odkud změna přišla.</td><td>Bezpečnostní audit.</td><td><code>client_ip</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Readiness pravidla navázaná na službu</h2>
+      <table class="field-table">
+        <thead><tr><th>Pravidlo</th><th>Pole / vazba</th><th>Proč blokuje</th><th>Jak opravit</th></tr></thead>
+        <tbody>
+          <tr><td>Service has owner</td><td><code>service_owner</code>, <code>service_owner_email</code>, role assignments.</td><td>Bez ownera není odpovědnost ani escalation.</td><td>Doplnit ownera a e-mail.</td></tr>
+          <tr><td>Service has offering</td><td><code>service_offering</code>.</td><td>Konzument neví, co může získat.</td><td>Přidat offering a nastavit default.</td></tr>
+          <tr><td>Service has lifecycle</td><td><code>lifecycle_state</code>.</td><td>Nejde řídit publish, review ani retirement.</td><td>Nastavit správný lifecycle state.</td></tr>
+          <tr><td>Requestable service has channel</td><td><code>requestable</code>, <code>request_channel_type</code>, <code>request_channel_url</code>.</td><td>Uživatel neví, kde službu požádat.</td><td>Doplnit channel nebo vypnout requestable.</td></tr>
+          <tr><td>Service has SLA/support</td><td>SLA pole, <code>service_sla</code>, support model.</td><td>Provozní očekávání nejsou jasná.</td><td>Doplnit SLA a support model.</td></tr>
+          <tr><td>Service has primary capability mapping</td><td><code>service_c3_mapping</code>.</td><td>Coverage a FMN/C3 pohled nevidí, co služba pokrývá.</td><td>Přidat C3 mapping s primary flag.</td></tr>
+          <tr><td>Dependencies classified</td><td><code>service_relation</code>, impact fields.</td><td>Změna služby nemá dopadový kontext.</td><td>Doplnit relation_type, impact_mode, impact_level a verified.</td></tr>
+          <tr><td>Review date exists</td><td><code>next_review_due_at</code>, governance review.</td><td>Služba nemá pravidelnou kontrolu.</td><td>Nastavit review cadence nebo vytvořit review.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>API a databázové vazby</h2>
+      <table class="field-table">
+        <thead><tr><th>Oblast</th><th>API</th><th>DB / model</th><th>Poznámka</th></tr></thead>
+        <tbody>
+          <tr><td>Service list/detail</td><td><code>GET /api/v1/services</code>, <code>GET /api/v1/services/{id}</code></td><td><code>service_catalog</code></td><td>Hlavní službový záznam.</td></tr>
+          <tr><td>Update service</td><td><code>PUT /api/v1/services/{id}</code></td><td><code>service_catalog</code></td><td>Zápis hlavních polí služby.</td></tr>
+          <tr><td>Domains</td><td><code>PUT /api/v1/services/{id}/domains</code></td><td><code>service_available_on</code></td><td>Dostupnost na doménách.</td></tr>
+          <tr><td>Roles</td><td><code>GET/PUT /api/v1/services/{id}/roles</code></td><td><code>service_role_assignment</code></td><td>Owner/steward/reviewer vazby.</td></tr>
+          <tr><td>Legacy variant evidence</td><td><code>/api/v1/flavours</code></td><td><code>service_flavour</code></td><td>Historická cost/variant evidence.</td></tr>
+          <tr><td>SLA</td><td><code>/api/v1/services/{id}/sla</code></td><td><code>service_sla</code></td><td>SLA override a summary.</td></tr>
+          <tr><td>Offerings</td><td><code>/api/v1/services/{id}/offerings</code></td><td><code>service_offering</code></td><td>Requestable nabídky.</td></tr>
+          <tr><td>Support</td><td><code>/api/v1/services/{id}/support-model</code></td><td><code>service_support_model</code></td><td>Resolver/support model.</td></tr>
+          <tr><td>Audience</td><td><code>/api/v1/services/{id}/audience</code></td><td><code>service_audience_policy</code></td><td>Eligibility a audience.</td></tr>
+          <tr><td>Operational links</td><td><code>/api/v1/services/{id}/operational-links</code></td><td><code>service_operational_link</code></td><td>Externí systémy.</td></tr>
+          <tr><td>Relationships</td><td><code>/api/v1/relations</code></td><td><code>service_relation</code></td><td>Impact a dependency flow.</td></tr>
+          <tr><td>C3 mapping</td><td><code>/api/v1/services/{id}/preview-mapping</code>, <code>/api/v1/taxonomy/mapping/{id}</code></td><td><code>service_c3_mapping</code>, <code>c3_taxonomy</code></td><td>Capability coverage a C3/FMNs vazby.</td></tr>
+          <tr><td>Governance audit section</td><td><code>/services/{id}#governance</code> v UI, data přes <code>GET /api/v1/services/{id}/history</code></td><td><code>platform.audit_log</code></td><td>Audit změn.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Typické scénáře práce se službou</h2>
+      <ol>
+        <li>Najděte službu v <code>/catalogue</code> nebo <code>/services/list</code>.</li>
+        <li>V Service 360 ověřte ownera, business summary, lifecycle, readiness, offering a support.</li>
+        <li>Pokud je služba blocked, otevřete editor a jděte podle červených/oranžových badge v sub-nav.</li>
+        <li>Requestable službě doplňte request channel, default offering, lead time, support model a audience.</li>
+        <li>Live službě doplňte dependency classification, SLA, review cadence a operational links.</li>
+        <li>Capability/C3 relevantní službě přidejte primary C3 mapping a zkontrolujte preview dopadu.</li>
+        <li>Před publish, lifecycle transition nebo retirement spusťte readiness a impact analysis.</li>
+        <li>Po review zapište decision nebo exception tak, aby audit později pochopil důvod.</li>
+      </ol>
+
+      <h2>Časté chyby u služeb</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Proč vadí</th><th>Jak opravit</th></tr></thead>
+        <tbody>
+          <tr><td>Služba má technický název bez consumer value.</td><td>Konzument a manažer nepochopí, proč služba existuje.</td><td>Doplnit title, summary, consumer_value a business_purpose lidským jazykem.</td></tr>
+          <tr><td>Requestable je zapnuté, ale chybí request URL.</td><td>Konzument nemá kam jít.</td><td>Doplnit request_channel_type a request_channel_url nebo requestable vypnout.</td></tr>
+          <tr><td>Chybí default offering.</td><td>Uživatel neví, co je primární nabídka služby.</td><td>V offerings označit jednu aktivní nabídku jako default.</td></tr>
+          <tr><td>Owner je text, ale nemá e-mail nebo roli.</td><td>My Tasks a review assignment nemusí fungovat.</td><td>Doplnit service_owner_email a service_role_assignment.</td></tr>
+          <tr><td>Dependencies jsou v raw textu, ne ve relationships.</td><td>Impact analysis vazby neuvidí.</td><td>Převést dependencies_json/raw text do strukturovaných relationships.</td></tr>
+          <tr><td>C3 mapping existuje, ale není primary.</td><td>Coverage a Service list nemusí správně ukázat hlavní capability.</td><td>Nastavit primary mapping a doplnit mapping_note.</td></tr>
+          <tr><td>Retired služba nemá retired_note.</td><td>Není jasné, proč zmizela nebo čím byla nahrazena.</td><td>Doplnit retired_note, replacement relationship a decision.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="chapter-nav">
+        <a href="03-cocpit.html">Předchozí: 03 Cockpit</a>
+        <a href="05-capabilities_c3.html">Další: 05 Capabilities a C3</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

@@ -180,7 +180,7 @@ function parseWorksheetRows(sheetXml, sharedStrings) {
             const index = columnRefToIndex(refMatch?.[1] ?? '');
             const cellType = typeMatch?.[1] ?? '';
 
-            let value = '';
+            let value;
             if (cellType === 'inlineStr') {
                 const textParts = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)]
                     .map((textMatch) => decodeXmlEntities(textMatch[1]));

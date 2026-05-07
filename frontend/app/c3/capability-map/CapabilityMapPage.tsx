@@ -187,8 +187,8 @@ export default function CapabilityMapPage({
   });
 
   const [showUnmapped, setShowUnmapped] = useState(true);
-  const [mappedPageIds, setMappedPageIds] = useState<Set<string>>(() => new Set());
-  const [mappedUuids, setMappedUuids] = useState<Set<string>>(() => new Set());
+  const [mappedPageIds, setMappedPageIds] = useState<Set<string>>(() => parseCatalogueState().pageIds);
+  const [mappedUuids, setMappedUuids] = useState<Set<string>>(() => parseCatalogueState().uuids);
   const [infoNode, setInfoNode] = useState<CapabilityItem | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, text: '', x: 0, y: 0 });
   const spiralMapLinks = useMemo(() => {
@@ -211,10 +211,6 @@ export default function CapabilityMapPage({
   }, [activeSpiralCode, spiralData?.all]);
 
   useEffect(() => {
-    const localState = parseCatalogueState();
-    setMappedPageIds(localState.pageIds);
-    setMappedUuids(localState.uuids);
-
     function handleMessage(event: MessageEvent) {
       if (event.data?.type !== CATALOGUE_STATE_EVENT) return;
 
@@ -239,11 +235,6 @@ export default function CapabilityMapPage({
       window.clearInterval(timer);
     };
   }, []);
-
-  const pageById = useMemo(
-    () => new Map((data?.items ?? []).map((item) => [item.page_id, item])),
-    [data?.items],
-  );
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -453,22 +444,8 @@ export default function CapabilityMapPage({
   const linkedC3Href = infoNode?.linked_c3_uuid ? `/c3/${infoNode.linked_c3_uuid}` : null;
   const canOpenCatalogue = Boolean(linkedC3Href);
 
-  function getNearestL3PageId(item: CapabilityItem | null) {
-    if (!item) return null;
-    if (item.level === 3) return item.page_id;
-    if (item.level < 3) return null;
-
-    let current = item.parent_id ? pageById.get(item.parent_id) ?? null : null;
-    while (current) {
-      if (current.level === 3) return current.page_id;
-      current = current.parent_id ? pageById.get(current.parent_id) ?? null : null;
-    }
-    return null;
-  }
-
-  const infoGraphL3PageId = getNearestL3PageId(infoNode);
-  const graphCapabilityHref = infoNode
-    ? `/c3/graph?domain=${encodeURIComponent(infoNode.domain_code)}${infoGraphL3PageId ? `&l3=${encodeURIComponent(infoGraphL3PageId)}` : ''}`
+  const coverageCapabilityHref = infoNode
+    ? `/capabilities?view=coverage&domain=${encodeURIComponent(infoNode.domain_code)}`
     : null;
   const infoChildrenHref = infoNode ? buildParentListHref(infoNode.title) : null;
 
@@ -523,7 +500,10 @@ export default function CapabilityMapPage({
               className={`${styles.spiralChip} ${activeSpiralCode === spiral.code ? styles.spiralChipActive : ''}`}
               aria-current={activeSpiralCode === spiral.code ? 'page' : undefined}
             >
-              {spiral.label}
+              <span>{spiral.label}</span>
+              <small className={styles.spiralChipMeta}>
+                {spiral.code === 'Spiral_7' ? 'primary' : 'history'}
+              </small>
             </Link>
           ))}
         </div>
@@ -752,14 +732,14 @@ export default function CapabilityMapPage({
               >
                 → Otevřít v katalogu
               </button>
-              {graphCapabilityHref && (
+              {coverageCapabilityHref && (
                 <Link
-                  href={graphCapabilityHref}
+                  href={coverageCapabilityHref}
                   className={styles.infoActionLink}
                   style={{ color: infoDomain.heading_color, borderColor: infoDomain.background_color }}
                   onClick={() => setInfoNode(null)}
                 >
-                  ↗ Graf capability
+                  ↗ Coverage evidence
                 </Link>
               )}
               {infoChildrenHref && (

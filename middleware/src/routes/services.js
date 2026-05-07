@@ -241,6 +241,7 @@ router.get('/', async (req, res, next) => {
         const lifecycleStageCode = req.query.lifecycle_stage_code || req.query.lifecycleStageCode || undefined;
         const criticalityCode = req.query.criticality_code || req.query.criticalityCode || undefined;
         const reviewDue = req.query.review_due || req.query.reviewDue || undefined;
+        const readiness = req.query.readiness || undefined;
         const requestable = req.query.requestable ?? undefined;
         const result = await repo.findAllDirect({
             page:        Math.max(1, parseInt(page)),
@@ -258,6 +259,7 @@ router.get('/', async (req, res, next) => {
             lifecycleStageCode,
             criticalityCode,
             reviewDue,
+            readiness,
             requestable,
         });
         res.set('X-Total-Count', result.total)
@@ -268,7 +270,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // ─── GET /services/export/csv ────────────────────────────────────────────────
-router.get('/export/csv', async (req, res, next) => {
+router.get('/export/csv', canEdit, async (req, res, next) => {
     try {
         const search = req.query.search;
         const status = Array.isArray(req.query.status) ? req.query.status.join(',') : req.query.status;
@@ -283,6 +285,7 @@ router.get('/export/csv', async (req, res, next) => {
         const lifecycleStageCode = req.query.lifecycle_stage_code || req.query.lifecycleStageCode || undefined;
         const criticalityCode = req.query.criticality_code || req.query.criticalityCode || undefined;
         const reviewDue = req.query.review_due || req.query.reviewDue || undefined;
+        const readiness = req.query.readiness || undefined;
         const requestable = req.query.requestable ?? undefined;
 
         const result = await repo.findAllDirect({
@@ -301,6 +304,7 @@ router.get('/export/csv', async (req, res, next) => {
             lifecycleStageCode,
             criticalityCode,
             reviewDue,
+            readiness,
             requestable,
         });
 
@@ -322,9 +326,46 @@ router.get('/export/csv', async (req, res, next) => {
         ];
 
         const csv = rows.map((row) => row.map(_csvEscapeCell).join(',')).join('\n');
+        await audit.log?.({
+            tableName: 'ServiceCatalog',
+            recordId: null,
+            recordLabel: 'filtered-csv',
+            action: 'EXPORT_CSV',
+            newValues: {
+                filters: {
+                    search,
+                    status,
+                    service_type: serviceType,
+                    portfolio_group: portfolioGroup,
+                    portfolio_code: portfolioCode,
+                    domain,
+                    owner,
+                    lifecycle_state: lifecycleState,
+                    review_due: reviewDue,
+                    readiness,
+                    requestable,
+                },
+                row_count: result.items.length,
+                request_id: req.id || null,
+            },
+            performedBy: req.user?.username || 'system',
+            clientIp: req.ip,
+            userAgent: req.get('user-agent') || null,
+        });
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="service-catalogue-export.csv"');
         res.send(csv);
+    } catch (err) { next(err); }
+});
+
+// ─── GET /services/catalog-quality ───────────────────────────────────────────
+router.get('/catalog-quality', async (req, res, next) => {
+    try {
+        const summary = await repo.getCatalogQualitySummary();
+        res.json({
+            generated_at: new Date().toISOString(),
+            item: summary,
+        });
     } catch (err) { next(err); }
 });
 
@@ -1198,7 +1239,12 @@ router.get('/:id/graph', async (req, res, next) => {
             }
         }
 
-        const readiness = await getServiceReadiness(rootId);
+        let readiness = null;
+        try {
+            readiness = await getServiceReadiness(rootId);
+        } catch (readinessErr) {
+            logger.warn(`service graph: readiness context unavailable for ${rootId}: ${readinessErr.message}`);
+        }
         const nodeMap = new Map();
 
         const upsertNode = (node) => {
@@ -1593,7 +1639,7 @@ router.get('/:id/relations', async (req, res, next) => {
 });
 
 // ─── GET /services/:id/flavours ───────────────────────────────────────────────
-// Dedicated endpoint for pricing variants of the selected service (project brief API contract, section 6).
+// Dedicated endpoint for legacy variant evidence of the selected service (project brief API contract, section 6).
 router.get('/:id/flavours', async (req, res, next) => {
     try {
         const serviceId = req.params.id;

@@ -21,13 +21,8 @@ jest.mock('../middleware/rbac', () => ({
 }));
 
 jest.mock('../db/governance.repo', () => ({
-    listServiceRisks: jest.fn(),
     listOwnerLoad: jest.fn(),
     listOwnerAssignments: jest.fn(),
-    listContractOverlap: jest.fn(),
-    listRenewalRisks: jest.fn(),
-    listAdvisorFindings: jest.fn(),
-    dismissFinding: jest.fn(),
     listReviews: jest.fn(),
     createReview: jest.fn(),
     updateReview: jest.fn(),
@@ -131,7 +126,7 @@ describe('governance workflow routes', () => {
             .post('/api/v1/governance/decisions')
             .send({
                 service_id: 'SVC-IAM',
-                decision_type: 'publish_approval',
+                decision_type: 'publish',
                 decision: 'approved',
                 rationale: 'Ready for release',
             });
@@ -149,7 +144,7 @@ describe('governance workflow routes', () => {
         repo.createDecision.mockResolvedValue({
             id: 44,
             service_id: 'SVC-IAM',
-            decision_type: 'deferral',
+            decision_type: 'exception',
             decision: 'deferred',
             rationale: 'Owner remediation is tracked.',
             decided_by: 'admin@example.com',
@@ -159,7 +154,7 @@ describe('governance workflow routes', () => {
             .post('/api/v1/governance/decisions')
             .send({
                 service_id: 'SVC-IAM',
-                decision_type: 'deferral',
+                decision_type: 'exception',
                 decision: 'deferred',
                 rationale: 'Owner remediation is tracked.',
             });
@@ -168,7 +163,7 @@ describe('governance workflow routes', () => {
         expect(response.body.item.id).toBe(44);
         expect(repo.createDecision).toHaveBeenCalledWith(expect.objectContaining({
             service_id: 'SVC-IAM',
-            decision_type: 'deferral',
+            decision_type: 'exception',
             decision: 'deferred',
             rationale: 'Owner remediation is tracked.',
             decided_by: 'admin@example.com',
@@ -176,7 +171,7 @@ describe('governance workflow routes', () => {
         expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({
             tableName: 'GovernanceDecision',
             action: 'INSERT',
-            recordLabel: 'SVC-IAM:deferral',
+            recordLabel: 'SVC-IAM:exception',
         }));
     });
 
@@ -188,7 +183,7 @@ describe('governance workflow routes', () => {
             .post('/api/v1/governance/decisions')
             .send({
                 service_id: 'SVC-IAM',
-                decision_type: 'publish_approval',
+                decision_type: 'publish',
                 decision: 'approved',
             });
 

@@ -5,6 +5,7 @@
 *.tsbuildinfo
 *.log
 coverage/
+backups/
 
 frontend/.next/
 frontend/node_modules/
@@ -14,6 +15,8 @@ dev/
 logs/
 output/
 improvement/
+donations/
+docs/SC_*.docx
 .superpowers/
 docs/superpowers
 

@@ -9,6 +9,7 @@ type Status = 'active' | 'planned' | 'retired' | 'deprecated' | 'draft' | string
 
 const LABELS: Record<string, string> = {
   active:     'Active',
+  live:       'Live',
   planned:    'Planned',
   retired:    'Retired',
   deprecated: 'Deprecated',

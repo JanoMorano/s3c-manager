@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Main dashboard and personal work surface - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">03 · Cockpit</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link active" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">03 Cockpit</p>
+        <h1>Main dashboard and personal work surface</h1>
+        <p class="lead">The cockpit is the fastest way to understand what needs attention. It combines service readiness, owned work, review queues, blockers, decisions and portfolio signals for each role.</p>
+      </section>
+
+      <h2>Meaning of the cockpit view</h2>
+      <p>The cockpit turns catalogue data into operational decisions. It prevents users from opening many detail pages only to find missing owners, overdue reviews or blocked services.</p>
+
+      <h2>Main screens</h2>
+      <table class="field-table"><thead><tr><th>Route</th><th>Purpose</th><th>Typical user</th></tr></thead><tbody><tr><td>/</td><td>Main governance overview with KPI cards and personal panels.</td><td>Service owner, reviewer, manager</td></tr><tr><td>/cockpit/my-tasks</td><td>Personal queue with owned services, reviews, blockers and decisions.</td><td>Logged-in user</td></tr><tr><td>/operations</td><td>Governance overview for readiness and risk.</td><td>Reviewer, manager</td></tr></tbody></table>
+
+      <h2>Home cockpit blocks</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Page header</strong></span></span><p>Explains the current cockpit purpose and next actions.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">KPI cards</strong></span></span><p>Surface service count, readiness warnings, reviews due and other portfolio signals.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">My owned services</strong></span></span><p>Services where the current user is accountable.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">My reviews</strong></span></span><p>Open review request links assigned to the current user.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">My blockers</strong></span></span><p>Items that prevent publication, readiness or governance closure.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">My decisions and blockers</strong></span></span><p>Recent decisions and readiness blockers requiring attention.</p></article></div>
+
+      <h2>How to use it by role</h2>
+      <p>A service owner starts with owned services and readiness warnings. A reviewer opens reviews and decisions. A manager watches owner load, portfolio signals and blocked items. An architect follows capability gaps and service relations from cockpit signals into the graph or capability workspace.</p>
+
+      <h2>Common mistakes</h2>
+      <p>Do not treat cockpit warnings as final judgement. They are signals pointing to missing evidence or overdue work. Always open the service detail, readiness queue or decision record before changing lifecycle state.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Cockpit<br><code>/img/help-en/03-cocpit.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="02-welcome.html">Previous: Application purpose</a>
+        <a href="04-services.html">Next: Services</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

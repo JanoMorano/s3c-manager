@@ -78,15 +78,18 @@ export function C3EntityListPage({
     });
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: URL query hydrates admin search state for deep links. */
   useEffect(() => {
     setSearch(searchParams?.get('search') ?? searchParams?.get('exact') ?? '');
   }, [searchParams]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (editingId == null) return;
     scrollEditPanelIntoView();
   }, [editingId]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: edit deep links intentionally hydrate the inline edit draft once data arrives. */
   useEffect(() => {
     if (!editParam || !hasInlineEdit || !data || editingId != null) return;
     const requestedId = Number(editParam);
@@ -104,6 +107,7 @@ export function C3EntityListPage({
     setSaveOk(null);
     scrollEditPanelIntoView();
   }, [data, editParam, editingId, hasInlineEdit, editFields]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // When edit=1 (boolean flag) or edit={id} is in the URL but this page uses rowEditHref (not inline edit),
   // resolve the matching row and redirect to its edit page.

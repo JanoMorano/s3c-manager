@@ -16,9 +16,9 @@ function normalizeSql(sql) {
         .toLowerCase();
 }
 
-describe('contract governance schema', () => {
-    test('exposes vendors, contracts, links, findings, and dismissal audit tables', () => {
-        const sql = normalizeSql(readRepoFile('backend/db/postgres/schema/21_contract_governance.sql'));
+describe('final reduction DB cleanup schema', () => {
+    test('drops retired procurement and finding tables after the compatibility sunset', () => {
+        const sql = normalizeSql(readRepoFile('backend/db/postgres/schema/32_final_reduction_sunset_cleanup.sql'));
 
         [
             'vendor',
@@ -28,27 +28,22 @@ describe('contract governance schema', () => {
             'governance_finding',
             'governance_finding_dismissal',
         ].forEach((tableName) => {
-            expect(sql).toContain(`create table if not exists ${tableName}`);
+            expect(sql).toContain(`drop table if exists ${tableName}`);
         });
 
-        expect(sql).toContain('vendor_code');
-        expect(sql).toContain('unique');
-        expect(sql).toContain('contract_code');
-        expect(sql).toContain('references vendor');
-        expect(sql).toContain('references service_catalog');
-        expect(sql).toContain('finding_key');
-        expect(sql).toContain('severity');
-        expect(sql).toContain('dismissed_by');
-        expect(sql).toContain('dismissed_at');
+        expect(sql).toContain('drop view if exists v_service_risk_radar');
+        expect(sql).toContain('drop view if exists v_contract_overlap');
+        expect(sql).toContain('drop view if exists v_contract_renewal_risk');
+        expect(sql).toContain('drop view if exists v_gap_duplication_advisor');
     });
 
-    test('is wired into PostgreSQL init after capability coverage views', () => {
+    test('is wired into PostgreSQL init after locale cleanup', () => {
         const initScript = readRepoFile('init/init-db-postgres.sh');
 
-        const capabilityCoverageIndex = initScript.indexOf('/pgdb/schema/20_capability_coverage_views.sql');
-        const contractGovernanceIndex = initScript.indexOf('/pgdb/schema/21_contract_governance.sql');
+        const localeCleanupIndex = initScript.indexOf('/pgdb/schema/31_locale_cs_en_only.sql');
+        const finalCleanupIndex = initScript.indexOf('/pgdb/schema/32_final_reduction_sunset_cleanup.sql');
 
-        expect(capabilityCoverageIndex).toBeGreaterThan(-1);
-        expect(contractGovernanceIndex).toBeGreaterThan(capabilityCoverageIndex);
+        expect(localeCleanupIndex).toBeGreaterThan(-1);
+        expect(finalCleanupIndex).toBeGreaterThan(localeCleanupIndex);
     });
 });

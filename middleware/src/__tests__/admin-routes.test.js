@@ -109,7 +109,7 @@ describe('admin routes', () => {
         expect(response.body.error).toMatch(/heslo/i);
     });
 
-    test('POST /users persists permission role and working persona separately', async () => {
+    test('POST /users persists permission role without persona preference', async () => {
         queryMock.mockResolvedValueOnce({
             rows: [{
                 id: 8,
@@ -117,7 +117,6 @@ describe('admin routes', () => {
                 display_name: 'Capability Manager',
                 email: 'cap.manager@example.local',
                 role: 'editor',
-                preferred_persona: 'capability_manager',
                 is_active: true,
                 auth_provider: 'local',
                 external_principal: null,
@@ -138,7 +137,6 @@ describe('admin routes', () => {
                 display_name: 'Capability Manager',
                 email: 'cap.manager@example.local',
                 role: 'editor',
-                preferred_persona: 'capability_manager',
                 auth_provider: 'local',
                 password: 'very-secret',
                 given_name: 'Capability',
@@ -150,11 +148,9 @@ describe('admin routes', () => {
         expect(response.body).toEqual(expect.objectContaining({
             role: 'editor',
             role_label: 'Content Admin - RW',
-            preferred_persona: 'capability_manager',
-            preferred_persona_label: 'Capability Manager',
         }));
         expect(queryMock.mock.calls[0][1][3]).toBe('editor');
-        expect(queryMock.mock.calls[0][1][4]).toBe('capability_manager');
+        expect(queryMock.mock.calls[0][0]).not.toMatch(/preferred_persona/i);
     });
 
     test('GET /web-settings returns runtime SSO settings', async () => {

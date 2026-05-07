@@ -31,6 +31,8 @@ export interface PublicC3EntityConfig {
   editBasePath: string;
   detailEndpointBase: string;
   editEndpoint: string;
+  editable?: boolean;
+  readOnlyReason?: string;
   metadataKeys: string[];
   descriptionKeys: string[];
   rawKeys: string[];
@@ -136,6 +138,8 @@ export function renderLinkedJsonList(value: unknown, target: LinkTargetKind) {
 }
 
 export const publicC3DataObjectsConfig = buildPublicConfig(c3DataObjectsConfig, {
+  editable: false,
+  readOnlyReason: 'Data Objects are maintained from expert import evidence. Update them by importing a corrected C3 Data Objects source file.',
   codeKey: 'data_object_code',
   codeLabel: 'Data Object',
   listPath: '/c3/data-objects',

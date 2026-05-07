@@ -79,6 +79,59 @@
 
 .sectionBody { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: var(--space-3); }
 
+.anchorAlias {
+  position: relative;
+  top: -112px;
+  display: block;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.inlineEditorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface) 82%, var(--color-bg-subtle));
+  scroll-margin-top: 112px;
+}
+
+.inlineEditorTitle {
+  margin: 0;
+  font: var(--text-title-sm);
+  color: var(--color-text-secondary);
+}
+
+.inlineEditorBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.advancedDetails {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  scroll-margin-top: 112px;
+}
+
+.advancedSummary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font: var(--text-label-md);
+  color: var(--color-text-secondary);
+}
+
+.advancedDetailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 16px 16px;
+}
+
 /* ── Field layout ────────────────────────────────────────────────────────── */
 .fieldRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
 .field    { display: flex; flex-direction: column; gap: 3px; }
@@ -448,7 +501,7 @@
   gap: var(--space-1);
 }
 
-/* ── Flavours CRUD ───────────────────────────────────────────────────────── */
+/* ── Legacy variant evidence ───────────────────────────────────────────────────────── */
 .flavourList { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
 
 .flavourRow {
@@ -637,7 +690,7 @@
   .phase4Row { grid-template-columns: 1fr; }
 }
 
-/* ── Flavour extended edit block (Item 11) ───────────────────────────────── */
+/* ── Legacy Variant Evidence extended edit block (Item 11) ───────────────────────────────── */
 .flavourEditBlock { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--color-border-default); border-radius: var(--radius-sm); padding: var(--space-3); background: var(--color-bg-canvas); margin-bottom: var(--space-2); }
 
 /* ── Per-flavour SLA (Item 17) ────────────────────────────────────────────── */

@@ -19,24 +19,11 @@ function isC3ScopedPath(pathname: string) {
     pathname === '/c3-dashboard' ||
     pathname.startsWith('/c3/') ||
     pathname === '/admin/new-c3' ||
-    pathname === '/management/new-c3' ||
+    pathname === '/administration/c3-ref' ||
+    pathname === '/administration/c3-capability-builder' ||
     pathname === '/admin/c3' ||
     pathname.startsWith('/admin/c3/') ||
     pathname.startsWith('/admin/c3-')
-  );
-}
-
-function isPublicC3ReadOnlyPath(pathname: string) {
-  return (
-    pathname === '/c3/list' ||
-    pathname === '/c3/services' ||
-    pathname === '/c3/applications' ||
-    pathname === '/c3/data-objects' ||
-    pathname === '/c3/technology-interactions' ||
-    /^\/c3\/services\/[^/]+$/.test(pathname) ||
-    /^\/c3\/applications\/[^/]+$/.test(pathname) ||
-    /^\/c3\/data-objects\/[^/]+$/.test(pathname) ||
-    /^\/c3\/technology-interactions\/[^/]+$/.test(pathname)
   );
 }
 
@@ -48,6 +35,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [forbiddenRole, setForbiddenRole] = useState<AppRole | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: auth guard synchronizes local access state from install/auth checks and redirects. */
   useEffect(() => {
     // The install page is always available.
     if (pathname.startsWith(INSTALL_PATH)) {
@@ -85,10 +73,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
       // Standard auth check.
       if (pathname.startsWith('/login')) { setReady(true); return; }
-      if (isPublicC3ReadOnlyPath(pathname)) {
-        if (!cancelled) setReady(true);
-        return;
-      }
       const session = await restoreAuthSession();
       if (cancelled) return;
       if (!session) {
@@ -114,6 +98,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     check();
     return () => { cancelled = true; };
   }, [pathname, router]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!ready) return null;
   if (forbiddenRole) {

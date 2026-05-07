@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>08 Administrace - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">08 · Administrace</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link active" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">08 Administrace</p>
+        <h1>Admin panely, reference data, uživatelé a konfigurační scénáře</h1>
+        <p class="lead">Administrace řídí, kdo může s aplikací pracovat, jaké hodnoty se nabízejí ve formulářích, jak funguje SSO, jak se spravují C3 builder data, jak se kontroluje instalace a jak se dokládá auditní stopa.</p>
+      </section>
+
+      <h2>Teoretický význam administrace</h2>
+      <p>
+        Administrace je control plane aplikace. Pokud jsou špatně nastavené role, reference data, SSO, skupiny nebo importní profily, nebude správně fungovat ani katalog služeb. Admin proto nespravuje jen technické nastavení, ale také governance slovník, podle kterého se hodnotí služby, capability, C3 vazby, readiness a audit.
+      </p>
+      <p>
+        Dobrá administrace vytváří bezpečný rámec: uživatelé mají nejmenší nutná oprávnění, ref tabulky jsou stabilní, změny jsou auditované, SSO je předvídatelné, importy jsou dohledatelné a C3/FMN evidence má jasný zdroj.
+      </p>
+      <div class="itil-note">
+        <strong>Procesní vazba:</strong> Administrace podporuje ITIL governance, information security management, service configuration management a knowledge management. TOGAF doplňuje správu architektonických referencí, capability builderu a datového slovníku. V bezpečnostním řízení odpovídá principům least privilege, traceability a separation of duties.
+      </div>
+
+      <h2>Obrazovky kapitoly</h2>
+      <div class="screen-row">
+        <figure class="screen-card"><div class="screen-slot"><div>Administration overview<br><code>/img/help-cs/admin-01-overview.png</code></div></div><figcaption>Rozcestník pro users, groups, web/SSO, reference data, content admin, logs a installation.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Users<br><code>/img/help-cs/admin-02-users.png</code></div></div><figcaption>KPI Total, Active, Local, AD a split editor uživatele s role help boxem.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Groups<br><code>/img/help-cs/admin-03-groups.png</code></div></div><figcaption>RBAC skupiny, permissions grid, members a field-level oprávnění.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Web / SSO<br><code>/img/help-cs/admin-04-web-sso.png</code></div></div><figcaption>Trusted headers, SSO enablement, display name/email headers a config cache.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Reference data<br><code>/img/help-cs/admin-05-reference-data.png</code></div></div><figcaption>RefTableEditor s inline add-row, FK typeahead/select a bezpečným mazáním.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Capability builder<br><code>/img/help-cs/admin-06-capability-builder.png</code></div></div><figcaption>Lokální capability vrstvy, domény, levely, spiral baseline a C3 mapping konfigurace.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Admin import<br><code>/img/help-cs/admin-07-import.png</code></div></div><figcaption>Admin audit importů, reparse raw relations a raw fields per služba.</figcaption></figure>
+        <figure class="screen-card"><div class="screen-slot"><div>Installation<br><code>/img/help-cs/admin-08-installation.png</code></div></div><figcaption>Instalační stav, moduly, repair, seed demo a health kontrola.</figcaption></figure>
+      </div>
+
+      <h2>Administrátorský rozcestník</h2>
+      <table class="field-table">
+        <thead><tr><th>Sekce</th><th>Route</th><th>Účel</th><th>Riziko špatného nastavení</th></tr></thead>
+        <tbody>
+          <tr><td>User Management</td><td><code>/administration/users</code></td><td>Účty, role, auth provider, aktivní stav.</td><td>Uživatel neuvidí úkoly, nebo naopak dostane příliš velká práva.</td></tr>
+          <tr><td>Group Management</td><td><code>/administration/groups</code></td><td>RBAC skupiny, field permissions, members.</td><td>Editor neupraví potřebná pole nebo uvidí citlivé sloupce.</td></tr>
+          <tr><td>Web / SSO</td><td><code>/administration/web</code></td><td>Trusted headers a SSO konfigurace.</td><td>Nefunkční login nebo špatné párování uživatelů.</td></tr>
+          <tr><td>Installation &amp; Modules</td><td><code>/administration/installation</code>, <code>/administration/installation</code></td><td>Stav instalace, moduly, repair, demo seed.</td><td>C3 UI se nezobrazí nebo data nejsou inicializovaná.</td></tr>
+          <tr><td>Catalogue Reference</td><td><code>/administration/catalogue-ref</code></td><td>Číselníky pro service editor a filtry.</td><td>Import/ref validation varuje nebo blokuje hodnoty.</td></tr>
+          <tr><td>C3 Reference</td><td><code>/administration/c3-ref</code></td><td>Číselníky C3 a taxonomy nastavení.</td><td>Nekonzistentní C3 statusy, typy a baseline.</td></tr>
+          <tr><td>C3 Capability Builder</td><td><code>/administration/c3-capability-builder</code></td><td>Lokální správa capability vrstev a mapování.</td><td>Coverage a capability map přestanou odpovídat realitě.</td></tr>
+          <tr><td>Import Governance audit section</td><td><code>/import</code>, <code>/administration/import</code></td><td>Review, audit, reparse a raw diagnostics.</td><td>Chyby importu zůstanou skryté v datech.</td></tr>
+          <tr><td>Audit Logs</td><td><code>/administration/logs</code></td><td>Čtení auditní stopy akcí.</td><td>Bez logů nejde prokázat, kdo změnil kritická data.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Uživatelé</h2>
+      <p>
+        Správa uživatelů na <code>/administration/users</code> nastavuje identitu, roli, typ přihlášení a aktivní stav. E-mail a display name nejsou kosmetika: ovlivňují My Tasks, review assignment, owner load, decision log a osobní fronty.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Pole</th><th>Význam</th><th>Co ovlivní</th><th>Validace / doporučení</th></tr></thead>
+        <tbody>
+          <tr><td><code>username</code></td><td>Login uživatele.</td><td>Auth, audit, admin list.</td><td>Povinné, server normalizuje lowercase.</td></tr>
+          <tr><td><code>display_name</code></td><td>Zobrazené jméno.</td><td>Review board, owner load, decision log, audit čitelnost.</td><td>Povinné/doporučené; nepoužívat jen technický login.</td></tr>
+          <tr><td><code>email</code></td><td>Kontaktní e-mail a assignment klíč.</td><td><code>assigned_to</code>, My Tasks, personal queues, owner matching.</td><td>Lowercase, validní e-mail. Špatný e-mail rozbije personalizaci.</td></tr>
+          <tr><td><code>given_name</code>, <code>surname</code></td><td>Jméno a příjmení.</td><td>Profil, SSO, auditní čitelnost.</td><td>Volitelné, ale vhodné při AD/SSO.</td></tr>
+          <tr><td><code>department</code></td><td>Oddělení.</td><td>Owner reporting a organizační orientace.</td><td>Sladit s HR/AD slovníkem.</td></tr>
+          <tr><td><code>role</code></td><td>viewer, editor, admin.</td><td>Hlavní aplikační oprávnění.</td><td>Princip nejmenších nutných práv.</td></tr>
+          <tr><td><code>auth_provider</code></td><td>local nebo ad.</td><td>Zda se používá lokální heslo nebo externí identita.</td><td>AD vyžaduje external_principal.</td></tr>
+          <tr><td><code>external_principal</code></td><td>Identifikátor z AD/SSO.</td><td>Párování trusted headeru na účet.</td><td>Aktivní jen pro AD/SSO. Musí přesně sedět na proxy hlavičku.</td></tr>
+          <tr><td><code>password</code></td><td>Lokální heslo.</td><td>Local login.</td><td>U nového local účtu povinné; při editaci prázdné = beze změny.</td></tr>
+          <tr><td><code>is_active</code></td><td>Aktivní účet.</td><td>Přihlášení a dostupnost účtu.</td><td>Deaktivovat místo mazání kvůli auditu.</td></tr>
+          <tr><td><code>last_login_at</code></td><td>Poslední přihlášení.</td><td>Kontrola neaktivních účtů.</td><td>Read-only.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Role</h2>
+      <table class="field-table">
+        <thead><tr><th>Role</th><th>Co vidí</th><th>Co může měnit</th><th>Kdy ji dát</th></tr></thead>
+        <tbody>
+          <tr><td><code>viewer</code></td><td>Katalog, Service 360, C3 read-only, dashboardy, governance read-only.</td><td>Nic zásadního.</td><td>Manažer, auditor, konzument, stakeholder.</td></tr>
+          <tr><td><code>editor</code></td><td>Vše z viewer plus editaci obsahu podle serverových práv.</td><td>Služby, C3 entity, importy, review request odkazy, vybrané governance akce.</td><td>Service owner, data steward, architekt, katalogový správce.</td></tr>
+          <tr><td><code>admin</code></td><td>Všechny sekce včetně administrace.</td><td>Uživatelé, skupiny, ref data, web/SSO, installation, logs, repair, import admin.</td><td>Jen správcům instance a governance/admin týmu.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Skupiny a RBAC</h2>
+      <p>
+        Skupiny na <code>/administration/groups</code> rozšiřují jednoduché role o jemnější field-level oprávnění. To je důležité tam, kde editor může měnit business popis služby, ale nemá měnit security classification, offering evidence nebo C3 taxonomy.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Význam</th><th>Co ovlivní</th><th>Validace / poznámka</th></tr></thead>
+        <tbody>
+          <tr><td><code>group_code</code></td><td>Technický kód skupiny.</td><td>Vazby v DB a permissions.</td><td>Read-only po vytvoření; měnit jen migračně.</td></tr>
+          <tr><td><code>group_name</code></td><td>Čitelný název skupiny.</td><td>Admin UI a komunikace práv.</td><td>Povinné.</td></tr>
+          <tr><td><code>description</code></td><td>Popis účelu skupiny.</td><td>Budoucí admin pochopí, proč skupina existuje.</td><td>Doporučené.</td></tr>
+          <tr><td>Active toggle</td><td>Aktivní/neaktivní skupina.</td><td>Dočasné vypnutí práv bez mazání.</td><td>Lepší než delete, pokud existují členové.</td></tr>
+          <tr><td>Scope <code>service_catalogue</code></td><td>Oprávnění ke katalogovým polím.</td><td>Viditelnost/editace title, status, portfolio, domains, offering evidence, SLA, relations, ownership, C3 mapping, audit_history.</td><td>Rozdělit business editory a governance adminy.</td></tr>
+          <tr><td>Scope <code>c3_taxonomy</code></td><td>Oprávnění k C3 polím.</td><td>Viditelnost/editace c3_uuid, c3_name, c3_domain, sync_status, ref hodnot.</td><td>C3 změny mohou ovlivnit mapy a impact.</td></tr>
+          <tr><td>Permission <code>view_column</code></td><td>Právo vidět pole.</td><td>Ochrana citlivých dat.</td><td>Bez view nedává edit smysl.</td></tr>
+          <tr><td>Permission <code>edit_column</code></td><td>Právo měnit pole.</td><td>Kontrola, kdo mění governance data.</td><td>Dávat jen odpovědným rolím.</td></tr>
+          <tr><td>Permission <code>edit_ref</code></td><td>Právo měnit reference.</td><td>Ovlivňuje hodnoty v celém systému.</td><td>Admin only ve většině organizací.</td></tr>
+          <tr><td>Members</td><td>Členové skupiny podle userSub/JWT sub.</td><td>Komu se práva aplikují.</td><td>Sub musí odpovídat identity provideru.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Web a SSO nastavení</h2>
+      <p>
+        Web/SSO nastavení na <code>/administration/web</code> ovlivňuje přihlášení. SSO režim typicky funguje přes reverse proxy, která aplikaci předává důvěryhodné HTTP hlavičky. Pokud proxy neodstraňuje podvržené hlavičky od klienta, SSO je bezpečnostní riziko.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Config key</th><th>Typ</th><th>Význam</th><th>Dopad / riziko</th></tr></thead>
+        <tbody>
+          <tr><td><code>auth.sso.enabled</code></td><td>Boolean checkbox.</td><td>Zapne SSO přes trusted headers.</td><td>Špatné zapnutí může zablokovat login nebo otevřít spoofing riziko.</td></tr>
+          <tr><td><code>auth.sso.header</code></td><td>Text.</td><td>Hlavička s primárním uživatelským identifikátorem.</td><td>Musí odpovídat proxy a <code>external_principal</code>.</td></tr>
+          <tr><td><code>auth.sso.display_name_header</code></td><td>Text.</td><td>Hlavička se zobrazovaným jménem.</td><td>Ovlivňuje auditní čitelnost a profil.</td></tr>
+          <tr><td><code>auth.sso.email_header</code></td><td>Text.</td><td>Hlavička s e-mailem.</td><td>Ovlivňuje My Tasks, review assignment a osobní fronty.</td></tr>
+          <tr><td><code>auth.sso.given_name_header</code></td><td>Text.</td><td>Hlavička s křestním jménem.</td><td>Profilový kontext.</td></tr>
+          <tr><td><code>auth.sso.surname_header</code></td><td>Text.</td><td>Hlavička s příjmením.</td><td>Profilový kontext.</td></tr>
+          <tr><td><code>auth.sso.department_header</code></td><td>Text.</td><td>Hlavička s oddělením.</td><td>Owner reporting a organizační kontext.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Reference data</h2>
+      <p>
+        Reference data určují hodnoty ve formulářích. Jejich změna není kosmetická: může ovlivnit importní validaci, readiness, filtry, grafy, portfolio reporting i historická data. RefTableEditor má mít inline add-row nahoře tabulky, inline edit a bezpečné delete.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Tabulka / oblast</th><th>Kde se používá</th><th>Co ovlivní</th><th>Doporučení</th></tr></thead>
+        <tbody>
+          <tr><td><code>ref_ServiceType</code></td><td>New service, service editor, filters.</td><td>Rozlišení business/technical/application/support služeb.</td><td>Kódy držet krátké a stabilní.</td></tr>
+          <tr><td><code>ref_ServiceStatus</code></td><td>Service list, detail, import.</td><td>Legacy/public stav služby.</td><td>Nezaměňovat s lifecycle_state.</td></tr>
+          <tr><td><code>ref_RelationType</code></td><td>Relationships a graphs.</td><td>Impact analysis a dependency semantics.</td><td>Každý typ musí mít jasný význam.</td></tr>
+          <tr><td><code>ref_PortfolioGroup</code></td><td>Portfolio, service list, dashboard.</td><td>Manažerské členění služeb.</td><td>Nemažte hodnotu používanou službami.</td></tr>
+          <tr><td><code>ref_GlobalServiceGroup</code></td><td>Service classification, import.</td><td>Globální reporting a seskupení.</td><td>Sladit se zdrojovým katalogem.</td></tr>
+          <tr><td><code>ref_ServiceLine</code></td><td>Service editor, reporting.</td><td>Delivery/service line odpovědnost.</td><td>Držet konzistentní s organizační strukturou.</td></tr>
+          <tr><td><code>ref_OrganizationalElement</code></td><td>Ownership, org reporting.</td><td>Manažerská odpovědnost.</td><td>Ideálně synchronizovat s HR/AD slovníkem.</td></tr>
+          <tr><td><code>ref_NetworkDomain</code></td><td>Domains, service availability, graph filters.</td><td>Viditelnost služby v doménách.</td><td>Každý domain code má mít popis.</td></tr>
+          <tr><td><code>ref_SecurityClassification</code></td><td>Service/C3 classification.</td><td>Bezpečnostní a publikační kontext.</td><td>Sladit s bezpečnostní politikou organizace.</td></tr>
+          <tr><td><code>ref_SupportWindow</code></td><td>SLA/support model.</td><td>Service support expectations.</td><td>Například 8x5, 16x5, 24x7.</td></tr>
+          <tr><td><code>ref_Legacy variant evidenceStatus</code></td><td>Legacy variant evidence.</td><td>Historická dostupnost varianty.</td><td>Nové varianty zakládat jako Service Offerings.</td></tr>
+          <tr><td><code>ref_ServiceRole</code></td><td>Role assignments.</td><td>Owner, steward, reviewer a další role.</td><td>Role musí být srozumitelné a auditovatelné.</td></tr>
+          <tr><td><code>ref_PaceCategory</code></td><td>C3 mapping, service portfolio.</td><td>PACE klasifikace nebo lokální portfolio logika.</td><td>Popsat metodiku použití.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Capability builder a spiral dashboardy</h2>
+      <p>
+        Capability builder je administrátorský prostor pro lokální úpravu schopností nad importovanou taxonomy. Používejte ho opatrně: změna domény, parenta nebo levelu se promítne do capability map, coverage, gaps, overlaps a C3 graphu.
+      </p>
+      <table class="field-table">
+        <thead><tr><th>Prvek</th><th>Význam</th><th>Co ovlivní</th><th>Doporučení</th></tr></thead>
+        <tbody>
+          <tr><td>Capability code / UUID</td><td>Identifikátor capability.</td><td>Mapování služeb a C3 detail.</td><td>Neměnit bez migrace vazeb.</td></tr>
+          <tr><td>Title</td><td>Název capability.</td><td>Mapy, search, coverage.</td><td>Udržovat srozumitelný i pro manažera.</td></tr>
+          <tr><td>Domain</td><td>Oblast schopnosti.</td><td>Filtry a graph segmentation.</td><td>Domény držet stabilní.</td></tr>
+          <tr><td>Level</td><td>Úroveň capability.</td><td>L1/L2/L3 mapy a reporting.</td><td>Mapování služeb typicky na L3.</td></tr>
+          <tr><td>Parent</td><td>Nadřazená capability.</td><td>Hierarchie a aggregation coverage.</td><td>Po změně ověřit mapu a graph.</td></tr>
+          <tr><td>Spiral membership</td><td>Vazba na FMN baseline.</td><td>Spiral dashboardy a coverage podle baseline.</td><td>Rozlišit aktivní a historické spirals.</td></tr>
+          <tr><td>Status</td><td>Stav capability v lokálním builderu.</td><td>Viditelnost a governance interpretace.</td><td>Neplést s lifecycle služby.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Admin import, logy a instalace</h2>
+      <table class="field-table">
+        <thead><tr><th>Oblast</th><th>Co admin vidí</th><th>Co může změnit</th><th>Bezpečnostní poznámka</th></tr></thead>
+        <tbody>
+          <tr><td><code>/administration/import</code></td><td>Batch review, raw relations, raw fields, status filters.</td><td>Reparse single/all raw relations.</td><td>Reparse mění data, ideálně po dry-run a záloze.</td></tr>
+          <tr><td><code>/administration/import</code></td><td>Server folder plan, spiral inference, blockers.</td><td>Commit non-blocking import run.</td><td>Folder path musí být důvěryhodný a dostupný backendu.</td></tr>
+          <tr><td><code>/administration/logs</code></td><td>Čas, akce, entita, uživatel, změněná pole.</td><td>Nic, stránka je read-only.</td><td>Audit logy jsou důkazní stopa, ne reporting hračka.</td></tr>
+          <tr><td><code>/administration/installation</code></td><td>Install status, modules, repair, seed demo, summary.</td><td>Repair/seed/demo akce podle implementace.</td><td>Nespouštět v produkci bez zálohy a změnového okna.</td></tr>
+          <tr><td><code>/administration/installation</code></td><td>Alias.</td><td>Přesměrování na admin installation.</td><td>Nemá vlastní data.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Content admin a zakládací workspaces</h2>
+      <table class="field-table">
+        <thead><tr><th>Stránka</th><th>Účel</th><th>Kdo ji používá</th><th>Co se stane po akci</th></tr></thead>
+        <tbody>
+          <tr><td><code>/management/new-service</code></td><td>Nová služba přes wizard.</td><td>Editor/admin.</td><td>Vytvoří draft a přesměruje do editoru služby.</td></tr>
+          <tr><td><code>/administration/c3-capability-builder</code></td><td>Nová C3 položka přes wizard.</td><td>Architekt/admin.</td><td>Vytvoří C3 záznam a otevře detail/editor.</td></tr>
+          <tr><td><code>/management/new-service</code></td><td>Legacy/content admin vstup pro novou službu.</td><td>Editor/admin.</td><td>Má vést na aktuální service wizard pattern.</td></tr>
+          <tr><td><code>/administration/c3-capability-builder</code></td><td>Legacy/content admin vstup pro C3 položku.</td><td>Admin/architekt.</td><td>Má vést na aktuální C3 wizard pattern.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Administrátorské scénáře</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card">
+          <header><span class="install-step-number">A</span><div><h3>Nový reviewer nevidí svoje úkoly</h3><div class="step-meta"><span>users</span><span>email</span><span>reviews</span></div></div></header>
+          <ol>
+            <li>Otevřete <code>/administration/users</code> a najděte účet.</li>
+            <li>Zkontrolujte <code>email</code>, <code>display_name</code>, <code>is_active</code> a roli.</li>
+            <li>Ověřte, zda <code>governance_review.assigned_to</code> odpovídá e-mailu.</li>
+            <li>Pokud jde o AD účet, zkontrolujte <code>external_principal</code>.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">B</span><div><h3>Import hlásí neznámý portfolio kód</h3><div class="step-meta"><span>ref data</span><span>import</span><span>contract</span></div></div></header>
+          <ol>
+            <li>V import review najděte <code>import_issue</code> a field_name.</li>
+            <li>Otevřete <code>/administration/catalogue-ref</code> a tab <code>ref_PortfolioGroup</code>.</li>
+            <li>Přidejte kód jen pokud je opravdu legitimní.</li>
+            <li>Spusťte dry-run znovu a zkontrolujte, že warning zmizel.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">C</span><div><h3>Zapnutí SSO</h3><div class="step-meta"><span>SSO</span><span>proxy</span><span>security</span></div></div></header>
+          <ol>
+            <li>Nejprve nastavte reverse proxy tak, aby odstraňovala podvržené klientské hlavičky.</li>
+            <li>V <code>/administration/web</code> vyplňte SSO header keys.</li>
+            <li>Ověřte testovací AD účet s <code>external_principal</code>.</li>
+            <li>Zapněte <code>auth.sso.enabled</code> až po testu.</li>
+            <li>Nechte si jeden local admin recovery účet.</li>
+          </ol>
+        </article>
+        <article class="install-step-card">
+          <header><span class="install-step-number">D</span><div><h3>Nová spiral baseline</h3><div class="step-meta"><span>FMN</span><span>C3</span><span>coverage</span></div></div></header>
+          <ol>
+            <li>V admin/C3 reference nebo capability builderu připravte spiral code, title a status.</li>
+            <li>Naimportujte C3/FMN data se správným <code>spiral_code</code>.</li>
+            <li>Ověřte <code>/spirals</code>, capability map a coverage.</li>
+            <li>Pokud se baseline má stát aktivní, proveďte aktivaci jako governance rozhodnutí.</li>
+          </ol>
+        </article>
+      </div>
+
+      <h2>API a DB vazby</h2>
+      <table class="field-table">
+        <thead><tr><th>API / DB</th><th>Použití</th><th>Co ukládá / vrací</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET/POST/PUT /api/v1/admin/users</code></td><td>Správa uživatelů.</td><td><code>platform.users</code>, audit log.</td></tr>
+          <tr><td><code>GET/DELETE /api/v1/admin/groups</code></td><td>Seznam a mazání skupin.</td><td><code>app_group</code>.</td></tr>
+          <tr><td><code>GET/PUT /api/v1/admin/groups/{id}</code></td><td>Detail skupiny.</td><td><code>app_group</code>.</td></tr>
+          <tr><td><code>PUT /api/v1/admin/groups/{id}/permissions</code></td><td>Permissions grid.</td><td><code>app_group_permission</code>.</td></tr>
+          <tr><td><code>GET/POST/DELETE /api/v1/admin/groups/{id}/members</code></td><td>Members tab.</td><td><code>app_user_group</code>.</td></tr>
+          <tr><td><code>GET/PUT /api/v1/admin/web-settings</code></td><td>Web/SSO settings.</td><td><code>platform.app_config</code>.</td></tr>
+          <tr><td><code>GET/POST/PUT/DELETE /api/v1/ref/{table}</code></td><td>Reference data editor.</td><td><code>ref_*</code> tabulky.</td></tr>
+          <tr><td><code>GET /api/v1/admin/logs</code></td><td>Audit logy.</td><td><code>platform.audit_log</code>.</td></tr>
+          <tr><td><code>GET /api/v1/install/status</code>, <code>/summary</code>, <code>/repair</code>, <code>/seed-demo</code></td><td>Installation admin.</td><td><code>system_installation</code>, module tables, release metadata.</td></tr>
+          <tr><td><code>GET /api/v1/import/review</code>, <code>/reparse-raw</code></td><td>Admin import.</td><td>Import audit, raw relations, service_relation.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Časté chyby</h2>
+      <table class="field-table">
+        <thead><tr><th>Chyba</th><th>Dopad</th><th>Správný postup</th></tr></thead>
+        <tbody>
+          <tr><td>Admin práva pro běžného editora.</td><td>Uživatel může změnit ref data, SSO nebo jiné účty.</td><td>Dát editor + cílenou skupinu, ne admin.</td></tr>
+          <tr><td>Mazání ref kódu používaného službami.</td><td>Historická data a filtry ztratí význam nebo vzniknou orphan hodnoty.</td><td>Hodnotu deaktivovat nebo migrovat služby před smazáním.</td></tr>
+          <tr><td>SSO bez ověřené proxy.</td><td>Riziko spoofingu identity.</td><td>Trusted headers smějí přicházet jen z důvěryhodné reverse proxy.</td></tr>
+          <tr><td>Neaktivní účet se maže místo deaktivace.</td><td>Ztráta auditní kontinuity.</td><td>Deaktivovat účet, nemazat auditní identitu.</td></tr>
+          <tr><td>Skupiny bez popisu.</td><td>Za půl roku nikdo neví, proč práva existují.</td><td>Vyplnit description a držet ownera skupiny.</td></tr>
+          <tr><td>Capability builder mění parenty bez kontroly grafu.</td><td>Rozbije coverage a mapy.</td><td>Po změně ověřit capability map, C3 graph a Service 360.</td></tr>
+          <tr><td>Repair/seed spuštěný v produkci bez zálohy.</td><td>Nečekaná změna dat.</td><td>Před systémovou akcí záloha a change window.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Vazby na další kapitoly</h2>
+      <div class="route-list">
+        <div class="route-item"><strong><a href="01-install.html">01 Instalace</a></strong> popisuje instalační wizard, admin bootstrap a moduly.</div>
+        <div class="route-item"><strong><a href="04-services.html">04 Služby</a></strong> ukazuje, kde se ref data používají v service editoru.</div>
+        <div class="route-item"><strong><a href="05-capabilities_c3.html">05 Capabilities a C3</a></strong> vysvětluje dopad C3 builderu, spiral a C3 ref dat.</div>
+        <div class="route-item"><strong><a href="07-import.html">07 Import</a></strong> navazuje na ref data, admin import a reparse.</div>
+        <div class="route-item"><strong><a href="09-user.html">09 Uživatel</a></strong> popisuje osobní profil, preference a dopad role na uživatele.</div>
+      </div>
+
+      <div class="chapter-nav">
+        <a href="07-import.html">Předchozí: 07 Import</a>
+        <a href="09-user.html">Další: 09 Uživatel</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

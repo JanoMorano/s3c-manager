@@ -120,6 +120,14 @@ test('unauthenticated access to protected route redirects to login', async ({ pa
   await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
 });
 
+test('unauthenticated access to app root, portfolio, and C3 read views redirects to login', async ({ page }) => {
+  for (const path of ['/', '/portfolio', '/c3/list', '/c3/services', '/c3/applications', '/c3/data-objects', '/c3/technology-interactions']) {
+    await page.context().clearCookies();
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
+  }
+});
+
 test('must-change-password screen does not request owned services before the password reset is completed', async ({ page }) => {
   const credentials = getConfiguredAdminCredentials();
   if (!credentials) {

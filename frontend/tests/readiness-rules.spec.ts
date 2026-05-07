@@ -149,7 +149,72 @@ async function mockAuthenticatedReadiness(page: Page) {
               },
             ],
           },
-          items: [],
+          items: [
+            {
+              service_pk: 1,
+              service_id: 'SVC-BLOCKED',
+              title: 'Blocked Identity Service',
+              service_status: 'active',
+              is_publishable: false,
+              blockers: ['Service has owner'],
+              warnings: [],
+              rules: [
+                {
+                  rule_key: 'service_has_owner',
+                  title: 'Service has owner',
+                  status: 'failed',
+                  severity: 'P0',
+                  blocking: true,
+                  message: 'Service has owner',
+                  exception: null,
+                },
+              ],
+            },
+            {
+              service_pk: 2,
+              service_id: 'SVC-WARN',
+              title: 'Warning Collaboration Service',
+              service_status: 'active',
+              is_publishable: true,
+              blockers: [],
+              warnings: ['Service has dependencies'],
+              rules: [
+                {
+                  rule_key: 'service_has_dependency_classification',
+                  title: 'Service has dependencies',
+                  status: 'failed',
+                  severity: 'P2',
+                  blocking: false,
+                  message: 'Service has dependencies',
+                  exception: {
+                    reason: 'Old waiver',
+                    expires_at: '2026-04-01T00:00:00Z',
+                    expired: true,
+                  },
+                },
+              ],
+            },
+            {
+              service_pk: 3,
+              service_id: 'SVC-READY',
+              title: 'Ready Portal Service',
+              service_status: 'active',
+              is_publishable: true,
+              blockers: [],
+              warnings: [],
+              rules: [
+                {
+                  rule_key: 'service_has_owner',
+                  title: 'Service has owner',
+                  status: 'passed',
+                  severity: 'P0',
+                  blocking: true,
+                  message: 'Service has owner',
+                  exception: null,
+                },
+              ],
+            },
+          ],
         }),
       });
       return;
@@ -167,22 +232,26 @@ async function mockAuthenticatedReadiness(page: Page) {
   };
 }
 
-test('readiness queue renders rule groups and creates an exception', async ({ page }) => {
+test('readiness gate renders rule groups and creates an exception', async ({ page }) => {
   const tracker = await mockAuthenticatedReadiness(page);
 
   await page.goto('/operations/readiness');
 
-  await expect(page.getByRole('heading', { name: /readiness queue/i })).toBeVisible();
-  await expect(page.getByText('Blocked Identity Service')).toBeVisible();
-  await expect(page.getByText('Warning Collaboration Service')).toBeVisible();
-  await expect(page.getByText('Ready Portal Service')).toBeVisible();
-  await expect(page.getByText('P0')).toBeVisible();
-  await expect(page.getByText('expired exception')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /readiness gate/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Blocked Identity Service/ })).toBeVisible();
+  await expect(page.getByText('P0').first()).toBeVisible();
 
-  await page.getByRole('button', { name: /exception/i }).first().click();
+  await page.locator('aside').getByRole('button', { name: /^Exception$/ }).click();
   await page.getByLabel('Exception reason').fill('Owner assigned in migration tracker');
   await page.getByLabel('Exception expiry').fill('2026-06-01');
   await page.getByRole('button', { name: /approve exception/i }).click();
 
   await expect.poll(() => tracker.wasExceptionCreated()).toBe(true);
+
+  await page.getByRole('button', { name: /warnings/i }).click();
+  await expect(page.getByRole('button', { name: /Warning Collaboration Service/ })).toBeVisible();
+  await expect(page.getByText('expired exception')).toBeVisible();
+
+  await page.getByRole('button', { name: /ready/i }).click();
+  await expect(page.getByRole('button', { name: /Ready Portal Service/ })).toBeVisible();
 });

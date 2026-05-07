@@ -45,56 +45,6 @@ describe('governance repo', () => {
         expect(query.mock.calls[0][1]).toContain('owner@example.com');
     });
 
-    test('filters service risks by severity', async () => {
-        const query = jest.fn().mockResolvedValue({
-            rows: [{ finding_key: 'service:1:missing-owner', severity: 'P0' }],
-        });
-        const { getPool } = require('../db/pool');
-        getPool.mockReturnValue({ query });
-
-        const repo = require('../db/governance.repo');
-        const rows = await repo.listServiceRisks({ severity: ['P0'], limit: 25, offset: 0 });
-
-        expect(rows).toHaveLength(1);
-        expect(query.mock.calls[0][0]).toContain('FROM data.v_service_risk_radar');
-        expect(query.mock.calls[0][1]).toContainEqual(['P0']);
-    });
-
-    test('dismissing a generated advisor finding persists the finding and writes dismissal audit', async () => {
-        const query = jest.fn()
-            .mockResolvedValueOnce({
-                rows: [{
-                    finding_id: null,
-                    finding_key: 'owner:owner@example.com:overloaded',
-                    finding_type: 'owner_load',
-                    severity: 'P2',
-                    source_entity_type: 'owner',
-                    source_entity_id: 'owner@example.com',
-                    title: 'Owner load: Owner',
-                    reason: 'Owner has load score 42.',
-                    suggested_action: 'Delegate ownership.',
-                    target_url: '/operations/owner-load?owner=owner@example.com',
-                    score: 42,
-                }],
-            })
-            .mockResolvedValueOnce({ rows: [{ finding_id: 123 }] })
-            .mockResolvedValueOnce({ rows: [{ dismissal_id: 77, finding_id: 123 }] });
-        const { getPool } = require('../db/pool');
-        getPool.mockReturnValue({ query });
-
-        const repo = require('../db/governance.repo');
-        const result = await repo.dismissFinding({
-            findingId: 'owner:owner@example.com:overloaded',
-            reason: 'Ownership delegated',
-            actor: 'admin@example.com',
-        });
-
-        expect(result).toEqual({ dismissal_id: 77, finding_id: 123 });
-        expect(query.mock.calls[1][0]).toContain('INSERT INTO data.governance_finding');
-        expect(query.mock.calls[2][0]).toContain('INSERT INTO data.governance_finding_dismissal');
-        expect(query.mock.calls[2][1]).toEqual([123, 'admin@example.com', 'Ownership delegated']);
-    });
-
     test('creates and updates governance reviews', async () => {
         const query = jest.fn()
             .mockResolvedValueOnce({ rows: [{ id: 7 }] })
@@ -152,7 +102,7 @@ describe('governance repo', () => {
         const repo = require('../db/governance.repo');
         const decision = await repo.createDecision({
             service_id: 'SVC-IAM',
-            decision_type: 'publish_approval',
+            decision_type: 'publish',
             decision: 'approved',
             rationale: 'Ready',
             decided_by: 'admin@example.com',
@@ -161,6 +111,6 @@ describe('governance repo', () => {
         expect(decision.id).toBe(44);
         expect(query.mock.calls[0][0]).toContain('FROM data.service_catalog');
         expect(query.mock.calls[1][0]).toContain('INSERT INTO data.governance_decision');
-        expect(query.mock.calls[1][1]).toEqual(expect.arrayContaining([7, 'publish_approval', 'approved', 'Ready', 'admin@example.com']));
+        expect(query.mock.calls[1][1]).toEqual(expect.arrayContaining([7, 'publish', 'approved', 'Ready', 'admin@example.com']));
     });
 });

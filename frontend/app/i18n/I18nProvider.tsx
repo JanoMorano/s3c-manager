@@ -5,6 +5,7 @@ import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
 import { normalizeLocale } from '../../../shared/i18n/core';
 import { readBootstrapLocale } from './bootstrap';
 import { I18nContext } from './useI18n';
+import LegacyTextBridge from './LegacyTextBridge';
 import { t as translate, type Locale } from './messages';
 
 function persistLocaleCookie(locale: Locale) {
@@ -53,6 +54,7 @@ export default function I18nProvider({
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, t: (key, params) => translate(locale, key, params) }}>
+      <LegacyTextBridge />
       {children}
     </I18nContext.Provider>
   );

@@ -4,8 +4,8 @@
  * Renders conditional admin links based on the active session role, then NavUser at far right.
  *
  * Role matrix:
- *   admin  → Search + Administration + Content Admin + NavUser
- *   editor → Search + Content Admin + NavUser
+ *   admin  → Search + Administration + NavUser
+ *   editor → Search + NavUser
  *   viewer → Search + NavUser
  *
  * Session is restored from secure cookies and cached in sessionStorage as a minimal snapshot.
@@ -48,7 +48,6 @@ export default function NavRight() {
     };
   }, []);
 
-  const isEditor = hasRoleAccess(role, 'editor');
   const isAdmin  = hasRoleAccess(role, 'admin');
   const canSearch = hydrated && Boolean(role);
 
@@ -57,9 +56,6 @@ export default function NavRight() {
       {canSearch && <NavGlobalSearch />}
       {isAdmin && (
         <Link href="/administration" className={styles.navLink}>{t('nav.administration')}</Link>
-      )}
-      {isEditor && (
-        <Link href="/management" className={styles.navLink}>{t('nav.content_admin')}</Link>
       )}
       <NavUser />
     </>

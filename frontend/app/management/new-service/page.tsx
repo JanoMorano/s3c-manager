@@ -2,7 +2,7 @@
 /**
  * Service Onboarding Wizard — /management/new-service/page.tsx
  *
- * Multi-step průvodce zavedením služby do ITIL katalogu.
+ * Multi-step průvodce založením služby do katalogu.
  *
  * Kroky:
  *   1  Identita           — Service ID, Title, Type, Lifecycle
@@ -15,7 +15,7 @@
  *   8  Přehled & Vytvoření
  *
  * Každé pole má:
- *   - krátkou ITIL nápovědu inline (italic, muted)
+ *   - krátkou produktovou nápovědu inline (italic, muted)
  *   - ? tlačítko s delším vysvětlením (Radix Tooltip)
  *   - placeholder v modré kurzívě (ukázkové hodnoty)
  */
@@ -41,16 +41,16 @@ import { Button } from '@/design-system/controls/Button';
 
 import styles from './wizard.module.css';
 
-// ── ITIL help text per field ─────────────────────────────────────────────────
+// ── Product help text per field ──────────────────────────────────────────────
 
 const HELP: Record<string, { short: string; long: string }> = {
   service_id: {
     short: 'Unikátní kód, max 20 znaků (doporučení: PREFIX + číslice)',
-    long: 'V ITIL Service Catalogue má každá služba unikátní identifikátor. Doporučená konvence: 3-4 písmena prefixu + číselný kód, např. WPS001 = Workplace Services #001. Kód se nezmění a používá se v reportech, importech a URL.',
+    long: 'Stabilní identifikátor služby. Doporučená konvence: 3-4 písmena prefixu + číselný kód, např. WPS001 = Workplace Services #001. Kód se nemění a používá se v reportech, importech a URL.',
   },
   title: {
     short: 'Celý název srozumitelný pro uživatele — bez zkratek',
-    long: 'Název by měl být jasný a srozumitelný pro konzumenta, nikoliv technický. Dle ITIL 4 by název reflektoval hodnotu, kterou služba přináší, ne způsob implementace. Příklad: "Firemní mobilní zařízení" místo "MDM Provisioning".',
+    long: 'Název má být jasný pro konzumenta, ne pro implementační tým. Popište hodnotu, kterou služba přináší, ne způsob implementace. Příklad: "Firemní mobilní zařízení" místo "MDM Provisioning".',
   },
   service_type: {
     short: 'Kategorie dle interní taxonomie typů služeb',
@@ -58,7 +58,7 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   lifecycle_state: {
     short: 'Aktuální stav v životním cyklu — určuje viditelnost v katalogu',
-    long: 'ITIL Service Lifecycle: Draft (návrh, neviditelný), Under Review (čeká na schválení), Approved (schváleno), Live (aktivní, viditelný), Deprecated (zastaralá, plánované stažení), Retired (stažena). Stav řídí přístup a provozní procesy.',
+    long: 'Životní cyklus služby: Draft (návrh), Live (publikováno), Deprecated (zastaralé) nebo Retired (staženo). Review a schvalování se řeší samostatně v governance workflow.',
   },
   summary: {
     short: 'Krátký popis pro zobrazení v katalogu — 1–2 věty',
@@ -70,7 +70,7 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   consumer_value: {
     short: 'Konkrétní hodnota nebo přínos, který konzument získá',
-    long: 'ITIL 4 klade důraz na value co-creation. Consumer Value popisuje konkrétní outcome nebo přínos konzumenta. Příklad: "Přístup k emailu a kalendáři z jakéhokoli zařízení, spolehlivý provoz s 99,9 % SLA a bezpečným šifrováním."',
+    long: 'Popište konkrétní výsledek nebo přínos pro konzumenta. Příklad: "Přístup k emailu a kalendáři z jakéhokoli zařízení, spolehlivý provoz s 99,9 % SLA a bezpečným šifrováním."',
   },
   value_proposition: {
     short: 'Proč tuto službu místo alternativ — klíčové diferenciátory',
@@ -78,11 +78,11 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   requestable: {
     short: 'Může konzument tuto službu objednat z katalogu?',
-    long: 'ITIL definuje "requestable services" jako služby, které si konzumenti mohou formálně objednat přes Request Model. Pokud je zapnuto, mohou podat Service Request. Pokud ne, služba je pouze informativní (konzumována automaticky nebo přidělením).',
+    long: 'Zapněte jen tehdy, když existuje jasný kanál, přes který si konzument službu vyžádá. Pokud není zapnuto, služba je pouze informativní nebo se přiděluje mimo katalog.',
   },
   request_channel_type: {
     short: 'Jak konzumenti podávají žádost o tuto službu',
-    long: 'Definuje vstupní bod Request Modelu. Jasný request channel je nezbytný pro ITIL-compliant Service Fulfilment. Příklady kanálů: ITSM Portal (ServiceNow, Jira SM), Email, Self-service portál, Teams, Telefon.',
+    long: 'Vyberte vstupní bod pro objednání služby. Příklady kanálů: ITSM portál, e-mail, self-service portál, Teams nebo telefon.',
   },
   request_channel_url: {
     short: 'Přímý odkaz na portál nebo formulář pro objednávky',
@@ -94,11 +94,11 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   fulfillment_lead_time_text: {
     short: 'Očekávaná doba od podání žádosti do dodání služby',
-    long: 'ITIL označuje tuto veličinu jako "service lead time". Buď realistický a zahrň čas schvalování. Příklady: "Tentýž pracovní den", "1–2 pracovní dny", "2–4 týdny (včetně schválení)". Konzumenti tuto dobu vidí v katalogu.',
+    long: 'Uveďte realistickou dobu dodání včetně případného schválení. Příklady: "Tentýž pracovní den", "1–2 pracovní dny", "2–4 týdny (včetně schválení)". Konzumenti tuto dobu vidí v katalogu.',
   },
   target_audience_summary: {
     short: 'Komu je tato služba určena — oprávněná skupina uživatelů',
-    long: 'Popisuje oprávněnou skupinu konzumentů. ITIL Audience/Eligibility pomáhá konzumentům ověřit, zda mají na službu nárok. Příklady: "Všichni zaměstnanci", "Pouze IT personál", "Projektoví manažeři ve schválených cost centrech".',
+    long: 'Popište oprávněnou skupinu konzumentů, aby uživatel hned poznal, zda má na službu nárok. Příklady: "Všichni zaměstnanci", "Pouze IT personál", "Projektoví manažeři ve schválených cost centrech".',
   },
   portfolio_group_code: {
     short: 'Portfolio, do kterého tato služba patří — governance a reporting',
@@ -114,7 +114,7 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   global_service_group_code: {
     short: 'Globální seskupení pro cross-portfolio reporting',
-    long: 'Global Service Group umožňuje seskupit služby napříč portfolii pro globální reporting, benchmarking nebo strategické hodnocení. Typicky odpovídá vrstvám ITIL Service Portfolio.',
+    long: 'Global Service Group seskupuje služby napříč portfolii pro reporting, srovnání a strategické hodnocení. Vyplňte jen tehdy, když organizace tento řez skutečně používá.',
   },
   security_classification: {
     short: 'Nejvyšší úroveň citlivosti dat zpracovávaných touto službou',
@@ -122,7 +122,7 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   service_owner: {
     short: 'Jméno primárně zodpovědné osoby za tuto službu end-to-end',
-    long: 'Service Owner je dle ITIL zodpovědný za službu end-to-end — od návrhu po retirement. Zajišťuje plnění závazků, zastupuje službu v governance fórech a schvaluje významné změny. Toto pole zobrazuje detail služby.',
+    long: 'Service Owner odpovídá za službu end-to-end, zastupuje ji v governance fórech a schvaluje významné změny. Toto pole se zobrazuje na detailu služby.',
   },
   service_owner_email: {
     short: 'Email Service Ownera — konzumenti jej mohou kontaktovat',
@@ -130,7 +130,7 @@ const HELP: Record<string, { short: string; long: string }> = {
   },
   vlastnik: {
     short: 'Vlastník oblasti — odpovědný za portfolio nebo doménu',
-    long: 'Service Area Owner (Vlastník oblasti) odpovídá za skupinu příbuzných služeb nebo celou oblast (doménu). Spravuje portfolio alignment a je kontaktem pro business stakeholdery na vyšší úrovni.',
+    long: 'Vlastník oblasti odpovídá za skupinu příbuzných služeb nebo celou doménu. Hlídá sladění portfolia a je kontaktem pro business stakeholdery na vyšší úrovni.',
   },
   manager: {
     short: 'Delivery Manager — zodpovídá za provozní dodávku',
@@ -297,8 +297,6 @@ function StepProgress({ current, steps }: { current: number; steps: StepDef[] })
 
 const LIFECYCLE_OPTIONS = [
   { value: 'draft',        label: 'Draft — návrh, neviditelný v katalogu' },
-  { value: 'under_review', label: 'Under Review — čeká na schválení' },
-  { value: 'approved',     label: 'Approved — schváleno, nezveřejněno' },
   { value: 'live',         label: 'Live — aktivní, viditelný v katalogu' },
   { value: 'deprecated',   label: 'Deprecated — zastaralá, plánované stažení' },
   { value: 'retired',      label: 'Retired — stažena z provozu' },
@@ -317,7 +315,7 @@ interface StepFormProps {
 
 // ═══ STEP 1 — Identita ═══════════════════════════════════════════════════════
 
-function Step1Identity({ register, watch, setValue, errors, serviceTypes }: StepFormProps & {
+function Step1Identity({ register, watch, errors, serviceTypes }: StepFormProps & {
   serviceTypes: Array<{ code: string; name: string }> | undefined;
 }) {
   const watchedId    = watch('service_id');
@@ -665,7 +663,7 @@ function Step5Ownership({ register, errors }: StepFormProps) {
       </WizardField>
 
       <div className={styles.fieldRow2}>
-        <WizardField fieldKey="vlastnik" label="Vlastník oblasti (Area Owner)">
+        <WizardField fieldKey="vlastnik" label="Vlastník oblasti">
           <input
             {...register('vlastnik')}
             className={styles.input}
@@ -691,7 +689,8 @@ function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: 
   domainOptions: string[];
   domainColorMap: Map<string, string | undefined>;
 }) {
-  const selectedDomains = watch('domains') ?? [];
+  const watchedDomains = watch('domains');
+  const selectedDomains = useMemo(() => watchedDomains ?? [], [watchedDomains]);
 
   const toggleDomain = useCallback((code: string) => {
     const next = selectedDomains.includes(code)
@@ -1029,6 +1028,7 @@ export default function NewServiceWizard() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // eslint-disable-next-line react-hooks/incompatible-library -- U5: React Hook Form watch subscription is used only to persist the wizard draft.
     const subscription = watch((value) => {
       const draft: WizardDraft = {
         data: value as Partial<FormData>,
@@ -1162,7 +1162,7 @@ export default function NewServiceWizard() {
     <div className={styles.wizardShell}>
       {/* Breadcrumb */}
       <div className={styles.breadcrumb}>
-        <Link href="/management">Content Admin</Link>
+        <Link href="/services/list">Services</Link>
         <span>›</span>
         <span>Nová služba</span>
       </div>
@@ -1171,7 +1171,7 @@ export default function NewServiceWizard() {
       <div className={styles.wizardHeader}>
         <h1 className={styles.wizardTitle}>Průvodce zavedením služby</h1>
         <p className={styles.wizardSubtitle}>
-          Projděte kroky pro ITIL-compliant záznam v katalogu. Každé pole má krátkou nápovědu
+          Projděte kroky pro srozumitelný katalogový záznam služby. Každé pole má krátkou nápovědu
           — detailní vysvětlení otevřete tlačítkem <strong>?</strong>.
           Placeholdery (modrá kurzíva) ukazují příklady hodnot.
         </p>

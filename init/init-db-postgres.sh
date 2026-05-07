@@ -126,6 +126,10 @@ run_psql "pg readiness rules — configurable readiness and exceptions" /pgdb/sc
 run_psql "pg capability governance — coverage cockpit views" /pgdb/schema/25_capability_governance.sql
 run_psql "pg governance workflow — reviews and decisions" /pgdb/schema/26_governance_workflow.sql
 run_psql "pg impact analysis — dependency and capability traversal views" /pgdb/schema/27_impact_analysis.sql
+run_psql "pg reduction cleanup — retired request/notification/preference objects" /pgdb/schema/29_reduction_low_risk_cleanup.sql
+run_psql "pg reduction cleanup — domain model simplification" /pgdb/schema/30_reduction_domain_model_simplification.sql
+run_psql "pg reduction cleanup — locale cut to cs/en" /pgdb/schema/31_locale_cs_en_only.sql
+run_psql "pg reduction cleanup — final sunset" /pgdb/schema/32_final_reduction_sunset_cleanup.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

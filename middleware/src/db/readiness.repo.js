@@ -116,17 +116,13 @@ function normalizeOffset(value) {
     return Math.max(0, parsed);
 }
 
-async function listRules({ includeDisabled = true } = {}) {
+async function listRules({ includeDisabled = false } = {}) {
     const where = includeDisabled ? '' : 'WHERE enabled = TRUE';
     const result = await getPool().query(`
         SELECT
             rule_key,
             title,
             description,
-            title_text,
-            why_text,
-            howto_text,
-            evidence_hint,
             severity,
             enabled,
             blocking,

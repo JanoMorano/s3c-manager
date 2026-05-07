@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data import, dry-run validation and audit - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">07 · Import</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link active" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">07 Import</p>
+        <h1>Data import, dry-run validation and audit</h1>
+        <p class="lead">Import brings service, reference, C3, FMN and integration evidence into the application. The safest workflow is profile selection, file upload, dry-run preview, issue review and then controlled execution.</p>
+      </section>
+
+      <h2>Import process theory</h2>
+      <p>Import is a governed data intake process, not a blind upload. The application should show what will be created, updated, skipped or rejected before data is written to PostgreSQL.</p>
+
+      <h2>Route map</h2>
+      <table class="field-table"><thead><tr><th>Route</th><th>Purpose</th></tr></thead><tbody><tr><td>/import</td><td>Import workspace for guided business import.</td></tr><tr><td>/import/upload</td><td>Upload page with import target and profile selection.</td></tr><tr><td>/administration/import</td><td>Administrative import profile management and reparsing.</td></tr></tbody></table>
+
+      <h2>Supported formats and targets</h2>
+      <table class="field-table"><thead><tr><th>Format</th><th>Typical target</th><th>Notes</th></tr></thead><tbody><tr><td>CSV</td><td>Services and reference data</td><td>Requires stable column names and encoding.</td></tr><tr><td>JSON</td><td>Services, C3 and integration payloads</td><td>Best for system-to-system exchange.</td></tr><tr><td>XLSX</td><td>Business-maintained import sheets</td><td>Useful when source data comes from spreadsheet owners.</td></tr><tr><td>ArchiMate XML</td><td>Architecture mapping evidence</td><td>Maps architecture elements into service and capability context.</td></tr></tbody></table>
+
+      <h2>Dry-run report</h2>
+      <p>A dry-run should be read before execution. Focus on unknown reference values, duplicate service IDs, missing owner, unmapped C3 capability, invalid lifecycle value and rows that would overwrite existing data.</p>
+
+      <h2>Post-import actions</h2>
+      <p>After import, open the service list, readiness queue, capability coverage and import audit. Imported evidence often needs owner confirmation, governance review or manual cleanup before publication.</p>
+
+      <figure class="screen-slot"><div>Screenshot: Import<br><code>/img/help-en/07-import.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="06-governance.html">Previous: Governance</a>
+        <a href="08-admin.html">Next: Administration</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

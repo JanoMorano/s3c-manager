@@ -20,7 +20,6 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { ServiceListResponse, ServiceListItem } from '@/features/services/model/service.types';
 import { useRouter } from 'next/navigation';
 import type { Locale } from '@/app/i18n/messages';
-import { usePersonaContext, type Persona } from '@/features/auth/PersonaContext';
 
 // ── Avatar colour palette ─────────────────────────────────────────────────────
 const PALETTE = [
@@ -55,7 +54,6 @@ interface MeResponse {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UserInfoPage() {
   const { t, setLocale } = useI18n();
-  const { persona, setPersona } = usePersonaContext();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -77,9 +75,6 @@ export default function UserInfoPage() {
   const [profileError,   setProfileError]   = useState<string | null>(null);
   const [langSaving, setLangSaving] = useState(false);
   const [langError, setLangError] = useState<string | null>(null);
-  const [personaSaving, setPersonaSaving] = useState(false);
-  const [personaSaved, setPersonaSaved] = useState(false);
-  const [personaError, setPersonaError] = useState<string | null>(null);
 
   // ── Password form state ───────────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -94,6 +89,7 @@ export default function UserInfoPage() {
   const redirectAfterPasswordChange = searchParams?.get('next') ?? '/';
 
   // ── Seed form when /me data arrives ──────────────────────────────────────
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: profile form hydrates from /me once, then remains locally editable. */
   useEffect(() => {
     if (!me) return;
     setProfileForm({
@@ -104,9 +100,10 @@ export default function UserInfoPage() {
       department:   me.department   ?? '',
       phone:        me.phone        ?? '',
       avatar_color: me.avatar_color ?? pickColorFromName(me.username),
-      preferred_lang: (['cs', 'en', 'sk', 'de'].includes(me.preferred_lang ?? '') ? me.preferred_lang : 'cs') as Locale,
+      preferred_lang: (['cs', 'en'].includes(me.preferred_lang ?? '') ? me.preferred_lang : 'cs') as Locale,
     });
   }, [me]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     void restoreAuthSession();
@@ -189,7 +186,7 @@ export default function UserInfoPage() {
       let persistedLang: Locale = nextLang;
       try {
         const data = await res.json() as { preferred_lang?: string };
-        if (['cs', 'en', 'sk', 'de'].includes(data.preferred_lang ?? '')) {
+        if (['cs', 'en'].includes(data.preferred_lang ?? '')) {
           persistedLang = data.preferred_lang as Locale;
         }
       } catch {
@@ -207,21 +204,6 @@ export default function UserInfoPage() {
       setLangError(err instanceof Error ? err.message : t('user_info.save_failed'));
     } finally {
       setLangSaving(false);
-    }
-  }
-
-  async function handlePersonaChange(nextPersona: Persona) {
-    setPersonaSaving(true);
-    setPersonaSaved(false);
-    setPersonaError(null);
-    try {
-      await setPersona(nextPersona);
-      setPersonaSaved(true);
-      setTimeout(() => setPersonaSaved(false), 2400);
-    } catch (err) {
-      setPersonaError(err instanceof Error ? err.message : t('user_info.save_failed'));
-    } finally {
-      setPersonaSaving(false);
     }
   }
 
@@ -277,7 +259,7 @@ export default function UserInfoPage() {
   if (meError && !me) {
     return (
       <div className={styles.shell}>
-        <PageHeader title={t('user_info.title')} purpose="Profil, pracovní pohled, jazyk a bezpečnost účtu." />
+        <PageHeader title={t('user_info.title')} purpose={t('user_info.account_security_purpose')} />
         <div className={styles.card}>
           <div className={styles.noToken}>
             {t('user_info.load_failed')} <Link href="/login">{t('user_info.log_in_again')}</Link>
@@ -291,10 +273,9 @@ export default function UserInfoPage() {
     <div className={styles.shell}>
       <PageHeader
         title={t('user_info.title')}
-        purpose="Nastavení účtu, role/persony a osobní pracovní kontext."
+        purpose={t('user_info.account_security_purpose')}
         chips={[
           { label: me?.role ?? 'role', tone: 'info' },
-          { label: persona, tone: 'neutral' },
           { label: me?.auth_provider ?? 'local', tone: 'neutral' },
         ]}
       />
@@ -393,32 +374,12 @@ export default function UserInfoPage() {
                 >
                   <option value="cs">{t('user_info.language_cs')}</option>
                   <option value="en">{t('user_info.language_en')}</option>
-                  <option value="sk">{t('locale.sk')}</option>
-                  <option value="de">{t('locale.de')}</option>
                 </select>
-              </div>
-              <div className={`${styles.field} ${styles.preferenceField}`}>
-                <label className={styles.fieldLabel} htmlFor="preferred-persona">{t('user_info.persona_label')}</label>
-                <select
-                  id="preferred-persona"
-                  className={styles.input}
-                  value={persona}
-                  onChange={(event) => void handlePersonaChange(event.target.value as Persona)}
-                  disabled={!me || personaSaving}
-                >
-                  <option value="consumer">{t('persona.consumer')}</option>
-                  <option value="service_owner">{t('persona.service_owner')}</option>
-                  <option value="capability_manager">{t('persona.capability_manager')}</option>
-                  <option value="admin">{t('persona.admin')}</option>
-                </select>
-                <p className={styles.fieldHint}>{t('user_info.persona_desc')}</p>
               </div>
             </div>
-            {(langError || personaError || personaSaved) && (
+            {langError && (
               <div className={styles.saveRow}>
-                {langError && <span className={styles.saveError}>{langError}</span>}
-                {personaError && <span className={styles.saveError}>{personaError}</span>}
-                {personaSaved && <span className={styles.saveSuccess}>✓ {t('user_info.preferences_saved')}</span>}
+                <span className={styles.saveError}>{langError}</span>
               </div>
             )}
 

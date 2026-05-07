@@ -48,16 +48,6 @@ const NODE_KIND_COLOR: Record<C3RelationGraphNode['node_kind'], string> = {
   c3_service: 'var(--color-domain-relay)',
 };
 
-const EDGE_COLOR: Record<C3RelationGraphEdge['edge_kind'], string> = {
-  capability_application: 'var(--color-success)',
-  capability_tin: 'var(--color-info)',
-  capability_data_object: 'var(--color-warning)',
-  capability_c3_service: 'var(--color-domain-relay)',
-  tin_application: 'var(--color-success)',
-  tin_data_object: 'var(--color-warning)',
-  tin_c3_service: 'var(--color-domain-relay)',
-};
-
 const COLUMN_X: Record<C3RelationGraphNode['node_kind'], number> = {
   c3_capability: 0,
   c3_tin: 320,

@@ -39,11 +39,6 @@ function normalizeIdentifier(value) {
     return String(value ?? '').trim().replace(/^id-/i, '');
 }
 
-function readAttribute(xml, name) {
-    const match = xml.match(new RegExp(`${name}="([^"]*)"`, 'i'));
-    return match ? decodeXml(match[1]) : null;
-}
-
 function readLocalizedTag(xml, tagName) {
     const localized = xml.match(new RegExp(`<${tagName}[^>]*(?:xml:lang|lang)="en"[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i'));
     if (localized) return decodeXml(localized[1]).trim();

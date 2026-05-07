@@ -142,8 +142,8 @@ export default function LoginPage() {
         <div className={styles.logo}>SC</div>
         <h1 className={styles.title}>Service Catalogue</h1>
         <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
-        {ssoChecking && <div className={styles.infoMsg}>{t('auth.login.sso_checking')}</div>}
-        {!ssoChecking && ssoMessage && <div className={styles.infoMsg}>{ssoMessage}</div>}
+        {ssoChecking && <div className={styles.infoMsg} role="status">{t('auth.login.sso_checking')}</div>}
+        {!ssoChecking && ssoMessage && <div className={styles.infoMsg} role="status">{ssoMessage}</div>}
         <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label} htmlFor={usernameInputId}>{t('auth.login.username_label')}</label>
           <input
@@ -168,7 +168,7 @@ export default function LoginPage() {
             disabled={busy}
             required
           />
-          {error && <div className={styles.errorMsg}>{error}</div>}
+          {error && <div className={styles.errorMsg} role="alert">{error}</div>}
           <button className={styles.btn} type="submit" disabled={busy}>
             {ssoChecking ? t('common.loading') : busy ? t('auth.login.logging_in') : t('auth.login.submit')}
           </button>

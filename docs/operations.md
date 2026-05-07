@@ -18,6 +18,9 @@ There are no locale prefixes in application URLs. Demo data seeding follows the
 resolved locale of the triggering request or the system locale when seeded from
 CLI automation.
 
+The historical `sk` and `de` catalogs were removed before the v1.2 handover.
+Do not reintroduce them without a separate product decision and i18n plan.
+
 ## Backup
 
 Create a timestamped PostgreSQL backup from the repository root:
@@ -100,14 +103,14 @@ Recommended pilot goals:
 Track these KPIs during the pilot:
 
 - completion rate of key user tasks
-- reduction of support tickets by topic
+- reduction of repeated catalogue clarification questions
 - most searched queries with no result
 - article feedback score (`"Was this article helpful?"`)
 
 Pilot exit criteria (example):
 
 - stable or improving task completion trend
-- measurable support ticket reduction in top 3 recurring topics
+- measurable reduction of repeated catalogue clarification questions in top 3 recurring topics
 - documented action list for no-result search queries
 - article helpfulness score reaches agreed baseline
 
@@ -125,7 +128,7 @@ After pilot exit criteria are met, expand in waves:
 At the end of each month, prioritize backlog items by observed weakness:
 
 1. **Key task completion**: improve flows where users fail or abandon tasks
-2. **Support tickets by topic**: add or revise content for high-volume themes
+2. **Repeated catalogue questions by topic**: add or revise content for high-volume themes
 3. **No-result searches**: create new articles or synonyms for top missing terms
 4. **Article helpfulness**: rewrite low-rated content and add missing context
 

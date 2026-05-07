@@ -24,9 +24,6 @@ jest.mock('../db/relations.repo', () => ({
 jest.mock('../db/audit.repo', () => ({
     findByRecord: jest.fn(),
 }));
-jest.mock('../db/governance.repo', () => ({
-    listServiceRisks: jest.fn(),
-}));
 jest.mock('../services/readiness', () => ({
     getServiceReadiness: jest.fn(),
 }));
@@ -42,7 +39,6 @@ const operationalLinksRepo = require('../db/operational-links.repo');
 const flavoursRepo = require('../db/flavours.repo');
 const relationsRepo = require('../db/relations.repo');
 const auditRepo = require('../db/audit.repo');
-const governanceRepo = require('../db/governance.repo');
 const readiness = require('../services/readiness');
 const { getPool } = require('../db/pool');
 
@@ -187,9 +183,6 @@ describe('service overview repository', () => {
             blockers: [],
             warnings: [],
         });
-        governanceRepo.listServiceRisks.mockResolvedValue([
-            { rule_code: 'review_due', severity: 'P2', reason: 'Review due soon' },
-        ]);
         auditRepo.findByRecord.mockResolvedValue([
             { id: 90, action: 'UPDATE', performed_by: 'admin', performed_at: '2026-04-28T12:00:00Z' },
         ]);
@@ -232,7 +225,7 @@ describe('service overview repository', () => {
             is_primary: true,
         }));
         expect(overview.readiness).toEqual(expect.objectContaining({ is_publishable: true }));
-        expect(overview.governance_risks.count).toBe(1);
+        expect(overview.governance_risks.count).toBe(0);
         expect(overview.audit_summary.recent).toHaveLength(1);
         expect(overview.missing_actions).toEqual([]);
     });
@@ -281,7 +274,6 @@ describe('service overview repository', () => {
             blockers: ['Service has no primary C3 capability.'],
             warnings: [],
         });
-        governanceRepo.listServiceRisks.mockResolvedValue([]);
         auditRepo.findByRecord.mockResolvedValue([]);
 
         const { getServiceOverview } = require('../db/service-overview.repo');
@@ -298,6 +290,7 @@ describe('service overview repository', () => {
             expect.objectContaining({ key: 'review_due' }),
         ]));
         expect(overview.readiness.is_publishable).toBe(false);
+        expect(overview.governance_risks.high_count).toBe(1);
         expect(overview.offerings.count).toBe(0);
         expect(overview.pricing.requestable_without_price).toBe(true);
     });

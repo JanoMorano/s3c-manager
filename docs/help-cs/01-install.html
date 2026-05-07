@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>01 Instalace - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">01 · Instalace</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link active" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">01 Instalace</p>
+        <h1>Instalace, prvotní wizard a provozní předpoklady</h1>
+        <p class="lead">Instalace připravuje databázi, první administrátorský účet, moduly a volitelná seed/import data. Je to jediná část aplikace, která je dostupná ještě před běžným přihlášením, proto musí být chráněna instalačním stavem a setup tokenem.</p>
+      </section>
+
+      <h2>Teoretický smysl instalátoru</h2>
+      <p>
+        V enterprise nástroji není instalátor jen technický formulář. Určuje výchozí identitu instance, bezpečnostní režim, databázovou konektivitu, první účet s odpovědností a volbu modulů. Z pohledu ITIL je to přechod ze stavu deployment do stavu ready for operation. Z pohledu governance vytváří první auditovatelný základ, na kterém stojí správa služeb, capabilities a C3 evidence.
+      </p>
+
+      <h2>Požadavky na prostředí</h2>
+      <table class="field-table">
+        <thead><tr><th>Oblast</th><th>Minimum</th><th>Doporučeno</th><th>Proč je to důležité</th></tr></thead>
+        <tbody>
+          <tr><td>CPU</td><td>2 vCPU</td><td>4 vCPU</td><td>Frontend, middleware a PostgreSQL běží souběžně, import a grafy umí CPU zatížit.</td></tr>
+          <tr><td>RAM</td><td>4 GB</td><td>8 GB a více</td><td>PostgreSQL, Next.js runtime a importní dry-run potřebují paměť pro větší CSV/JSON/XLSX.</td></tr>
+          <tr><td>Disk</td><td>10 GB</td><td>20 GB a zálohovací prostor</td><td>DB, uploady, exportní bundly, logy a backupy.</td></tr>
+          <tr><td>Docker</td><td>Docker Engine 24+, Compose v2.20+</td><td>Aktuální stabilní verze</td><td>Standardní produkční i lokální běh aplikace.</td></tr>
+          <tr><td>Bez Dockeru</td><td>Node.js 20.9+, PostgreSQL 16+</td><td>Node.js podle lockfile, PostgreSQL 16+</td><td>Lokální vývoj nebo integrace mimo compose.</td></tr>
+          <tr><td>Prohlížeč</td><td>Aktuální Chrome/Edge/Firefox/Safari</td><td>Chrome nebo Edge pro administrátory</td><td>Instalátor používá moderní formuláře, upload více souborů a klientskou validaci importních CSV.</td></tr>
+          <tr><td>Síť</td><td>HTTP lokálně</td><td>HTTPS přes reverse proxy</td><td>Produkční cookies, SSO a externí odkazy vyžadují důvěryhodnou veřejnou URL.</td></tr>
+          <tr><td>Reverse proxy</td><td>Není nutná pro lokální běh</td><td>Nginx, Traefik nebo firemní ingress s TLS</td><td>Ovlivňuje <code>base_url</code>, SSO callbacky, secure cookies a odkazy v notifikacích.</td></tr>
+          <tr><td>Secrets</td><td><code>JWT_SECRET</code>, DB heslo</td><td>Souborové secrets nebo vault</td><td>Chybná správa secretů ohrožuje přihlášení i databázi.</td></tr>
+          <tr><td>Práva k souborům</td><td>Zápis do upload/storage složky</td><td>Dedikovaný volume s backupem</td><td>Importy, exporty, instalační upload a budoucí evidence příloh potřebují konzistentní mount.</td></tr>
+          <tr><td>Zálohy</td><td>Ručně před produkční instalací</td><td>Automatický backup DB i upload volume</td><td>Repair, seed a import jsou zápisové operace. Bez zálohy nejde bezpečně vracet stav.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Instalační wizard: 12 obrazovek</h2>
+      <p>
+        Aktuální instalátor je průvodce přes 12 kroků. Není to jen série formulářů: každý krok snižuje jiné riziko. Nejdříve vysvětlí účel aplikace a vybere jazyk prostředí, potom ověří stav instance a setup token, nastaví identitu aplikace, zkontroluje secrety a databázi, vytvoří prvního administrátora, zapne moduly, připraví data, provede importní preview, spustí instalaci a nakonec zobrazí provozní summary.
+      </p>
+      <div class="install-overview-grid">
+        <a class="install-overview-card step-anchor" href="#install-step-welcome"><h3>01 Welcome</h3><p>Popis aplikace, účel S3C Manageru a výběr CZE/ENG prostředí.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-setup-token"><h3>02 Setup token</h3><p>Stav instance, setup token, start a reset instalačního běhu.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-config"><h3>03 Configuration</h3><p>Název, veřejná URL, timezone, storage path a HTTPS režim.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-secrets"><h3>04 Secrets</h3><p>Kontrola JWT, DB credentials a bezpečnostních předpokladů.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-admin"><h3>05 Admin</h3><p>První lokální administrátor a pravidla hesla.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-connectivity"><h3>06 Connectivity</h3><p>Ověření PostgreSQL, zápisu a platform schema.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-modules"><h3>07 Modules</h3><p>Povinný Service Catalogue Core a volitelný C3 Taxonomy.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-data-plan"><h3>08 Data plan</h3><p>Povinné reference, volitelná business data a demo data.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-upload"><h3>09 Upload</h3><p>První nahrání CSV, XLSX nebo JSON souborů.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-preview"><h3>10 Preview</h3><p>Klientské preview sloupců, řádků, chyb a warningů.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-execute"><h3>11 Execute</h3><p>Finální zápis instalace, seed, import a log průběhu.</p></a>
+        <a class="install-overview-card step-anchor" href="#install-step-summary"><h3>12 Summary</h3><p>Výsledek, verze, schema, moduly a importní statistiky.</p></a>
+      </div>
+
+      <h2>Detail jednotlivých obrazovek instalátoru</h2>
+      <div class="install-step-grid">
+        <article class="install-step-card manual-section" id="install-step-welcome">
+          <header>
+            <span class="install-step-number">01</span>
+            <div>
+              <h3>Welcome / popis aplikace a jazyk</h3>
+              <div class="step-meta"><span>route: /install</span><span>popis aplikace</span><span>CZE / ENG</span></div>
+            </div>
+          </header>
+          <p>
+            První obrazovka slouží k orientaci. Uživatel vidí, k čemu S3C Manager slouží, proč aplikace existuje jako governance cockpit nad službami, capability, C3/FMN vazbami a readiness, a vybere si výchozí prostředí CZE nebo ENG. Setup token se zde nezadává, aby úvod nebyl bezpečnostně-technický hned v prvním kroku.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 01 Welcome a výběr prostředí<br><code>/img/help-cs/install-01-welcome.png</code></div>
+            <figcaption>Popis účelu aplikace, volba CZE/ENG prostředí a pokračování na setup token.</figcaption>
+          </figure>
+          <div class="step-actions">
+            <div class="box">
+              <h4>Co uživatel vidí</h4>
+              <ul>
+                <li>Stručný popis, že aplikace je service governance a rozhodovací cockpit.</li>
+                <li>Volbu prostředí <code>CZE</code> nebo <code>ENG</code>.</li>
+                <li>Tlačítko pokračovat na technický instalační krok.</li>
+              </ul>
+            </div>
+            <div class="box">
+              <h4>Co obrazovka ovlivní</h4>
+              <ul>
+                <li>Nastaví locale cookie pro další kroky instalace.</li>
+                <li>Neprovádí zápis do databáze ani nespouští install lock.</li>
+                <li>Snižuje riziko, že admin začne instalaci bez pochopení účelu aplikace.</li>
+              </ul>
+            </div>
+          </div>
+          <table class="field-table compact">
+            <thead><tr><th>Pole / volba</th><th>Význam</th><th>Validace</th><th>Dopad</th></tr></thead>
+            <tbody>
+              <tr><td>Application description</td><td>Vysvětluje účel S3C Manageru.</td><td>Read-only text.</td><td>Nastaví správný mentální model před instalací.</td></tr>
+              <tr><td>Application environment</td><td>Volba CZE nebo ENG prostředí.</td><td>Povoleno jen <code>cs</code> a <code>en</code>.</td><td>Ovlivní jazyk instalátoru a výchozí locale cookie.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-setup-token">
+          <header>
+            <span class="install-step-number">02</span>
+            <div>
+              <h3>Setup token / stav instance</h3>
+              <div class="step-meta"><span>GET /api/v1/install/status</span><span>x-install-setup-token</span><span>install start</span></div>
+            </div>
+          </header>
+          <p>
+            Druhá obrazovka je technický gate. Zobrazuje aktuální stav instance, app/schema verzi, DB chyby, repair/upgrade mód a pole setup token. Teprve zde se spouští instalační běh přes <code>POST /api/v1/install/start</code>.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 02 Setup token a install status<br><code>/img/help-cs/install-02-setup-token.png</code></div>
+            <figcaption>Stav instalace, app/schema version, DB error, setup token, reset stuck install a tlačítko zahájit instalaci.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Pole / volba</th><th>Význam</th><th>Validace</th><th>Dopad</th></tr></thead>
+            <tbody>
+              <tr><td>Install status</td><td>Detekovaný stav instance.</td><td>Čte server.</td><td>Rozhoduje, zda se má zobrazit wizard, login nebo repair režim.</td></tr>
+              <tr><td>Install locked</td><td>Informace, že instalaci nelze znovu spustit bez resetu nebo repair.</td><td>Čte server.</td><td>Chrání produkční instanci před opakovaným bootstrapem.</td></tr>
+              <tr><td>Setup token</td><td>Tajný token pro zápisové kroky před přihlášením.</td><td>Musí odpovídat serverové konfiguraci.</td><td>Bez tokenu nelze bezpečně volat start, config, admin bootstrap, execute ani reset.</td></tr>
+              <tr><td>Reset stuck install</td><td>Vrátí rozpracovanou instalaci do opravitelného stavu.</td><td>Vyžaduje setup token.</td><td>Může změnit instalační stav, proto patří jen administrátorovi.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-config">
+          <header>
+            <span class="install-step-number">03</span>
+            <div>
+              <h3>Configuration / identita instance</h3>
+              <div class="step-meta"><span>POST /api/v1/install/config</span><span>instance metadata</span><span>URL a storage</span></div>
+            </div>
+          </header>
+          <p>
+            Tato obrazovka pojmenuje instanci a nastaví hodnoty, které později uvidí uživatelé, osobní fronty, exporty, SSO a integrační systémy. V ITIL logice je to základ pro service catalogue jako oficiální zdroj informací, protože odkazy a časy musí být konzistentní napříč organizací.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 03 Configuration<br><code>/img/help-cs/install-03-configuration.png</code></div>
+            <figcaption>Název aplikace, base URL, timezone, storage path, HTTPS mode a environment readiness indikátory.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Pole / volba</th><th>Co zadat</th><th>Co ovlivní</th><th>Typická chyba</th></tr></thead>
+            <tbody>
+              <tr><td><code>app_name</code></td><td>Čitelný název instance, např. S3C Manager.</td><td>Branding v UI, helpu, notifikacích a exportech.</td><td>Ponechání obecného názvu, když běží více instancí.</td></tr>
+              <tr><td><code>base_url</code></td><td>Veřejná URL, ze které uživatelé reálně aplikaci otevírají.</td><td>Osobní fronty, odkazy v rozhodnutích, SSO callbacky, exportní linky.</td><td>Vyplnění localhost v produkci nebo HTTP místo HTTPS.</td></tr>
+              <tr><td><code>timezone</code></td><td>Výchozí časová zóna, např. <code>Europe/Prague</code>.</td><td>Review termíny, expirace výjimek, auditní timeline a due dates.</td><td>UTC bez domluvy s provozem, což mate manažerské termíny.</td></tr>
+              <tr><td><code>storage_path</code></td><td>Cesta dostupná pro app kontejner, defaultně <code>/app/uploads</code>.</td><td>Uploady, importní soubory, exporty a budoucí přílohy.</td><td>Cesta existuje na hostu, ale není namountovaná do kontejneru.</td></tr>
+              <tr><td><code>https_mode</code></td><td>Zapnout, pokud je instance dostupná přes HTTPS nebo reverse proxy.</td><td>Secure cookies, externí odkazy, SSO a browser security.</td><td>Vypnuto v produkci za TLS proxy.</td></tr>
+            </tbody>
+          </table>
+          <div class="notice"><strong>Environment indikátory:</strong> obrazovka také ukazuje, zda je k dispozici databázové nastavení, JWT secret a verze aplikace. Tyto indikátory se nepřepisují ve formuláři; říkají, zda je runtime připravený.</div>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-secrets">
+          <header>
+            <span class="install-step-number">04</span>
+            <div>
+              <h3>Secrets / bezpečnostní předpoklady</h3>
+              <div class="step-meta"><span>read-only checklist</span><span>JWT</span><span>DB credentials</span></div>
+            </div>
+          </header>
+          <p>
+            Secrets obrazovka neslouží k zadávání hesel. Je to bezpečnostní kontrola, že citlivé hodnoty jsou nastavené mimo zdrojový kód a že se nebudou vypisovat do logů. Správně nastavené secrets jsou nutné pro autentizaci, audit a ochranu databáze.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 04 Secrets checklist<br><code>/img/help-cs/install-04-secrets.png</code></div>
+            <figcaption>Checklist JWT secret, DB credentials, umístění mimo repository a zákaz plaintext logování.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Kontrola</th><th>Co znamená</th><th>Co dělat při chybě</th><th>Dopad</th></tr></thead>
+            <tbody>
+              <tr><td>JWT secret present</td><td>Server má tajný klíč pro podepisování tokenů.</td><td>Doplnit <code>JWT_SECRET</code> nebo odpovídající secret v orchestraci.</td><td>Bez něj nelze bezpečně přihlašovat uživatele.</td></tr>
+              <tr><td>DB credentials present</td><td>Runtime zná přístup k PostgreSQL.</td><td>Opravit DB env/secrets a restartovat kontejnery.</td><td>Bez DB credentials nelze číst ani zapisovat konfiguraci.</td></tr>
+              <tr><td>Outside source code</td><td>Secrets nejsou uložené v commitu nebo statickém konfiguračním souboru v repository.</td><td>Přesunout je do `.env`, vaultu nebo orchestrátoru.</td><td>Snižuje riziko úniku přístupů do Gitu.</td></tr>
+              <tr><td>No plaintext in logs</td><td>Aplikace nemá vypisovat hesla a tokeny do logů.</td><td>Zkontrolovat log level a proxy middleware.</td><td>Chrání provozní logy, support bundle a auditní exporty.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-admin">
+          <header>
+            <span class="install-step-number">05</span>
+            <div>
+              <h3>Admin / první administrátorský účet</h3>
+              <div class="step-meta"><span>POST /api/v1/install/bootstrap-admin</span><span>platform.users</span><span>RBAC start</span></div>
+            </div>
+          </header>
+          <p>
+            První administrátor je kořenová odpovědnost celé instance. Tento účet vytvoří další uživatele, role, skupiny, SSO nastavení a referenční data. Proto je heslo přísnější a e-mail je důležitý i pro pozdější fronty, review a osobní fronty.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 05 Admin bootstrap<br><code>/img/help-cs/install-05-admin.png</code></div>
+            <figcaption>Username, display name, e-mail, password, confirm password, must change password a warning při existujícím adminovi.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Pole / volba</th><th>Význam</th><th>Validace</th><th>Dopad</th></tr></thead>
+            <tbody>
+              <tr><td><code>username</code></td><td>Login prvního lokálního admina.</td><td>Povinné.</td><td>Použije se na přihlášení a ve správě uživatelů.</td></tr>
+              <tr><td><code>displayName</code></td><td>Čitelné jméno osoby nebo servisního správce.</td><td>Povinné.</td><td>Zobrazuje se v auditu, rozhodnutích, review a hlavičkách.</td></tr>
+              <tr><td><code>email</code></td><td>Kontaktní e-mail admina.</td><td>Povinný a musí obsahovat <code>@</code>.</td><td>Vazba na osobní fronty, role assignments, governance review a personalizaci home.</td></tr>
+              <tr><td><code>password</code></td><td>Lokální heslo.</td><td>Min. 10 znaků, velké i malé písmeno, číslo a speciální znak.</td><td>Server ukládá hash, ne plaintext.</td></tr>
+              <tr><td><code>confirmPassword</code></td><td>Potvrzení hesla.</td><td>Musí přesně souhlasit.</td><td>Brání překlepu při prvním účtu.</td></tr>
+              <tr><td><code>mustChangePassword</code></td><td>Vynutí změnu po prvním přihlášení.</td><td>Volitelné, defaultně zapnuté.</td><td>Vhodné při předání účtu jinému správci nebo při instalaci dodavatelem.</td></tr>
+            </tbody>
+          </table>
+          <div class="warning-note"><strong>Pozor:</strong> pokud už admin existuje, obrazovka má uživatele upozornit. V produkci se první účet nemá znovu vytvářet bez řízeného repair postupu.</div>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-connectivity">
+          <header>
+            <span class="install-step-number">06</span>
+            <div>
+              <h3>Connectivity / databázová připravenost</h3>
+              <div class="step-meta"><span>GET/POST /api/v1/install/check-db</span><span>PostgreSQL</span><span>side-effect light</span></div>
+            </div>
+          </header>
+          <p>
+            Connectivity krok ověřuje, že aplikace nejen dosáhne na PostgreSQL, ale že má i právo zapisovat a že existuje nebo lze připravit platform schema. Bez tohoto kroku by se chyba projevila až u migrací nebo při prvním importu.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 06 Connectivity check<br><code>/img/help-cs/install-06-connectivity.png</code></div>
+            <figcaption>Run check, stav db_reachable, db_write_access a platform_schema.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Kontrola</th><th>Co znamená</th><th>Pokračování povoleno?</th><th>Co opravit při chybě</th></tr></thead>
+            <tbody>
+              <tr><td><code>db_reachable</code></td><td>Aplikace se připojí k DB hostu a databázi.</td><td>Ano jen při OK.</td><td>Host, port, síť, DNS, firewall, container network.</td></tr>
+              <tr><td><code>db_write_access</code></td><td>Uživatel DB může zapisovat potřebné objekty.</td><td>Ano jen při OK.</td><td>DB role, granty, vlastnictví schémat, connection string.</td></tr>
+              <tr><td><code>platform_schema</code></td><td>Platform schema existuje nebo je připravitelné pro instalaci.</td><td>Ano jen při OK.</td><td>Migrace, schema ownership, konfliktní stará instalace.</td></tr>
+              <tr><td>Run check</td><td>Spustí aktuální ověření.</td><td>Po úspěchu odemkne další krok.</td><td>Používat po každé změně DB konfigurace nebo restartu.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-modules">
+          <header>
+            <span class="install-step-number">07</span>
+            <div>
+              <h3>Modules / výběr domén aplikace</h3>
+              <div class="step-meta"><span>module registry</span><span>Service Catalogue Core</span><span>C3 Taxonomy</span></div>
+            </div>
+          </header>
+          <p>
+            Moduly určují, jaké části S3C Manageru budou aktivní. Core katalog je povinný, protože bez něj neexistují služby, portfolio ani governance základ. C3 modul je volitelný, ale pro FMN/NATO logiku, capability mapu a C3 entity workspace je zásadní.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 07 Modules<br><code>/img/help-cs/install-07-modules.png</code></div>
+            <figcaption>Karty modulů, povinný Core checkbox a volitelný C3 Taxonomy checkbox.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Volba</th><th>Stav</th><th>Co zapne</th><th>Kdy použít</th></tr></thead>
+            <tbody>
+              <tr><td>Service Catalogue Core</td><td>Povinné, zaškrtnuté a disabled.</td><td>Služby, katalog, portfolio, readiness, governance queue a základní admin reference.</td><td>Vždy.</td></tr>
+              <tr><td><code>activateC3</code> / C3 Taxonomy</td><td>Volitelné.</td><td>C3 menu, capability mapu, C3 služby, aplikace, data objects, TINs, FMN spirals a C3 API.</td><td>Zapnout, pokud organizace řídí služby přes C3/FMNs nebo chce capability coverage.</td></tr>
+            </tbody>
+          </table>
+          <div class="fmn-note"><strong>FMN souvislost:</strong> C3 modul dává smysl tam, kde služba není jen IT služba, ale podporuje schopnost, interoperabilitu, C3 prvek, datový tok nebo TIN v rámci federovaného prostředí.</div>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-data-plan">
+          <header>
+            <span class="install-step-number">08</span>
+            <div>
+              <h3>Data plan / co se naplní do databáze</h3>
+              <div class="step-meta"><span>reference seed</span><span>demo data</span><span>business data</span></div>
+            </div>
+          </header>
+          <p>
+            Data plan odděluje referenční data od ukázkových a business dat. To je důležité: referenční číselníky a základní katalogové tabulky jsou potřeba pro správné fungování aplikace, zatímco demo data jsou pomůcka pro školení a nemají se míchat do produkční evidence bez vědomého rozhodnutí.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 08 Data plan<br><code>/img/help-cs/install-08-data-plan.png</code></div>
+            <figcaption>Povinné core/reference položky, C3 reference podle modulu, volitelné business/demo balíčky.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Balíček</th><th>Povinnost</th><th>Obsah</th><th>Dopad</th></tr></thead>
+            <tbody>
+              <tr><td>Core installation</td><td>Povinné.</td><td>Základní schémata, metadata a instalační stav.</td><td>Bez něj nelze instanci považovat za READY.</td></tr>
+              <tr><td>Reference seed service catalogue</td><td>Povinné.</td><td>Číselníky a výchozí hodnoty pro služby, readiness a governance.</td><td>Ovlivňuje selecty, validace a vysvětlující texty v UI.</td></tr>
+              <tr><td>Reference seed C3</td><td>Povinné jen při aktivaci C3.</td><td>C3 reference, spirals, typy entit a mapovací hodnoty.</td><td>Bez něj C3 workspace nemá konzistentní terminologii.</td></tr>
+              <tr><td>Business data service catalogue</td><td>Volitelné.</td><td>První reálná data vložená importem nebo připraveným balíkem.</td><td>Vznikají služby, vazby, owners nebo portfolio evidence.</td></tr>
+              <tr><td><code>seedDemoData</code></td><td>Volitelné.</td><td>Ukázkové služby, capabilities, review a provozní data.</td><td>Výborné pro školení, nevhodné pro čistou produkci bez dohody.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-upload">
+          <header>
+            <span class="install-step-number">09</span>
+            <div>
+              <h3>Upload / první importní soubory</h3>
+              <div class="step-meta"><span>.csv</span><span>.xlsx</span><span>.json</span><span>multiple files</span></div>
+            </div>
+          </header>
+          <p>
+            Upload umožní vložit první sadu služeb nebo katalogových dat hned během instalace. Obrazovka je vhodná pro čistý start, kdy už existuje připravený export z Excelu, CMDB, EA nástroje nebo předchozí verze katalogu. Import lze přeskočit a provést později přes Import workspace.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 09 Upload files<br><code>/img/help-cs/install-09-upload.png</code></div>
+            <figcaption>Drag & drop zóna, výběr více souborů, seznam nahraných souborů, remove, skip import a continue.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Ovládací prvek</th><th>Možnosti</th><th>Co znamená</th><th>Vazba</th></tr></thead>
+            <tbody>
+              <tr><td>Upload zone</td><td><code>.csv</code>, <code>.xlsx</code>, <code>.json</code>, více souborů.</td><td>Vybere soubory pro preview a případný import.</td><td>Soubor se zatím necommitne do DB, nejdříve jde do preview.</td></tr>
+              <tr><td>Uploaded files list</td><td>Název, velikost a typ podle přípony.</td><td>Kontrola, zda uživatel nahrál správné balíčky.</td><td>Seznam se použije v kroku Preview a Execute.</td></tr>
+              <tr><td>Remove file</td><td>Odebrání jednoho souboru.</td><td>Odstraní soubor z aktuálního instalačního běhu.</td><td>Neovlivňuje DB, pokud ještě nebyl proveden Execute.</td></tr>
+              <tr><td>Skip import</td><td>Pokračovat bez souborů.</td><td>Instalace poběží jen s reference/demo nastavením.</td><td>Reálná data lze doplnit později v <code>/import</code>.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-preview">
+          <header>
+            <span class="install-step-number">10</span>
+            <div>
+              <h3>Preview / kontrola importu před zápisem</h3>
+              <div class="step-meta"><span>client-side preview</span><span>columns</span><span>warnings</span><span>no DB write</span></div>
+            </div>
+          </header>
+          <p>
+            Preview krok je záměrně před Execute. Uživatel má vidět, kolik souborů a řádků bude importováno, které sloupce aplikace poznala, co chybí a zda jsou chyby fatální. Je to obdoba dry-run principu: rozhodnutí o zápisu má přijít až po srozumitelné kontrole.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 10 Import preview<br><code>/img/help-cs/install-10-preview.png</code></div>
+            <figcaption>Aggregate summary, per-file preview, columns, required present/missing, warnings a fatal errors.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Prvek</th><th>Význam</th><th>Kdy je problém</th><th>Doporučená reakce</th></tr></thead>
+            <tbody>
+              <tr><td>Files total</td><td>Počet souborů ve frontě importu.</td><td>Je vyšší nebo nižší, než uživatel čekal.</td><td>Vrátit se na Upload a upravit seznam.</td></tr>
+              <tr><td>Rows to import</td><td>Počet datových řádků rozpoznaných v souborech.</td><td>Je 0 nebo výrazně nesedí s originálním exportem.</td><td>Zkontrolovat oddělovač, hlavičku, formát nebo encoding.</td></tr>
+              <tr><td>Ready</td><td>Počet souborů bez fatální chyby.</td><td>Ready je 0.</td><td>Neprovádět Execute, opravit soubory.</td></tr>
+              <tr><td>Errors</td><td>Počet fatálních chyb.</td><td>CSV nemá datový řádek nebo se soubor nepodařilo načíst.</td><td>Opravit zdrojový soubor, ne jen přejmenovat příponu.</td></tr>
+              <tr><td>Required present/missing</td><td>Rozpoznání povinných nebo očekávaných sloupců.</td><td>Chybí identifikátor služby, název nebo zásadní mapping.</td><td>Upravit exportní šablonu podle kapitoly 07 Import.</td></tr>
+              <tr><td>Warnings</td><td>Ne fatální upozornění, např. chybějící doporučené sloupce nebo service_type.</td><td>Import projde, ale data budou hůř použitelná.</td><td>Doplnit sloupce, pokud mají být služby governance-ready.</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-execute">
+          <header>
+            <span class="install-step-number">11</span>
+            <div>
+              <h3>Execute / finální provedení instalace</h3>
+              <div class="step-meta"><span>POST /api/v1/install/execute</span><span>seed</span><span>import</span><span>progress log</span></div>
+            </div>
+          </header>
+          <p>
+            Execute je první skutečně finální krok. Spouští instalaci, aktivaci modulů, seed demo dat podle volby a případný import souborů. Obrazovka má proto checklist, progress bar a log, aby administrátor viděl, co se stalo a kde přesně by došlo k selhání.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 11 Execute<br><code>/img/help-cs/install-11-execute.png</code></div>
+            <figcaption>Checklist aktivace modulů, admin account ready, release metadata, progress bar, log a tlačítko start installation.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Prvek</th><th>Co dělá</th><th>API / vazba</th><th>Co kontrolovat</th></tr></thead>
+            <tbody>
+              <tr><td>Core activation</td><td>Zapne povinné katalogové jádro.</td><td><code>/api/v1/install/execute</code></td><td>Musí být aktivováno vždy.</td></tr>
+              <tr><td>C3 activation</td><td>Zapne nebo přeskočí C3 Taxonomy podle volby z Modules.</td><td>Module registry a C3 reference seed.</td><td>Pokud organizace používá FMN/C3, nemá být přeskočeno omylem.</td></tr>
+              <tr><td>Admin account ready</td><td>Kontroluje, že bootstrap admin existuje nebo byl zadán.</td><td><code>platform.users</code> a auth API.</td><td>Bez admina není po instalaci kdo instanci spravovat.</td></tr>
+              <tr><td>Release metadata</td><td>Zapisuje verzi a instalační metadata.</td><td>Installation summary a schema metadata.</td><td>Důležité pro audit a budoucí upgrade.</td></tr>
+              <tr><td>Import login</td><td>Pro import se aplikace přihlásí vytvořeným adminem a získá token.</td><td><code>/api/v1/auth/login</code></td><td>Pokud selže, instalace může být READY, ale import bude přeskočen nebo neúplný.</td></tr>
+              <tr><td>Import files</td><td>Platné soubory se posílají do importního endpointu.</td><td><code>/api/v1/import/services/csv</code> se source_name.</td><td>Výsledek ověřit v summary a později v Import workspace.</td></tr>
+            </tbody>
+          </table>
+          <div class="warning-note"><strong>Provozní pravidlo:</strong> Execute nedělejte bez připravené zálohy, pokud instalujete nad existující DB nebo po předchozím neúspěšném pokusu.</div>
+        </article>
+
+        <article class="install-step-card manual-section" id="install-step-summary">
+          <header>
+            <span class="install-step-number">12</span>
+            <div>
+              <h3>Summary / výsledek a přechod do provozu</h3>
+              <div class="step-meta"><span>GET /api/v1/install/summary</span><span>READY</span><span>go to sign-in</span></div>
+            </div>
+          </header>
+          <p>
+            Poslední obrazovka je instalační předávací protokol. Ukazuje, zda instance přešla do READY, jaká verze aplikace a schématu běží, jaké moduly jsou aktivní a jak dopadl import. Z hlediska ITIL je to bod, kdy lze instanci předat do běžného provozu a začít spravovat katalog.
+          </p>
+          <figure class="screen-slot">
+            <div>Screenshot: 12 Final summary<br><code>/img/help-cs/install-12-summary.png</code></div>
+            <figcaption>Status READY/failed, app version, schema version, active modules, import results a Go to sign-in.</figcaption>
+          </figure>
+          <table class="field-table compact">
+            <thead><tr><th>Pole / výsledek</th><th>Význam</th><th>Co dělat dál</th><th>Vazba</th></tr></thead>
+            <tbody>
+              <tr><td>Status</td><td>Výsledek instalace, typicky READY nebo failed.</td><td>Při READY pokračovat na login, při failed řešit log a repair.</td><td><code>system_installation</code> / install summary.</td></tr>
+              <tr><td>App version</td><td>Nasazená verze aplikace.</td><td>Zapsat do release evidence a provozní dokumentace.</td><td>Pomáhá při supportu a upgrade.</td></tr>
+              <tr><td>Schema version</td><td>Verze databázových migrací.</td><td>Ověřit proti očekávané release verzi.</td><td><code>schema_migrations</code>.</td></tr>
+              <tr><td>Active modules</td><td>Seznam zapnutých modulů.</td><td>Ověřit, zda odpovídá rozhodnutí z kroku Modules.</td><td>Řídí menu a dostupné funkce.</td></tr>
+              <tr><td>Imported files</td><td>Počet souborů zpracovaných během instalace.</td><td>Pokud nesedí, zkontrolovat importní log.</td><td>Import audit a source_name.</td></tr>
+              <tr><td>Inserted / Updated</td><td>Počet vložených a aktualizovaných záznamů.</td><td>Po přihlášení ověřit v katalogu a importním reportu.</td><td>Služby a související katalogová data.</td></tr>
+              <tr><td>Row errors</td><td>Počet řádkových chyb.</td><td>Opravit soubor a opakovat import v <code>/import</code>.</td><td>Neúplná data mohou ovlivnit readiness a vazby.</td></tr>
+              <tr><td>Go to sign-in</td><td>Přechod na přihlášení.</td><td>Přihlásit se prvním adminem a dokončit administraci.</td><td><code>/login</code>.</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+
+      <h2>Administrátorské instalační okno po nasazení</h2>
+      <figure class="screen-slot">
+        <div>Screenshot: Administration / Installation<br><code>/img/help-cs/admin-installation.png</code></div>
+        <figcaption>Po instalaci slouží okno ke kontrole stavu, seed demo dat, repair a kontrole modulů.</figcaption>
+      </figure>
+      <table class="field-table">
+        <thead><tr><th>Akce</th><th>Co dělá</th><th>Riziko</th><th>API / DB</th></tr></thead>
+        <tbody>
+          <tr><td>Summary</td><td>Čte instalační stav, moduly, verzi a DB health.</td><td>Bez zápisu.</td><td><code>GET /api/v1/install/summary</code>, <code>system_installation</code>, <code>module_registry</code>.</td></tr>
+          <tr><td>Seed demo</td><td>Doplní ukázková data.</td><td>Zapisuje do katalogu a C3. V produkci jen vědomě.</td><td><code>POST /api/v1/install/seed-demo</code>.</td></tr>
+          <tr><td>Repair</td><td>Opraví instalaci nebo migrace.</td><td>Mění migrační a instalační stav, dělat po backupu.</td><td><code>POST /api/v1/install/repair</code>, <code>schema_migrations</code>.</td></tr>
+          <tr><td>Open import</td><td>Kontrola importů po seedu nebo migraci.</td><td>Podle další akce může být read-only nebo zápis.</td><td><code>/import</code>, <code>/administration/import</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Vazby instalace</h2>
+      <div class="route-list">
+        <div class="route-item"><strong><code>/install</code></strong> Prvotní wizard. Před READY řeší bootstrap, po READY má být chráněn stavem a právy.</div>
+        <div class="route-item"><strong><code>/administration/installation</code></strong> Alias na administrátorské instalační okno.</div>
+        <div class="route-item"><strong><code>/administration/installation</code></strong> Stav, summary, seed a repair po instalaci.</div>
+        <div class="route-item"><strong><code>/login</code></strong> Navazuje po vytvoření prvního admina.</div>
+      </div>
+
+      <div class="chapter-nav">
+        <a href="index.html">Zpět na rozcestník</a>
+        <a href="02-welcome.html">Další: 02 Podstata aplikace</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

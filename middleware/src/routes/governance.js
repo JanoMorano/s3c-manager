@@ -29,10 +29,21 @@ function actorFrom(req) {
 
 const REVIEW_STATUSES = new Set(['pending', 'in_review', 'approved', 'rejected', 'deferred', 'cancelled']);
 const DECISIONS = new Set(['approved', 'rejected', 'deferred', 'cancelled']);
-const DEFERRAL_DECISION_TYPES = new Set(['defer', 'deferral', 'risk_acceptance', 'waiver']);
+const DECISION_TYPES = new Set(['publish', 'exception', 'lifecycle', 'other']);
+const DEFERRAL_DECISION_TYPES = new Set(['exception']);
 
 function normalized(value) {
     return String(value ?? '').trim().toLowerCase();
+}
+
+function normalizeDecisionType(value) {
+    const type = normalized(value);
+    if (!type) return '';
+    if (['publish', 'publish_approval', 'publish_rejection', 'approval', 'release'].includes(type)) return 'publish';
+    if (['exception', 'readiness_exception', 'deferral', 'defer', 'risk_acceptance', 'waiver'].includes(type)) return 'exception';
+    if (['lifecycle', 'lifecycle_transition', 'retirement', 'retirement_recommendation', 'retire'].includes(type)) return 'lifecycle';
+    if (['other', 'mapping_acceptance', 'consolidation_recommendation', 'recommendation'].includes(type)) return 'other';
+    return type;
 }
 
 function terminalCompletedAt(status, explicitValue) {
@@ -50,19 +61,6 @@ function workflowFilters(req) {
         decisionType: parseTextFilter(req.query.decision_type || req.query.decisionType, { maxLength: 80 }),
     };
 }
-
-router.get('/risk-radar', async (req, res, next) => {
-    try {
-        const items = await repo.listServiceRisks({
-            ...paging(req),
-            severity: parseCsvFilter(req.query.severity, { allowed: ['P0', 'P1', 'P2', 'info'] }),
-            ruleCode: parseTextFilter(req.query.rule_code || req.query.ruleCode, { maxLength: 80 }),
-            serviceId: parseTextFilter(req.query.service_id || req.query.serviceId, { maxLength: 80 }),
-            q: parseTextFilter(req.query.q, { maxLength: 120 }),
-        });
-        sendItems(res, items);
-    } catch (err) { next(err); }
-});
 
 router.get('/owner-load', async (req, res, next) => {
     try {
@@ -84,42 +82,6 @@ router.get('/owner-load/assignments', async (req, res, next) => {
         const items = await repo.listOwnerAssignments({
             ...paging(req),
             owner,
-        });
-        sendItems(res, items);
-    } catch (err) { next(err); }
-});
-
-router.get('/contract-overlap', async (req, res, next) => {
-    try {
-        const items = await repo.listContractOverlap({
-            ...paging(req),
-            scope: parseTextFilter(req.query.scope, { maxLength: 80 }),
-            key: parseTextFilter(req.query.key, { maxLength: 255 }),
-        });
-        sendItems(res, items);
-    } catch (err) { next(err); }
-});
-
-router.get('/renewal-calendar', async (req, res, next) => {
-    try {
-        const items = await repo.listRenewalRisks({
-            ...paging(req),
-            horizonDays: req.query.horizon_days ?? req.query.horizonDays ?? null,
-            vendor: parseTextFilter(req.query.vendor, { maxLength: 255 }),
-        });
-        sendItems(res, items);
-    } catch (err) { next(err); }
-});
-
-router.get('/advisor', async (req, res, next) => {
-    try {
-        const items = await repo.listAdvisorFindings({
-            ...paging(req),
-            severity: parseCsvFilter(req.query.severity, { allowed: ['P0', 'P1', 'P2', 'info'] }),
-            findingType: parseCsvFilter(req.query.type || req.query.finding_type || req.query.findingType, {
-                allowed: ['risk', 'owner_load', 'contract_overlap', 'renewal', 'advisor'],
-            }),
-            q: parseTextFilter(req.query.q, { maxLength: 120 }),
         });
         sendItems(res, items);
     } catch (err) { next(err); }
@@ -208,11 +170,12 @@ router.get('/decisions', async (req, res, next) => {
 router.post('/decisions', canEdit, async (req, res, next) => {
     try {
         const serviceId = parseTextFilter(req.body?.service_id || req.body?.serviceId, { maxLength: 80 });
-        const decisionType = normalized(req.body?.decision_type || req.body?.decisionType);
+        const decisionType = normalizeDecisionType(req.body?.decision_type || req.body?.decisionType);
         const decision = normalized(req.body?.decision);
         const rationale = parseTextFilter(req.body?.rationale, { maxLength: 4000 });
         if (!serviceId) return res.status(400).json({ error: 'service_id is required' });
         if (!decisionType) return res.status(400).json({ error: 'decision_type is required' });
+        if (!DECISION_TYPES.has(decisionType)) return res.status(400).json({ error: 'Unsupported decision_type' });
         if (!DECISIONS.has(decision)) return res.status(400).json({ error: 'Unsupported decision' });
         if ((decision === 'rejected' || decision === 'deferred') && !rationale) {
             return res.status(400).json({ error: 'Rationale is required for rejected or deferred decisions' });
@@ -246,22 +209,6 @@ router.post('/decisions', canEdit, async (req, res, next) => {
         });
 
         res.status(201).json({ item });
-    } catch (err) { next(err); }
-});
-
-router.post('/findings/:id/dismiss', canEdit, async (req, res, next) => {
-    try {
-        const reason = parseTextFilter(req.body?.reason, { maxLength: 1000 });
-        if (!reason) {
-            return res.status(400).json({ error: 'Dismissal reason is required' });
-        }
-
-        const item = await repo.dismissFinding({
-            findingId: req.params.id,
-            reason,
-            actor: actorFrom(req),
-        });
-        res.json({ item });
     } catch (err) { next(err); }
 });
 

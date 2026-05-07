@@ -4,7 +4,7 @@ const repo    = require('../db/relations.repo');
 const svcRepo = require('../db/services.repo');
 const audit   = require('../db/audit.repo');
 const { requireAuth } = require('../middleware/auth');
-const { canEdit, canAdmin } = require('../middleware/rbac');
+const { canEdit } = require('../middleware/rbac');
 const { validateRelation } = require('../services/validation');
 const { getPool } = require('../db/pool');
 

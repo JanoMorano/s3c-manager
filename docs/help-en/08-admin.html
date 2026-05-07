@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administration panels, reference data, users and configuration scenarios - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">08 · Administration</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link active" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">08 Administration</p>
+        <h1>Administration panels, reference data, users and configuration scenarios</h1>
+        <p class="lead">Administration controls the safe operation of the instance: users, groups, roles, SSO, logs, reference data, import profiles, capability builder and installation diagnostics.</p>
+      </section>
+
+      <h2>Why administration matters</h2>
+      <p>Good administration keeps the catalogue understandable and secure. Poor reference data or roles can confuse users, hide tasks from reviewers, break imports or expose functions to the wrong audience.</p>
+
+      <h2>Administration areas</h2>
+      <table class="field-table"><thead><tr><th>Area</th><th>Route</th><th>Purpose</th></tr></thead><tbody><tr><td>Overview</td><td>/administration</td><td>Entry point for administrative tasks.</td></tr><tr><td>Users</td><td>/administration/users</td><td>Local users, AD/SSO identity mapping, roles and language preference.</td></tr><tr><td>Groups</td><td>/administration/groups</td><td>RBAC grouping and membership.</td></tr><tr><td>Auth / Web / SSO</td><td>/administration/web</td><td>Trusted headers, SSO and public web settings.</td></tr><tr><td>Reference data</td><td>/administration/catalogue-ref</td><td>Controlled catalogues such as lifecycle, portfolio and classifications.</td></tr><tr><td>Logs</td><td>/administration/logs</td><td>Operational and audit visibility.</td></tr><tr><td>Installation</td><td>/administration/installation</td><td>Installed state, modules, schema and repair signals.</td></tr></tbody></table>
+
+      <h2>Roles</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">User</strong></span></span><p>Can browse the catalogue and consume readable service information.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Content admin / editor</strong></span></span><p>Can maintain service and architecture content.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Administrator</strong></span></span><p>Can manage users, roles, reference data, imports and instance settings.</p></article></div>
+
+      <h2>Common scenarios</h2>
+      <div class="manual-entry-grid"><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">New reviewer cannot see tasks</strong></span></span><p>Check role, group membership, preferred language and assigned review ownership.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Import reports unknown portfolio code</strong></span></span><p>Add or correct reference data before re-running import.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">Enable SSO</strong></span></span><p>Configure trusted headers or proxy integration, then test fallback local admin access.</p></article><article class="manual-entry-card"><span class="manual-entry-head"><span class="manual-entry-number">•</span><span><strong class="manual-entry-title">New spiral baseline</strong></span></span><p>Use capability builder and verify it appears in capability maps and import baselines.</p></article></div>
+
+      <figure class="screen-slot"><div>Screenshot: Administration<br><code>/img/help-en/08-admin.png</code></div><figcaption>Use this slot for the current UI screenshot related to this chapter.</figcaption></figure>
+      <div class="chapter-nav">
+        <a href="07-import.html">Previous: Import</a>
+        <a href="09-user.html">Next: User</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

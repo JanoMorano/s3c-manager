@@ -72,7 +72,7 @@ async function mockDecisionCockpit(page: Page) {
           links: {
             governance_health: '/operations',
             readiness_queue: '/operations/readiness',
-            capability_coverage: '/capabilities/coverage',
+            capability_coverage: '/capabilities?view=coverage',
             review_deadlines: '/operations/reviews',
             owner_load: '/operations/owner-load',
             recent_decisions: '/operations/decisions',
@@ -93,19 +93,10 @@ async function mockDecisionCockpit(page: Page) {
             missing_owners: [],
             top_completeness: [],
             deprecated_retired: [],
-            pricing_patrol: { total_services: 12, with_pricing: 8, coverage_percent: 67, missing: [] },
+            offering_evidence: { total_services: 12, with_evidence: 8, coverage_percent: 67, missing: [] },
             c3_mapping_gap: [{ item_type: 'CP', total_count: 10, mapped_count: 6, gap_count: 4 }],
           },
         }),
-      });
-      return;
-    }
-
-    if (url.includes('/api/v1/governance/risk-radar')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ items: [{ finding_key: 'risk:iam', severity: 'P0', title: 'Identity Access Management', reason: 'Readiness blocker.', target_url: '/services/SVC-IAM/edit', source_entity_type: 'service', source_entity_id: '1', service_id: 'SVC-IAM', score: 100 }] }),
       });
       return;
     }
@@ -114,34 +105,7 @@ async function mockDecisionCockpit(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ items: [{ owner_key: 'owner@example.com', owner_name: 'Service Owner', owned_services: 15, live_services: 10, readiness_blockers: 3, owner_load_score: 67, contract_gaps: 1, c3_gaps: 2 }] }),
-      });
-      return;
-    }
-
-    if (url.includes('/api/v1/governance/contract-overlap')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ items: [] }),
-      });
-      return;
-    }
-
-    if (url.includes('/api/v1/governance/renewal-calendar')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ items: [] }),
-      });
-      return;
-    }
-
-    if (url.includes('/api/v1/governance/advisor')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ items: [{ finding_key: 'advisor:iam', severity: 'P1', title: 'Close IAM readiness', reason: 'Needs owner decision.', suggested_action: 'Assign review.', target_url: '/operations/reviews', finding_type: 'readiness' }] }),
+        body: JSON.stringify({ items: [{ owner_key: 'owner@example.com', owner_name: 'Service Owner', owned_services: 15, live_services: 10, readiness_blockers: 3, owner_load_score: 67, c3_gaps: 2 }] }),
       });
       return;
     }
@@ -154,17 +118,16 @@ async function mockDecisionCockpit(page: Page) {
   });
 }
 
-test('dashboard redirects to operations cockpit with decision summary sections', async ({ page }) => {
+test('operations action queue renders the decision summary sections', async ({ page }) => {
   await mockDecisionCockpit(page);
 
-  await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/operations$/);
-  await expect(page.getByRole('heading', { name: /decision cockpit/i })).toBeVisible();
+  await page.goto('/operations');
+  await expect(page.getByRole('heading', { name: /operations queue/i })).toBeVisible();
 
-  await expect(page.getByRole('link', { name: /governance health/i })).toHaveAttribute('href', '/operations');
-  await expect(page.getByRole('link', { name: /readiness queue/i })).toHaveAttribute('href', '/operations/readiness');
-  await expect(page.getByRole('link', { name: /capability coverage/i })).toHaveAttribute('href', '/capabilities/coverage');
-  await expect(page.getByRole('link', { name: /review deadlines/i })).toHaveAttribute('href', '/operations/reviews');
-  await expect(page.getByRole('link', { name: /owner load/i })).toHaveAttribute('href', '/operations/owner-load');
-  await expect(page.getByRole('link', { name: /recent decisions/i })).toHaveAttribute('href', '/operations/decisions');
+  const summary = page.getByLabel('Operations action summary');
+  await expect(summary.getByRole('link', { name: /readiness queue/i })).toHaveAttribute('href', '/operations/readiness');
+  await expect(summary.getByRole('link', { name: /^reviews/i })).toHaveAttribute('href', '/operations/reviews');
+  await expect(summary.getByRole('link', { name: /^owner load/i })).toHaveAttribute('href', '/operations#owner-load');
+  await expect(summary.getByRole('link', { name: /^decisions/i })).toHaveAttribute('href', '/operations/decisions');
+  await expect(page.getByRole('heading', { name: /import and data quality/i })).toBeVisible();
 });

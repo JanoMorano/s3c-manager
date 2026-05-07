@@ -40,13 +40,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('system');
   const [appliedTheme, setAppliedTheme] = useState<AppliedTheme>('light');
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Theme is hydrated from localStorage only after the first SSR-safe render to prevent hydration mismatches. */
   useEffect(() => {
-    const initialMode = readStoredMode();
-    const nextTheme = resolveAppliedTheme(initialMode);
-    setModeState(initialMode);
+    const storedMode = readStoredMode();
+    const nextTheme = resolveAppliedTheme(storedMode);
+    setModeState(storedMode);
     setAppliedTheme(nextTheme);
     applyTheme(nextTheme);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (mode !== 'system') return;

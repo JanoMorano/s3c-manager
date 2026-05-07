@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S3C Manager - user and administrator manual - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Back to application">&larr; Back to application</a>
+    <button class="hamburger" type="button" aria-label="Show menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manual</span></a>
+    <div class="header-meta">English manual · static HTML · screenshot slots ready</div>
+  </header>
+  <div class="layout">
+
+    <nav class="sidebar" id="sidebar" aria-label="Help chapters">
+      <section class="sidebar-section" aria-expanded="true">
+        <button class="sidebar-section-toggle" type="button">Help chapters <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link active" href="index.html"><span class="nav-icon">00</span><span>Index<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Installation<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Application purpose<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Services<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities and C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administration<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>User<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analysis<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Abbreviations<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+      <div class="sidebar-footer">The structure is manually maintained. Screenshots belong in <code>docs/help-en/img</code>.</div>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">Help index</p>
+        <h1>S3C Manager - user and administrator manual</h1>
+        <p class="lead">This manual explains S3C Manager as a governance and decision cockpit for services, capabilities, C3/FMN relations and operational readiness. It is organized by role and by application area so an administrator, service owner, reviewer or architect can find the right information quickly.</p>
+      </section>
+
+      <h2>How to use the manual</h2>
+      <p>Start with the application overview if you are new to S3C Manager, then continue by role. Every chapter follows the same rhythm: purpose of the screen, what the user sees, field meaning, links to other areas, data impact and recommended workflow.</p>
+      <div class="index-actions"><a class="index-action" href="02-welcome.html">Start with application overview</a><a class="index-action" href="01-install.html">Install a new instance</a><a class="index-action" href="04-services.html">Manage a service</a><a class="index-action" href="11-api.html">Integrate through API</a></div>
+
+      <h2>Choose your role</h2><div class="role-path-grid"><article class="role-card"><h3>Instance administrator</h3><p>Installs the instance, manages users, roles, SSO, reference data, imports, API access, repair and operational settings.</p><div class="role-links"><a href="01-install.html">01 Installation</a><a href="08-admin.html">08 Administration</a><a href="11-api.html">11 API</a><a href="12-abbrevations.html">12 Abbreviations</a></div></article><article class="role-card"><h3>Service owner</h3><p>Maintains the service card, offerings, readiness, lifecycle, responsibilities, review state and consumer impact.</p><div class="role-links"><a href="03-cocpit.html">03 Cockpit</a><a href="04-services.html">04 Services</a><a href="06-governance.html">06 Governance</a><a href="10-analysis.html">10 Analysis</a></div></article><article class="role-card"><h3>Architect / capability manager</h3><p>Maps capabilities, C3 items, FMN spirals, applications, data objects, integrations and relations between services.</p><div class="role-links"><a href="05-capabilities_c3.html">05 Capabilities and C3</a><a href="07-import.html">07 Import</a><a href="10-analysis.html">10 Analysis</a><a href="11-api.html">11 API</a></div></article><article class="role-card"><h3>Reviewer / manager</h3><p>Watches queues, decisions, blockers, risks, exceptions, operational readiness and understandable change impact.</p><div class="role-links"><a href="03-cocpit.html">03 Cockpit</a><a href="06-governance.html">06 Governance</a><a href="10-analysis.html">10 Analysis</a><a href="02-welcome.html">02 Overview</a></div></article></div>
+
+      <h2>Manual chapters</h2>
+      <div class="manual-entry-grid"><a class="manual-entry-card" href="01-install.html"><span class="manual-entry-head"><span class="manual-entry-number">01</span><span><strong class="manual-entry-title">Installation</strong><span class="manual-entry-subtitle">01-install.html</span></span></span><p>The installer prepares the database, the first administrator account, enabled modules and optional seed or import data. It is the only part of the application available before normal sign-in, therefore it is protected by installation state and setup token.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="02-welcome.html"><span class="manual-entry-head"><span class="manual-entry-number">02</span><span><strong class="manual-entry-title">Application purpose</strong><span class="manual-entry-subtitle">02-welcome.html</span></span></span><p>S3C Manager is best used as a governance-first cockpit above services, capabilities, C3/FMN relations and readiness. It is not a ticketing system, monitoring platform, full CMDB or replacement for an Enterprise Architecture repository.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="03-cocpit.html"><span class="manual-entry-head"><span class="manual-entry-number">03</span><span><strong class="manual-entry-title">Cockpit</strong><span class="manual-entry-subtitle">03-cocpit.html</span></span></span><p>The cockpit is the fastest way to understand what needs attention. It combines service readiness, owned work, review queues, blockers, decisions and portfolio signals for each role.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="04-services.html"><span class="manual-entry-head"><span class="manual-entry-number">04</span><span><strong class="manual-entry-title">Services</strong><span class="manual-entry-subtitle">04-services.html</span></span></span><p>The service area is the core working space for service owners and catalogue administrators. It covers catalogue browsing, service list, service detail, graph view, editor, portfolio and new service intake.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="05-capabilities_c3.html"><span class="manual-entry-head"><span class="manual-entry-number">05</span><span><strong class="manual-entry-title">Capabilities and C3</strong><span class="manual-entry-subtitle">05-capabilities_c3.html</span></span></span><p>Capability and C3 views explain what a service supports and where architectural or operational gaps exist. They help architects and capability managers connect services to C3 capabilities, FMN spirals, applications, data objects and technology interactions.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="06-governance.html"><span class="manual-entry-head"><span class="manual-entry-number">06</span><span><strong class="manual-entry-title">Governance</strong><span class="manual-entry-subtitle">06-governance.html</span></span></span><p>Governance turns service catalogue evidence into auditable decisions. It covers readiness gates, review queues, decision records, exceptions, owner load and risk signals.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="07-import.html"><span class="manual-entry-head"><span class="manual-entry-number">07</span><span><strong class="manual-entry-title">Import</strong><span class="manual-entry-subtitle">07-import.html</span></span></span><p>Import brings service, reference, C3, FMN and integration evidence into the application. The safest workflow is profile selection, file upload, dry-run preview, issue review and then controlled execution.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="08-admin.html"><span class="manual-entry-head"><span class="manual-entry-number">08</span><span><strong class="manual-entry-title">Administration</strong><span class="manual-entry-subtitle">08-admin.html</span></span></span><p>Administration controls the safe operation of the instance: users, groups, roles, SSO, logs, reference data, import profiles, capability builder and installation diagnostics.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="09-user.html"><span class="manual-entry-head"><span class="manual-entry-number">09</span><span><strong class="manual-entry-title">User</strong><span class="manual-entry-subtitle">09-user.html</span></span></span><p>The user profile controls personal identity, language, password and role-visible work. It also explains why different users may see different navigation or actions.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="10-analysis.html"><span class="manual-entry-head"><span class="manual-entry-number">10</span><span><strong class="manual-entry-title">Analysis</strong><span class="manual-entry-subtitle">10-analysis.html</span></span></span><p>Analysis views help users answer what depends on what, where coverage is missing, which C3 items are affected and why a service is not ready.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="11-api.html"><span class="manual-entry-head"><span class="manual-entry-number">11</span><span><strong class="manual-entry-title">API</strong><span class="manual-entry-subtitle">11-api.html</span></span></span><p>The API lets other tools read catalogue, service, C3, governance and import context. It should be used with RBAC, authenticated sessions and clear ownership of integrations.</p><span class="manual-entry-footer"><span>open chapter</span></span></a><a class="manual-entry-card" href="12-abbrevations.html"><span class="manual-entry-head"><span class="manual-entry-number">12</span><span><strong class="manual-entry-title">Abbreviations</strong><span class="manual-entry-subtitle">12-abbrevations.html</span></span></span><p>This chapter explains frequent terms used in S3C Manager, ITIL, TOGAF, C3, FMN, APIs and workflow states. It helps managers, administrators and architects use the same vocabulary.</p><span class="manual-entry-footer"><span>open chapter</span></span></a></div>
+
+      <h2>Screenshot rule</h2>
+      <p>Screenshot slots use file names in the form img/<name>.png. After a UI change, place the current screenshot into docs/help-en/img or frontend/public/help-en/img and keep the caption name stable. The written explanation can stay manually maintained.</p>
+
+      <figure class="screen-slot"><div>Screenshot: help index or main application<br><code>/img/help-en/help-index.png</code></div><figcaption>Place a current screenshot of the help index or S3C Manager cockpit here.</figcaption></figure>
+      <div class="chapter-nav">
+        <span></span>
+        <a href="01-install.html">Next: Installation</a>
+      </div>
+    </main>
+  </div>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

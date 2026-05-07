@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from '@/app/components/AppLink';
+import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/app/components/PageHeader';
 import { DecisionRecordModal, type DecisionRecordValue } from '@/app/components/layout-v2';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
@@ -10,6 +11,8 @@ import { useGovernanceDecisions } from '@/features/governance/hooks/useGovernanc
 import type { GovernanceDecision } from '@/features/governance/types';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../governance.module.css';
+
+type DecisionFilter = 'all' | 'publish' | 'exception' | 'lifecycle' | 'other';
 
 function decisionVariant(decision: string) {
   if (decision === 'approved') return 'success';
@@ -26,6 +29,14 @@ function formatDate(value: string | null | undefined) {
 
 function optionalDecisionField(item: GovernanceDecision, key: 'evidence' | 'expires_at' | 'affected_summary') {
   return (item as GovernanceDecision & Partial<Record<typeof key, string | null>>)[key] ?? null;
+}
+
+function normalizeDecisionType(type: string) {
+  const value = type.toLowerCase();
+  if (['publish', 'publish_approval', 'publish_rejection', 'approval', 'release'].includes(value)) return 'publish';
+  if (['exception', 'readiness_exception', 'deferral', 'defer', 'risk_acceptance', 'waiver'].includes(value)) return 'exception';
+  if (['lifecycle', 'lifecycle_transition', 'retirement', 'retirement_recommendation', 'retire'].includes(value)) return 'lifecycle';
+  return 'other';
 }
 
 function DecisionCard({ item }: { item: GovernanceDecision }) {
@@ -69,11 +80,18 @@ function DecisionCard({ item }: { item: GovernanceDecision }) {
 }
 
 export default function GovernanceDecisionsPage() {
-  const { data, isLoading, error, mutate } = useGovernanceDecisions({ limit: 200 });
+  const searchParams = useSearchParams();
+  const serviceFilter = searchParams?.get('service_id') ?? '';
+  const { data, isLoading, error, mutate } = useGovernanceDecisions({ limit: 200, serviceId: serviceFilter || undefined });
   const [recordOpen, setRecordOpen] = useState(false);
+  const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>('all');
   const [recordError, setRecordError] = useState<string | null>(null);
   const [recordBusy, setRecordBusy] = useState(false);
   const decisions = data?.items ?? [];
+  const visibleDecisions = decisions.filter((item) => {
+    if (decisionFilter === 'all') return true;
+    return normalizeDecisionType(item.decision_type) === decisionFilter;
+  });
   const approved = decisions.filter((item) => item.decision === 'approved').length;
   const deferred = decisions.filter((item) => item.decision === 'deferred').length;
   const rejected = decisions.filter((item) => item.decision === 'rejected' || item.decision === 'cancelled').length;
@@ -117,6 +135,7 @@ export default function GovernanceDecisionsPage() {
           { label: `${decisions.length} decisions`, tone: 'info' },
           { label: `${approved} approved`, tone: 'ok' },
           { label: `${deferred} deferred`, tone: deferred ? 'warn' : 'neutral' },
+          ...(serviceFilter ? [{ label: `Service ${serviceFilter}`, tone: 'info' as const }] : []),
         ]}
         primaryAction={{ label: 'Record decision', onClick: () => setRecordOpen(true) }}
       />
@@ -129,10 +148,23 @@ export default function GovernanceDecisionsPage() {
       </section>
 
       <div className={govStyles.decisionFilters} aria-label="Decision filters">
-        <span className={govStyles.decisionFilterChip}>All decisions</span>
-        <span className={govStyles.decisionFilterChip}>Publish approval</span>
-        <span className={govStyles.decisionFilterChip}>Risk acceptance</span>
-        <span className={govStyles.decisionFilterChip}>Exceptions</span>
+        {([
+          ['all', 'All decisions'],
+          ['publish', 'Publish'],
+          ['exception', 'Exceptions'],
+          ['lifecycle', 'Lifecycle'],
+          ['other', 'Other'],
+        ] as Array<[DecisionFilter, string]>).map(([filter, label]) => (
+          <button
+            key={filter}
+            type="button"
+            className={govStyles.decisionFilterChip}
+            aria-pressed={decisionFilter === filter}
+            onClick={() => setDecisionFilter(filter)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <section className={govStyles.workflowGrid}>
@@ -142,11 +174,11 @@ export default function GovernanceDecisionsPage() {
               <h2 className={govStyles.panelTitle}>Decision history</h2>
               <p className={govStyles.panelHint}>Každá karta ukazuje What, Why, Affects, Expires a Evidence jako v review modalu.</p>
             </div>
-            <span className={govStyles.panelCount}>{decisions.length}</span>
+            <span className={govStyles.panelCount}>{visibleDecisions.length}</span>
           </div>
-          {decisions.length === 0 ? <EmptyState title="No governance decisions." /> : (
+          {visibleDecisions.length === 0 ? <EmptyState title="No governance decisions for this filter." /> : (
             <div className={govStyles.decisionCardGrid}>
-              {decisions.map((item) => <DecisionCard key={item.id} item={item} />)}
+              {visibleDecisions.map((item) => <DecisionCard key={item.id} item={item} />)}
             </div>
           )}
         </article>

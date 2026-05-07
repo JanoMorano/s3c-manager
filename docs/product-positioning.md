@@ -2,7 +2,7 @@
 
 ## Product Sentence
 
-S3C Manager is a lightweight, self-hosted service and capability governance cockpit for organizations that need to map services to capability, C3, and FMN structures, manage readiness, coverage, ownership, and decisions without adopting a heavy enterprise platform.
+S3C Manager is a lightweight, self-hosted service and capability governance cockpit for organizations that need to keep a service catalogue, capability/C3/FMN mapping, readiness gates, ownership, reviews, and decision evidence aligned without adopting a heavy enterprise platform.
 
 ## Category
 
@@ -24,8 +24,8 @@ S3C Manager is:
 - a service portfolio and catalogue for business, technical, and application services
 - a capability and C3/FMN alignment cockpit
 - a readiness and publishing gate for governed services
-- a coverage, gap, overlap, and consolidation analysis tool
-- an ownership, review, and decision trail for service governance
+- a coverage and impact analysis tool
+- an ownership, review, exception, and decision trail for service governance
 - a self-hosted application that can be adopted beside existing ITSM, CMDB, EA, and developer portal tools
 
 ## What It Is Not
@@ -44,17 +44,17 @@ S3C Manager is not:
 
 | User | Main jobs |
 |---|---|
-| Service owner | understand service readiness, missing metadata, dependencies, review status, and ownership obligations |
-| Service delivery manager | monitor portfolio health, SLA/pricing completeness, requestability, lifecycle, and review deadlines |
-| Enterprise architect | map services to capabilities, detect gaps and overlaps, reason about impact and consolidation |
-| C3/FMN taxonomy administrator | maintain capability maps, Spiral alignment, C3 entities, and service mappings |
-| Governance team | review exceptions, approvals, decisions, audit history, and unresolved blockers |
+| Consumer | find a useful service, understand its value, and follow the request channel |
+| Service owner | keep owned services publishable, mapped, supportable, and review-ready |
+| Capability manager | assess capability coverage, mapping gaps, overlaps, and impact |
+| C3/FMN taxonomy administrator | maintain capability maps, C3 entities, and service mappings |
+| Administrator | operate users, roles, imports, reference data, installation state, and audit evidence |
 
 ## Jobs To Be Done
 
 - When a new service is proposed, users can place it into the portfolio, assign owners, define offerings, map capabilities, and understand what is missing before publication.
 - When a capability map changes, users can see which services are affected, which capabilities are uncovered, and where duplicate support exists.
-- When governance review is due, users can see the readiness blockers, evidence, owners, exceptions, and decision history in one place.
+- When governance review is due, users can see readiness blockers, evidence, owners, exceptions, and decision history in one place.
 - When an organization already has ServiceNow, iTop, LeanIX, ArchiRepo, Backstage, or spreadsheets, users can import/export enough metadata to keep S3C Manager useful without making it the universal system of record.
 
 ## Product Principles
@@ -70,4 +70,4 @@ S3C Manager is not:
 
 Use this wording for product communication:
 
-> S3C Manager is a lightweight self-hosted service and capability governance cockpit. It helps organizations map services to capability, C3, and FMN structures, manage readiness and ownership, identify coverage gaps and overlaps, and record governance decisions without adopting a heavy enterprise ITSM or EA platform.
+> S3C Manager is a lightweight self-hosted service and capability governance cockpit. It helps organizations map services to capability, C3, and FMN structures, manage readiness and ownership, identify coverage gaps and impact, and record governance decisions without adopting a heavy enterprise ITSM or EA platform.

@@ -316,7 +316,7 @@ function buildDemoServices(locale = 'cs') {
             customer_type: ['Internal'],
             operational_notes_raw: 'Managed by automation center of excellence.',
             budget_activity_code: 'BA-INFRA-2024',
-            lifecycle_state: 'under_review',
+            lifecycle_state: 'draft',
             lifecycle_stage_code: 'design',
             criticality_code: 'standard',
             requestable: true,
@@ -473,7 +473,7 @@ function buildDemoServices(locale = 'cs') {
     ];
     const defaultsByStatus = {
         active: { requestable: true, lifecycle_state: 'live', lifecycle_stage_code: 'active', criticality_code: 'important', next_review_due_at: '2026-06-30T00:00:00Z', review_due_at: '2026-06-30T00:00:00Z' },
-        planned: { requestable: true, lifecycle_state: 'under_review', lifecycle_stage_code: 'design', criticality_code: 'standard', next_review_due_at: '2026-05-31T00:00:00Z', review_due_at: '2026-05-31T00:00:00Z' },
+        planned: { requestable: true, lifecycle_state: 'draft', lifecycle_stage_code: 'design', criticality_code: 'standard', next_review_due_at: '2026-05-31T00:00:00Z', review_due_at: '2026-05-31T00:00:00Z' },
         draft: { requestable: false, lifecycle_state: 'draft', lifecycle_stage_code: 'draft', criticality_code: 'standard', next_review_due_at: null, review_due_at: null },
         deprecated: { requestable: false, lifecycle_state: 'deprecated', lifecycle_stage_code: 'retiring', criticality_code: 'important', next_review_due_at: '2026-05-15T00:00:00Z', review_due_at: '2026-05-15T00:00:00Z' },
         retired: { requestable: false, lifecycle_state: 'retired', lifecycle_stage_code: 'retired', criticality_code: 'standard', next_review_due_at: null, review_due_at: null },
@@ -573,10 +573,10 @@ async function seedReferenceData(pool) {
     await safeQuery(pool, `
         INSERT INTO data.ref_pace_category (code, name, sort_order, description)
         VALUES
-            ('DIFF',  'Differentiation', 10, 'Custom-built, competitive differentiator'),
-            ('SYS',   'Systems',         11, 'Product / packaged solution'),
-            ('COMM',  'Commodity',       12, 'Standardized, utility-like service'),
-            ('INNOV', 'Innovation',      13, 'Experimental, exploratory capability')
+            ('P', 'Primary',     10, 'Primary service or primary implementation path'),
+            ('A', 'Alternate',   11, 'Alternate service or fallback path'),
+            ('C', 'Contingency', 12, 'Contingency option for degraded operation'),
+            ('E', 'Emergency',   13, 'Emergency option for crisis operation')
         ON CONFLICT (code) DO NOTHING
     `, [], 'ref_pace_category:demo');
 
@@ -931,15 +931,15 @@ async function seedFlavourSla(pool) {
 // ── 5. SERVICE RELATIONSHIPS ─────────────────────────────────────────────────────
 function buildDemoRelations() {
     return [
-        { from: 'DEMO-PIS-001', to: 'DEMO-IAM-002', type: 'depends_on',  label: 'API autentizace',      pace_code: 'SYS',  is_mandatory: true,  impact_level: 'high',   note: 'Každý API call přes PIS vyžaduje IAM token validaci.' },
-        { from: 'DEMO-DAP-003', to: 'DEMO-PIS-001', type: 'prerequisite',label: 'Ingestion pipeline',    pace_code: 'SYS',  is_mandatory: true,  impact_level: 'high',   note: 'Bez integrační vrstvy PIS není možné naplnit analytickou platformu.' },
-        { from: 'DEMO-DAP-003', to: 'DEMO-IAM-002', type: 'underlying',  label: 'SSO trust',            pace_code: 'SYS',  is_mandatory: true,  impact_level: 'medium', note: 'IAM poskytuje podkladovou autentizaci pro analytický portál.' },
-        { from: 'DEMO-IAM-002', to: 'DEMO-PIS-001', type: 'provided_by', label: 'Token distribution',   pace_code: 'DIFF', is_mandatory: false, impact_level: 'medium', note: 'IAM distribuuje JWT tokeny přes PIS event bus.' },
-        { from: 'DEMO-PIS-001', to: 'DEMO-DAP-003', type: 'related_to',  label: 'Data publishing',      pace_code: 'COMM', is_mandatory: false, impact_level: 'low',    note: 'PIS publikuje integrační události, které DAP dále zpracovává.' },
-        { from: 'DEMO-IAM-002', to: 'DEMO-DAP-003', type: 'replaces',    label: 'Legacy BI access',     pace_code: 'INNOV',is_mandatory: false, impact_level: 'medium', note: 'Nové IAM scénáře nahrazují starý přístup do BI portálu.' },
-        { from: 'DEMO-OBS-007', to: 'DEMO-RPA-004', type: 'depends_on',  label: 'Automation telemetry', pace_code: 'SYS',  is_mandatory: true,  impact_level: 'medium', note: 'Observability consumes automation execution telemetry.' },
-        { from: 'DEMO-RPA-004', to: 'DEMO-DAP-003', type: 'depends_on',  label: 'Decision analytics',   pace_code: 'SYS',  is_mandatory: true,  impact_level: 'medium', note: 'Automation review queues use analytics outputs from DAP.' },
-        { from: 'DEMO-LRG-005', to: 'DEMO-DAP-003', type: 'replaces',    label: 'Analytics migration',  pace_code: 'COMM', is_mandatory: false, impact_level: 'high',   note: 'Legacy reporting is being replaced by the analytics platform.' },
+        { from: 'DEMO-PIS-001', to: 'DEMO-IAM-002', type: 'depends_on',  label: 'API autentizace',      pace_code: 'P',  is_mandatory: true,  impact_level: 'high',   note: 'Každý API call přes PIS vyžaduje IAM token validaci.' },
+        { from: 'DEMO-DAP-003', to: 'DEMO-PIS-001', type: 'prerequisite',label: 'Ingestion pipeline',    pace_code: 'P',  is_mandatory: true,  impact_level: 'high',   note: 'Bez integrační vrstvy PIS není možné naplnit analytickou platformu.' },
+        { from: 'DEMO-DAP-003', to: 'DEMO-IAM-002', type: 'underlying',  label: 'SSO trust',            pace_code: 'P',  is_mandatory: true,  impact_level: 'medium', note: 'IAM poskytuje podkladovou autentizaci pro analytický portál.' },
+        { from: 'DEMO-IAM-002', to: 'DEMO-PIS-001', type: 'provided_by', label: 'Token distribution',   pace_code: 'A', is_mandatory: false, impact_level: 'medium', note: 'IAM distribuuje JWT tokeny přes PIS event bus.' },
+        { from: 'DEMO-PIS-001', to: 'DEMO-DAP-003', type: 'related_to',  label: 'Data publishing',      pace_code: 'C', is_mandatory: false, impact_level: 'low',    note: 'PIS publikuje integrační události, které DAP dále zpracovává.' },
+        { from: 'DEMO-IAM-002', to: 'DEMO-DAP-003', type: 'replaces',    label: 'Legacy BI access',     pace_code: 'E',is_mandatory: false, impact_level: 'medium', note: 'Nové IAM scénáře nahrazují starý přístup do BI portálu.' },
+        { from: 'DEMO-OBS-007', to: 'DEMO-RPA-004', type: 'depends_on',  label: 'Automation telemetry', pace_code: 'P',  is_mandatory: true,  impact_level: 'medium', note: 'Observability consumes automation execution telemetry.' },
+        { from: 'DEMO-RPA-004', to: 'DEMO-DAP-003', type: 'depends_on',  label: 'Decision analytics',   pace_code: 'P',  is_mandatory: true,  impact_level: 'medium', note: 'Automation review queues use analytics outputs from DAP.' },
+        { from: 'DEMO-LRG-005', to: 'DEMO-DAP-003', type: 'replaces',    label: 'Analytics migration',  pace_code: 'C', is_mandatory: false, impact_level: 'high',   note: 'Legacy reporting is being replaced by the analytics platform.' },
     ];
 }
 
@@ -1173,40 +1173,40 @@ async function seedC3Entities(pool) {
 function buildDemoServiceC3Mappings() {
     return [
         // DEMO-PIS-001
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'COMM',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'PIS podporuje integrační business procesy.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'SYS',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'PIS podporuje roli integračního architekta.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'primary',     pace: 'DIFF',  level: 3, domain: 'Capabilities',            is_primary: true,  note: 'PIS přímo realizuje platform integration capability.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'implements',  pace: 'SYS',   level: 3, domain: 'COIServices',             is_primary: false, note: 'PIS napojuje COI identity integration toky.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'implements',  pace: 'SYS',   level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'PIS poskytuje API bus jako komunikační službu.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports',    pace: 'COMM',  level: 3, domain: 'CoreServices',            is_primary: false, note: 'PIS podporuje core integrační a orchestration služby.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports',    pace: 'INNOV', level: 3, domain: 'InformationProducts',     is_primary: false, note: 'PIS zásobuje dashboardy integračními telemetry daty.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'SYS',   level: 3, domain: 'UserApplications',        is_primary: false, note: 'PIS obsluhuje user applications přes integrační API.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'C',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'PIS podporuje integrační business procesy.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'P',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'PIS podporuje roli integračního architekta.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'primary',     pace: 'A',  level: 3, domain: 'Capabilities',            is_primary: true,  note: 'PIS přímo realizuje platform integration capability.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'implements',  pace: 'P',   level: 3, domain: 'COIServices',             is_primary: false, note: 'PIS napojuje COI identity integration toky.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'implements',  pace: 'P',   level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'PIS poskytuje API bus jako komunikační službu.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports',    pace: 'C',  level: 3, domain: 'CoreServices',            is_primary: false, note: 'PIS podporuje core integrační a orchestration služby.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports',    pace: 'E', level: 3, domain: 'InformationProducts',     is_primary: false, note: 'PIS zásobuje dashboardy integračními telemetry daty.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'P',   level: 3, domain: 'UserApplications',        is_primary: false, note: 'PIS obsluhuje user applications přes integrační API.' },
         // DEMO-IAM-002
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'COMM',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'IAM podporuje přístupové workflow napříč business procesy.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'implements',  pace: 'DIFF',  level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'IAM spravuje business role a oprávnění.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports',    pace: 'SYS',   level: 3, domain: 'Capabilities',            is_primary: false, note: 'IAM podporuje capability vrstvy bezpečnou identitou.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'primary',     pace: 'DIFF',  level: 3, domain: 'COIServices',             is_primary: true,  note: 'IAM přímo realizuje COI Identity Management.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports',    pace: 'COMM',  level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'IAM chrání komunikační vrstvy a API komunikaci.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'implements',  pace: 'SYS',   level: 3, domain: 'CoreServices',            is_primary: false, note: 'IAM poskytuje core auth službu.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports',    pace: 'COMM',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'IAM auditní záznamy vstupují do information products.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'supports',    pace: 'COMM',  level: 3, domain: 'UserApplications',        is_primary: false, note: 'IAM obsluhuje přihlášení a session správu user applications.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'C',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'IAM podporuje přístupové workflow napříč business procesy.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'implements',  pace: 'A',  level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'IAM spravuje business role a oprávnění.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports',    pace: 'P',   level: 3, domain: 'Capabilities',            is_primary: false, note: 'IAM podporuje capability vrstvy bezpečnou identitou.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'primary',     pace: 'A',  level: 3, domain: 'COIServices',             is_primary: true,  note: 'IAM přímo realizuje COI Identity Management.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports',    pace: 'C',  level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'IAM chrání komunikační vrstvy a API komunikaci.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'implements',  pace: 'P',   level: 3, domain: 'CoreServices',            is_primary: false, note: 'IAM poskytuje core auth službu.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports',    pace: 'C',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'IAM auditní záznamy vstupují do information products.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'supports',    pace: 'C',  level: 3, domain: 'UserApplications',        is_primary: false, note: 'IAM obsluhuje přihlášení a session správu user applications.' },
         // DEMO-DAP-003
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'COMM',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'DAP podporuje reporting a rozhodovací business procesy.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'SYS',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'DAP poskytuje role-based dashboards a analytické pohledy.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports',    pace: 'SYS',   level: 3, domain: 'Capabilities',            is_primary: false, note: 'DAP rozšiřuje capability vrstvu o analytické scénáře.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'supports',    pace: 'COMM',  level: 3, domain: 'COIServices',             is_primary: false, note: 'DAP publikuje COI analytics služby.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports',    pace: 'SYS',   level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'DAP využívá komunikační služby pro ingest a notifikace.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'primary',     pace: 'DIFF',  level: 3, domain: 'CoreServices',            is_primary: true,  note: 'DAP realizuje core analytics service.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'implements',  pace: 'DIFF',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'DAP produkuje information products a dashboardy.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'INNOV', level: 3, domain: 'UserApplications',        is_primary: false, note: 'DAP poskytuje self-service analytics portal.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'C',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'DAP podporuje reporting a rozhodovací business procesy.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'P',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'DAP poskytuje role-based dashboards a analytické pohledy.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports',    pace: 'P',   level: 3, domain: 'Capabilities',            is_primary: false, note: 'DAP rozšiřuje capability vrstvu o analytické scénáře.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'supports',    pace: 'C',  level: 3, domain: 'COIServices',             is_primary: false, note: 'DAP publikuje COI analytics služby.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports',    pace: 'P',   level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'DAP využívá komunikační služby pro ingest a notifikace.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'primary',     pace: 'A',  level: 3, domain: 'CoreServices',            is_primary: true,  note: 'DAP realizuje core analytics service.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'implements',  pace: 'A',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'DAP produkuje information products a dashboardy.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'E', level: 3, domain: 'UserApplications',        is_primary: false, note: 'DAP poskytuje self-service analytics portal.' },
         // governance cockpit additions
-        { service_id: 'DEMO-RPA-004', c3_uuid: DEMO_UUIDS.CAP_RPA, type: 'primary', pace: 'INNOV', level: 3, domain: 'Capabilities', is_primary: true, note: 'RPA maps to an intentionally incomplete capability for readiness demo.' },
-        { service_id: 'DEMO-OBS-007', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports', pace: 'SYS', level: 3, domain: 'Capabilities', is_primary: false, note: 'Observability adds over-coverage to the platform capability.' },
-        { service_id: 'DEMO-LRG-005', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports', pace: 'COMM', level: 3, domain: 'CoreServices', is_primary: false, note: 'Legacy reporting remains a duplicate support path until retired.' },
+        { service_id: 'DEMO-RPA-004', c3_uuid: DEMO_UUIDS.CAP_RPA, type: 'primary', pace: 'E', level: 3, domain: 'Capabilities', is_primary: true, note: 'RPA maps to an intentionally incomplete capability for readiness demo.' },
+        { service_id: 'DEMO-OBS-007', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports', pace: 'P', level: 3, domain: 'Capabilities', is_primary: false, note: 'Observability adds over-coverage to the platform capability.' },
+        { service_id: 'DEMO-LRG-005', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports', pace: 'C', level: 3, domain: 'CoreServices', is_primary: false, note: 'Legacy reporting remains a duplicate support path until retired.' },
         // explicit demo L4 capability content for capability maps
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP_L4, type: 'implements', pace: 'SYS', level: 4, domain: 'BusinessProcesses', is_primary: false, note: 'PIS automatizuje workflow orchestration integračních procesů.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI_L4, type: 'implements', pace: 'DIFF', level: 4, domain: 'COIServices', is_primary: false, note: 'IAM zajišťuje federated identity brokerage mezi doménami.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA_L4, type: 'implements', pace: 'INNOV', level: 4, domain: 'UserApplications', is_primary: false, note: 'DAP napájí commander insight portal živými dashboardy.' },
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP_L4, type: 'implements', pace: 'P', level: 4, domain: 'BusinessProcesses', is_primary: false, note: 'PIS automatizuje workflow orchestration integračních procesů.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI_L4, type: 'implements', pace: 'A', level: 4, domain: 'COIServices', is_primary: false, note: 'IAM zajišťuje federated identity brokerage mezi doménami.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA_L4, type: 'implements', pace: 'E', level: 4, domain: 'UserApplications', is_primary: false, note: 'DAP napájí commander insight portal živými dashboardy.' },
     ];
 }
 
@@ -1365,7 +1365,7 @@ function buildDemoGovernanceFixtures() {
         decisions: [
             { service_id: 'DEMO-OBS-007', decision_type: 'publish', decision: 'approved', rationale: 'Mission-critical observability service has owner, SLA, and dependency evidence.', decided_by: 'governance-board@example.org', decided_at: '2026-04-21T10:00:00Z' },
             { service_id: 'DEMO-RPA-004', decision_type: 'publish', decision: 'deferred', rationale: 'Primary capability mapping is incomplete until automation capability evidence is connected.', decided_by: 'governance-board@example.org', decided_at: '2026-04-22T10:00:00Z' },
-            { service_id: 'DEMO-LRG-005', decision_type: 'retirement', decision: 'approved', rationale: 'Legacy gateway can retire after final report consumers migrate to DAP.', decided_by: 'governance-board@example.org', decided_at: '2026-04-23T10:00:00Z' },
+            { service_id: 'DEMO-LRG-005', decision_type: 'lifecycle', decision: 'approved', rationale: 'Legacy gateway can retire after final report consumers migrate to DAP.', decided_by: 'governance-board@example.org', decided_at: '2026-04-23T10:00:00Z' },
             { service_id: 'DEMO-DOC-006', decision_type: 'publish', decision: 'rejected', rationale: 'Service owner and SLA evidence are missing.', decided_by: 'governance-board@example.org', decided_at: '2026-04-24T10:00:00Z' },
         ],
     };

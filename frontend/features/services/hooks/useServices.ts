@@ -3,6 +3,7 @@ import { apiFetch, buildGraphOverviewUrl, buildListUrl } from '../api/services.a
 import type { ListParams } from '../api/services.api';
 import type {
   ServiceListResponse,
+  CatalogQualityResponse,
   PortfolioListResponse,
   ServiceDetail,
   ServiceOverviewResponse,
@@ -28,7 +29,6 @@ import type {
   ServiceOperationalLink,
   ImpactResponse,
   Service360Response,
-  ServiceRequestItem,
 } from '../model/service.types';
 
 // ── Services list ────────────────────────────────────────────────────────────
@@ -37,6 +37,14 @@ export function useServices(params: ListParams = {}) {
   return useSWR<ServiceListResponse>(key, apiFetch, {
     keepPreviousData: true,
     revalidateOnFocus: false,
+    dedupingInterval: 15_000,
+  });
+}
+
+export function useCatalogQualitySummary() {
+  return useSWR<CatalogQualityResponse>('/api/v1/services/catalog-quality', apiFetch, {
+    revalidateOnFocus: false,
+    dedupingInterval: 120_000,
   });
 }
 
@@ -142,22 +150,19 @@ export function useGraphOverview(options: { compact?: boolean; includeC3?: boole
   return useSWR<GraphOverviewResponse>(
     buildGraphOverviewUrl(options),
     apiFetch,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 }
 
 export function useC3RelationGraph(params: { search?: string; itemType?: string; domainCode?: string; l3PageId?: string; enabled?: boolean } = {}) {
-  if (params.enabled === false) {
-    return useSWR<C3RelationGraphResponse>(null, apiFetch, {
-      revalidateOnFocus: false,
-    });
-  }
   const q = new URLSearchParams();
   if (params.search) q.set('search', params.search);
   if (params.itemType) q.set('item_type', params.itemType);
   if (params.domainCode) q.set('domain_code', params.domainCode);
   if (params.l3PageId) q.set('l3_page_id', params.l3PageId);
-  const key = `/api/v1/graph/c3-relations${q.toString() ? `?${q.toString()}` : ''}`;
+  const key = params.enabled === false
+    ? null
+    : `/api/v1/graph/c3-relations${q.toString() ? `?${q.toString()}` : ''}`;
   return useSWR<C3RelationGraphResponse>(key, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -233,13 +238,6 @@ export function useDashboardInbox() {
 
 export function useDashboardSummary() {
   return useSWR<DashboardDecisionSummaryResponse>('/api/v1/dashboard/summary', apiFetch, {
-    refreshInterval: 60_000,
-    revalidateOnFocus: false,
-  });
-}
-
-export function useMyServiceRequests() {
-  return useSWR<{ items: ServiceRequestItem[]; count: number }>('/api/v1/service-requests/mine', apiFetch, {
     refreshInterval: 60_000,
     revalidateOnFocus: false,
   });

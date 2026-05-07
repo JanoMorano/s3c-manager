@@ -88,13 +88,14 @@ test('phase 4 editor manages request model, offerings, support, audience and lin
   await advanceWizardToCreate(page);
   await expect(page).toHaveURL(new RegExp(`/services/${serviceId}/edit`), { timeout: 20_000 });
 
-  await fillField(page, /business summary/i, `Business-first summary ${suffix}`);
+  await fillField(page, /short description/i, `Business-first summary ${suffix}`);
+  await fillField(page, /consumer value/i, `Consumer value ${suffix}`);
   await fillField(page, /request channel type/i, 'portal');
   await fillField(page, /request channel url/i, `https://example.test/request/${serviceId.toLowerCase()}`);
   await fillField(page, /target audience summary/i, 'Internal engineering teams');
   await fillField(page, /fulfillment lead time/i, '2 business days');
-  await page.locator('#catalogue-access').locator('label', { hasText: /requestable/i }).locator('input[type="checkbox"]').check();
-  await page.locator('#catalogue-access').locator('label', { hasText: /approval required/i }).locator('input[type="checkbox"]').check();
+  await page.locator('#request-access').locator('label', { hasText: /requestable/i }).locator('input[type="checkbox"]').check();
+  await page.locator('#request-access').locator('label', { hasText: /approval required/i }).locator('input[type="checkbox"]').check();
   await Promise.all([
     waitForApiOk(page, `/api/v1/services/${serviceId}`, 'PUT'),
     page.getByRole('button', { name: /save draft/i }).click(),
@@ -158,10 +159,10 @@ test('phase 4 editor manages request model, offerings, support, audience and lin
   await expect(page.getByRole('heading', { name: serviceTitle })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(`Business-first summary ${suffix}`, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: /offerings/i }).click();
+  await page.getByRole('button', { name: /how to get it/i }).click();
   await expect(page.getByRole('heading', { name: offeringTitle })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: /^support$/i }).click();
+  await page.getByRole('button', { name: /support\s*\/\s*sla/i }).click();
   await expect(page.locator('#support').getByText('Playwright Support', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Internal engineering teams', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 

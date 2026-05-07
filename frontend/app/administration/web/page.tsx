@@ -54,6 +54,7 @@ export default function AdministrationWebPage() {
   const [saveOk, setSaveOk] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- U5: web settings form hydrates a local editable draft from async settings data. */
   useEffect(() => {
     if (!data?.items) return;
     setDraft(
@@ -63,6 +64,7 @@ export default function AdministrationWebPage() {
       }, {})
     );
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const items = useMemo(() => data?.items ?? [], [data]);
 

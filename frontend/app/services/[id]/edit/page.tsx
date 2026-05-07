@@ -12,36 +12,36 @@ import { CodeEditor, ConflictModal, EditorSubNav, FormSection, StickySaveBar, Us
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useService, useServices, usePortfolioGroups, useServiceTypes, useServiceLines, useOrganizationalElements, useNetworkDomains, useGlobalServiceGroups, useC3Taxonomy, useServiceRoles, useSecurityClassifications, useServiceReadiness } from '@/features/services/hooks/useServices';
+import { useService, useServices, usePortfolioGroups, useServiceTypes, useServiceLines, useNetworkDomains, useC3Taxonomy, useServiceRoles, useSecurityClassifications, useServiceReadiness } from '@/features/services/hooks/useServices';
 import {
   updateService, updateDomains, updateRole,
-  fetchServiceFlavours, createFlavour, updateFlavour, deleteFlavour,
+  fetchServiceFlavours,
   fetchServiceOfferingsEditor, createOffering, updateOffering, deleteOffering,
   fetchServiceSupportModelEditor, replaceSupportModel,
   fetchServiceAudienceEditor, replaceAudiencePolicies,
   fetchServiceOperationalLinksEditor, createOperationalLink, updateOperationalLink, deleteOperationalLink,
   createRelation, deleteRelation, updateRelation,
-  type FlavourRecord, type FlavourBody, type RelationPatch,
+  type FlavourRecord, type RelationPatch,
+  type ServiceUpdateBody,
   type ServiceOfferingBody, type ServiceSupportModelBody, type ServiceAudiencePolicyBody, type ServiceOperationalLinkBody,
 } from '@/features/services/api/editor.api';
 import { authHeaders } from '@/features/services/api/services.api';
+import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
 import { useServiceSla } from '@/features/services/hooks/useServices';
 import type {
   SlaRecord,
-  ServiceAudiencePolicy,
   ServiceC3Mapping,
   ServiceOffering,
   ServiceOperationalLink,
-  ServiceSupportModel,
 } from '@/features/services/model/service.types';
 import { useT } from '@/app/i18n/useI18n';
 import styles from './editor.module.css';
+import relationTypes from '../../../../../shared/service-catalogue/relationTypes.json';
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
 const schema = z.object({
   title:                  z.string().min(1, 'Title is required'),
   service_type:           z.string().min(1, 'Service type is required'),
-  service_status:         z.string().optional(),
   portfolio_group_code:           z.string().optional(),
   global_service_group_code:      z.string().optional(),
   service_line_code:              z.string().optional(),
@@ -94,24 +94,29 @@ const schema = z.object({
 
 type FormData = z.output<typeof schema>;
 
-const STATUS_OPTIONS    = ['active','retired','deprecated','draft'];
-const LIFECYCLE_OPTIONS = ['draft', 'under_review', 'approved', 'live', 'deprecated', 'retired'];
+const LIFECYCLE_OPTIONS = ['draft', 'live', 'deprecated', 'retired'] as const;
+type LifecycleState = typeof LIFECYCLE_OPTIONS[number];
 
-// Phase 7: mirrors backend LIFECYCLE_TRANSITIONS in validation.js
-// Phase 8: standard operational link types
+function normalizeLifecycleState(value: string | null | undefined): LifecycleState {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['live', 'active', 'published', 'production'].includes(normalized)) return 'live';
+  if (['deprecated', 'retiring'].includes(normalized)) return 'deprecated';
+  if (normalized === 'retired') return 'retired';
+  return 'draft';
+}
+
+// Canonical lifecycle states mirror backend validation.js
+// Standard operational link types
 const OPERATIONAL_LINK_TYPES = ['knowledge', 'incidents', 'changes', 'docs', 'review', 'monitoring', 'support', 'other'];
 
-// Phase 7: mirrors backend LIFECYCLE_TRANSITIONS in validation.js
+// Canonical lifecycle transitions mirror backend validation.js
 const LIFECYCLE_TRANSITION_MAP: Record<string, string[]> = {
-  draft:        ['under_review'],
-  under_review: ['draft', 'approved'],
-  approved:     ['under_review', 'live'],
-  live:         ['deprecated'],
-  deprecated:   ['live', 'retired'],
-  retired:      ['deprecated'],
+  draft:      ['live'],
+  live:       ['deprecated', 'retired'],
+  deprecated: ['live', 'retired'],
+  retired:    ['deprecated'],
 };
-const RELATION_TYPES    = ['prerequisite','underlying','replaces','depends_on','related_to','provided_by'];
-const FLAVOUR_STATUSES  = ['available','active','retired'];
+const RELATION_TYPES    = relationTypes.editable;
 const OFFERING_STATUSES = ['draft', 'active', 'retired'];
 
 interface Props { params: Promise<{ id: string }> }
@@ -159,8 +164,6 @@ export default function ServiceEditorPage({ params }: Props) {
   const { data: networkDomains }  = useNetworkDomains();
   const domainOptions = networkDomains?.map(d => d.code) ?? ['NEXUS','VERTEX','ORBIT','PULSE','RELAY','CLOUD','GRID','PRISM','HELIX','ZENITH','APEX','VORTEX','MATRIX'];
   const { data: serviceLines }           = useServiceLines();
-  const { data: orgElements }            = useOrganizationalElements();
-  const { data: globalServiceGroups }    = useGlobalServiceGroups();
   const { data: securityClassifications } = useSecurityClassifications();
   const { data: serviceRoles } = useServiceRoles(id);
   const { data: readiness, mutate: mutateReadiness } = useServiceReadiness(id);
@@ -195,21 +198,26 @@ export default function ServiceEditorPage({ params }: Props) {
   const [saved,     setSaved]     = useState(false);
   const [phase4Saved, setPhase4Saved] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState(EDITOR_SECTION_IDS[0]);
+  const [currentRole, setCurrentRole] = useState(() => getAuthSnapshot()?.role ?? null);
+  const canViewAdvancedEvidence = currentRole === 'admin';
+  const visibleEditorSectionIds = useMemo(
+    () => canViewAdvancedEvidence
+      ? EDITOR_SECTION_IDS
+      : EDITOR_SECTION_IDS.filter((sectionId) => sectionId !== 'advanced-evidence'),
+    [canViewAdvancedEvidence],
+  );
 
-  // ── SLA records (Item 17) ─────────────────────────────────────────────────
-  const { data: slaData, mutate: mutateSla } = useServiceSla(id);
-  const [slaForm, setSlaForm] = useState<{ flavour_id?: number|null; availability_pct?: string; restoration_hours?: string; delivery_days?: string; support_window_code?: string; sla_note_raw?: string; priority_model_raw?: string }>({});
-
-  // Flavours from all services for the SLA select.
-  const [dash6Flavours, setDash6Flavours] = useState<Array<{ id: number; flavour_code: string; title: string | null; service_id: string; service_title: string }>>([]);
   useEffect(() => {
-    fetch('/api/v1/flavours?all=1', { headers: authHeaders() })
-      .then(r => r.ok ? r.json() : [])
-      .then(setDash6Flavours)
-      .catch(() => {});
+    const syncRole = () => setCurrentRole(getAuthSnapshot()?.role ?? null);
+    syncRole();
+    window.addEventListener(AUTH_STATE_EVENT, syncRole);
+    return () => window.removeEventListener(AUTH_STATE_EVENT, syncRole);
   }, []);
 
-  // ── Raw fields — audit trail (ServiceRawField) ────────────────────────────
+  // ── SLA records (Item 17) ─────────────────────────────────────────────────
+  const { data: slaData } = useServiceSla(id);
+
+  // ── Import source evidence — audit trail ─────────────────────────────────
   const [rawFields, setRawFields] = useState<Array<{ id: number; field_name: string; raw_value: string; parser_version: string | null; created_at: string }>>([]);
   const [rawFieldsOpen, setRawFieldsOpen] = useState(false);
   useEffect(() => {
@@ -219,48 +227,9 @@ export default function ServiceEditorPage({ params }: Props) {
       .then(setRawFields)
       .catch(() => {});
   }, [id, rawFieldsOpen]);
-  const [showSlaAdd,  setShowSlaAdd]  = useState(false);
-  const [slaBusy,     setSlaBusy]     = useState(false);
-  const [slaError,    setSlaError]    = useState<string | null>(null);
-
-  const handleSlaAdd = async () => {
-    setSlaBusy(true); setSlaError(null);
-    try {
-      const body: Record<string, unknown> = {};
-      if (slaForm.flavour_id != null) body.flavour_id = slaForm.flavour_id;
-      if (slaForm.availability_pct)  body.availability_pct  = parseFloat(slaForm.availability_pct);
-      if (slaForm.restoration_hours) body.restoration_hours = parseFloat(slaForm.restoration_hours);
-      if (slaForm.delivery_days)     body.delivery_days     = parseFloat(slaForm.delivery_days);
-      if (slaForm.support_window_code) body.support_window_code = slaForm.support_window_code;
-      if (slaForm.sla_note_raw)      body.sla_note_raw      = slaForm.sla_note_raw;
-      await fetch(`/api/v1/services/${id}/sla`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(body),
-      });
-      setSlaForm({}); setShowSlaAdd(false);
-      await mutateSla();
-    } catch (e: unknown) { setSlaError(e instanceof Error ? e.message : 'Failed'); }
-    finally { setSlaBusy(false); }
-  };
-
-  const handleSlaDelete = async (slaId: number) => {
-    if (!confirm('Delete this SLA record?')) return;
-    setSlaBusy(true); setSlaError(null);
-    try {
-      await fetch(`/api/v1/services/${id}/sla/${slaId}`, { method: 'DELETE', headers: authHeaders() });
-      await mutateSla();
-    } catch (e: unknown) { setSlaError(e instanceof Error ? e.message : 'Delete failed'); }
-    finally { setSlaBusy(false); }
-  };
-
   // ── Flavours state ───────────────────────────────────────────────────────
   const [flavours,      setFlavours]      = useState<FlavourRecord[]>([]);
-  const [flavourBusy,   setFlavourBusy]   = useState(false);
   const [flavourError,  setFlavourError]  = useState<string | null>(null);
-  const [editFlavourId, setEditFlavourId] = useState<number | null>(null);
-  const [flavourForm,   setFlavourForm]   = useState<FlavourBody>({});
-  const [showFlavourAdd, setShowFlavourAdd] = useState(false);
 
   // ── Offerings state ──────────────────────────────────────────────────────
   const [offerings, setOfferings] = useState<ServiceOffering[]>([]);
@@ -290,9 +259,12 @@ export default function ServiceEditorPage({ params }: Props) {
 
   const loadFlavours = useCallback(async () => {
     try {
+      setFlavourError(null);
       setFlavours(await fetchServiceFlavours(id));
       await mutateReadiness();
-    } catch { /* ignore */ }
+    } catch (e: unknown) {
+      setFlavourError(e instanceof Error ? e.message : 'Legacy variant evidence could not be loaded');
+    }
   }, [id, mutateReadiness]);
 
   useEffect(() => { loadFlavours(); }, [loadFlavours]);
@@ -340,29 +312,6 @@ export default function ServiceEditorPage({ params }: Props) {
     () => sortedOfferings.find((offering) => offering.is_default) ?? null,
     [sortedOfferings],
   );
-
-  const handleFlavourSave = async () => {
-    setFlavourBusy(true); setFlavourError(null);
-    try {
-      if (editFlavourId != null) {
-        await updateFlavour(editFlavourId, flavourForm);
-      } else {
-        await createFlavour(id, flavourForm);
-      }
-      setEditFlavourId(null); setFlavourForm({}); setShowFlavourAdd(false);
-      await loadFlavours();
-    } catch (e: unknown) {
-      setFlavourError(e instanceof Error ? e.message : 'Save failed');
-    } finally { setFlavourBusy(false); }
-  };
-
-  const handleFlavourDelete = async (fid: number) => {
-    if (!confirm('Delete this pricing variant?')) return;
-    setFlavourBusy(true); setFlavourError(null);
-    try { await deleteFlavour(fid); await loadFlavours(); }
-    catch (e: unknown) { setFlavourError(e instanceof Error ? e.message : 'Delete failed'); }
-    finally { setFlavourBusy(false); }
-  };
 
   const handleOfferingSave = async () => {
     setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
@@ -667,7 +616,7 @@ export default function ServiceEditorPage({ params }: Props) {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [c3Form.c3_uuid, c3Form.mapping_type_code, id, showC3Add]);
+  }, [c3Form.c3_uuid, c3Form.mapping_type_code, id, showC3Add, t]);
 
   const handleC3Add = async () => {
     if (!c3Form.c3_uuid.trim()) { setC3Error(t('service_editor.c3.error_required')); return; }
@@ -736,7 +685,6 @@ export default function ServiceEditorPage({ params }: Props) {
     reset({
       title:                   svc.title,
       service_type:            svc.service_type    ?? '',
-      service_status:          svc.service_status  ?? '',
       portfolio_group_code:           svc.portfolio_group             ?? '',
       global_service_group_code:      svc.global_service_group_code   ?? '',
       service_line_code:              svc.service_line_code           ?? '',
@@ -759,7 +707,7 @@ export default function ServiceEditorPage({ params }: Props) {
       business_summary:        svc.business_summary ?? '',
       consumer_value:          svc.consumer_value ?? '',
       requestable:             svc.requestable ?? false,
-      lifecycle_state:         svc.lifecycle_state ?? '',
+      lifecycle_state:         normalizeLifecycleState(svc.lifecycle_state ?? svc.lifecycle_stage_code ?? svc.service_status),
       target_audience_summary: svc.target_audience_summary ?? '',
       request_channel_type:    svc.request_channel_type ?? '',
       request_channel_url:     svc.request_channel_url ?? '',
@@ -781,14 +729,16 @@ export default function ServiceEditorPage({ params }: Props) {
     });
   }, [svc, activeRoleMap, isDirty, reset]);
 
+  /* eslint-disable react-hooks/incompatible-library -- U5: React Hook Form watch values drive unsaved-state UX and existing editor conditionals. */
   const watchedDomains      = watch('domains') ?? [];
   const watchedTitle        = watch('title');
   const watchedServiceType  = watch('service_type');
   const watchedRequestable  = watch('requestable');
   const watchedChannelType  = watch('request_channel_type');
   const watchedChannelUrl   = watch('request_channel_url');
+  /* eslint-enable react-hooks/incompatible-library */
   const dirtyCount          = Object.keys(dirtyFields).length;
-  const currentLifecycle    = svc?.lifecycle_state ?? null;
+  const currentLifecycle    = svc ? normalizeLifecycleState(svc.lifecycle_state ?? svc.lifecycle_stage_code ?? svc.service_status) : null;
   const allowedLifecycleOptions = LIFECYCLE_OPTIONS.filter((state) => {
     if (!currentLifecycle) return true;
     return state === currentLifecycle || (LIFECYCLE_TRANSITION_MAP[currentLifecycle] ?? []).includes(state);
@@ -830,24 +780,24 @@ export default function ServiceEditorPage({ params }: Props) {
   const editorSections: EditorSubNavSection[] = useMemo(() => {
     const errorKeys = new Set(Object.keys(errors));
     const requestWarning = !!watchedRequestable && !(watchedChannelType?.trim() || watchedChannelUrl?.trim());
-    return EDITOR_SECTION_IDS.map((sectionId) => {
+    return visibleEditorSectionIds.map((sectionId) => {
       const sectionErrors = (SECTION_FIELD_MAP[sectionId] ?? []).filter((field) => errorKeys.has(field)).length;
       if (sectionErrors > 0) {
         return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: sectionErrors, tone: 'bad' };
       }
-      if (sectionId === 'catalogue-access' && requestWarning) {
+      if (sectionId === 'request-access' && requestWarning) {
         return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Fix', tone: 'warn' };
       }
-      if (sectionId === 'offerings' && offerings.length === 0) {
+      if (sectionId === 'request-access' && offerings.length === 0) {
         return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Add', tone: 'orange' };
       }
-      if (sectionId === 'offerings' && !defaultOffering) {
+      if (sectionId === 'request-access' && offerings.length > 0 && !defaultOffering) {
         return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Default', tone: 'warn' };
       }
-      if (sectionId === 'support-model' && supportModels.length === 0) {
+      if (sectionId === 'ownership-support' && supportModels.length === 0) {
         return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Add', tone: 'orange' };
       }
-      if (sectionId === 'c3mapping' && readiness && !readiness.is_publishable) {
+      if (sectionId === 'readiness-governance' && readiness && !readiness.is_publishable) {
         return {
           id: sectionId,
           label: SECTION_LABELS[sectionId] ?? sectionId,
@@ -855,12 +805,12 @@ export default function ServiceEditorPage({ params }: Props) {
           tone: 'warn',
         };
       }
-      if (sectionId === 'c3mapping' && c3Mappings.length > 0) {
+      if (sectionId === 'readiness-governance' && c3Mappings.length > 0) {
         return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: c3Mappings.length, tone: 'purple' };
       }
       return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId };
     });
-  }, [c3Mappings.length, defaultOffering, errors, offerings.length, readiness, supportModels.length, watchedChannelType, watchedChannelUrl, watchedRequestable]);
+  }, [c3Mappings.length, defaultOffering, errors, offerings.length, readiness, supportModels.length, visibleEditorSectionIds, watchedChannelType, watchedChannelUrl, watchedRequestable]);
 
   const saveState: SaveState = saving
     ? 'saving'
@@ -881,36 +831,16 @@ export default function ServiceEditorPage({ params }: Props) {
     setSaving(true); setSaveError(null); setSaveConflict(null); setSaved(false);
     try {
       // 1. Update main service fields
-      await updateService(id, {
+      const serviceUpdate: ServiceUpdateBody = {
         title:                   data.title,
         service_type:            data.service_type,
-        service_status:          data.service_status,
         portfolio_group_code:        data.portfolio_group_code,
-        global_service_group_code:   data.global_service_group_code,
         service_line_code:           data.service_line_code,
-        organizational_element_code: data.organizational_element_code,
         summary:                 data.summary,
-        detailed_description:    data.detailed_description,
-        value_proposition:       data.value_proposition,
-        business_purpose:        data.business_purpose,
-        service_features:        data.service_features,
         security_classification: data.security_classification,
-        source_url:              data.source_url,
-        unit_of_measure:         data.unit_of_measure,
-        charging_basis:          data.charging_basis,
-        rate_note:               data.rate_note,
-        ordering_note:           data.ordering_note,
         retired_note:            data.retired_note,
         scope_text:              data.scope_text,
-        operational_notes_raw:   data.operational_notes_raw,
-        sla_restoration_text:    data.sla_restoration_text,
-        sla_delivery_text:       data.sla_delivery_text,
         exclusions:              data.exclusions,
-        service_area:            data.service_area,
-        customer_type:           data.customer_type
-          ? JSON.stringify(data.customer_type.split(',').map((s: string) => s.trim()).filter(Boolean))
-          : null,
-        business_summary:        data.business_summary || null,
         consumer_value:          data.consumer_value || null,
         requestable:             data.requestable ?? false,
         lifecycle_state:         data.lifecycle_state || null,
@@ -919,11 +849,29 @@ export default function ServiceEditorPage({ params }: Props) {
         request_channel_url:     data.request_channel_url || null,
         approval_required:       data.approval_required ?? false,
         fulfillment_lead_time_text: data.fulfillment_lead_time_text || null,
-        notes_json:              data.notes_json,
         sla_availability:        data.sla_availability,
         sla_restoration:         data.sla_restoration,
         sla_delivery:            data.sla_delivery,
-      });
+      };
+
+      if (canViewAdvancedEvidence) {
+        Object.assign(serviceUpdate, {
+          source_url:              data.source_url,
+          unit_of_measure:         data.unit_of_measure,
+          charging_basis:          data.charging_basis,
+          rate_note:               data.rate_note,
+          ordering_note:           data.ordering_note,
+          operational_notes_raw:   data.operational_notes_raw,
+          sla_restoration_text:    data.sla_restoration_text,
+          sla_delivery_text:       data.sla_delivery_text,
+          customer_type:           data.customer_type
+            ? JSON.stringify(data.customer_type.split(',').map((s: string) => s.trim()).filter(Boolean))
+            : null,
+          notes_json:              data.notes_json,
+        });
+      }
+
+      await updateService(id, serviceUpdate);
 
       // 2. Update domains (separate PUT)
       if (dirtyFields.domains && data.domains) {
@@ -959,13 +907,13 @@ export default function ServiceEditorPage({ params }: Props) {
     if (publishBlockers.length > 0) {
       setSaveError(publishBlockers[0]);
       const targetSection = publishBlockers[0].startsWith('Readiness')
-        ? 'c3mapping'
+        ? 'readiness-governance'
         : publishBlockers[0].includes('offering')
-          ? 'offerings'
+          ? 'request-access'
           : publishBlockers[0].includes('support')
-            ? 'support-model'
+            ? 'ownership-support'
             : publishBlockers[0].includes('request')
-              ? 'catalogue-access'
+              ? 'request-access'
               : 'identity';
       handleSectionSelect(targetSection);
       return;
@@ -981,11 +929,10 @@ export default function ServiceEditorPage({ params }: Props) {
       <div className={styles.stickyHeader}>
         <PageHeader
           title={`Editor služby — ${svc.title}`}
-          purpose="Udržujte jen údaje, které rozhodují o katalogu, provozní připravenosti a governance. Detailní technické vazby zůstávají níže ve specializovaných sekcích."
+          purpose="Udržujte jen sedm pracovních oblastí, které rozhodují o katalogu, žádosti, vlastnictví, supportu, readiness a governance."
           chips={[
             { label: `ID ${id}`, tone: 'neutral' },
-            { label: `Public status: ${svc.service_status ?? 'draft'}`, tone: svc.service_status === 'active' ? 'ok' : 'neutral' },
-            { label: `Lifecycle: ${svc.lifecycle_state ?? '—'}`, tone: svc.lifecycle_state === 'live' ? 'ok' : 'info' },
+            { label: `Lifecycle: ${currentLifecycle ?? '—'}`, tone: currentLifecycle === 'live' ? 'ok' : 'info' },
             { label: `Completeness ${svc.completeness_score ?? '—'}%`, tone: (svc.completeness_score ?? 0) >= 80 ? 'ok' : 'warn' },
           ]}
           primaryAction={{ label: 'Zpět na detail', href: `/services/${id}` }}
@@ -995,7 +942,7 @@ export default function ServiceEditorPage({ params }: Props) {
       <div className={styles.editorBody}>
         <EditorSubNav
           title="Service editor"
-          summary="Levý krokový přehled podle layout proposal v2."
+          summary="7 pracovních sekcí podle redukční Etapy 4."
           sections={editorSections}
           activeId={activeSection}
           onSelect={handleSectionSelect}
@@ -1041,8 +988,8 @@ export default function ServiceEditorPage({ params }: Props) {
             )}
           </div>
 
-          {/* §1 Basic identity */}
-          <EditorSection id="identity" title="1. Basic Identity">
+          {/* §1 Identita */}
+          <EditorSection id="identity" title="1. Identita">
             <div className={styles.fieldRow}>
               <Field label="Service ID">
                 <input className={styles.readOnlyInput} value={id} disabled readOnly aria-label="Service ID" />
@@ -1056,56 +1003,6 @@ export default function ServiceEditorPage({ params }: Props) {
                   {serviceTypes?.map(t => <option key={t.code} value={t.code}>{t.code} — {t.name}</option>)}
                 </select>
               </Field>
-              <Field label="Status">
-                <select {...register('service_status')} className={styles.input}>
-                  <option value="">— select —</option>
-                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </Field>
-            </div>
-          </EditorSection>
-
-          {/* §2 Description */}
-          <EditorSection id="description" title="2. Description">
-            <Field label="Short Description (summary)">
-              <textarea {...register('summary')} rows={2} className={styles.textarea} />
-            </Field>
-            <Field label="Detailed Description">
-              <textarea {...register('detailed_description')} rows={4} className={styles.textarea} />
-            </Field>
-            <Field label="Value Proposition">
-              <textarea {...register('value_proposition')} rows={3} className={styles.textarea} />
-            </Field>
-            <Field label="Business Purpose">
-              <textarea {...register('business_purpose')} rows={3} className={styles.textarea} placeholder="Describe the business purpose and customer value…" />
-            </Field>
-            <Field label="Service Features">
-              <textarea {...register('service_features')} rows={3} className={styles.textarea} />
-            </Field>
-            {/* Item 7 */}
-            <Field label="Scope">
-              <textarea {...register('scope_text')} rows={3} className={styles.textarea} placeholder="Describe the scope of this service…" />
-            </Field>
-          </EditorSection>
-
-          <EditorSection id="catalogue-access" title="2b. Catalogue Access & Request Model">
-            <Field label="Business Summary">
-              <textarea
-                {...register('business_summary')}
-                rows={3}
-                className={styles.textarea}
-                placeholder="Short business-facing summary shown at the top of the service detail."
-              />
-            </Field>
-            <Field label="Consumer Value" hint="What value does this service deliver to its consumers? Shown prominently in the business view.">
-              <textarea
-                {...register('consumer_value')}
-                rows={2}
-                className={styles.textarea}
-                placeholder="e.g. Enables teams to self-serve X without waiting for Y…"
-              />
-            </Field>
-            <div className={styles.fieldRow}>
               <Field label="Lifecycle State">
                 <select {...register('lifecycle_state')} className={styles.input}>
                   <option value="">— select —</option>
@@ -1118,12 +1015,64 @@ export default function ServiceEditorPage({ params }: Props) {
                     );
                   })}
                 </select>
-                {svc?.lifecycle_state && (
+                {currentLifecycle && (
                   <span className={styles.hint}>
-                    Current: <strong>{svc.lifecycle_state}</strong> · Allowed next: {(LIFECYCLE_TRANSITION_MAP[svc.lifecycle_state] ?? []).join(', ') || '—'}
+                    Current: <strong>{currentLifecycle}</strong> · Allowed next: {(LIFECYCLE_TRANSITION_MAP[currentLifecycle] ?? []).join(', ') || '—'}
                   </span>
                 )}
               </Field>
+            </div>
+            <div className={styles.fieldRow}>
+              <Field label="Portfolio Group">
+                <select {...register('portfolio_group_code')} className={styles.input} aria-label="Portfolio Group">
+                  <option value="">— select —</option>
+                  {portfolioGroups?.map(pg => <option key={pg.code} value={pg.code}>{pg.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Service Line">
+                <select {...register('service_line_code')} className={styles.input} aria-label="Service Line">
+                  <option value="">— select —</option>
+                  {serviceLines?.map(sl => <option key={sl.code} value={sl.code}>{sl.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Security Classification">
+                <select {...register('security_classification')} className={styles.input} aria-label="Security Classification">
+                  <option value="">— select —</option>
+                  {securityClassificationOptions.map((classification) => (
+                    <option key={classification.code} value={classification.code}>
+                      {classification.code} — {classification.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </EditorSection>
+
+          {/* §2 Hodnota a rozsah */}
+          <EditorSection id="value-scope" title="2. Hodnota a rozsah">
+            <span id="description" className={styles.anchorAlias} aria-hidden="true" />
+            <Field label="Short Description (summary)">
+              <textarea {...register('summary')} rows={2} className={styles.textarea} />
+            </Field>
+            <Field label="Consumer Value" hint="What value does this service deliver to its consumers?">
+              <textarea
+                {...register('consumer_value')}
+                rows={2}
+                className={styles.textarea}
+                placeholder="e.g. Enables teams to self-serve X without waiting for Y..."
+              />
+            </Field>
+            <Field label="Scope">
+              <textarea {...register('scope_text')} rows={3} className={styles.textarea} placeholder="Describe the scope of this service…" />
+            </Field>
+            <Field label="Exclusions">
+              <textarea {...register('exclusions')} rows={3} className={styles.textarea} placeholder="What is explicitly not covered by this service..." />
+            </Field>
+          </EditorSection>
+
+          <EditorSection id="request-access" title="3. Request a přístup">
+            <span id="catalogue-access" className={styles.anchorAlias} aria-hidden="true" />
+            <div className={styles.fieldRow}>
               <Field label="Request Channel Type">
                 <input {...register('request_channel_type')} className={styles.input} placeholder="portal, form, email, marketplace…" />
               </Field>
@@ -1162,57 +1111,13 @@ export default function ServiceEditorPage({ params }: Props) {
               </div>
             )}
             <p className={styles.hint}>
-              These fields power the business-facing Overview and Request &amp; Support views introduced in Phase 3.
+              These fields power the business-facing Overview and Request &amp; Support views.
             </p>
           </EditorSection>
 
-          {/* §3 Classification */}
-          <EditorSection id="classification" title="3. Classification">
-            <div className={styles.fieldRow}>
-              <Field label="Portfolio Group">
-                <select {...register('portfolio_group_code')} className={styles.input} aria-label="Portfolio Group">
-                  <option value="">— select —</option>
-                  {portfolioGroups?.map(pg => <option key={pg.code} value={pg.code}>{pg.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Security Classification">
-                <select {...register('security_classification')} className={styles.input} aria-label="Security Classification">
-                  <option value="">— select —</option>
-                  {securityClassificationOptions.map((classification) => (
-                    <option key={classification.code} value={classification.code}>
-                      {classification.code} — {classification.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Service Area">
-                <input {...register('service_area')} className={styles.input} placeholder="e.g. IT, Finance, HR…" />
-              </Field>
-            </div>
-            <div className={styles.fieldRow}>
-              <Field label="Global Service Group">
-                <select {...register('global_service_group_code')} className={styles.input} aria-label="Global Service Group">
-                  <option value="">— select —</option>
-                  {globalServiceGroups?.map(g => <option key={g.code} value={g.code}>{g.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Service Line">
-                <select {...register('service_line_code')} className={styles.input} aria-label="Service Line">
-                  <option value="">— select —</option>
-                  {serviceLines?.map(sl => <option key={sl.code} value={sl.code}>{sl.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Organizational Element">
-                <select {...register('organizational_element_code')} className={styles.input} aria-label="Organizational Element">
-                  <option value="">— select —</option>
-                  {orgElements?.map(oe => <option key={oe.code} value={oe.code}>{oe.name}</option>)}
-                </select>
-              </Field>
-            </div>
-          </EditorSection>
-
-          {/* §4 Ownership */}
-          <EditorSection id="ownership" title="4. Ownership">
+          {/* §4 Vlastnictví a support */}
+          <EditorSection id="ownership-support" title="4. Vlastnictví a support">
+            <span id="ownership" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
               <Field label="Service Owner">
                 <input {...register('service_owner')} className={styles.input} placeholder="Display name" />
@@ -1227,35 +1132,18 @@ export default function ServiceEditorPage({ params }: Props) {
                 />
                 {errors.service_owner_email?.message && <span className={styles.fieldError}>{errors.service_owner_email.message}</span>}
               </div>
-            </div>
-            <div className={styles.fieldRow}>
-              <Field label="Service Area Owner (vlastnik)">
-                <input {...register('vlastnik')} className={styles.input} />
-              </Field>
-              <Field label="Area Owner Organization">
-                <input {...register('vlastnik_org')} className={styles.input} placeholder="Organizace podpory" />
+              <Field label="Service Delivery Manager" hint="Vyplňte jen tehdy, pokud pro službu existuje delivery proces.">
+                <input {...register('manager')} className={styles.input} placeholder="Display name" />
               </Field>
             </div>
-            <div className={styles.fieldRow}>
-              <Field label="Service Delivery Manager">
-                <input {...register('manager')} className={styles.input} />
-              </Field>
-              <Field label="Delivery Manager Organization">
-                <input {...register('manager_org')} className={styles.input} placeholder="Organizace delivery managera" />
-              </Field>
-            </div>
-            <div className={styles.fieldRow}>
-              <Field label="Owner Organization">
-                <input {...register('service_owner_org')} className={styles.input} placeholder="Organizace vlastníka" />
-              </Field>
-            </div>
-            <p className={styles.hint}>Each role update creates a new dated record — the previous record is closed automatically.</p>
+            <p className={styles.hint}>Role history remains audited. Legacy owner organization fields stay preserved for import/history but are no longer edited in the core form.</p>
           </EditorSection>
 
-          {/* §5 Availability / Domains */}
-          <EditorSection id="availability" title="5. Availability & Domains">
+          {/* §5 Dostupnost a vazby */}
+          <EditorSection id="availability-relations" title="5. Dostupnost a vazby">
+            <span id="availability" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.hint}>
-              Export SLA bundle: <a href="/api/v1/export/sla">SLA export</a> · <a href="/api/v1/export/bundle">Full bundle</a>
+              SLA evidence is included in the <a href="/api/v1/export/bundle">full export bundle</a>.
             </div>
             <div className={styles.fieldRow}>
               <Field label="SLA Availability (%)" error={errors.sla_availability?.message}>
@@ -1288,12 +1176,16 @@ export default function ServiceEditorPage({ params }: Props) {
               </div>
             </Field>
 
-            {/* ── Item 17: Flavour-specific SLA overrides ─────────────────── */}
-            <div className={styles.slaSubsection}>
-              <div className={styles.slaSubtitle}>Flavour-specific SLA overrides</div>
-              {slaError && <div className={styles.errorBanner}>{slaError}</div>}
-
-              {/* Existing SLA records per flavour */}
+            {/* ── Legacy variant SLA overrides ─────────────────────────────── */}
+            {canViewAdvancedEvidence && (
+            <details className={styles.advancedDetails}>
+              <summary className={styles.advancedSummary}>Deprecated legacy variant SLA overrides</summary>
+              <div className={styles.advancedDetailsBody}>
+              <div className={styles.slaSubsection}>
+              <div className={styles.slaSubtitle}>Legacy variant SLA overrides are read-only</div>
+              <p className={styles.hint}>
+                New SLA evidence is maintained at service level above or through per-offering support model records.
+              </p>
               {slaData && slaData.sla_records.filter(r => r.flavour_code != null).length > 0 && (
                 <div className={styles.slaRecordList}>
                   {(slaData.sla_records.filter(r => r.flavour_code != null) as SlaRecord[]).map(r => (
@@ -1302,203 +1194,43 @@ export default function ServiceEditorPage({ params }: Props) {
                       <span>{r.availability_pct != null ? `${r.availability_pct}%` : '—'}</span>
                       <span>{r.restoration_hours != null ? `${r.restoration_hours}h` : '—'}</span>
                       <span>{r.delivery_days != null ? `${r.delivery_days}d` : '—'}</span>
-                      <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleSlaDelete(r.id)} disabled={slaBusy}>×</button>
                     </div>
                   ))}
                 </div>
               )}
-
-              {showSlaAdd ? (
-                <div className={styles.slaAddForm}>
-                  <div className={styles.fieldRow}>
-                    <Field label="Flavour">
-                      <select className={styles.input} value={slaForm.flavour_id ?? ''} onChange={e => setSlaForm(p => ({ ...p, flavour_id: e.target.value ? Number(e.target.value) : null }))}>
-                        <option value="">— none (base service) —</option>
-                        {dash6Flavours.map(f => (
-                          <option key={f.id} value={f.id}>
-                            {f.service_id}{f.flavour_code ? ` · ${f.flavour_code}` : ''}{f.title ? ` — ${f.title}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label="Support Window">
-                      <input className={styles.input} placeholder="e.g. 24x7" value={slaForm.support_window_code ?? ''} onChange={e => setSlaForm(p => ({ ...p, support_window_code: e.target.value }))} />
-                    </Field>
-                  </div>
-                  <div className={styles.fieldRow}>
-                    <Field label="Availability (%)">
-                      <input type="number" min={0} max={100} step={0.001} className={styles.input} value={slaForm.availability_pct ?? ''} onChange={e => setSlaForm(p => ({ ...p, availability_pct: e.target.value }))} />
-                    </Field>
-                    <Field label="Restoration (h)">
-                      <input type="number" min={0} className={styles.input} value={slaForm.restoration_hours ?? ''} onChange={e => setSlaForm(p => ({ ...p, restoration_hours: e.target.value }))} />
-                    </Field>
-                    <Field label="Delivery (d)">
-                      <input type="number" min={0} className={styles.input} value={slaForm.delivery_days ?? ''} onChange={e => setSlaForm(p => ({ ...p, delivery_days: e.target.value }))} />
-                    </Field>
-                  </div>
-                  <div className={styles.fieldRow}>
-                    <Field label="SLA Note">
-                      <textarea rows={2} className={styles.textarea} value={slaForm.sla_note_raw ?? ''} onChange={e => setSlaForm(p => ({ ...p, sla_note_raw: e.target.value }))} />
-                    </Field>
-                    <Field label="Priority Model">
-                      <input className={styles.input} placeholder="e.g. P1/P2/P3" value={slaForm.priority_model_raw ?? ''} onChange={e => setSlaForm(p => ({ ...p, priority_model_raw: e.target.value }))} />
-                    </Field>
-                  </div>
-                  <div className={styles.flavourEditActions}>
-                    <button type="button" className={styles.btnPrimary} onClick={handleSlaAdd} disabled={slaBusy}>Add SLA</button>
-                    <button type="button" className={styles.btnGhost} onClick={() => { setShowSlaAdd(false); setSlaForm({}); }}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <button type="button" className={styles.btnSecondary} onClick={() => setShowSlaAdd(true)} style={{ marginTop: 'var(--space-2)' }}>
-                  + Add flavour SLA override
-                </button>
+              {slaData && slaData.sla_records.filter(r => r.flavour_code != null).length === 0 && (
+                <p className={styles.hint}>No legacy variant SLA overrides exist for this service.</p>
               )}
-            </div>
+              </div>
+              </div>
+            </details>
+            )}
           </EditorSection>
 
-          {/* §6 Pricing Variants — Flavours CRUD */}
-          <EditorSection id="flavours" title="6. Pricing Variants">
+          {/* §6 Legacy variant evidence — read-only */}
+          <EditorSection id="flavours" title="Legacy variant evidence" hidden={!canViewAdvancedEvidence}>
             <div className={styles.hint}>
-              Export pricing bundle: <a href="/api/v1/export/pricing">Pricing export</a> · <a href="/api/v1/export/bundle">Full bundle</a>
+              Legacy variant data is retained for history and export evidence. Create and maintain current service variants in Service Offerings below.
             </div>
             {flavourError && <div className={styles.errorBanner}>{flavourError}</div>}
-
-            {/* Existing flavours list */}
-            {flavours.length > 0 && (
+            {flavours.length > 0 ? (
               <div className={styles.flavourList}>
                 {flavours.map(f => (
-                  editFlavourId === f.id ? (
-                    /* Inline edit form — Item 11: extended fields */
-                    <div key={f.id} className={styles.flavourEditBlock}>
-                      <div className={styles.flavourEditRow}>
-                        <input className={styles.input} placeholder="Title" value={flavourForm.title ?? ''} onChange={e => setFlavourForm(p => ({ ...p, title: e.target.value }))} />
-                        <input className={styles.input} placeholder="Unit" value={flavourForm.service_unit ?? ''} onChange={e => setFlavourForm(p => ({ ...p, service_unit: e.target.value }))} />
-                        <input className={styles.input} type="number" placeholder="Price EUR" value={flavourForm.price_value ?? ''} onChange={e => setFlavourForm(p => ({ ...p, price_value: e.target.value ? Number(e.target.value) : null }))} />
-                        <input className={styles.input} type="number" placeholder="Initiation €" value={flavourForm.initiation_cost ?? ''} onChange={e => setFlavourForm(p => ({ ...p, initiation_cost: e.target.value ? Number(e.target.value) : null }))} />
-                        <input className={styles.input} type="number" placeholder="Lifecycle €" value={flavourForm.lifecycle_cost ?? ''} onChange={e => setFlavourForm(p => ({ ...p, lifecycle_cost: e.target.value ? Number(e.target.value) : null }))} />
-                        <input className={styles.input} type="number" placeholder="Lifetime yrs" value={flavourForm.lifetime_years ?? ''} onChange={e => setFlavourForm(p => ({ ...p, lifetime_years: e.target.value ? Number(e.target.value) : null }))} />
-                        <select className={styles.input} value={flavourForm.flavour_status_code ?? ''} onChange={e => setFlavourForm(p => ({ ...p, flavour_status_code: e.target.value }))}>
-                          <option value="">— status —</option>
-                          {FLAVOUR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                      <div className={styles.flavourEditRow}>
-                        <textarea className={styles.textarea} rows={2} placeholder="Dependency text" value={flavourForm.dependency_text ?? ''} onChange={e => setFlavourForm(p => ({ ...p, dependency_text: e.target.value }))} style={{ gridColumn: '1 / 4' }} />
-                        <textarea className={styles.textarea} rows={2} placeholder="Nations rate (JSON or number)" value={flavourForm.nations_rate ?? ''} onChange={e => setFlavourForm(p => ({ ...p, nations_rate: e.target.value }))} style={{ gridColumn: '4 / 7', fontFamily: 'monospace', fontSize: '12px' }} />
-                      </div>
-                      {/* Table B gaps: currency, billing period, notes, ordering */}
-                      <div className={styles.flavourEditRow}>
-                        <input className={styles.input} placeholder="Currency (e.g. EUR)" value={flavourForm.currency_code ?? ''} onChange={e => setFlavourForm(p => ({ ...p, currency_code: e.target.value || null }))} />
-                        <input className={styles.input} placeholder="Billing period (e.g. MONTHLY)" value={flavourForm.billing_period_code ?? ''} onChange={e => setFlavourForm(p => ({ ...p, billing_period_code: e.target.value || null }))} />
-                        <input className={styles.input} type="number" placeholder="Display order" value={flavourForm.display_order ?? ''} onChange={e => setFlavourForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
-                        <label className={styles.domainCheck} style={{ alignSelf: 'center' }}>
-                          <input type="checkbox" checked={flavourForm.is_orderable ?? false} onChange={e => setFlavourForm(p => ({ ...p, is_orderable: e.target.checked }))} />
-                          <span>Orderable</span>
-                        </label>
-                      </div>
-                      <div className={styles.flavourEditRow}>
-                        <textarea className={styles.textarea} rows={2} placeholder="Short note" value={flavourForm.short_note ?? ''} onChange={e => setFlavourForm(p => ({ ...p, short_note: e.target.value || null }))} style={{ gridColumn: '1 / 4' }} />
-                        <textarea className={styles.textarea} rows={2} placeholder="Pricing note (raw)" value={flavourForm.pricing_note_raw ?? ''} onChange={e => setFlavourForm(p => ({ ...p, pricing_note_raw: e.target.value || null }))} style={{ gridColumn: '4 / 7' }} />
-                      </div>
-
-                      <div className={styles.flavourEditRow}>
-                        <textarea className={styles.textarea} rows={2} placeholder="Delivery note" value={flavourForm.delivery_note ?? ''} onChange={e => setFlavourForm(p => ({ ...p, delivery_note: e.target.value || null }))} style={{ gridColumn: '1 / 4' }} />
-                        <textarea className={styles.textarea} rows={2} placeholder="Technical note" value={flavourForm.technical_note ?? ''} onChange={e => setFlavourForm(p => ({ ...p, technical_note: e.target.value || null }))} style={{ gridColumn: '4 / 7' }} />
-                      </div>
-                      <div className={styles.flavourEditActions}>
-                        <button type="button" className={styles.btnPrimary} onClick={handleFlavourSave} disabled={flavourBusy}>Save</button>
-                        <button type="button" className={styles.btnGhost} onClick={() => { setEditFlavourId(null); setFlavourForm({}); }}>Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={f.id} className={styles.flavourRow}>
-                      <span className={styles.flavourName}>{f.title || f.flavour_code}</span>
-                      <span className={styles.flavourMeta}>{f.service_unit ?? '—'}</span>
-                      <span className={styles.flavourMeta}>
-                        {f.price_value != null ? `${f.price_value.toLocaleString()} ${f.currency_code ?? '€'}` : '—'}
-                      </span>
-                      <span className={styles.flavourMeta}>{f.billing_period_code ?? '—'}</span>
-                      <span className={styles.flavourMeta}>{f.lifecycle_cost != null ? `€${f.lifecycle_cost.toLocaleString()}` : '—'}</span>
-                      <span className={styles.flavourMeta}>{f.display_order != null ? `#${f.display_order}` : ''}</span>
-                      {f.is_orderable && <span className={styles.relBadgeGreen}>orderable</span>}
-                      <span className={styles.flavourMeta}>{f.flavour_status_code ?? '—'}</span>
-                      <div className={styles.flavourActions}>
-                        <button type="button" className={styles.btnSmall} onClick={() => {
-                          setEditFlavourId(f.id);
-                          setFlavourForm({
-                            title: f.title,
-                            service_unit: f.service_unit ?? '',
-                            price_value: f.price_value,
-                            initiation_cost: f.initiation_cost,
-                            lifecycle_cost: f.lifecycle_cost,
-                            lifetime_years: f.lifetime_years,
-                            flavour_status_code: f.flavour_status_code ?? '',
-                            dependency_text: f.dependency_text ?? '',
-                            nations_rate: f.nations_rate ?? '',
-                            // Table B newly-added fields
-                            currency_code: f.currency_code ?? '',
-                            billing_period_code: f.billing_period_code ?? '',
-                            display_order: f.display_order,
-                            is_orderable: f.is_orderable,
-                            short_note: f.short_note ?? '',
-                            pricing_note_raw: f.pricing_note_raw ?? '',
-                            delivery_note: f.delivery_note ?? '',
-                            technical_note: f.technical_note ?? '',
-                          });
-                        }}>Edit</button>
-                        <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleFlavourDelete(f.id)} disabled={flavourBusy}>Del</button>
-                      </div>
-                    </div>
-                  )
+                  <div key={f.id} className={styles.flavourRow}>
+                    <span className={styles.flavourName}>{f.title || f.flavour_code}</span>
+                    <span className={styles.flavourMeta}>{f.service_unit ?? '—'}</span>
+                    <span className={styles.flavourMeta}>
+                      {f.price_value != null ? `${f.price_value.toLocaleString()} ${f.currency_code ?? '€'}` : '—'}
+                    </span>
+                    <span className={styles.flavourMeta}>{f.billing_period_code ?? '—'}</span>
+                    <span className={styles.flavourMeta}>{f.lifecycle_cost != null ? `€${f.lifecycle_cost.toLocaleString()}` : '—'}</span>
+                    {f.is_orderable && <span className={styles.relBadgeGreen}>legacy orderable</span>}
+                    <span className={styles.flavourMeta}>{f.flavour_status_code ?? '—'}</span>
+                  </div>
                 ))}
               </div>
-            )}
-            {flavours.length === 0 && <p className={styles.hint}>No pricing variants defined.</p>}
-
-            {/* Add new flavour */}
-            {showFlavourAdd && editFlavourId == null ? (
-              <div className={styles.flavourEditBlock}>
-                <div className={styles.flavourEditRow}>
-                  <input className={styles.input} placeholder="Title *" value={flavourForm.title ?? ''} onChange={e => setFlavourForm(p => ({ ...p, title: e.target.value }))} />
-                  <input className={styles.input} placeholder="Unit" value={flavourForm.service_unit ?? ''} onChange={e => setFlavourForm(p => ({ ...p, service_unit: e.target.value }))} />
-                  <input className={styles.input} type="number" placeholder="Price" value={flavourForm.price_value ?? ''} onChange={e => setFlavourForm(p => ({ ...p, price_value: e.target.value ? Number(e.target.value) : null }))} />
-                  <input className={styles.input} placeholder="Currency (e.g. EUR)" value={flavourForm.currency_code ?? ''} onChange={e => setFlavourForm(p => ({ ...p, currency_code: e.target.value || null }))} />
-                  <input className={styles.input} placeholder="Billing period" value={flavourForm.billing_period_code ?? ''} onChange={e => setFlavourForm(p => ({ ...p, billing_period_code: e.target.value || null }))} />
-                  <input className={styles.input} type="number" placeholder="Initiation €" value={flavourForm.initiation_cost ?? ''} onChange={e => setFlavourForm(p => ({ ...p, initiation_cost: e.target.value ? Number(e.target.value) : null }))} />
-                  <input className={styles.input} type="number" placeholder="Lifecycle €" value={flavourForm.lifecycle_cost ?? ''} onChange={e => setFlavourForm(p => ({ ...p, lifecycle_cost: e.target.value ? Number(e.target.value) : null }))} />
-                  <input className={styles.input} type="number" placeholder="Lifetime yrs" value={flavourForm.lifetime_years ?? ''} onChange={e => setFlavourForm(p => ({ ...p, lifetime_years: e.target.value ? Number(e.target.value) : null }))} />
-                  <input className={styles.input} type="number" placeholder="Display order" value={flavourForm.display_order ?? ''} onChange={e => setFlavourForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
-                  <select className={styles.input} value={flavourForm.flavour_status_code ?? ''} onChange={e => setFlavourForm(p => ({ ...p, flavour_status_code: e.target.value }))}>
-                    <option value="">— status —</option>
-                    {FLAVOUR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div className={styles.flavourEditRow}>
-                  <textarea className={styles.textarea} rows={2} placeholder="Short note" value={flavourForm.short_note ?? ''} onChange={e => setFlavourForm(p => ({ ...p, short_note: e.target.value || null }))} style={{ gridColumn: '1 / 4' }} />
-                  <textarea className={styles.textarea} rows={2} placeholder="Pricing note (raw)" value={flavourForm.pricing_note_raw ?? ''} onChange={e => setFlavourForm(p => ({ ...p, pricing_note_raw: e.target.value || null }))} style={{ gridColumn: '4 / 7' }} />
-                </div>
-                <div className={styles.flavourEditRow}>
-                  <textarea className={styles.textarea} rows={2} placeholder="Dependency text" value={flavourForm.dependency_text ?? ''} onChange={e => setFlavourForm(p => ({ ...p, dependency_text: e.target.value }))} style={{ gridColumn: '1 / 4' }} />
-                  <label className={styles.domainCheck} style={{ alignSelf: 'center' }}>
-                    <input type="checkbox" checked={flavourForm.is_orderable ?? false} onChange={e => setFlavourForm(p => ({ ...p, is_orderable: e.target.checked }))} />
-                    <span>Orderable</span>
-                  </label>
-                </div>
-
-                <div className={styles.flavourEditRow}>
-                  <textarea className={styles.textarea} rows={2} placeholder="Delivery note" value={flavourForm.delivery_note ?? ''} onChange={e => setFlavourForm(p => ({ ...p, delivery_note: e.target.value || null }))} style={{ gridColumn: '1 / 4' }} />
-                  <textarea className={styles.textarea} rows={2} placeholder="Technical note" value={flavourForm.technical_note ?? ''} onChange={e => setFlavourForm(p => ({ ...p, technical_note: e.target.value || null }))} style={{ gridColumn: '4 / 7' }} />
-                </div>
-                <div className={styles.flavourEditActions}>
-                  <button type="button" className={styles.btnPrimary} onClick={handleFlavourSave} disabled={flavourBusy}>Add</button>
-                  <button type="button" className={styles.btnGhost} onClick={() => { setShowFlavourAdd(false); setFlavourForm({}); }}>Cancel</button>
-                </div>
-              </div>
             ) : (
-              <button type="button" className={styles.btnSecondary} onClick={() => { setShowFlavourAdd(true); setEditFlavourId(null); setFlavourForm({}); }} style={{ marginTop: 'var(--space-3)' }}>
-                + Add pricing variant
-              </button>
+              <p className={styles.hint}>No legacy variant evidence is defined. Use Service Offerings for new variants.</p>
             )}
           </EditorSection>
 
@@ -1631,9 +1363,7 @@ export default function ServiceEditorPage({ params }: Props) {
                   )
                 ))}
               </div>
-            ) : (
-              <p className={styles.hint}>No service offerings defined yet.</p>
-            )}
+            ) : null}
 
             {showOfferingAdd && editOfferingId == null ? (
               <div className={styles.phase4Card}>
@@ -1813,7 +1543,7 @@ export default function ServiceEditorPage({ params }: Props) {
                   </select>
                 </Field>
                 <Field label="Label (optional)">
-                  <input className={styles.input} placeholder="e.g. billing dependency" value={relForm.relation_label} onChange={e => setRelForm(p => ({ ...p, relation_label: e.target.value }))} />
+                  <input className={styles.input} placeholder="e.g. approval dependency" value={relForm.relation_label} onChange={e => setRelForm(p => ({ ...p, relation_label: e.target.value }))} />
                 </Field>
                 <div className={styles.flavourEditActions}>
                   <button type="button" className={styles.btnPrimary} onClick={handleRelAdd} disabled={relBusy}>Add relation</button>
@@ -1830,8 +1560,9 @@ export default function ServiceEditorPage({ params }: Props) {
             </p>
           </EditorSection>
 
-          {/* §7b C3 Taxonomy Mappings */}
-          <EditorSection id="c3mapping" title={t('service_editor.c3.section_title')}>
+          {/* §6 Readiness a governance */}
+          <EditorSection id="readiness-governance" title="6. Readiness a governance">
+            <div id="c3mapping" className={styles.inlineEditorBody}>
             {c3Error && <div className={styles.errorBanner}>{c3Error}</div>}
             {readiness && (
               <div className={styles.readinessCard}>
@@ -1975,6 +1706,10 @@ export default function ServiceEditorPage({ params }: Props) {
             <p className={styles.hint} style={{ marginTop: 'var(--space-3)' }}>
               {t('service_editor.c3.catalogue_hint')} <Link href="/c3/list" className={styles.link}>{t('service_editor.c3.catalogue_link')} →</Link>
             </p>
+            </div>
+            <Field label="Retired / End-of-life Note">
+              <textarea {...register('retired_note')} rows={3} className={styles.textarea} />
+            </Field>
           </EditorSection>
 
           <EditorSection id="support-model" title="7c. Support Model">
@@ -2027,16 +1762,11 @@ export default function ServiceEditorPage({ params }: Props) {
                   </div>
                 </div>
               ))}
-              {supportModels.length === 0 && (
-                <>
-                  <p className={styles.hint}>No structured support rows yet.</p>
-                  {watchedRequestable && (
-                    <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
-                      <span className={styles.crossFieldAlertIcon}>⚠</span>
-                      Service is requestable — a support model is required so consumers know who to contact.
-                    </div>
-                  )}
-                </>
+              {supportModels.length === 0 && watchedRequestable && (
+                <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+                  <span className={styles.crossFieldAlertIcon}>⚠</span>
+                  Service is requestable — a support model is required so consumers know who to contact.
+                </div>
               )}
               {supportModels.length > 0 && supportModels.some(m => !m.support_owner_name && !m.resolver_group) && (
                 <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
@@ -2097,7 +1827,6 @@ export default function ServiceEditorPage({ params }: Props) {
                   </div>
                 </div>
               ))}
-              {audiencePolicies.length === 0 && <p className={styles.hint}>No structured audience policies yet.</p>}
             </div>
             <div className={styles.flavourEditActions}>
               <button type="button" className={styles.btnSecondary} onClick={() => setAudiencePolicies((items) => [...items, emptyAudiencePolicy()])}>
@@ -2172,9 +1901,7 @@ export default function ServiceEditorPage({ params }: Props) {
                   )
                 ))}
               </div>
-            ) : (
-              <p className={styles.hint}>No operational links defined yet.</p>
-            )}
+            ) : null}
 
             {showLinkAdd && editLinkId == null ? (
               <div className={styles.phase4Card}>
@@ -2214,15 +1941,11 @@ export default function ServiceEditorPage({ params }: Props) {
             )}
           </EditorSection>
 
-          {/* §8 Governance */}
-          <EditorSection id="governance" title="8. Governance">
-            <Field label="Retired / End-of-life Note">
-              <textarea {...register('retired_note')} rows={3} className={styles.textarea} />
-            </Field>
-          </EditorSection>
-
-          {/* §9 Technical / Review */}
-          <EditorSection id="technical" title="9. Technical">
+          {/* §7 Advanced evidence */}
+          <EditorSection id="advanced-evidence" title="7. Advanced evidence" hidden={!canViewAdvancedEvidence}>
+            <p className={styles.hint}>
+              Admin/import evidence only. These fields preserve legacy import context and should not be needed for routine catalogue maintenance.
+            </p>
             <div className={styles.fieldRow}>
               <Field label="Service URL" error={errors.source_url?.message}>
                 <input {...register('source_url')} className={fieldClass(errors.source_url)} placeholder="https://…" />
@@ -2246,10 +1969,7 @@ export default function ServiceEditorPage({ params }: Props) {
             <Field label="Operational Notes">
               <textarea {...register('operational_notes_raw')} rows={3} className={styles.textarea} placeholder="Internal operational notes, escalation paths, etc." />
             </Field>
-            {/* Table A gaps: exclusions, SLA text fields */}
-            <Field label="Exclusions">
-              <textarea {...register('exclusions')} rows={3} className={styles.textarea} placeholder="What is explicitly not covered by this service…" />
-            </Field>
+            {/* Legacy SLA text fields kept as import evidence */}
             <div className={styles.fieldRow}>
               <Field label="SLA Restoration Text">
                 <textarea {...register('sla_restoration_text')} rows={2} className={styles.textarea} placeholder="Free-text restoration SLA description" />
@@ -2282,9 +2002,9 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §10 Raw fields — audit trail */}
-          <EditorSection id="raw-fields" title="10. Raw Fields (audit trail)">
+          <EditorSection id="raw-fields" title="Import source evidence" hidden={!canViewAdvancedEvidence}>
             <p className={styles.hint}>
-              Zdrojové texty z importu uložené v <code>ServiceRawField</code> pro audit a re-parse pipeline.
+              Zdrojové texty z importu slouží jako auditní evidence původního vstupu.
               Tato data jsou read-only — upravují se přes import.
             </p>
             <button
@@ -2293,11 +2013,11 @@ export default function ServiceEditorPage({ params }: Props) {
               onClick={() => setRawFieldsOpen(o => !o)}
               style={{ marginBottom: 12 }}
             >
-              {rawFieldsOpen ? '▲ Skrýt raw fields' : '▼ Zobrazit raw fields'}
+              {rawFieldsOpen ? '▲ Skrýt zdrojovou evidenci' : '▼ Zobrazit zdrojovou evidenci'}
             </button>
             {rawFieldsOpen && (
               rawFields.length === 0
-                ? <p className={styles.hint}>Žádné raw fields — služba nebyla importována se zdrojovými texty.</p>
+                ? <p className={styles.hint}>Žádná zdrojová evidence — služba nebyla importována se zdrojovými texty.</p>
                 : <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {rawFields.map(rf => (
                       <div key={rf.id} style={{
@@ -2364,7 +2084,7 @@ export default function ServiceEditorPage({ params }: Props) {
   );
 }
 
-// ── Operational Readiness panel (Phase 6) ────────────────────────────────────
+// ── Operational Readiness panel ──────────────────────────────────────────────
 function OperationalReadinessPanel({
   requestable,
   channelType,
@@ -2406,7 +2126,27 @@ function OperationalReadinessPanel({
 }
 
 // ── Local helpers ─────────────────────────────────────────────────────────────
-function EditorSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+function EditorSection({ id, title, children, hidden = false }: { id: string; title: string; children: React.ReactNode; hidden?: boolean }) {
+  if (hidden) return null;
+
+  if (ADVANCED_DETAIL_SECTION_IDS.has(id)) {
+    return (
+      <details id={id} className={styles.advancedDetails}>
+        <summary className={styles.advancedSummary}>{title}</summary>
+        <div className={styles.advancedDetailsBody}>{children}</div>
+      </details>
+    );
+  }
+
+  if (!PRIMARY_EDITOR_SECTION_IDS.has(id)) {
+    return (
+      <section id={id} className={styles.inlineEditorBlock}>
+        <h3 className={styles.inlineEditorTitle}>{title}</h3>
+        <div className={styles.inlineEditorBody}>{children}</div>
+      </section>
+    );
+  }
+
   return (
     <FormSection id={id} title={title}>
       {children}
@@ -2434,50 +2174,36 @@ function isConflictMessage(message: string) {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  identity: 'Basic Identity',
-  description: 'Description',
-  'catalogue-access': 'Catalogue Access',
-  classification: 'Classification',
-  ownership: 'Ownership',
-  availability: 'Availability',
-  flavours: 'Pricing Variants',
-  offerings: 'Service Offerings',
-  relationships: 'Relationships',
-  c3mapping: 'C3 Taxonomy',
-  'support-model': 'Support Model',
-  audience: 'Audience Policies',
-  'operational-links': 'Operational Links',
-  governance: 'Governance',
-  technical: 'Technical',
-  'raw-fields': 'Raw Fields',
+  identity: 'Identita',
+  'value-scope': 'Hodnota a rozsah',
+  'request-access': 'Request a přístup',
+  'ownership-support': 'Vlastnictví a support',
+  'availability-relations': 'Dostupnost a vazby',
+  'readiness-governance': 'Readiness a governance',
+  'advanced-evidence': 'Advanced evidence',
 };
 
 const EDITOR_SECTION_IDS = [
   'identity',
-  'description',
-  'catalogue-access',
-  'classification',
-  'ownership',
-  'availability',
-  'flavours',
-  'offerings',
-  'relationships',
-  'c3mapping',
-  'support-model',
-  'audience',
-  'operational-links',
-  'governance',
-  'technical',
-  'raw-fields',
+  'value-scope',
+  'request-access',
+  'ownership-support',
+  'availability-relations',
+  'readiness-governance',
+  'advanced-evidence',
 ];
 
+const PRIMARY_EDITOR_SECTION_IDS = new Set(EDITOR_SECTION_IDS);
+const ADVANCED_DETAIL_SECTION_IDS = new Set(['flavours', 'raw-fields']);
+
 const SECTION_FIELD_MAP: Record<string, string[]> = {
-  identity: ['title', 'service_type', 'service_status'],
-  'catalogue-access': ['lifecycle_state', 'request_channel_type', 'request_channel_url'],
-  classification: ['portfolio_group_code', 'security_classification', 'service_area'],
-  ownership: ['service_owner', 'service_owner_email', 'vlastnik', 'manager'],
-  availability: ['sla_availability', 'sla_restoration', 'sla_delivery', 'domains'],
-  technical: ['source_url', 'notes_json'],
+  identity: ['title', 'service_type', 'lifecycle_state', 'portfolio_group_code', 'service_line_code', 'security_classification'],
+  'value-scope': ['summary', 'consumer_value', 'scope_text', 'exclusions'],
+  'request-access': ['request_channel_type', 'request_channel_url', 'target_audience_summary', 'fulfillment_lead_time_text'],
+  'ownership-support': ['service_owner', 'service_owner_email', 'manager'],
+  'availability-relations': ['sla_availability', 'sla_restoration', 'sla_delivery', 'domains'],
+  'readiness-governance': ['retired_note'],
+  'advanced-evidence': ['source_url', 'notes_json'],
 };
 
 function emptySupportModel(): ServiceSupportModelBody {

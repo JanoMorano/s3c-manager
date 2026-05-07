@@ -163,6 +163,40 @@
   line-height: 1.6;
 }
 
+.descriptionPanel {
+  border: 1px solid color-mix(in srgb, var(--color-action-primary) 26%, var(--color-border-default));
+  background: color-mix(in srgb, var(--color-action-primary) 7%, var(--color-bg-surface));
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.descriptionPanel strong {
+  display: block;
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.descriptionPanel p {
+  margin: 0;
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.languagePanel {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(180px, 1fr);
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+
+.languagePanel .fieldHint {
+  grid-column: 2;
+}
+
 /* ── Mode detection badge ───────────────────────────────────── */
 .modeBadge {
   display: inline-flex;
@@ -596,4 +630,14 @@
   color: var(--color-warning);
   line-height: 1.5;
   margin-bottom: var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .languagePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .languagePanel .fieldHint {
+    grid-column: 1;
+  }
 }

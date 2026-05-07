@@ -6,11 +6,6 @@ const LOCALE_ALIASES = {
     cz: 'cs',
     cze: 'cs',
     en: 'en',
-    sk: 'sk',
-    svk: 'sk',
-    de: 'de',
-    ger: 'de',
-    deu: 'de',
 };
 
 function normalizeLocale(value) {

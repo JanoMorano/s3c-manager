@@ -2,28 +2,58 @@
 
 import useSWR from 'swr';
 import Link from '@/app/components/AppLink';
+import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/app/components/PageHeader';
 import { apiFetch } from '@/features/services/api/services.api';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import { useT } from '@/app/i18n/useI18n';
+import { CapabilityGovernancePage } from '@/features/capabilities/CapabilityGovernancePage';
 import styles from '@/features/capabilities/capabilities.module.css';
 
 interface Capability { uuid: string; page_id: string; title: string; slug: string; parent?: { title?: string }; available_spirals: string[] }
+type CapabilityView = 'overview' | 'coverage' | 'gaps' | 'overlaps';
+
+function resolveCapabilityView(value: string | null): CapabilityView {
+  return value === 'coverage' || value === 'gaps' || value === 'overlaps' ? value : 'overview';
+}
 
 export default function CapabilitiesHubPage() {
   const t = useT();
+  const searchParams = useSearchParams();
+  const activeView = resolveCapabilityView(searchParams?.get('view') ?? null);
   const { data, isLoading, error } = useSWR<Capability[]>('/api/v1/capabilities/lvl3', apiFetch, { revalidateOnFocus: false });
   if (isLoading) return <div className={styles.state}>{t('capabilities.loading')}</div>;
   if (error) return <div className={styles.state}>{t('capabilities.unavailable')}</div>;
   const capabilities = data ?? [];
   const spiralCount = new Set(capabilities.flatMap((capability) => capability.available_spirals)).size;
+
+  if (activeView !== 'overview') {
+    return (
+      <main className={styles.shell}>
+        <PageHeader
+          title="Capability workspace"
+          purpose="Coverage, gaps and overlaps in one capability governance surface."
+          chips={[{ label: activeView, tone: 'neutral' }, { label: `${capabilities.length} capabilities`, tone: capabilities.length ? 'ok' : 'warn' }]}
+          primaryAction={{ label: 'Overview', href: '/capabilities' }}
+        />
+        <nav className={styles.tabs} aria-label="Capability workspace tabs">
+          <Link href="/capabilities" className={styles.tab}>Overview</Link>
+          <Link href="/capabilities?view=coverage" className={`${styles.tab} ${activeView === 'coverage' ? styles.tabActive : ''}`}>Coverage</Link>
+          <Link href="/capabilities?view=gaps" className={`${styles.tab} ${activeView === 'gaps' ? styles.tabActive : ''}`}>Gaps</Link>
+          <Link href="/capabilities?view=overlaps" className={`${styles.tab} ${activeView === 'overlaps' ? styles.tabActive : ''}`}>Overlaps</Link>
+        </nav>
+        <CapabilityGovernancePage mode={activeView} embedded navigationMode="query" />
+      </main>
+    );
+  }
+
   return (
     <main className={styles.shell}>
       <PageHeader
         title={t('capabilities.title')}
         purpose={t('capabilities.lead')}
         chips={[{ label: `${capabilities.length} capabilities`, tone: capabilities.length ? 'ok' : 'warn' }]}
-        primaryAction={{ label: 'Coverage', href: '/capabilities/coverage' }}
+        primaryAction={{ label: 'Coverage', href: '/capabilities?view=coverage' }}
       />
 
       <CapabilityStudioHero capabilities={capabilities} spiralCount={spiralCount} />
@@ -36,10 +66,10 @@ export default function CapabilitiesHubPage() {
 
       <nav className={styles.tabs} aria-label="Capability sections">
         <Link href="/capabilities" className={`${styles.tab} ${styles.tabActive}`}>{t('capabilities.tabs.overview')}</Link>
-        <Link href="/capabilities/coverage" className={styles.tabLinkButton}>Coverage</Link>
-        <Link href="/capabilities/gaps" className={styles.tabLinkButton}>Gaps</Link>
-        <Link href="/capabilities/overlaps" className={styles.tabLinkButton}>Overlaps</Link>
-        <Link href="/spirals" className={styles.tabLinkButton}>{t('capabilities.tabs.spirals')}</Link>
+        <Link href="/capabilities?view=coverage" className={styles.tabLinkButton}>Coverage</Link>
+        <Link href="/capabilities?view=gaps" className={styles.tabLinkButton}>Gaps</Link>
+        <Link href="/capabilities?view=overlaps" className={styles.tabLinkButton}>Overlaps</Link>
+        <Link href="/c3/capability-map-spiral7" className={styles.tabLinkButton}>Spiral 7 map</Link>
       </nav>
 
       <section className={styles.layout}>
@@ -90,21 +120,21 @@ function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Cap
       tone: capabilities.length ? 'success' : 'warning',
       title: capabilities.length ? 'Capability catalogue is loaded' : 'Capability import missing',
       detail: capabilities.length ? `${capabilities.length} Level-3 capabilities are available for managers.` : 'Import C3 capabilities before managers can compare service coverage.',
-      href: '/admin/c3/capability-builder',
-      label: 'Builder',
+      href: '/import/upload',
+      label: 'Import',
     },
     {
       tone: withoutSpiral ? 'warning' : 'success',
       title: withoutSpiral ? 'Capabilities without spiral' : 'Spiral membership visible',
       detail: withoutSpiral ? `${withoutSpiral} capabilities need FMN spiral context.` : `${spiralCount} spirals are represented in this hub.`,
-      href: '/spirals',
-      label: 'Open spirals',
+      href: '/c3/capability-map-spiral7',
+      label: 'Spiral 7',
     },
     {
       tone: topParents.length ? 'info' : 'warning',
       title: 'Largest parent area',
       detail: topParents[0] ? `${topParents[0][0]} contains ${topParents[0][1]} capabilities.` : 'No parent structure is available yet.',
-      href: '/capabilities/coverage',
+      href: '/capabilities?view=coverage',
       label: 'Coverage',
     },
   ];
@@ -159,7 +189,7 @@ function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Cap
             <span className={styles.eyebrow}>Manager story</span>
             <h2>From capability to service evidence</h2>
           </div>
-          <Link href="/c3/dashboard" className={styles.inlineLink}>C3 board</Link>
+          <Link href="/capabilities?view=coverage" className={styles.inlineLink}>Coverage</Link>
         </div>
         <div className={styles.capabilityFlow}>
           {spotlight.length ? spotlight.map((capability) => (

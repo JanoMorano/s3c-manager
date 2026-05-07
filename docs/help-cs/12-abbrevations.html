@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>12 Zkratky - S3C Manager Help</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-to-app" href="/" aria-label="Návrat do aplikace">&larr; Zpět do aplikace</a>
+    <button class="hamburger" type="button" aria-label="Zobrazit menu" onclick="toggleSidebar()">☰</button>
+    <a class="logo" href="index.html">S3C Manager<span>Help manuál</span></a>
+    <div class="header-meta">12 · Zkratky</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Kapitoly Help">
+      <section class="sidebar-section" aria-expanded="true"><button class="sidebar-section-toggle" type="button">Help kapitoly <span class="chevron">▾</span></button>
+        <div class="sidebar-section-panel">
+          <a class="nav-link" href="index.html"><span class="nav-icon">00</span><span>Rozcestník<span class="route">index.html</span></span></a>
+          <a class="nav-link" href="01-install.html"><span class="nav-icon">01</span><span>Instalace<span class="route">01-install.html</span></span></a>
+          <a class="nav-link" href="02-welcome.html"><span class="nav-icon">02</span><span>Podstata aplikace<span class="route">02-welcome.html</span></span></a>
+          <a class="nav-link" href="03-cocpit.html"><span class="nav-icon">03</span><span>Cockpit<span class="route">03-cocpit.html</span></span></a>
+          <a class="nav-link" href="04-services.html"><span class="nav-icon">04</span><span>Služby<span class="route">04-services.html</span></span></a>
+          <a class="nav-link" href="05-capabilities_c3.html"><span class="nav-icon">05</span><span>Capabilities a C3<span class="route">05-capabilities_c3.html</span></span></a>
+          <a class="nav-link" href="06-governance.html"><span class="nav-icon">06</span><span>Governance<span class="route">06-governance.html</span></span></a>
+          <a class="nav-link" href="07-import.html"><span class="nav-icon">07</span><span>Import<span class="route">07-import.html</span></span></a>
+          <a class="nav-link" href="08-admin.html"><span class="nav-icon">08</span><span>Administrace<span class="route">08-admin.html</span></span></a>
+          <a class="nav-link" href="09-user.html"><span class="nav-icon">09</span><span>Uživatel<span class="route">09-user.html</span></span></a>
+          <a class="nav-link" href="10-analysis.html"><span class="nav-icon">10</span><span>Analýzy<span class="route">10-analysis.html</span></span></a>
+          <a class="nav-link" href="11-api.html"><span class="nav-icon">11</span><span>API<span class="route">11-api.html</span></span></a>
+          <a class="nav-link active" href="12-abbrevations.html"><span class="nav-icon">12</span><span>Zkratky<span class="route">12-abbrevations.html</span></span></a>
+        </div>
+      </section>
+    </nav>
+    <main class="content">
+      <section class="page-hero">
+        <p class="chapter-kicker">12 Zkratky</p>
+        <h1>Slovník zkratek, pojmů a stavů</h1>
+        <p class="lead">Tato kapitola vysvětluje pojmy používané v S3C Manageru, dokumentaci, API, ITIL/TOGAF kontextu, C3/FMN oblasti, importech, administraci a governance workflow. Slouží jako rychlý slovník pro administrátory, service ownery, reviewery, architekty, manažery i integrátory.</p>
+      </section>
+
+      <div class="notice">
+        <strong>Proč je slovník důležitý:</strong> v governance nástroji nestačí, aby uživatel viděl hodnotu pole. Musí také chápat, co ta hodnota znamená pro schválení, audit, dopadovou analýzu, reporting a odpovědnost. Nejvíce chyb vzniká ve chvíli, kdy si tým plete například <em>service_status</em> s <em>lifecycle_state</em>, service ownera s administrátorem nebo review s rozhodnutím.
+      </div>
+
+      <div class="page-index" aria-label="Obsah kapitoly">
+        <a href="#sources">Standardy a veřejné zdroje</a>
+        <a href="#screens">Screenshoty a místa pro doplnění</a>
+        <a href="#confusions">Nejčastější záměny</a>
+        <a href="#application">Aplikační a technické zkratky</a>
+        <a href="#itil">ITIL a ITSM</a>
+        <a href="#togaf">TOGAF, EA a ArchiMate</a>
+        <a href="#pmi">PMI a projektové řízení</a>
+        <a href="#c3">C3, FMN a NATO kontext</a>
+        <a href="#database">Databázové a API pojmy</a>
+        <a href="#workflow">Workflow stavy</a>
+        <a href="#badges">Badge, severity a vizuální signály</a>
+        <a href="#usage">Jak slovník používat</a>
+      </div>
+
+      <section id="sources" class="manual-section">
+        <h2>Standardy a veřejné zdroje</h2>
+        <p>S3C Manager není kopií jednoho standardu. Používá praktický průnik service managementu, enterprise architektury, projektového řízení a C3/FMN interoperability. Slovník proto drží jazyk těchto oblastí pohromadě, aby uživatelé mluvili stejnými pojmy i tehdy, když přicházejí z různých týmů.</p>
+        <table class="field-table">
+          <thead><tr><th>Zdroj</th><th>Odkaz</th><th>Jak se promítá do aplikace</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>ITIL 4</td>
+              <td><a href="https://www.peoplecert.org/products/ITIL-4/itil-4-foundation">PeopleCert ITIL 4 Foundation</a></td>
+              <td>Service catalogue, external request, service level, change enablement, continual improvement, ownership a provozní odpovědnost.</td>
+            </tr>
+            <tr>
+              <td>TOGAF Standard</td>
+              <td><a href="https://publications.opengroup.org/standards/togaf">The Open Group TOGAF Standard</a></td>
+              <td>Capability mapping, portfolio governance, architektonické vrstvy, gap analysis a dopadové vazby.</td>
+            </tr>
+            <tr>
+              <td>ArchiMate</td>
+              <td><a href="https://publications.opengroup.org/standards/archimate">The Open Group ArchiMate Standard</a></td>
+              <td>Pojmy jako capability, application component, data object, technology service, relationship a architecture viewpoint.</td>
+            </tr>
+            <tr>
+              <td>PMI / PMBOK</td>
+              <td><a href="https://www.pmi.org/pmbok-guide-standards/foundational/pmbok">PMI PMBOK Guide</a></td>
+              <td>Decision log, RAID logika, change request, milestone, stakeholder, dependency a řízení přínosů.</td>
+            </tr>
+            <tr>
+              <td>NATO FMN</td>
+              <td><a href="https://coi.nato.int/FMNPublic/SitePages/Home.aspx">Federated Mission Networking public portal</a></td>
+              <td>FMN spiral, interoperability baseline, mission network context, C3 capability a technologické vazby.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="screens" class="manual-section">
+        <h2>Screenshoty a místa pro doplnění</h2>
+        <p>Slovník je vhodné doplnit o screenshoty z helpu, vyhledávání a tooltipů v aplikaci. Uživatel pak pozná nejen význam zkratky, ale také místo, kde se s ní setká v reálném UI.</p>
+        <div class="screen-row">
+          <article class="screen-card">
+            <h3>Slovník a přehled pojmů</h3>
+            <figure class="screen-slot">
+              <div>Screenshot: slovník zkratek nebo statická stránka helpu<br><code>/img/help-cs/abbrevations-01-glossary.png</code></div>
+              <figcaption>Zachyťte horní část této kapitoly nebo budoucí aplikační slovník, pokud bude přidán přímo do UI.</figcaption>
+            </figure>
+          </article>
+          <article class="screen-card">
+            <h3>Vyhledání zkratky</h3>
+            <figure class="screen-slot">
+              <div>Screenshot: search výsledek pro zkratku, například SLA nebo FMN<br><code>/img/help-cs/abbrevations-02-search.png</code></div>
+              <figcaption>Uživatel má vidět, že zkratku lze hledat stejně jako službu, capability nebo C3 prvek.</figcaption>
+            </figure>
+          </article>
+          <article class="screen-card">
+            <h3>Tooltip nebo help text u pole</h3>
+            <figure class="screen-slot">
+              <div>Screenshot: vysvětlení pole ve formuláři<br><code>/img/help-cs/abbrevations-03-tooltip.png</code></div>
+              <figcaption>Typicky Service editor, Readiness rule, C3 detail nebo Administration reference data.</figcaption>
+            </figure>
+          </article>
+        </div>
+      </section>
+
+      <section id="confusions" class="manual-section">
+        <h2>Nejčastější záměny</h2>
+        <p>Tato část je nejdůležitější pro každodenní práci. Nejde jen o slovník, ale o prevenci špatného zadání dat. Špatně pochopený pojem může změnit readiness výsledek, publikovatelnost služby, dopadovou analýzu nebo auditní stopu.</p>
+        <table class="field-table">
+          <thead><tr><th>Pojmy</th><th>Správné rozlišení</th><th>Dopad v aplikaci</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Service vs C3 Service</td>
+              <td><strong>Service</strong> je katalogová služba pro business nebo ITSM řízení. <strong>C3 Service</strong> je položka C3 taxonomy v interoperabilním nebo FMN kontextu.</td>
+              <td>Katalogová služba se edituje v Services. C3 Service se spravuje v C3 workspace. Vazba mezi nimi je mapping, ne totéž ID.</td>
+            </tr>
+            <tr>
+              <td><code>service_status</code> vs <code>lifecycle_state</code></td>
+              <td><code>service_status</code> je veřejný/legacy stav služby. <code>lifecycle_state</code> je workflow stav pro řízení průchodu draft → review → live → retired.</td>
+              <td>Lifecycle bar a publish gate se mají řídit workflow stavem. Status může sloužit pro kompatibilitu, reporting nebo starší integrace.</td>
+            </tr>
+            <tr>
+              <td>Capability vs Application</td>
+              <td>Capability říká, co organizace umí nebo potřebuje umět. Application je konkrétní nástroj, systém nebo komponenta, která capability podporuje.</td>
+              <td>Chybějící aplikace neznamená vždy chybějící capability. Chybějící capability mapping ale znamená governance mezeru služby.</td>
+            </tr>
+            <tr>
+              <td>Owner vs Admin</td>
+              <td>Owner odpovídá za službu, data a rozhodnutí v doméně. Admin spravuje systém, uživatele, reference data a platformní nastavení.</td>
+              <td>Admin může technicky měnit data, ale governance odpovědnost zůstává na vlastníkovi služby nebo capability.</td>
+            </tr>
+            <tr>
+              <td>Review vs Decision</td>
+              <td>Review je proces posouzení. Decision je auditovatelný výsledek tohoto posouzení.</td>
+              <td>Review bez decision logu říká, že někdo něco kontroloval. Decision log říká, co bylo schváleno, proč, kým, na jak dlouho a s jakým dopadem.</td>
+            </tr>
+            <tr>
+              <td>Exception vs Warning</td>
+              <td>Warning upozorňuje na problém. Exception je schválené přijetí odchylky nebo rizika.</td>
+              <td>Warning může být signál pro opravu. Exception musí mít důvod, vlastníka, expiraci a auditní záznam.</td>
+            </tr>
+            <tr>
+              <td>Request channel vs <code>request_channel_url</code></td>
+              <td>Request channel může být externí ticketing, e-mail, formulář nebo portál. <code>request_channel_url</code> je konkrétní externí odkaz, kterým uživatel službu požádá.</td>
+              <td>Pokud se objednává mimo aplikaci, S3C Manager má držet alespoň link a governance kontext, ne suplovat celý ticketing.</td>
+            </tr>
+            <tr>
+              <td>SSO role vs service role assignment</td>
+              <td>SSO role určuje přístup do aplikace. Service role assignment určuje odpovědnost ke konkrétní službě.</td>
+              <td>Uživatel může být běžný viewer v platformě, ale zároveň být vlastníkem konkrétní služby, pokud to organizace dovolí.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="application" class="manual-section">
+        <h2>Aplikační a technické zkratky</h2>
+        <table class="field-table">
+          <thead><tr><th>Zkratka / pojem</th><th>Význam</th><th>Vysvětlení v S3C Manageru</th></tr></thead>
+          <tbody>
+            <tr><td>S3C</td><td>Service, Capability, C3 context</td><td>Název aplikace a jejího zaměření: služby, schopnosti a C3/FMN vazby v jednom governance cockpit modelu.</td></tr>
+            <tr><td>Service 360</td><td>360stupňový pohled na službu</td><td>Detail služby s business kontextem, technical vazbami, readiness, lifecycle, governance a relationship studio pohledem.</td></tr>
+            <tr><td>KPI</td><td>Key Performance Indicator</td><td>Řídicí metrika v cockpit, operations a portfolio stránkách. Například ready services, blocked services, overdue reviews, capability gaps.</td></tr>
+            <tr><td>SLA</td><td>Service Level Agreement</td><td>Dohoda o úrovni služby. V aplikaci pomáhá posoudit, zda služba má jasně popsanou dostupnost, podporu a očekávání.</td></tr>
+            <tr><td>OLA</td><td>Operational Level Agreement</td><td>Interní podpůrná dohoda mezi týmy, které službu provozně zajišťují.</td></tr>
+            <tr><td>UC</td><td>Underpinning Contract</td><td>Externí podpůrná smlouva. Typicky dodavatelský kontrakt, bez kterého nelze garantovat službu.</td></tr>
+            <tr><td>API</td><td>Application Programming Interface</td><td>REST/JSON rozhraní aplikace pod <code>/api/v1</code>, používané frontendem i externími integracemi.</td></tr>
+            <tr><td>REST</td><td>Representational State Transfer</td><td>Styl API, ve kterém klient pracuje se zdroji přes HTTP metody GET, POST, PUT/PATCH a DELETE.</td></tr>
+            <tr><td>DB</td><td>Database</td><td>PostgreSQL databáze, kde jsou uloženy služby, C3 taxonomy, vazby, review, decision logy a platformní nastavení.</td></tr>
+            <tr><td>JSON</td><td>JavaScript Object Notation</td><td>Hlavní formát API odpovědí, importů a některých konfiguračních hodnot.</td></tr>
+            <tr><td>CSV</td><td>Comma-Separated Values</td><td>Tabulkový textový importní formát pro služby, capability mapping nebo C3 data.</td></tr>
+            <tr><td>XLSX</td><td>Excel workbook</td><td>Sešit Excelu, vhodný pro řízený import z analytických nebo architektonických tabulek.</td></tr>
+            <tr><td>XML</td><td>Extensible Markup Language</td><td>Formát používaný hlavně u ArchiMate nebo jiných modelovacích exportů.</td></tr>
+            <tr><td>UUID</td><td>Universally Unique Identifier</td><td>Stabilní jednoznačný identifikátor. Důležitý hlavně u C3 položek, importů a vazeb.</td></tr>
+            <tr><td>URL</td><td>Uniform Resource Locator</td><td>Adresa stránky, API endpointu nebo externího zdroje. V aplikaci se používá například pro request channel, dokumentaci a externí ticketing.</td></tr>
+            <tr><td>SSO</td><td>Single Sign-On</td><td>Centrální přihlášení přes identity provider. Umožňuje, aby uživatel nemusel mít lokální heslo v aplikaci.</td></tr>
+            <tr><td>JWT</td><td>JSON Web Token</td><td>Tokenový mechanismus pro auth runtime nebo integrace podle nasazení aplikace.</td></tr>
+            <tr><td>RBAC</td><td>Role-Based Access Control</td><td>Oprávnění podle role nebo skupiny. V aplikaci určuje, kdo může číst, editovat, schvalovat nebo administrovat.</td></tr>
+            <tr><td>MFA</td><td>Multi-Factor Authentication</td><td>Vícefaktorové ověření, typicky řešené externím identity providerem nebo SSO vrstvou.</td></tr>
+            <tr><td>UI</td><td>User Interface</td><td>Vizuální rozhraní aplikace: formuláře, tabulky, grafy, navigace, tlačítka.</td></tr>
+            <tr><td>UX</td><td>User Experience</td><td>Celková použitelnost: zda administrátor chápe pole, manažer chápe dopad a reviewer chápe, co schvaluje.</td></tr>
+            <tr><td>CRUD</td><td>Create, Read, Update, Delete</td><td>Základní operace nad entitou: založení, zobrazení, úprava, smazání.</td></tr>
+            <tr><td>ETL</td><td>Extract, Transform, Load</td><td>Importní proces: načíst data, normalizovat je, uložit do cílového modelu.</td></tr>
+            <tr><td>Dry-run</td><td>Zkušební běh bez zápisu</td><td>Importní kontrola, která ukáže dopady, chyby a změny bez toho, aby změnila databázi.</td></tr>
+            <tr><td>Upsert</td><td>Update or insert</td><td>Importní operace, která existující záznam aktualizuje a nový záznam založí.</td></tr>
+            <tr><td>Stub</td><td>Dočasný zástupný záznam</td><td>Používá se, když import najde vazbu na objekt, který ještě není kompletně založený.</td></tr>
+            <tr><td>Batch</td><td>Dávka</td><td>Skupina importovaných řádků nebo souborů, která má společný auditní záznam.</td></tr>
+            <tr><td>Reference data</td><td>Číselníky</td><td>Spravované hodnoty pro typy, klasifikace, životní cyklus, kritičnost, taxonomie a další volby.</td></tr>
+            <tr><td>Audit log</td><td>Auditní stopa</td><td>Záznam toho, kdo, kdy, co změnil nebo schválil. Je důležitý pro governance a dohledatelnost.</td></tr>
+            <tr><td>Manifest</td><td>Popis obsahu balíku</td><td>Soubor nebo část importu, která popisuje, co je v balíku a jak se to má zpracovat.</td></tr>
+            <tr><td>Backstage</td><td>Developer portal</td><td>Možná externí integrace pro technický katalog služeb, komponent a ownershipu.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="itil" class="manual-section">
+        <h2>ITIL a ITSM zkratky</h2>
+        <p>Tyto pojmy popisují provozní řízení služby. V S3C Manageru se neimplementuje celý ITIL procesní svět, ale aplikace drží metadata a rozhodovací body, které s ITSM procesy přímo souvisejí.</p>
+        <table class="field-table">
+          <thead><tr><th>Pojem</th><th>Význam</th><th>Jak se používá v aplikaci</th></tr></thead>
+          <tbody>
+            <tr><td>ITIL</td><td>IT Infrastructure Library</td><td>Referenční rámec pro řízení IT služeb. V aplikaci inspiruje service catalogue, readiness, review, change a continual improvement.</td></tr>
+            <tr><td>ITSM</td><td>IT Service Management</td><td>Řízení IT služeb napříč návrhem, provozem, podporou a zlepšováním.</td></tr>
+            <tr><td>SVS</td><td>Service Value System</td><td>ITIL pojem pro systém, který vytváří hodnotu přes služby, governance a continual improvement.</td></tr>
+            <tr><td>SVC</td><td>Service Value Chain</td><td>ITIL model aktivit od demand po value. S3C Manager podporuje části plan, design & transition, obtain/build, deliver & support a improve.</td></tr>
+            <tr><td>Service Catalogue</td><td>Katalog služeb</td><td>Řízený seznam služeb, jejich ownerů, offeringů, lifecycle stavů, requestability a vazeb.</td></tr>
+            <tr><td>Service Portfolio</td><td>Portfolio služeb</td><td>Širší pohled na služby v celém životním cyklu: plánované, aktivní, dosluhující, vyřazené.</td></tr>
+            <tr><td>Service Request</td><td>Požadavek na službu</td><td>Žádost konzumenta o službu, změnu nebo přístup. V S3C Manageru může být evidovaná interně nebo odkázaná na externí ticketing.</td></tr>
+            <tr><td>Change Enablement</td><td>Řízení změn</td><td>Používá dopadovou analýzu, dependency, decision log a readiness před změnou služby.</td></tr>
+            <tr><td>Incident Management</td><td>Řízení incidentů</td><td>S3C Manager incidenty neřeší, ale může ukázat dopad služby, ownera a závislosti pro rychlé směrování.</td></tr>
+            <tr><td>Problem Management</td><td>Řízení problémů</td><td>Pomáhá hledat opakující se slabiny, coverage gaps, dependency rizika a governance blokery.</td></tr>
+            <tr><td>Service Level Management</td><td>Řízení úrovní služeb</td><td>Využívá SLA/OLA/UC data a readiness pravidla typu chybějící SLA.</td></tr>
+            <tr><td>Continual Improvement</td><td>Průběžné zlepšování</td><td>V aplikaci se projevuje přes warnings, blockers, review due dates, owner load a coverage gaps.</td></tr>
+            <tr><td>CMDB</td><td>Configuration Management Database</td><td>S3C Manager není plná CMDB. Může ale držet governance kontext a vazby na CI nebo externí CMDB.</td></tr>
+            <tr><td>CI</td><td>Configuration Item</td><td>Konfigurační položka v CMDB. V S3C Manageru typicky externí vazba na aplikaci, infrastrukturu nebo službu.</td></tr>
+            <tr><td>CAB</td><td>Change Advisory Board</td><td>Skupina posuzující změny. V aplikaci může odpovídat reviewerům, governance decision procesu nebo rozhodovací evidenci.</td></tr>
+            <tr><td>RACI</td><td>Responsible, Accountable, Consulted, Informed</td><td>Model odpovědností. Pomáhá rozlišit ownera, reviewera, správce a konzultované stakeholdery.</td></tr>
+            <tr><td>RTO</td><td>Recovery Time Objective</td><td>Maximální cílový čas obnovy služby po výpadku.</td></tr>
+            <tr><td>RPO</td><td>Recovery Point Objective</td><td>Maximální přijatelná ztráta dat vyjádřená časem.</td></tr>
+            <tr><td>KEDB</td><td>Known Error Database</td><td>Databáze známých chyb. S3C Manager ji nenahrazuje, ale může doplnit kontext služby a závislostí.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="togaf" class="manual-section">
+        <h2>TOGAF, EA a ArchiMate</h2>
+        <p>Enterprise architektura v S3C Manageru slouží hlavně pro pochopení vazeb: jak služba podporuje capability, jaké aplikace a data používá, kde vzniká dopad změny a kde je mezera v pokrytí.</p>
+        <table class="field-table">
+          <thead><tr><th>Pojem</th><th>Význam</th><th>Praktické použití v S3C Manageru</th></tr></thead>
+          <tbody>
+            <tr><td>EA</td><td>Enterprise Architecture</td><td>Disciplína pro řízení vztahu mezi strategií, business capability, aplikacemi, daty a technologií.</td></tr>
+            <tr><td>TOGAF</td><td>The Open Group Architecture Framework</td><td>Rámec pro architekturu podniku. Aplikace využívá jeho logiku při capability mappingu a governance.</td></tr>
+            <tr><td>ADM</td><td>Architecture Development Method</td><td>TOGAF metoda pro tvorbu architektury. S3C Manager podporuje vybrané části přes portfolio, readiness a impact analysis.</td></tr>
+            <tr><td>Architecture Repository</td><td>Architektonické úložiště</td><td>S3C Manager není plný repository nástroj, ale může sloužit jako řízený katalog vazeb a governance stavu.</td></tr>
+            <tr><td>Architecture Landscape</td><td>Architektonická krajina</td><td>Soubor současných, cílových a přechodových architektur. V aplikaci se částečně odráží v lifecycle, portfolio a capability mapách.</td></tr>
+            <tr><td>Business Capability</td><td>Schopnost organizace</td><td>Stabilní popis toho, co organizace umí nebo potřebuje umět, nezávisle na konkrétní aplikaci.</td></tr>
+            <tr><td>Value Stream</td><td>Tok hodnoty</td><td>Řetězec aktivit vytvářející hodnotu. V aplikaci může být nepřímo reprezentován přes procesy, služby a capability.</td></tr>
+            <tr><td>Application Component</td><td>Aplikační komponenta</td><td>Konkrétní systém nebo modul podporující službu nebo capability.</td></tr>
+            <tr><td>Data Object</td><td>Datový objekt</td><td>Datová entita, kterou služba vytváří, čte, mění nebo sdílí.</td></tr>
+            <tr><td>Technology Service</td><td>Technologická služba</td><td>Technická služba poskytovaná infrastrukturní nebo platformní vrstvou.</td></tr>
+            <tr><td>ArchiMate</td><td>Modelovací jazyk EA</td><td>Slouží jako zdroj importovaných vztahů a objektů z architektonických nástrojů.</td></tr>
+            <tr><td>Motivation</td><td>Motivační vrstva ArchiMate</td><td>Důvody, cíle, požadavky nebo omezení. V S3C Manageru může odpovídat rationale, decision logu a governance důvodům.</td></tr>
+            <tr><td>Gap</td><td>Mezera</td><td>Chybějící capability coverage, chybějící mapping, neobsazený owner nebo chybějící služba pro důležitou capability.</td></tr>
+            <tr><td>Roadmap</td><td>Plán přechodu</td><td>Postupné doručování změn. V aplikaci se váže na lifecycle, portfolio a rozhodnutí.</td></tr>
+            <tr><td>Work Package</td><td>Balík práce</td><td>Projektová nebo realizační část změny. S3C Manager jej může odkazovat, ale není náhradou projektového nástroje.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="pmi" class="manual-section">
+        <h2>PMI a projektové řízení</h2>
+        <p>Projektové řízení se v aplikaci objevuje hlavně ve chvíli, kdy se služba mění, zavádí, vyřazuje nebo když se rozhodnutí promítá do roadmapy. S3C Manager není PM tool, ale dává projektům přesnější kontext dopadů a odpovědností.</p>
+        <table class="field-table">
+          <thead><tr><th>Pojem</th><th>Význam</th><th>Vazba na aplikaci</th></tr></thead>
+          <tbody>
+            <tr><td>PMI</td><td>Project Management Institute</td><td>Organizace vydávající projektové standardy a PMBOK Guide.</td></tr>
+            <tr><td>PMBOK</td><td>Project Management Body of Knowledge</td><td>Soubor principů a postupů projektového řízení. V aplikaci je relevantní pro změny, rizika, stakeholdery a rozhodnutí.</td></tr>
+            <tr><td>PMO</td><td>Project Management Office</td><td>Tým dohlížející na projekty. Může používat S3C Manager pro portfolio dopady a readiness změn.</td></tr>
+            <tr><td>WBS</td><td>Work Breakdown Structure</td><td>Rozpad projektu na práci. Aplikace WBS nevede, ale může poskytnout kontext služeb, vazeb a ownerů.</td></tr>
+            <tr><td>RAID</td><td>Risks, Assumptions, Issues, Dependencies</td><td>Projektový přehled rizik, předpokladů, problémů a závislostí. V S3C Manageru souvisí s readiness and governance signalsem, dependency a impact analysis.</td></tr>
+            <tr><td>Risk</td><td>Riziko</td><td>Nejistota s možným dopadem. V aplikaci se objevuje u blockers, warnings, readiness and governance signals a exception flow.</td></tr>
+            <tr><td>Issue</td><td>Aktuální problém</td><td>Něco, co už nastalo a musí se řešit. Například overdue review nebo chybějící owner u live služby.</td></tr>
+            <tr><td>Dependency</td><td>Závislost</td><td>Vazba mezi službami, capability, C3 prvky, aplikacemi nebo daty. Je klíčová pro impact analysis.</td></tr>
+            <tr><td>Milestone</td><td>Milník</td><td>Důležitý bod v čase. V aplikaci může být nepřímo navázán na review due date, release, transition nebo lifecycle change.</td></tr>
+            <tr><td>Benefit</td><td>Přínos</td><td>Hodnota, kterou má služba nebo změna dodat. V aplikaci se promítá do purpose, business value a portfolio kontextu.</td></tr>
+            <tr><td>Stakeholder</td><td>Zainteresovaná strana</td><td>Owner, reviewer, konzument, manažer, architekt, bezpečnostní role nebo provozní tým.</td></tr>
+            <tr><td>Change Request</td><td>Požadavek na změnu</td><td>Může být evidován v externím nástroji. S3C Manager poskytuje dopad a governance podklady.</td></tr>
+            <tr><td>Decision Log</td><td>Evidence rozhodnutí</td><td>Auditovatelný záznam rozhodnutí, rationale, dopadu, platnosti a evidence.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="c3" class="manual-section">
+        <h2>C3, FMN a NATO kontext</h2>
+        <p>C3 část aplikace propojuje katalog služeb s interoperabilním, capability a mission-network pohledem. Je užitečná tam, kde nestačí vědět, že služba existuje, ale je potřeba rozumět tomu, jak podporuje komunikační, velitelské, datové nebo operační schopnosti.</p>
+        <table class="field-table">
+          <thead><tr><th>Zkratka / pojem</th><th>Význam</th><th>Jak se promítá do S3C Manageru</th></tr></thead>
+          <tbody>
+            <tr><td>C3</td><td>Command, Control and Communications</td><td>Doména schopností a prvků pro velení, řízení a komunikace. V aplikaci má vlastní taxonomy, board, grafy a entity workspace.</td></tr>
+            <tr><td>C2</td><td>Command and Control</td><td>Užší velitelsko-řídicí oblast. V C3 taxonomy může být capability nebo klasifikační kontext.</td></tr>
+            <tr><td>C4ISR</td><td>Command, Control, Communications, Computers, Intelligence, Surveillance and Reconnaissance</td><td>Širší doménový pojem. V aplikaci může pomáhat při klasifikaci služeb a capability.</td></tr>
+            <tr><td>FMN</td><td>Federated Mission Networking</td><td>Koncept federovaného mission networkingu. V aplikaci se objevuje přes spirals, baselines a interoperability mapping.</td></tr>
+            <tr><td>Spiral</td><td>FMN inkrement nebo baseline</td><td>Skupina pravidel, capability nebo interoperability očekávání. Používá se v C3 dashboardech a capability coverage.</td></tr>
+            <tr><td>Baseline</td><td>Referenční sada schopností nebo pravidel</td><td>Výchozí sada pro posouzení, zda je služba nebo capability v daném FMN kontextu pokrytá.</td></tr>
+            <tr><td>TIN</td><td>Technology Interaction</td><td>Technologická interakce nebo vazba, která popisuje, jak spolu prvky technicky komunikují.</td></tr>
+            <tr><td>COI</td><td>Community of Interest</td><td>Komunita zájmu nebo operační oblast sdílející informace, služby či standardy.</td></tr>
+            <tr><td>BP</td><td>Business Process</td><td>Procesní položka v C3 taxonomy. Pomáhá vysvětlit, jaká činnost službu nebo capability používá.</td></tr>
+            <tr><td>BR</td><td>Business Role</td><td>Role v business nebo operačním procesu. Může být zdrojem odpovědnosti nebo uživatelské perspektivy.</td></tr>
+            <tr><td>UA</td><td>User Application</td><td>Uživatelská aplikace nebo aplikační služba v C3 kontextu.</td></tr>
+            <tr><td>Interoperability</td><td>Schopnost spolupracovat</td><td>Schopnost služeb, systémů nebo dat komunikovat a být společně použitelné napříč organizacemi nebo mission networks.</td></tr>
+            <tr><td>Mission Network</td><td>Operační síť</td><td>Prostředí, ve kterém se služby, capability a technické interakce používají pro konkrétní misi nebo spolupráci.</td></tr>
+            <tr><td>Capability Package</td><td>Balík schopností</td><td>Seskupení capability, služeb, dat, aplikací a technických prvků pro konkrétní účel.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="database" class="manual-section">
+        <h2>Databázové a API pojmy v aplikaci</h2>
+        <p>Následující názvy se často objevují v API, exportech, importech, logice UI a dokumentaci. Uživatel je nemusí znát pro běžné klikání, ale admin, integrátor a analytik by měli chápat, co ovlivňují.</p>
+        <table class="field-table">
+          <thead><tr><th>Pojem / tabulka</th><th>Význam</th><th>Vazby a dopad</th></tr></thead>
+          <tbody>
+            <tr><td><code>service_catalog</code></td><td>Základní karta služby.</td><td>Zdroj pro Service 360, catalogue, cockpit, readiness, portfolio a impact analysis.</td></tr>
+            <tr><td><code>service_offering</code></td><td>Nabídka služby pro konzumenta.</td><td>Ovlivňuje requestability, katalogový detail a readiness pravidlo, zda služba má nabídku.</td></tr>
+            <tr><td><code>service_flavour</code></td><td>Legacy variant evidence.</td><td>Historická varianta služby pro import, audit a export; nové konzumní nabídky řeší <code>service_offering</code>.</td></tr>
+            <tr><td><code>service_relation</code></td><td>Vztah mezi službami.</td><td>Zdroj pro Relationship Studio, Impact Analysis a dependency pohledy.</td></tr>
+            <tr><td><code>service_c3_mapping</code></td><td>Mapování služby na C3/capability prvek.</td><td>Klíčové pro C3 coverage, capability gaps a readiness pravidla.</td></tr>
+            <tr><td><code>readiness_rule</code></td><td>Pravidlo připravenosti.</td><td>Definuje, co musí služba splnit před publish, review nebo provozem.</td></tr>
+            <tr><td><code>readiness_exception</code></td><td>Výjimka z readiness pravidla.</td><td>Umožňuje řízené přijetí odchylky s důvodem, vlastníkem a expirací.</td></tr>
+            <tr><td><code>governance_review</code></td><td>Review proces.</td><td>Řídí posouzení služby, capability nebo změny reviewerem.</td></tr>
+            <tr><td><code>governance_decision</code></td><td>Rozhodnutí.</td><td>Auditní výsledek review nebo výjimky. Má rationale, affects, expires a evidence.</td></tr>
+            <tr><td><code>request_channel_url</code></td><td>Externí odkaz na kanál, přes který lze službu požádat.</td><td>ITSM portál, formulář, e-mailový proces nebo jiný řízený objednávkový kanál mimo interní ticketing S3C Manageru.</td></tr>
+            <tr><td><code>c3_taxonomy</code></td><td>C3 strom nebo taxonomy položky.</td><td>Zdroj pro C3 list, C3 detail, C3 graph, C3 map and C3 detail workflow a capability mapu.</td></tr>
+            <tr><td>C3 mapping/review state</td><td>Governance stav odvozený z C3 detailu, mappingu, coverage a review evidence.</td><td>Samostatná board tabulka není aktivní součástí produktu.</td></tr>
+            <tr><td><code>platform.users</code></td><td>Uživatelé aplikace.</td><td>Zdroj pro přihlášení, owner pickery, assigned_to a auditní identitu.</td></tr>
+            <tr><td><code>platform.users.preferred_lang</code>, <code>preferred_theme</code></td><td>Uživatelský jazyk a téma.</td><td>Aktivní per-user preference uložené přímo u uživatele; generic key-value preference endpoint je retired.</td></tr>
+            <tr><td><code>dashboard/inbox read model</code></td><td>Agregovaný osobní pracovní pohled.</td><td>Zdroj pro My Tasks, owner load, review frontu, decisions a readiness signály bez samostatné notification tabulky.</td></tr>
+            <tr><td><code>import_batch</code></td><td>Importní dávka.</td><td>Skupina importovaných souborů/řádků s auditním stavem.</td></tr>
+            <tr><td><code>import_row</code></td><td>Řádek importu.</td><td>Umožňuje dohledat, který zdrojový řádek způsobil změnu nebo chybu.</td></tr>
+            <tr><td><code>import_issue</code></td><td>Chyba nebo varování importu.</td><td>Popisuje validační problém, konflikt nebo referenční chybu.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="workflow" class="manual-section">
+        <h2>Workflow stavy</h2>
+        <p>Workflow stavy mají být v aplikaci čitelné a konzistentní. Manažer má chápat, kde se služba nachází, reviewer má chápat, co může schválit, a admin má vědět, které pole mění procesní význam.</p>
+
+        <h3>Lifecycle služby</h3>
+        <table class="field-table">
+          <thead><tr><th>Stav</th><th>Význam</th><th>Co smí uživatel dělat</th></tr></thead>
+          <tbody>
+            <tr><td><code>draft</code></td><td>Rozpracováno.</td><td>Lze ukládat návrh, doplňovat pole, mapovat capability a připravovat offering.</td></tr>
+            <tr><td><code>under_review</code></td><td>V posouzení.</td><td>Reviewer kontroluje readiness, rationale, vazby a rizika.</td></tr>
+            <tr><td><code>approved</code></td><td>Schváleno.</td><td>Služba prošla review, ale ještě nemusí být live pro konzumenty.</td></tr>
+            <tr><td><code>live</code></td><td>Provozní.</td><td>Služba je aktivně používána, musí mít ownera, support, review režim a známé závislosti.</td></tr>
+            <tr><td><code>deprecated</code></td><td>Nedoporučeno pro nové použití.</td><td>Má se plánovat náhrada, migrace konzumentů nebo vyřazení.</td></tr>
+            <tr><td><code>retired</code></td><td>Vyřazeno.</td><td>Služba nemá být requestable ani nově používána.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Review, decision a request stavy</h3>
+        <table class="field-table">
+          <thead><tr><th>Oblast</th><th>Stavy</th><th>Význam</th></tr></thead>
+          <tbody>
+            <tr><td>Governance review</td><td><code>pending</code>, <code>in_review</code>, <code>approved</code>, <code>rejected</code>, <code>deferred</code>, <code>cancelled</code></td><td>Fronta a výsledek posouzení. Změna statusu má probíhat přes modal s rationale.</td></tr>
+            <tr><td>Governance decision</td><td><code>approved</code>, <code>rejected</code>, <code>deferred</code>, <code>exception</code>, <code>cancelled</code></td><td>Auditní rozhodnutí. Musí být jasné, co bylo rozhodnuto a proč.</td></tr>
+            <tr><td>External request</td><td><code>submitted</code>, <code>routed</code>, <code>fulfilled</code>, <code>rejected</code>, <code>cancelled</code></td><td>Interní request workflow je retirorované; aktivní stav požadavku patří do externího ITSM.</td></tr>
+            <tr><td>C3 map and C3 detail workflow</td><td><code>imported</code>, <code>validated</code>, <code>mapped</code>, <code>used</code>, <code>reviewed</code></td><td>Samostatný C3 board není aktivní hlavní workflow; používejte C3 detail, capability mapu a coverage.</td></tr>
+            <tr><td>Import row</td><td><code>ok</code>, <code>warn</code>, <code>error</code>, <code>skipped</code>, <code>processing</code></td><td>Technický stav importního řádku nebo záznamu během dry-run a commit fáze.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="badges" class="manual-section">
+        <h2>Badge, severity a vizuální signály</h2>
+        <p>Badge a barvy nejsou dekorace. Jsou to signály pro rozhodnutí. Uživatel má podle nich poznat, co je hotové, co je varování a co blokuje další krok.</p>
+        <table class="field-table">
+          <thead><tr><th>Signál</th><th>Význam</th><th>Jak reagovat</th></tr></thead>
+          <tbody>
+            <tr><td><code>P0</code></td><td>Kritický problém.</td><td>Řešit okamžitě, typicky brání publish, review nebo provozní důvěře.</td></tr>
+            <tr><td><code>P1</code></td><td>Vysoká priorita.</td><td>Řešit před schválením nebo před nejbližším review.</td></tr>
+            <tr><td><code>P2</code></td><td>Střední priorita.</td><td>Naplánovat opravu nebo explicitně zdůvodnit odklad.</td></tr>
+            <tr><td><code>blocker</code></td><td>Blokující problém.</td><td>Nelze pokračovat bez opravy nebo governance výjimky.</td></tr>
+            <tr><td><code>warning</code></td><td>Varování.</td><td>Ověřit, doplnit data nebo přijmout riziko s vysvětlením.</td></tr>
+            <tr><td><code>ready</code></td><td>Připraveno.</td><td>Sekce nebo pravidlo splňuje očekávání.</td></tr>
+            <tr><td><code>exception</code></td><td>Schválená výjimka.</td><td>Sledovat expiraci a vazbu na rozhodnutí.</td></tr>
+            <tr><td><code>overdue</code></td><td>Po termínu.</td><td>Review nebo úkol už měl být proveden.</td></tr>
+            <tr><td><code>due soon</code></td><td>Brzy po termínu.</td><td>Připravit review, doplnit data nebo eskalovat ownerovi.</td></tr>
+            <tr><td><code>neutral</code></td><td>Informační stav.</td><td>Není nutná akce, slouží k orientaci.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="usage" class="manual-section">
+        <h2>Jak slovník používat v praxi</h2>
+        <div class="two-col">
+          <article class="box">
+            <h3>Manažer čte cockpit</h3>
+            <p>Manažer by měl znát hlavně KPI, lifecycle, blocker, overdue, capability gap a decision log. Díky tomu pozná, zda je problém v datech, službě, odpovědnosti nebo rozhodnutí.</p>
+          </article>
+          <article class="box">
+            <h3>Admin upravuje reference data</h3>
+            <p>Admin musí chápat rozdíl mezi číselníkem a transakčními daty. Změna názvu, kódu, klasifikace nebo lifecycle hodnoty může ovlivnit formuláře, filtry, readiness a reporting.</p>
+          </article>
+          <article class="box">
+            <h3>Reviewer zapisuje rozhodnutí</h3>
+            <p>Reviewer má rozlišit review, decision, exception, rationale, evidence a expires_at. Bez toho decision log nevysvětluje, co bylo schváleno a proč.</p>
+          </article>
+          <article class="box">
+            <h3>Architekt mapuje C3</h3>
+            <p>Architekt musí rozlišit capability, C3 item, C3 service, application, data object, TIN a spiral. Jinak bude graf vizuálně plný, ale analyticky nepoužitelný.</p>
+          </article>
+          <article class="box">
+            <h3>Integrátor používá API</h3>
+            <p>Integrátor má znát ID, code, UUID, upsert, dry-run, import batch a conflict. Důležité je neposílat data přímo na commit bez server-side validace.</p>
+          </article>
+          <article class="box">
+            <h3>Service owner doplňuje službu</h3>
+            <p>Owner potřebuje chápat owner, offering, requestable, SLA, support model, dependency, lifecycle a readiness. To jsou pojmy, které rozhodují o publikaci služby.</p>
+          </article>
+        </div>
+
+        <h3>Časté chyby v pojmech</h3>
+        <table class="field-table">
+          <thead><tr><th>Chyba</th><th>Proč vadí</th><th>Správný postup</th></tr></thead>
+          <tbody>
+            <tr><td>Capability se zakládá jako aplikace.</td><td>Ztratí se business význam a coverage analýza bude špatně.</td><td>Capability popisuje schopnost. Aplikace je jen prostředek, který ji podporuje.</td></tr>
+            <tr><td>Retired služba zůstane requestable.</td><td>Konzument může objednat službu, která už nemá být používána.</td><td>Při vyřazení zkontrolovat requestability, offeringy, relation a náhradu.</td></tr>
+            <tr><td>Warning se bere jako schválená výjimka.</td><td>Audit neobsahuje důvod, platnost ani ownera rizika.</td><td>Pro přijetí rizika založit exception nebo decision.</td></tr>
+            <tr><td>Review modal se použije bez rationale.</td><td>Později není jasné, proč reviewer rozhodl.</td><td>Každý status change má mít rationale a podle potřeby evidence.</td></tr>
+            <tr><td>Import se bere jako zdroj pravdy bez kontroly.</td><td>Externí tabulka může přepsat kvalitní ruční data chybnými hodnotami.</td><td>Používat dry-run, konflikty a import review.</td></tr>
+            <tr><td>C3 map and C3 detail workflow lane se zamění za technický status.</td><td>Board přestane řídit governance průchod a začne jen opisovat zdrojový import.</td><td>Držet zvlášť zdrojový status a board/governance stav.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="chapter-nav">
+        <a href="11-api.html">Předchozí: 11 API</a>
+        <a href="index.html">Zpět na rozcestník</a>
+      </div>
+    </main>
+  </div>
+  <script>function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}</script>
+</body>
+</html>

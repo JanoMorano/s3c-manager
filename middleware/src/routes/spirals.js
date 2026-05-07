@@ -95,7 +95,6 @@ router.get('/:code/fulfillment-plan', async (req, res, next) => {
         const pool = getPool();
         const spiral = await validateSpiral(pool, req.params.code);
         if (!spiral) return res.status(404).json({ error: 'Unknown spiral baseline' });
-        const heatmapReq = { params: { code: spiral.code } };
         const capabilities = await listLevel3Capabilities(pool);
         const coverageResult = await pool.query(`
             SELECT capability_uuid, total_requirements, covered_count, coverage_percent

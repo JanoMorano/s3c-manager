@@ -171,6 +171,16 @@
   background: color-mix(in srgb, var(--color-sidebar-active, var(--color-action-primary)) 8%, transparent);
 }
 
+.sidebarNavSectionButton:focus-visible,
+.sidebarNavItem:focus-visible,
+.breadcrumbLink:focus-visible,
+.topBarPrimaryAction:focus-visible,
+.topBarIconButton:focus-visible,
+.topBarUserChip:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .sidebarNavChevron {
   line-height: 1;
   opacity: .8;

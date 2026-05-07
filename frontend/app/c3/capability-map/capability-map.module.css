@@ -50,6 +50,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-height: 26px;
   padding: 4px 10px;
   border-radius: var(--radius-md);
@@ -59,6 +60,14 @@
   text-decoration: none;
   font-size: 0.76rem;
   font-weight: 700;
+}
+
+.spiralChipMeta {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .72;
 }
 
 .spiralChip:hover {
