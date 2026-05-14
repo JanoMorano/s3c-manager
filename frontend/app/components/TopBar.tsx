@@ -2,7 +2,7 @@
 
 import Link from '@/app/components/AppLink';
 import { Moon, Plus, Sun } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AUTH_STATE_EVENT, restoreAuthSession, type AuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
@@ -66,7 +66,7 @@ function titleForBreadcrumb(segment: string, href: string) {
   return titleFromSegment(segment);
 }
 
-function buildBreadcrumbs(pathname: string): Crumb[] {
+function buildBreadcrumbs(pathname: string, graphView?: string | null): Crumb[] {
   if (pathname === '/') return [{ label: 'S3C Manager', href: '/' }, { label: 'Přehled řízení' }];
 
   const segments = pathname.split('/').filter(Boolean);
@@ -81,6 +81,14 @@ function buildBreadcrumbs(pathname: string): Crumb[] {
       href: isLast ? undefined : normalizeBreadcrumbHref(href),
     });
   });
+
+  if (graphView === 'graph-only') {
+    if (pathname === '/services/graph') {
+      crumbs.push({ label: 'Zobrazit menu', href: '/services/graph' });
+    } else if (/^\/services\/[^/]+\/graph$/.test(pathname)) {
+      crumbs.push({ label: 'Zobrazit menu', href: pathname });
+    }
+  }
 
   return crumbs;
 }
@@ -114,6 +122,8 @@ function initials(snapshot: AuthSnapshot | null) {
 
 export default function TopBar() {
   const pathname = usePathname() ?? '/';
+  const searchParams = useSearchParams();
+  const graphView = searchParams?.get('view') ?? null;
   const { mode, setMode } = useTheme();
   const [snapshot, setSnapshot] = useState<AuthSnapshot | null>(null);
 
@@ -134,7 +144,7 @@ export default function TopBar() {
     };
   }, []);
 
-  const breadcrumbs = useMemo(() => buildBreadcrumbs(pathname), [pathname]);
+  const breadcrumbs = useMemo(() => buildBreadcrumbs(pathname, graphView), [pathname, graphView]);
   const isEditor = hasRoleAccess(snapshot?.role ?? null, 'editor');
   const primaryAction = primaryActionFor(pathname, isEditor);
 

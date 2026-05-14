@@ -32,6 +32,24 @@
   color: var(--color-text-muted);
 }
 
+/* ── Linked KPIs ─────────────────────────────────────────────────────────── */
+
+.kpiLink {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.kpiLink:hover {
+  transform: translateY(-1px);
+}
+
+.kpiLink:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-info) 55%, transparent);
+  outline-offset: 3px;
+}
+
 /* ── Sections ────────────────────────────────────────────────────────────── */
 
 .sections {
@@ -46,11 +64,20 @@
   overflow: hidden;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding-right: 12px;
+}
+
 .sectionToggle {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: auto;
   padding: 14px 18px;
   border: none;
   background: none;
@@ -61,6 +88,26 @@
 
 .sectionToggle:hover {
   background: var(--color-bg-subtle);
+}
+
+.sectionListLink {
+  align-self: center;
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font: var(--text-label-sm);
+  text-decoration: none;
+  background: var(--color-bg-surface);
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.sectionListLink:hover,
+.sectionListLink:focus-visible {
+  color: var(--color-text-primary);
+  border-color: var(--color-info);
+  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
 }
 
 .sectionChevron {
@@ -112,4 +159,19 @@
 .dueSoon {
   color: var(--color-warning) !important;
   font-weight: 600;
+}
+
+@media (max-width: 680px) {
+  .sectionHeader {
+    flex-wrap: wrap;
+    padding-right: 0;
+  }
+
+  .sectionToggle {
+    flex-basis: 100%;
+  }
+
+  .sectionListLink {
+    margin: 0 14px 12px;
+  }
 }

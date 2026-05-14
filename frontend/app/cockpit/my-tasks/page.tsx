@@ -11,7 +11,8 @@ import type {
   DashboardDecisionItem,
   DashboardOwnedService,
 } from '@/features/services/model/service.types';
-import { useState, useCallback } from 'react';
+import { getAuthSnapshot, restoreAuthSession, type AuthSnapshot } from '@/features/auth/authStore';
+import { useState, useCallback, useEffect } from 'react';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../../operations/governance.module.css';
 import taskStyles from './my-tasks.module.css';
@@ -40,6 +41,20 @@ function itemVariant(item: DashboardInboxItem): BadgeVariant {
   return 'info';
 }
 
+const OPEN_REVIEW_STATUS_FILTER = 'pending,in_review,deferred';
+
+function preferredIdentity(snapshot: AuthSnapshot | null): string {
+  return snapshot?.display_name?.trim() || snapshot?.username?.trim() || '';
+}
+
+function ownerFilteredHref(path: string, owner: string) {
+  return owner ? `${path}?owner=${encodeURIComponent(owner)}` : path;
+}
+
+function serviceReviewHref(serviceId: string) {
+  return `/operations/reviews?service_id=${encodeURIComponent(serviceId)}`;
+}
+
 // ─── Collapsible section ─────────────────────────────────────────────────────
 
 interface CollapsibleSectionProps {
@@ -47,25 +62,30 @@ interface CollapsibleSectionProps {
   count: number;
   badge?: BadgeVariant;
   defaultOpen?: boolean;
+  listHref?: string;
+  listLabel?: string;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, count, badge, defaultOpen = true, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, count, badge, defaultOpen = true, listHref, listLabel = 'Otevřít filtrovaný list', children }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className={taskStyles.section}>
-      <button
-        type="button"
-        className={taskStyles.sectionToggle}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className={taskStyles.sectionChevron}>{open ? '▾' : '▸'}</span>
-        <h2 className={taskStyles.sectionTitle}>{title}</h2>
-        <span className={`${taskStyles.sectionCount} ${count > 0 && badge === 'danger' ? taskStyles.countDanger : count > 0 && badge === 'warning' ? taskStyles.countWarn : ''}`}>
-          {count}
-        </span>
-      </button>
+      <div className={taskStyles.sectionHeader}>
+        <button
+          type="button"
+          className={taskStyles.sectionToggle}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className={taskStyles.sectionChevron}>{open ? '▾' : '▸'}</span>
+          <h2 className={taskStyles.sectionTitle}>{title}</h2>
+          <span className={`${taskStyles.sectionCount} ${count > 0 && badge === 'danger' ? taskStyles.countDanger : count > 0 && badge === 'warning' ? taskStyles.countWarn : ''}`}>
+            {count}
+          </span>
+        </button>
+        {listHref ? <Link href={listHref} className={taskStyles.sectionListLink}>{listLabel}</Link> : null}
+      </div>
       {open && <div className={taskStyles.sectionBody}>{children}</div>}
     </section>
   );
@@ -76,6 +96,17 @@ function CollapsibleSection({ title, count, badge, defaultOpen = true, children 
 export default function MyTasksPage() {
   const inbox = useDashboardInbox();
   const [refreshing, setRefreshing] = useState(false);
+  const [authSnapshot, setAuthSnapshot] = useState<AuthSnapshot | null>(() => getAuthSnapshot());
+
+  useEffect(() => {
+    let cancelled = false;
+    void restoreAuthSession().then((snapshot) => {
+      if (!cancelled) setAuthSnapshot(snapshot);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -89,6 +120,10 @@ export default function MyTasksPage() {
   const myBlockers: DashboardInboxItem[] = data?.my_blockers ?? data?.items ?? [];
   const myDecisions: DashboardDecisionItem[] = data?.my_decisions ?? [];
   const openCount = myReviews.length + myBlockers.length;
+  const ownerIdentity = preferredIdentity(authSnapshot);
+  const myReviewsHref = `/operations/reviews?mine=1&status=${encodeURIComponent(OPEN_REVIEW_STATUS_FILTER)}`;
+  const myBlockersHref = ownerFilteredHref('/operations/readiness', ownerIdentity);
+  const ownedServicesHref = ownerFilteredHref('/services/list', ownerIdentity);
 
   if (inbox.isLoading) return <div className={styles.state}>Loading my tasks...</div>;
   if (inbox.error) return <div className={styles.stateError}>My tasks are not available.</div>;
@@ -106,9 +141,15 @@ export default function MyTasksPage() {
       />
 
       <section className={styles.kpiThree} aria-label="My task KPIs">
-        <KpiCard label="My reviews" value={myReviews.length} hint="assigned governance reviews" tone={myReviews.length ? 'warning' : 'success'} />
-        <KpiCard label="My blockers" value={myBlockers.length} hint="readiness and evidence gaps" tone={myBlockers.length ? 'danger' : 'success'} />
-        <KpiCard label="Owned services" value={myOwnedServices.length} hint="active role assignments" />
+        <Link href={myReviewsHref} className={taskStyles.kpiLink} aria-label="Otevřít moje revize ve filtrovaném listu">
+          <KpiCard label="My reviews" value={myReviews.length} hint="assigned governance reviews" tone={myReviews.length ? 'warning' : 'success'} />
+        </Link>
+        <Link href={myBlockersHref} className={taskStyles.kpiLink} aria-label="Otevřít moje blokátory ve filtrovaném listu">
+          <KpiCard label="My blockers" value={myBlockers.length} hint="readiness and evidence gaps" tone={myBlockers.length ? 'danger' : 'success'} />
+        </Link>
+        <Link href={ownedServicesHref} className={taskStyles.kpiLink} aria-label="Otevřít moje vlastněné služby ve filtrovaném listu">
+          <KpiCard label="Owned services" value={myOwnedServices.length} hint="active role assignments" />
+        </Link>
       </section>
 
       <div className={taskStyles.refreshBar}>
@@ -125,14 +166,14 @@ export default function MyTasksPage() {
 
       <div className={taskStyles.sections}>
         {/* 1. Reviews */}
-        <CollapsibleSection title="Moje reviews" count={myReviews.length} badge={myReviews.length > 0 ? 'warning' : undefined} defaultOpen>
+        <CollapsibleSection title="Moje reviews" count={myReviews.length} badge={myReviews.length > 0 ? 'warning' : undefined} defaultOpen listHref={myReviewsHref}>
           {myReviews.length === 0 ? <EmptyState title="Žádné přiřazené reviews." /> : (
             <div className={govStyles.governanceList}>
               {myReviews.map((review) => {
                 const over = isOverdue(review.due_at);
                 const soon = !over && isDueSoon(review.due_at);
                 return (
-                  <Link key={review.id} href="/operations/reviews" className={govStyles.governanceRow}>
+                  <Link key={review.id} href={serviceReviewHref(review.service_id)} className={govStyles.governanceRow}>
                     <Badge variant={over ? 'danger' : soon ? 'warning' : 'info'}>{review.status}</Badge>
                     <span className={govStyles.rowMain}>
                       <strong>{review.service_title}</strong>
@@ -149,7 +190,7 @@ export default function MyTasksPage() {
         </CollapsibleSection>
 
         {/* 2. Blockers / Exceptions */}
-        <CollapsibleSection title="Readiness blokátory" count={myBlockers.length} badge={myBlockers.length > 0 ? 'danger' : undefined} defaultOpen>
+        <CollapsibleSection title="Readiness blokátory" count={myBlockers.length} badge={myBlockers.length > 0 ? 'danger' : undefined} defaultOpen listHref={myBlockersHref}>
           {myBlockers.length === 0 ? <EmptyState title="Žádné blokátory." /> : (
             <div className={govStyles.governanceList}>
               {myBlockers.map((item) => (
@@ -167,7 +208,7 @@ export default function MyTasksPage() {
         </CollapsibleSection>
 
         {/* 3. Owned services (attestation) */}
-        <CollapsibleSection title="Moje služby (attestation)" count={myOwnedServices.length} defaultOpen={false}>
+        <CollapsibleSection title="Moje služby (attestation)" count={myOwnedServices.length} defaultOpen={false} listHref={ownedServicesHref}>
           {myOwnedServices.length === 0 ? <EmptyState title="Žádné vlastněné služby." /> : (
             <div className={govStyles.governanceList}>
               {myOwnedServices.map((service) => {

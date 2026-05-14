@@ -318,12 +318,19 @@ async function findAllDirect({
         )`);
     }
     if (ownerName) {
+        const ownerExact = bind(ownerName);
+        const ownerLike = bind(`%${ownerName}%`);
         filters.push(`EXISTS (
             SELECT 1
             FROM data.service_role_assignment sra
             WHERE sra.service_id = sc.id
-              AND sra.role_code = 'service_owner'
-              AND sra.display_name = ${bind(ownerName)}
+              AND sra.role_code IN ('service_owner', 'owner', 'steward', 'delivery_manager', 'service_delivery_manager')
+              AND (
+                LOWER(COALESCE(sra.display_name, '')) = LOWER(${ownerExact})
+                OR LOWER(COALESCE(sra.email, '')) = LOWER(${ownerExact})
+                OR sra.display_name ILIKE ${ownerLike}
+                OR sra.email ILIKE ${ownerLike}
+              )
               AND sra.valid_to IS NULL
         )`);
     }
@@ -349,7 +356,10 @@ async function findAllDirect({
         filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
         filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
     }
-    if (readiness === 'blocked') {
+    if (readiness === 'attention') {
+        filters.push(`COALESCE(sc.service_status_code, '') <> 'retired'`);
+        filters.push(`COALESCE(sc.completeness_score, 0) < 80`);
+    } else if (readiness === 'blocked') {
         filters.push(`COALESCE(sc.completeness_score, 0) < 50`);
     } else if (readiness === 'warning') {
         filters.push(`COALESCE(sc.completeness_score, 0) >= 50`);
@@ -445,6 +455,33 @@ async function findAllDirect({
             sc.graph_y,
             sc.updated_at,
             scm.c3_uuid,
+            EXISTS (
+                SELECT 1
+                FROM data.service_c3_mapping scm_ready
+                WHERE scm_ready.service_id = sc.id
+                  AND scm_ready.is_primary = TRUE
+            ) AS has_c3_mapping,
+            (
+                SELECT COUNT(DISTINCT scm_count.c3_uuid)::integer
+                FROM data.service_c3_mapping scm_count
+                WHERE scm_count.service_id = sc.id
+            ) AS c3_mapping_count,
+            (
+                SELECT MAX(ct_primary.title)
+                FROM data.service_c3_mapping scm_primary
+                LEFT JOIN data.c3_taxonomy ct_primary
+                  ON ct_primary.uuid = scm_primary.c3_uuid
+                WHERE scm_primary.service_id = sc.id
+                  AND scm_primary.is_primary = TRUE
+            ) AS primary_capability_title,
+            (
+                SELECT MAX(ct_primary.external_id)
+                FROM data.service_c3_mapping scm_primary
+                LEFT JOIN data.c3_taxonomy ct_primary
+                  ON ct_primary.uuid = scm_primary.c3_uuid
+                WHERE scm_primary.service_id = sc.id
+                  AND scm_primary.is_primary = TRUE
+            ) AS primary_capability_code,
             (
                 SELECT MIN(sf.price_value)
                 FROM data.service_flavour sf

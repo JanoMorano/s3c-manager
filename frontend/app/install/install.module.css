@@ -410,38 +410,6 @@
 .packageBadge.mandatory { background: var(--color-border-default); color: var(--color-text-muted); }
 .packageBadge.optional  { background: color-mix(in srgb, var(--color-info) 10%, transparent); color: var(--color-action-primary); }
 
-/* ── Upload zone ─────────────────────────────────────────────── */
-.uploadZone {
-  border: 2px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-7) var(--space-5);
-  text-align: center;
-  cursor: pointer;
-  transition: all .2s;
-  margin-bottom: var(--space-5);
-}
-
-.uploadZone:hover {
-  border-color: var(--color-action-primary);
-  background: color-mix(in srgb, var(--color-info) 10%, transparent);
-}
-
-.uploadIcon { font-size: 32px; margin-bottom: var(--space-3); }
-.uploadTitle { font: var(--text-label-md); color: var(--color-text-primary); margin-bottom: var(--space-1); }
-.uploadHint  { font: var(--text-body-sm);  color: var(--color-text-muted); }
-
-.uploadedFile {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-  margin-bottom: var(--space-3);
-  font: var(--text-body-sm);
-}
-
 /* ── Summary / result ────────────────────────────────────────── */
 .summaryStatus {
   text-align: center;

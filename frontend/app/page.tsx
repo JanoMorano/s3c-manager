@@ -7,10 +7,10 @@ import type { ReactNode } from 'react';
 import {
   useCompleteness,
   useDashboard,
-  useDashboardHeadline,
   useDashboardInbox,
   useDashboardSummary,
   useOperationsDashboard,
+  useServices,
 } from '@/features/services/hooks/useServices';
 import type { CompletenessItem, DashboardInboxItem } from '@/features/services/model/service.types';
 import styles from './home.module.css';
@@ -58,12 +58,16 @@ function scoreTone(score: number | null | undefined) {
 }
 
 export default function HomePage() {
-  const headline = useDashboardHeadline();
   const inbox = useDashboardInbox();
   const completeness = useCompleteness();
   const decisionSummary = useDashboardSummary();
   const operations = useOperationsDashboard();
   const dashboard = useDashboard();
+  const totalServicesQuery = useServices({ limit: 1 });
+  const readyServicesQuery = useServices({ limit: 1, readiness: 'ready' });
+  const blockedServicesQuery = useServices({ limit: 1, readiness: 'blocked' });
+  const overdueReviewsQuery = useServices({ limit: 1, reviewDue: 'overdue' });
+  const capabilityGapsQuery = useServices({ limit: 1, readiness: 'missing_capability' });
 
   const completenessItems = completeness.data ?? [];
   const inboxItems = inbox.data?.items ?? [];
@@ -71,19 +75,16 @@ export default function HomePage() {
   const myReviews = inbox.data?.my_reviews ?? [];
   const myBlockers = inbox.data?.my_blockers ?? inboxItems;
   const myDecisions = inbox.data?.my_decisions ?? [];
-  const summary = decisionSummary.data?.summary;
   const dashboardSummary = dashboard.data?.summary;
   const operationSections = operations.data?.sections;
-  const headlineServices = headline.data?.kpis.find((item) => item.key === 'services_count')?.value;
 
-  const totalServices = summary?.total_services ?? headlineServices ?? dashboardSummary?.total_services ?? completenessItems.length;
-  const readyServices = summary?.services_ready_for_publish ?? completenessItems.filter((item) => (item.completeness_score ?? 0) >= 80).length;
-  const blockedServices = summary?.services_blocked_by_readiness ?? completenessItems.filter((item) => (item.completeness_score ?? 0) < 50).length;
-  const overdueReviews = summary?.overdue_reviews ?? 0;
-  const capabilityGaps = summary?.uncovered_capabilities
-    ?? operationSections?.c3_mapping_gap.reduce((sum, item) => sum + item.gap_count, 0)
+  const totalServices = totalServicesQuery.data?.total ?? dashboardSummary?.total_services ?? completenessItems.length;
+  const readyServices = readyServicesQuery.data?.total ?? completenessItems.filter((item) => (item.completeness_score ?? 0) >= 80).length;
+  const blockedServices = blockedServicesQuery.data?.total ?? completenessItems.filter((item) => (item.completeness_score ?? 0) < 50).length;
+  const overdueReviews = overdueReviewsQuery.data?.total ?? 0;
+  const capabilityGaps = capabilityGapsQuery.data?.total
     ?? completenessItems.filter((item) => !hasC3Mapping(item)).length;
-  const capabilityOverlaps = summary?.over_covered_capabilities ?? 0;
+  const capabilityOverlaps = decisionSummary.data?.summary?.over_covered_capabilities ?? 0;
 
   const missingOwners = operationSections?.missing_owners ?? [];
   const missingSla = completenessItems
@@ -101,8 +102,9 @@ export default function HomePage() {
     .sort((a, b) => (a.completeness_score ?? 0) - (b.completeness_score ?? 0))
     .slice(0, 4);
 
-  const isLoading = headline.isLoading && completeness.isLoading && decisionSummary.isLoading;
-  const hasError = headline.error && completeness.error && decisionSummary.error;
+  const kpiQueries = [totalServicesQuery, readyServicesQuery, blockedServicesQuery, overdueReviewsQuery, capabilityGapsQuery];
+  const isLoading = kpiQueries.some((query) => query.isLoading && !query.data) && !completeness.data;
+  const hasError = kpiQueries.every((query) => query.error) && completeness.error && decisionSummary.error;
 
   if (isLoading) return <div className={styles.state}>Načítám cockpit...</div>;
   if (hasError) return <div className={styles.stateError}>Cockpit se nepodařilo načíst. Zkontrolujte middleware spojení.</div>;
@@ -121,11 +123,21 @@ export default function HomePage() {
       />
 
       <section className={styles.kpiGrid} aria-label="Portfolio governance KPIs">
-        <KpiCard label="Services total" value={formatNumber(totalServices)} tone="info" trendLabel={`${dashboardSummary?.active_services ?? readyServices} aktivních`} />
-        <KpiCard label="Ready" value={formatNumber(readyServices)} tone="success" trendLabel={`${totalServices ? Math.round((readyServices / totalServices) * 100) : 0} % portfolia`} />
-        <KpiCard label="Blocked" value={formatNumber(blockedServices)} tone={blockedServices ? 'danger' : 'success'} trend={blockedServices ? 'up' : undefined} trendLabel={blockedServices ? 'vyžaduje zásah' : 'bez blokace'} />
-        <KpiCard label="Reviews overdue" value={formatNumber(overdueReviews)} tone={overdueReviews ? 'warning' : 'neutral'} trendLabel={overdueReviews ? 'otevřít review queue' : 'bez prodlení'} />
-        <KpiCard label="Capability gaps" value={formatNumber(capabilityGaps)} tone={capabilityGaps ? 'warning' : 'success'} trendLabel={capabilityOverlaps ? `${formatNumber(capabilityOverlaps)} overlaps` : 'coverage stabilní'} />
+        <KpiLinkCard href="/services/list" ariaLabel="Otevřít všechny služby v seznamu">
+          <KpiCard label="Services total" value={formatNumber(totalServices)} tone="info" trendLabel={`${dashboardSummary?.active_services ?? readyServices} aktivních`} />
+        </KpiLinkCard>
+        <KpiLinkCard href="/services/list?readiness=ready" ariaLabel="Otevřít služby filtrované jako připravené">
+          <KpiCard label="Ready" value={formatNumber(readyServices)} tone="success" trendLabel={`${totalServices ? Math.round((readyServices / totalServices) * 100) : 0} % portfolia`} />
+        </KpiLinkCard>
+        <KpiLinkCard href="/services/list?readiness=blocked" ariaLabel="Otevřít služby blokované readiness kontrolou">
+          <KpiCard label="Blocked" value={formatNumber(blockedServices)} tone={blockedServices ? 'danger' : 'success'} trend={blockedServices ? 'up' : undefined} trendLabel={blockedServices ? 'vyžaduje zásah' : 'bez blokace'} />
+        </KpiLinkCard>
+        <KpiLinkCard href="/services/list?review_due=overdue" ariaLabel="Otevřít služby s prošlým termínem revize">
+          <KpiCard label="Reviews overdue" value={formatNumber(overdueReviews)} tone={overdueReviews ? 'warning' : 'neutral'} trendLabel={overdueReviews ? 'otevřít review queue' : 'bez prodlení'} />
+        </KpiLinkCard>
+        <KpiLinkCard href="/services/list?readiness=missing_capability" ariaLabel="Otevřít služby bez capability mapování">
+          <KpiCard label="Capability gaps" value={formatNumber(capabilityGaps)} tone={capabilityGaps ? 'warning' : 'success'} trendLabel={capabilityOverlaps ? `${formatNumber(capabilityOverlaps)} overlaps` : 'coverage stabilní'} />
+        </KpiLinkCard>
       </section>
 
       <section className={styles.decisionGrid} aria-label="Personal work cockpit">
@@ -360,6 +372,22 @@ function DecisionPanel({
       </div>
       {children}
     </article>
+  );
+}
+
+function KpiLinkCard({
+  href,
+  ariaLabel,
+  children,
+}: {
+  href: string;
+  ariaLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link href={href} className={styles.kpiLink} aria-label={ariaLabel}>
+      {children}
+    </Link>
   );
 }
 

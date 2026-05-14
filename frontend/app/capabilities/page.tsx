@@ -59,9 +59,15 @@ export default function CapabilitiesHubPage() {
       <CapabilityStudioHero capabilities={capabilities} spiralCount={spiralCount} />
 
       <section className={styles.kpiGrid} aria-label="Capability headline KPIs">
-        <KpiCard label={t('capabilities.kpi.level3')} value={capabilities.length} hint="C3 taxonomy" />
-        <KpiCard label={t('capabilities.kpi.spirals')} value={spiralCount} hint="FMN" />
-        <KpiCard label={t('capabilities.kpi.dashboards')} value={capabilities.length} hint={t('capabilities.tabs.overview')} />
+        <Link href="/capabilities#level3-capabilities" className={styles.kpiLink} aria-label="Otevřít Level-3 schopnosti">
+          <KpiCard label={t('capabilities.kpi.level3')} value={capabilities.length} hint="C3 taxonomy" />
+        </Link>
+        <Link href="/spirals" className={styles.kpiLink} aria-label="Otevřít spirály v datech">
+          <KpiCard label={t('capabilities.kpi.spirals')} value={spiralCount} hint="FMN" />
+        </Link>
+        <Link href="/capabilities?view=coverage" className={styles.kpiLink} aria-label="Otevřít rozhodovací přehledy schopností">
+          <KpiCard label={t('capabilities.kpi.dashboards')} value={capabilities.length} hint={t('capabilities.tabs.overview')} />
+        </Link>
       </section>
 
       <nav className={styles.tabs} aria-label="Capability sections">
@@ -73,7 +79,7 @@ export default function CapabilitiesHubPage() {
       </nav>
 
       <section className={styles.layout}>
-        <article className={styles.panel}>
+        <article id="level3-capabilities" className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('capabilities.decision.title')}</h2>
           <p className={styles.bodyText}>{t('capabilities.decision.lead')}</p>
           {capabilities.length === 0 ? (
@@ -155,9 +161,9 @@ function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Cap
           raw taxonomy tables first.
         </p>
         <div className={styles.studioMetricGrid}>
-          <StudioMetric value={String(capabilities.length)} label="Capabilities" detail="Level-3 decision areas" tone="success" />
-          <StudioMetric value={String(spiralCount)} label="Spirals" detail="FMN context available" tone={spiralCount ? 'success' : 'warning'} />
-          <StudioMetric value={String(withoutSpiral)} label="Needs context" detail="No spiral assigned" tone={withoutSpiral ? 'warning' : 'success'} />
+          <StudioMetric value={String(capabilities.length)} label="Capabilities" detail="Level-3 decision areas" tone="success" href="/capabilities#level3-capabilities" />
+          <StudioMetric value={String(spiralCount)} label="Spirals" detail="FMN context available" tone={spiralCount ? 'success' : 'warning'} href="/spirals" />
+          <StudioMetric value={String(withoutSpiral)} label="Needs context" detail="No spiral assigned" tone={withoutSpiral ? 'warning' : 'success'} href="/c3/capability-map-spiral7" />
         </div>
       </div>
 
@@ -221,12 +227,12 @@ function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Cap
   );
 }
 
-function StudioMetric({ value, label, detail, tone }: { value: string; label: string; detail: string; tone: 'success' | 'warning' | 'info' }) {
+function StudioMetric({ value, label, detail, tone, href }: { value: string; label: string; detail: string; tone: 'success' | 'warning' | 'info'; href: string }) {
   return (
-    <div className={`${styles.studioMetric} ${styles[`studioMetric_${tone}`]}`}>
+    <Link href={href} className={`${styles.studioMetric} ${styles.studioMetricLink} ${styles[`studioMetric_${tone}`]}`}>
       <strong>{value}</strong>
       <span>{label}</span>
       <small>{detail}</small>
-    </div>
+    </Link>
   );
 }

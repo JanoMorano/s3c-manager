@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:i18n": "node scripts/i18n-audit.mjs --check",
+    "i18n:translate-cs": "node scripts/translate-generated-cs.mjs",
     "lint:styles": "node scripts/lint-styles.mjs",
     "test:e2e": "playwright test"
   },

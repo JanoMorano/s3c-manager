@@ -42,6 +42,8 @@ export interface GovernanceFilters {
   scope?: string;
   serviceId?: string;
   assignedTo?: string;
+  mine?: boolean;
+  overdue?: boolean;
   status?: string;
   decision?: string;
   decisionType?: string;

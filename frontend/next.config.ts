@@ -1,8 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   output: 'standalone',
 
-  // API proxy: /api/* → local middleware inside the app container.
+  // API proxy: /api/* -> local middleware inside the app container.
   // Applies to server-side execution (SSR, Route Handlers).
   // The client calls relative /api/* paths; nginx or Next.js rewrites them.
   async rewrites() {
@@ -20,4 +21,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

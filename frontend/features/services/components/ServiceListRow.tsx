@@ -11,7 +11,8 @@ import type { SortField, SortOrder } from '../api/services.api';
 import styles from './ServiceListRow.module.css';
 
 function hasC3Mapping(service: ServiceListItem) {
-  return service.has_c3_mapping === true || service.has_c3_mapping === 1 || (service.c3_mapping_count ?? 0) > 0;
+  if (service.has_c3_mapping != null) return service.has_c3_mapping === true || service.has_c3_mapping === 1;
+  return (service.c3_mapping_count ?? 0) > 0;
 }
 
 function readinessTone(score: number): 'success' | 'warning' | 'danger' {

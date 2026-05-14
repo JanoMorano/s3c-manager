@@ -90,4 +90,33 @@ describe('governance routes', () => {
         }));
     });
 
+    test('GET /reviews supports my review filter from authenticated identity', async () => {
+        const repo = require('../db/governance.repo');
+        repo.listReviews.mockResolvedValue([]);
+
+        const response = await request(buildApp())
+            .get('/api/v1/governance/reviews?mine=1&status=pending,in_review');
+
+        expect(response.status).toBe(200);
+        expect(repo.listReviews).toHaveBeenCalledWith(expect.objectContaining({
+            mine: true,
+            mineIdentities: ['admin@example.com', 'admin'],
+            overdue: false,
+            status: ['pending', 'in_review'],
+        }));
+    });
+
+    test('GET /reviews supports overdue review filter', async () => {
+        const repo = require('../db/governance.repo');
+        repo.listReviews.mockResolvedValue([]);
+
+        const response = await request(buildApp())
+            .get('/api/v1/governance/reviews?overdue=1');
+
+        expect(response.status).toBe(200);
+        expect(repo.listReviews).toHaveBeenCalledWith(expect.objectContaining({
+            overdue: true,
+        }));
+    });
+
 });

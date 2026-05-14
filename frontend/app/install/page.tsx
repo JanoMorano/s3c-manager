@@ -2,7 +2,7 @@
 /**
  * /app/install/page.tsx — Install wizard
  *
- * 12 steps as defined in APP_FLOW.md:
+ * 9 steps:
  *   1  Welcome / application description / language
  *   2  Setup token / mode detection
  *   3  System configuration
@@ -10,16 +10,13 @@
  *   5  Admin bootstrap
  *   6  Connectivity check
  *   7  Module plan
- *   8  Data package plan
- *   9  Import upload (optional)
- *  10  Import preview
- *  11  Execute
- *  12  Final summary
+ *   8  Execute
+ *   9  Final summary
  *
  * The frontend only reads state from the API — it never determines install state itself.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { markInstallReady } from '@/app/components/AuthGuard';
 import { useI18n } from '@/app/i18n/useI18n';
@@ -63,33 +60,6 @@ interface ConnectivityChecks {
   errors: string[];
 }
 
-interface ImportPreview {
-  row_count: number;
-  columns: string[];
-  required_present: string[];
-  required_missing: string[];
-  warnings: string[];
-  sample: Record<string, string>[];
-  fatal_error: string | null;
-}
-
-interface ImportResult {
-  ok: boolean;
-  filename: string;
-  batchId?: string | number;
-  inserted?: number;
-  updated?: number;
-  failed?: number;
-  error?: string;
-  status?: string;
-}
-
-interface FilePreview {
-  file: File;
-  preview: ImportPreview;
-  content: string;
-}
-
 interface SysConfig {
   app_name: string;
   base_url: string;
@@ -115,9 +85,6 @@ const STEPS: StepDef[] = [
   { id: 'admin',       label: 'install.step.admin' },
   { id: 'connectivity',label: 'install.step.connectivity' },
   { id: 'modules',     label: 'install.step.modules' },
-  { id: 'data-plan',   label: 'install.step.data_plan' },
-  { id: 'upload',      label: 'install.step.upload' },
-  { id: 'preview',     label: 'install.step.preview' },
   { id: 'execute',     label: 'install.step.execute' },
   { id: 'summary',     label: 'install.step.summary' },
 ];
@@ -130,11 +97,8 @@ const STEP_INDEX = {
   admin: 4,
   connectivity: 5,
   modules: 6,
-  dataPlan: 7,
-  upload: 8,
-  preview: 9,
-  execute: 10,
-  summary: 11,
+  execute: 7,
+  summary: 8,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -197,28 +161,17 @@ export default function InstallPage() {
   const [connectivity, setConnectivity] = useState<ConnectivityChecks | null>(null);
   const [checkingConn, setCheckingConn] = useState(false);
 
-  // Step 7 — modules
+  // Step 7 — modules and optional demo seed
   const [activateC3, setActivateC3] = useState(false);
   const [seedDemoData, setSeedDemoData] = useState(false);
 
-  // Step 9 — upload (multi-file)
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Step 10 — import previews (per-file)
-  const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
-  const [previewLoading, setPreviewLoading] = useState(false);
-
-  // Step 11 — import results (per-file)
-  const [importResults, setImportResults] = useState<ImportResult[]>([]);
-
-  // Step 11 — execute
+  // Step 8 — execute
   const [executing, setExecuting] = useState(false);
   const [executeProgress, setExecuteProgress] = useState(0);
   const [executeLog, setExecuteLog] = useState<string[]>([]);
   const [executeError, setExecuteError] = useState<string | null>(null);
 
-  // Step 12 — summary
+  // Step 9 — summary
   const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
 
   // Global error
@@ -299,78 +252,6 @@ export default function InstallPage() {
     if (idx === step)            return 'active';
     if (completedSteps.has(idx)) return 'done';
     return 'pending';
-  }
-
-  // ---------------------------------------------------------------------------
-  // CSV helpers (client-side, no backend call for preview)
-  // ---------------------------------------------------------------------------
-
-  function parseCsvLine(line: string, delim: string): string[] {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQuotes) {
-        if (ch === '"') {
-          if (line[i + 1] === '"') { current += '"'; i++; }
-          else inQuotes = false;
-        } else { current += ch; }
-      } else if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === delim) {
-        result.push(current); current = '';
-      } else { current += ch; }
-    }
-    result.push(current);
-    return result;
-  }
-
-  function parseCsvPreview(text: string): ImportPreview {
-    const normalized = text.replace(/^\uFEFF/, '');
-    const lines = normalized.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) {
-      return {
-        row_count: 0,
-        columns: [],
-        required_present: [],
-        required_missing: [],
-        warnings: [],
-        sample: [],
-        fatal_error: t('install.page.preview.csv_requires_data_row'),
-      };
-    }
-    const delim = lines[0].split(';').length >= lines[0].split(',').length ? ';' : ',';
-    const columns = parseCsvLine(lines[0], delim).map(c => c.trim()).filter(Boolean);
-    const dataLines = lines.slice(1);
-    const row_count = dataLines.length;
-    const REQUIRED = ['service_id', 'title'];
-    const colsLower = columns.map(c => c.toLowerCase());
-    const required_present = REQUIRED.filter(r => colsLower.includes(r));
-    const required_missing = REQUIRED.filter(r => !colsLower.includes(r));
-    const warnings: string[] = [];
-    if (required_missing.length > 0) {
-      warnings.push(t('install.page.preview.missing_recommended_columns', { columns: required_missing.join(', ') }));
-    }
-    if (!colsLower.includes('service_type_code') && !colsLower.includes('service_type')) {
-      warnings.push(t('install.page.preview.service_type_missing'));
-    }
-    const sample = dataLines.slice(0, 3).map(line => {
-      const values = parseCsvLine(line, delim);
-      const row: Record<string, string> = {};
-      columns.forEach((col, i) => { row[col] = values[i] ?? ''; });
-      return row;
-    });
-    return { row_count, columns, required_present, required_missing, warnings, sample, fatal_error: null };
-  }
-
-  function readFileAsText(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsText(file, 'UTF-8');
-    });
   }
 
   // ---------------------------------------------------------------------------
@@ -471,50 +352,6 @@ export default function InstallPage() {
     } finally {
       setConfigSaving(false);
     }
-  }
-
-  async function handleUploadNext() {
-    if (uploadedFiles.length > 0) {
-      setPreviewLoading(true);
-      try {
-        const previews: FilePreview[] = await Promise.all(
-          uploadedFiles.map(async (file) => {
-            try {
-              const content = await readFileAsText(file);
-              const preview = parseCsvPreview(content);
-              return { file, preview, content };
-            } catch {
-              return {
-                file,
-                content: '',
-                preview: { row_count: 0, columns: [], required_present: [], required_missing: [], warnings: [], sample: [], fatal_error: t('install.page.upload.file_load_failed') },
-              };
-            }
-          })
-        );
-        setFilePreviews(previews);
-      } finally {
-        setPreviewLoading(false);
-      }
-    } else {
-      setFilePreviews([]);
-    }
-    goNext();
-  }
-
-  function addFiles(newFiles: FileList | null) {
-    if (!newFiles) return;
-    const arr = Array.from(newFiles).filter(f =>
-      f.name.endsWith('.csv') || f.name.endsWith('.json') || f.name.endsWith('.xlsx')
-    );
-    setUploadedFiles(prev => {
-      const existing = new Set(prev.map(f => f.name));
-      return [...prev, ...arr.filter(f => !existing.has(f.name))];
-    });
-  }
-
-  function removeFile(name: string) {
-    setUploadedFiles(prev => prev.filter(f => f.name !== name));
   }
 
   async function handleConnectivityCheck() {
@@ -634,73 +471,6 @@ export default function InstallPage() {
         markError(STEP_INDEX.execute);
         setExecuting(false);
         return;
-      }
-
-      // Run import for each uploaded file sequentially
-      const validPreviews = filePreviews.filter(fp => !fp.preview.fatal_error && fp.preview.row_count > 0);
-      if (validPreviews.length > 0) {
-        if (!adminForm.username.trim() || !adminForm.password) {
-          logMsg(t('install.page.execute.log.import_skipped_missing_credentials'));
-        } else {
-          logMsg(t('install.page.execute.log.import_login'));
-          setExecuteProgress(75);
-          try {
-            const loginRes = await fetch('/api/v1/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username: adminForm.username, password: adminForm.password }),
-            });
-            const loginData = await loginRes.json();
-            if (loginRes.ok && loginData.access_token) {
-              const results: ImportResult[] = [];
-              for (let i = 0; i < validPreviews.length; i++) {
-                const fp = validPreviews[i];
-                logMsg(t('install.page.execute.log.import_file', { index: i + 1, total: validPreviews.length, name: fp.file.name, rows: fp.preview.row_count }));
-                setExecuteProgress(75 + Math.round((i / validPreviews.length) * 18));
-                try {
-                  const importRes = await fetch('/api/v1/import/services/csv', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'text/csv; charset=utf-8',
-                      'Authorization': `Bearer ${loginData.access_token}`,
-                    },
-                    body: fp.content,
-                  });
-                  const importData = await importRes.json();
-                  if (importRes.ok) {
-                    const ir: ImportResult = {
-                      ok: true,
-                      filename: fp.file.name,
-                      batchId: importData.batchId,
-                      inserted: importData.inserted ?? 0,
-                      updated: importData.updated ?? 0,
-                      failed: importData.failed ?? 0,
-                      status: (importData.failed ?? 0) === 0 ? 'SUCCESS' : 'PARTIAL_SUCCESS',
-                    };
-                    results.push(ir);
-                    logMsg(t('install.page.execute.log.import_success', {
-                      name: fp.file.name,
-                      inserted: ir.inserted,
-                      updated: ir.updated,
-                      failed: ir.failed,
-                    }));
-                  } else {
-                    results.push({ ok: false, filename: fp.file.name, error: importData.error || t('install.page.execute.import_failed_short'), status: 'FAILED' });
-                    logMsg(t('install.page.execute.log.import_failed', { name: fp.file.name, error: importData.error || t('install.page.execute.import_failed_short') }));
-                  }
-                } catch {
-                  results.push({ ok: false, filename: fp.file.name, error: t('install.page.execute.import_network_error_short'), status: 'FAILED' });
-                  logMsg(t('install.page.execute.log.import_network_error', { name: fp.file.name }));
-                }
-              }
-              setImportResults(results);
-            } else {
-              logMsg(t('install.page.execute.log.import_login_failed'));
-            }
-          } catch {
-            logMsg(t('install.page.execute.log.import_failed_generic'));
-          }
-        }
       }
 
       logMsg(t('install.page.execute.log.loading_report'));
@@ -1209,59 +979,7 @@ export default function InstallPage() {
           </div>
         </div>
 
-        <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
-          <button className={styles.btnPrimary} onClick={goNext}>{t('common.continue')} →</button>
-        </div>
-      </>
-    );
-  }
-
-  function renderStep6_DataPlan() {
-    return (
-      <>
-        <h1 className={styles.panelTitle}>{t('install.page.data_plan.title')}</h1>
-        <p className={styles.panelSubtitle}>{t('install.page.data_plan.subtitle')}</p>
-
         <div className={styles.packageList}>
-          <div className={`${styles.packageItem} ${styles.mandatory}`}>
-            <span className={styles.packageIcon}>🗄️</span>
-            <span className={styles.packageTitle}>{t('install.page.data_plan.core_installation')}</span>
-            <span className={`${styles.packageBadge} ${styles.mandatory}`}>{t('common.mandatory')}</span>
-          </div>
-          <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            {t('install.page.data_plan.core_installation_desc')}
-          </div>
-
-          <div className={`${styles.packageItem} ${styles.mandatory}`}>
-            <span className={styles.packageIcon}>📋</span>
-            <span className={styles.packageTitle}>{t('install.page.data_plan.reference_seed_sc')}</span>
-            <span className={`${styles.packageBadge} ${styles.mandatory}`}>{t('common.mandatory')}</span>
-          </div>
-          <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            {t('install.page.data_plan.reference_seed_sc_desc')}
-          </div>
-
-          {activateC3 && (
-            <>
-              <div className={`${styles.packageItem} ${styles.mandatory}`}>
-                <span className={styles.packageIcon}>🧩</span>
-                <span className={styles.packageTitle}>{t('install.page.data_plan.reference_seed_c3')}</span>
-                <span className={`${styles.packageBadge} ${styles.mandatory}`}>{t('install.page.data_plan.mandatory_c3')}</span>
-              </div>
-            </>
-          )}
-
-          <div className={`${styles.packageItem} ${styles.optional}`}>
-            <span className={styles.packageIcon}>📦</span>
-            <span className={styles.packageTitle}>{t('install.page.data_plan.business_data_sc')}</span>
-            <span className={`${styles.packageBadge} ${styles.optional}`}>{t('common.optional')}</span>
-          </div>
-          <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            {t('install.page.data_plan.business_data_import_hint')}
-          </div>
-
-          {/* Demo data block */}
           <div
             className={`${styles.packageItem} ${seedDemoData ? styles.selected : ''}`}
             style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -1275,18 +993,19 @@ export default function InstallPage() {
               onClick={e => e.stopPropagation()}
             />
             <span className={styles.packageIcon}>🧪</span>
-            <span className={styles.packageTitle}>{t('install.page.data_plan.demo_data')}</span>
-            <span className={`${styles.packageBadge} ${styles.optional}`}>{t('common.recommended')}</span>
+            <span className={styles.packageTitle}>{t('install.page.modules.demo_data')}</span>
+            <span className={`${styles.packageBadge} ${styles.optional}`}>{t('common.optional')}</span>
           </div>
           <div className={styles.packageItem} style={{ paddingLeft: 48, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            {t('install.page.data_plan.demo_data_description')}
+            {t('install.page.modules.demo_data_description')}
           </div>
         </div>
 
-        <Alert type="info">
-          {t('install.page.data_plan.core_reference_note')}
-          {seedDemoData && <><br /><strong>{t('install.page.data_plan.demo_data_note')}</strong></>}
-        </Alert>
+        {seedDemoData && (
+          <Alert type="info">
+            {t('install.page.modules.demo_data_note')}
+          </Alert>
+        )}
 
         <div className={styles.actions}>
           <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
@@ -1296,217 +1015,7 @@ export default function InstallPage() {
     );
   }
 
-  function renderStep7_Upload() {
-    const totalRows = uploadedFiles.reduce((s, f) => s + f.size, 0);
-    return (
-      <>
-        <h1 className={styles.panelTitle}>{t('install.page.upload.title')}</h1>
-        <p className={styles.panelSubtitle}>{t('install.page.upload.subtitle')}</p>
-
-        {/* Drop zone — always visible, allows adding more files */}
-        <div
-          className={styles.uploadZone}
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-action-primary)'; }}
-          onDragLeave={e => { e.currentTarget.style.borderColor = ''; }}
-          onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = ''; addFiles(e.dataTransfer.files); }}
-          style={{ marginBottom: uploadedFiles.length > 0 ? 'var(--space-3)' : undefined }}
-        >
-          <div className={styles.uploadIcon}>📤</div>
-          <div className={styles.uploadTitle}>
-            {uploadedFiles.length > 0 ? t('install.page.upload.add_more_files') : t('install.page.upload.drop_files')}
-          </div>
-          <div className={styles.uploadHint}>{t('install.page.upload.hint')}</div>
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.xlsx,.json"
-          multiple
-          style={{ display: 'none' }}
-          onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
-        />
-
-        {/* List of uploaded files */}
-        {uploadedFiles.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-            {uploadedFiles.map((f, i) => (
-              <div key={f.name} className={styles.uploadedFile} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 12, minWidth: 20 }}>{i + 1}.</span>
-                <span style={{ fontSize: 13 }}>
-                  {f.name.endsWith('.csv') ? '📋' : f.name.endsWith('.json') ? '📦' : '📊'}
-                </span>
-                <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}>{f.name}</span>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 11 }}>
-                  {(f.size / 1024).toFixed(1)} KB
-                </span>
-                <button
-                  onClick={() => removeFile(f.name)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', fontSize: 14, lineHeight: 1, padding: '0 4px' }}
-                  title={t('common.remove')}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', paddingLeft: 4 }}>
-              {t('install.page.upload.files_total', { count: uploadedFiles.length, size: (totalRows / 1024).toFixed(1) })}
-            </div>
-          </div>
-        )}
-
-        <Alert type="warning">
-          {t('install.page.upload.import_batch_note')}
-        </Alert>
-
-        <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className={styles.btnSecondary} onClick={handleUploadNext}>
-              {uploadedFiles.length > 0 ? t('install.page.upload.skip_import') : t('install.page.upload.skip_arrow')}
-            </button>
-            {uploadedFiles.length > 0 && (
-              <button className={styles.btnPrimary} onClick={handleUploadNext} disabled={previewLoading}>
-                {previewLoading
-                  ? <><Spinner /> {t('common.loading')}</>
-                  : uploadedFiles.length === 1
-                    ? t('install.page.upload.continue_one', { count: uploadedFiles.length })
-                    : uploadedFiles.length < 5
-                      ? t('install.page.upload.continue_few', { count: uploadedFiles.length })
-                      : t('install.page.upload.continue_many', { count: uploadedFiles.length })}
-              </button>
-            )}
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  function renderFilePreviewCard(fp: FilePreview, index: number) {
-    const { file, preview } = fp;
-    const hasFatal = preview.fatal_error != null;
-    return (
-      <div key={file.name} style={{
-        border: `1px solid ${hasFatal ? 'color-mix(in srgb, var(--color-danger) 40%, var(--color-border-default))' : 'var(--color-border-default)'}`,
-        borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', marginBottom: 'var(--space-3)',
-        background: hasFatal ? 'color-mix(in srgb, var(--color-danger) 4%, var(--color-bg-surface))' : 'var(--color-bg-surface)',
-      }}>
-        {/* File header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-3)' }}>
-          <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{index + 1}.</span>
-          <span style={{ fontFamily: 'monospace', fontSize: 13, flex: 1 }}>{file.name}</span>
-          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{(file.size / 1024).toFixed(1)} KB</span>
-          {hasFatal
-            ? <span style={{ fontSize: 11, color: 'var(--color-danger)', fontWeight: 600 }}>✗ {t('install.page.preview.file_error')}</span>
-            : <span style={{ fontSize: 11, color: 'var(--color-success)', fontWeight: 600 }}>✓ {t('install.page.preview.file_rows', { count: preview.row_count })}</span>}
-        </div>
-
-        {hasFatal && (
-          <div style={{ fontSize: 12, color: 'var(--color-danger)', marginBottom: 8 }}>
-            ⚠ {preview.fatal_error}
-          </div>
-        )}
-
-        {!hasFatal && (
-          <>
-            {/* Column chips */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: preview.warnings.length > 0 ? 8 : 0 }}>
-              {preview.columns.slice(0, 10).map(col => (
-                <span key={col} style={{
-                  padding: '1px 7px', borderRadius: 'var(--radius-pill)', fontSize: 10,
-                  background: 'var(--color-bg-surface-raised)', border: '1px solid var(--color-border-default)',
-                  color: preview.required_present.includes(col) ? 'var(--color-success)' : 'var(--color-text-muted)',
-                }}>
-                  {col}
-                </span>
-              ))}
-              {preview.columns.length > 10 && (
-                <span style={{ fontSize: 10, color: 'var(--color-text-muted)', padding: '1px 4px' }}>
-                  {t('install.page.preview.more_columns', { count: preview.columns.length - 10 })}
-                </span>
-              )}
-            </div>
-            {/* Warnings */}
-            {preview.warnings.map((w, i) => (
-              <div key={i} style={{ fontSize: 11, color: 'var(--color-warning)', marginTop: 4 }}>⚠ {w}</div>
-            ))}
-          </>
-        )}
-      </div>
-    );
-  }
-
-  function renderStep8_Preview() {
-    const totalRows = filePreviews.reduce((s, fp) => s + fp.preview.row_count, 0);
-    const fatalCount = filePreviews.filter(fp => fp.preview.fatal_error).length;
-    const validCount = filePreviews.filter(fp => !fp.preview.fatal_error && fp.preview.row_count > 0).length;
-
-    return (
-      <>
-        <h1 className={styles.panelTitle}>{t('install.page.preview_title')}</h1>
-        <p className={styles.panelSubtitle}>
-          {filePreviews.length > 0
-            ? filePreviews.length === 1
-              ? t('install.page.preview.analysis_one', { count: filePreviews.length })
-              : t('install.page.preview.analysis_many', { count: filePreviews.length })
-            : t('install.page.preview.no_files')}
-        </p>
-
-        {filePreviews.length === 0 ? (
-          <Alert type="info">
-            {t('install.page.preview.import_skipped')}
-          </Alert>
-        ) : (
-          <>
-            {/* Aggregate summary */}
-            <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-              {[
-                { label: t('install.page.preview.files_total'), value: filePreviews.length, color: 'var(--color-text-primary)' },
-                { label: t('install.page.preview.rows_to_import'), value: totalRows, color: 'var(--color-action-primary)' },
-                { label: t('install.page.preview.ready'), value: validCount, color: 'var(--color-success)' },
-                ...(fatalCount > 0 ? [{ label: t('install.page.preview.errors'), value: fatalCount, color: 'var(--color-danger)' }] : []),
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-4)', background: 'var(--color-bg-surface-raised)', borderRadius: 'var(--radius-md)', minWidth: 80 }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Per-file cards */}
-            {filePreviews.map((fp, i) => renderFilePreviewCard(fp, i))}
-
-            {validCount > 0 && (
-              <Alert type="success">
-                {validCount === 1
-                  ? t('install.page.preview.ready_for_import_one', { count: validCount, rows: totalRows })
-                  : t('install.page.preview.ready_for_import_many', { count: validCount, rows: totalRows })}
-              </Alert>
-            )}
-            {fatalCount > 0 && (
-              <Alert type="warning">
-                {fatalCount === 1
-                  ? t('install.page.preview.failed_one', { count: fatalCount })
-                  : t('install.page.preview.failed_many', { count: fatalCount })}
-              </Alert>
-            )}
-          </>
-        )}
-
-        <div className={styles.actions}>
-          <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
-          <button className={styles.btnPrimary} onClick={goNext}>
-            {validCount === 0 && filePreviews.length > 0
-              ? `${t('install.page.upload.skip_import')} →`
-              : `${t('common.continue')} →`}
-          </button>
-        </div>
-      </>
-    );
-  }
-
-  function renderStep9_Execute() {
+  function renderStep6_Execute() {
     return (
       <>
         <h1 className={styles.panelTitle}>{t('install.page.execute_title')}</h1>
@@ -1554,7 +1063,7 @@ export default function InstallPage() {
     );
   }
 
-  function renderStep10_Summary() {
+  function renderStep7_Summary() {
     const isReady = summary && (summary as Record<string, unknown>).status === 'READY';
     const summaryModules = (summary as Record<string, unknown> | null)?.modules as Array<Record<string, unknown>> | undefined;
 
@@ -1592,53 +1101,6 @@ export default function InstallPage() {
                   : '—'}
               </div>
             </div>
-            {importResults.length > 0 && (() => {
-              const totalInserted = importResults.reduce((s, r) => s + (r.inserted ?? 0), 0);
-              const totalUpdated  = importResults.reduce((s, r) => s + (r.updated  ?? 0), 0);
-              const totalFailed   = importResults.reduce((s, r) => s + (r.failed   ?? 0), 0);
-              return (
-                <>
-                  <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>{t('install.page.execute.imported_files')}</div>
-                    <div className={styles.metaValue}>{importResults.length}</div>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>{t('install.page.execute.inserted')}</div>
-                    <div className={styles.metaValue}>{totalInserted}</div>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>{t('install.page.execute.updated')}</div>
-                    <div className={styles.metaValue}>{totalUpdated}</div>
-                  </div>
-                  {totalFailed > 0 && (
-                    <div className={styles.metaItem}>
-                      <div className={styles.metaLabel}>{t('install.page.execute.row_errors')}</div>
-                      <div className={styles.metaValue} style={{ color: 'var(--color-warning)' }}>{totalFailed}</div>
-                    </div>
-                  )}
-                  <div className={styles.metaItem} style={{ gridColumn: '1 / -1' }}>
-                    <div className={styles.metaLabel}>{t('install.page.execute.per_file_results')}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-                      {importResults.map(r => (
-                        <div key={r.filename} style={{ display: 'flex', gap: 8, fontSize: 12, alignItems: 'center' }}>
-                          <span style={{ color: r.ok ? 'var(--color-success)' : 'var(--color-danger)' }}>{r.ok ? '✓' : '✗'}</span>
-                          <span style={{ fontFamily: 'monospace', flex: 1 }}>{r.filename}</span>
-                          {r.ok
-                            ? <span style={{ color: 'var(--color-text-muted)' }}>{r.inserted ?? 0}↑ {r.updated ?? 0}↻ {r.failed ?? 0}✗</span>
-                            : <span style={{ color: 'var(--color-danger)' }}>{r.error}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-            {importResults.length === 0 && uploadedFiles.length > 0 && (
-              <div className={styles.metaItem}>
-                <div className={styles.metaLabel}>{t('install.page.result.summary_import')}</div>
-                <div className={styles.metaValue} style={{ color: 'var(--color-text-muted)' }}>{t('install.page.result.summary_import_skipped')}</div>
-              </div>
-            )}
           </div>
         )}
 
@@ -1690,11 +1152,8 @@ export default function InstallPage() {
     renderStep3_Admin,
     renderStep4_Connectivity,
     renderStep5_Modules,
-    renderStep6_DataPlan,
-    renderStep7_Upload,
-    renderStep8_Preview,
-    renderStep9_Execute,
-    renderStep10_Summary,
+    renderStep6_Execute,
+    renderStep7_Summary,
   ];
 
   // ---------------------------------------------------------------------------

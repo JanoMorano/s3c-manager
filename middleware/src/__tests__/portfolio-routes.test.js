@@ -31,6 +31,8 @@ jest.mock('../middleware/rbac', () => {
 
 jest.mock('../db/portfolio.repo', () => ({
     list: jest.fn(),
+    listServices: jest.fn(),
+    listCapabilities: jest.fn(),
     getByCode: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -102,6 +104,64 @@ describe('portfolio routes', () => {
             portfolio_code: 'APP',
             services: [expect.objectContaining({ service_id: 'SVC-IAM' })],
         }));
+    });
+
+    test('GET /portfolio/services returns filtered mapped service scope', async () => {
+        const repo = require('../db/portfolio.repo');
+        repo.listServices.mockResolvedValue({
+            items: [{ service_id: 'SVC-IAM', title: 'Identity Access Management' }],
+            count: 1,
+            totals: {
+                service_count: 3,
+                active_service_count: 2,
+                requestable_service_count: 1,
+                overdue_review_count: 0,
+            },
+            filter: 'active',
+        });
+
+        const response = await request(buildApp()).get('/api/v1/portfolio/services?filter=active');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(expect.objectContaining({
+            items: [expect.objectContaining({ service_id: 'SVC-IAM' })],
+            count: 1,
+            totals: expect.objectContaining({ active_service_count: 2 }),
+            filter: 'active',
+        }));
+        expect(repo.listServices).toHaveBeenCalledWith({ filter: 'active' });
+    });
+
+    test('GET /portfolio/capabilities returns level 3 capability rows including empty capabilities', async () => {
+        const repo = require('../db/portfolio.repo');
+        repo.listCapabilities.mockResolvedValue([
+            {
+                capability_code: 'C3-L3-APP',
+                capability_title: 'Application Hosting',
+                capability_level: 3,
+                parent_portfolio_code: 'C3-L2-PLATFORM',
+                spiral_code: 'Spiral_7',
+                service_count: 0,
+                is_empty: true,
+                services: [],
+            },
+        ]);
+
+        const response = await request(buildApp()).get('/api/v1/portfolio/capabilities');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+            items: [
+                expect.objectContaining({
+                    capability_code: 'C3-L3-APP',
+                    capability_level: 3,
+                    service_count: 0,
+                    is_empty: true,
+                }),
+            ],
+            count: 1,
+        });
+        expect(repo.listCapabilities).toHaveBeenCalledWith();
     });
 
     test('GET /portfolio/:code returns 404 for unknown portfolio', async () => {

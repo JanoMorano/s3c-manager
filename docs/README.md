@@ -10,7 +10,7 @@ This directory now keeps only active product, operations, installation, API, and
 - `user-guide.md` - user-facing operating guide.
 - `installation.md` - installation and runtime setup.
 - `upgrade.md` - upgrade and migration guidance.
-- `api-deprecations.md` - v1.2 removed API inventory and replacements.
+- `api-deprecations.md` - v1.2.1 removed API inventory and replacements.
 - `domain-model.md`, `modules.md`, `operations.md`, `governance-cockpit.md`, `c3-module.md` - product and architecture references.
 - `import-formats.md`, `integrations.md` - import and integration contracts.
 - `personas.md`, `product-positioning.md` - product context and target users.

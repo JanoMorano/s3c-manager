@@ -41,7 +41,7 @@ Capability maps, C3 entity workspaces, and capability-builder domains are served
   - baseline seed `shared/c3/capability-map-spiral7.json`
   - runtime builder data in `data.c3_capability_builder`
 
-The old `/c3/capability-map` compatibility route is not part of the v1.2 final surface.
+The old `/c3/capability-map` compatibility route is not part of the v1.2.1 final surface.
 
 ## Activation During Installation
 
@@ -112,7 +112,7 @@ GET /api/v1/capabilities/by-slug/:slug/duplicate-coverage?spiral=Spiral_5
 GET /api/v1/capabilities/by-slug/:slug/consolidation-candidates?spiral=Spiral_5
 ```
 
-The current implementation deliberately keeps PDF storage/viewer out of v1.1.2 scope. Evidence document rows are generated from imported C3 taxonomy, spiral membership, and service mappings, and they intentionally do not contain developer-local PDF paths. If future FMN PDFs are imported as structured documents, they should be connected through the generic evidence model without reintroducing route-specific constants or route-specific dashboards.
+The current implementation deliberately keeps PDF storage/viewer out of v1.2.1 scope. Evidence document rows are generated from imported C3 taxonomy, spiral membership, and service mappings, and they intentionally do not contain developer-local PDF paths. If future FMN PDFs are imported as structured documents, they should be connected through the generic evidence model without reintroducing route-specific constants or route-specific dashboards.
 
 ## How to Load Your Own Data
 
