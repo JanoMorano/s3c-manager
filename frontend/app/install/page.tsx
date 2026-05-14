@@ -997,7 +997,7 @@ export default function InstallPage() {
   }
 
   function renderStep3_Admin() {
-    const adminAccountSaved = completedSteps.has(3) || installInfo?.admin_exists;
+        const adminAccountSaved = completedSteps.has(STEP_INDEX.admin) || installInfo?.admin_exists;
 
     return (
       <>
@@ -1514,7 +1514,7 @@ export default function InstallPage() {
           {t('install.page.execute.subtitle')}
         </p>
 
-        {!executing && !completedSteps.has(9) && (
+        {!executing && !completedSteps.has(STEP_INDEX.execute) && (
           <div className={styles.checkList}>
             {renderConnCheck(t('install.page.modules.service_catalogue_core'), true, t('install.page.execute.will_be_activated'))}
             {renderConnCheck(t('install.page.modules.c3_taxonomy'), activateC3 ? undefined : true,
@@ -1545,7 +1545,7 @@ export default function InstallPage() {
           <button
             className={styles.btnPrimary}
             onClick={handleExecute}
-            disabled={executing || completedSteps.has(9)}
+            disabled={executing || completedSteps.has(STEP_INDEX.execute)}
           >
             {executing ? <><Spinner /> {t('common.running')}</> : `🚀 ${t('install.page.execute.start_installation')}`}
           </button>
