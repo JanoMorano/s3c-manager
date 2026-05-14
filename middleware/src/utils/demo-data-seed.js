@@ -24,6 +24,8 @@ const DEMO_UUIDS = {
     CAP_BP: 'demo-bp-0001-0000-000000000001',
     CAP_BR: 'demo-br-0001-0000-000000000002',
     CAP_CP: 'demo-cp-0001-0000-000000000003',
+    CAP_IDENTITY: 'demo-cp-0002-0000-000000000021',
+    CAP_DATA: 'demo-cp-0005-0000-000000000022',
     CAP_CI: 'demo-ci-0001-0000-000000000004',
     CAP_CO: 'demo-co-0001-0000-000000000005',
     CAP_CR: 'demo-cr-0001-0000-000000000006',
@@ -42,6 +44,8 @@ const DEMO_UUIDS = {
     DO_02:  'demo-do--0002-0000-000000000014',
     C3SVC_01: 'demo-svc-0001-0000-000000000015',
 };
+
+const DEMO_CAPABILITY_MAP_SPIRALS = ['Spiral_4', 'Spiral_5', 'Spiral_6', 'Spiral_7'];
 
 const DEMO_SERVICE_COPY = {
     en: {
@@ -490,9 +494,14 @@ async function safeQuery(pool, sql, params = [], label = '') {
         return await pool.query(sql, params);
     } catch (err) {
         // 42P01 = undefined_table (C3 module is not installed)
+        // 42703 = undefined_column (older optional C3 schema)
         // 23505 = unique violation (record already exists, which is OK)
         if (err.code === '42P01') {
             logger.warn(`demo-seed: table does not exist (skipped) — ${label}`);
+            return null;
+        }
+        if (err.code === '42703') {
+            logger.warn(`demo-seed: column does not exist (skipped) — ${label}`);
             return null;
         }
         if (err.code === '23505') return null; // already exists
@@ -967,6 +976,8 @@ async function seedC3Taxonomy(pool) {
         { uuid: DEMO_UUIDS.CAP_BP, item_type: 'BP', external_id: 'DEMO-BP-001', title: '[DEMO] Business Process — Integration',   short_title: 'Integration',       item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo business process for platform integration workflows.' },
         { uuid: DEMO_UUIDS.CAP_BR, item_type: 'BR', external_id: 'DEMO-BR-001', title: '[DEMO] Business Role — Integration Architect', short_title: 'Integration Arch', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo business role responsible for integration architecture.' },
         { uuid: DEMO_UUIDS.CAP_CP, item_type: 'CP', external_id: 'DEMO-CP-001', title: '[DEMO] Capability — Platform Integration',  short_title: 'Platform Integration', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo capability covering platform integration patterns and services.' },
+        { uuid: DEMO_UUIDS.CAP_IDENTITY, item_type: 'CP', external_id: 'DEMO-CP-002', title: '[DEMO] Capability — Identity & Access Assurance', short_title: 'Identity Assurance', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo capability covering identity, access governance, and assurance services.' },
+        { uuid: DEMO_UUIDS.CAP_DATA, item_type: 'CP', external_id: 'DEMO-CP-003', title: '[DEMO] Capability — Data & Insight Enablement', short_title: 'Data Enablement', item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo capability covering analytics, reporting, and data product services.' },
         { uuid: DEMO_UUIDS.CAP_CI, item_type: 'CI', external_id: 'DEMO-CI-001', title: '[DEMO] COI Service — Identity Management',  short_title: 'Identity Management',  item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo COI service for identity and access management.' },
         { uuid: DEMO_UUIDS.CAP_CO, item_type: 'CO', external_id: 'DEMO-CO-001', title: '[DEMO] Communication Service — API Bus',    short_title: 'API Bus',              item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo communication service providing API messaging bus.' },
         { uuid: DEMO_UUIDS.CAP_CR, item_type: 'CR', external_id: 'DEMO-CR-001', title: '[DEMO] Core Service — Analytics',          short_title: 'Analytics',            item_status: 'approved', fmn_spiral: 'Spiral_7', description: 'Demo core service for data analytics and reporting.' },
@@ -1016,6 +1027,8 @@ async function seedC3CapabilityBuilder(pool) {
         L2_CP_S7: 'demo-h2-cp-s7-0000-000000000203', L2_CI_S7: 'demo-h2-ci-s7-0000-000000000204',
         L2_CO_S7: 'demo-h2-co-s7-0000-000000000205', L2_CR_S7: 'demo-h2-cr-s7-0000-000000000206',
         L2_IP_S7: 'demo-h2-ip-s7-0000-000000000207', L2_UA_S7: 'demo-h2-ua-s7-0000-000000000208',
+        L2_CP_DATA_S7: 'demo-h2-cp-s7-0000-000000000209',
+        L2_CP_OPS_S7: 'demo-h2-cp-s7-0000-000000000210',
         // Spiral_6 L1
         L1_BP_S6: 'demo-h1-bp-s6-0000-000000000301', L1_BR_S6: 'demo-h1-br-s6-0000-000000000302',
         L1_CP_S6: 'demo-h1-cp-s6-0000-000000000303', L1_CI_S6: 'demo-h1-ci-s6-0000-000000000304',
@@ -1042,6 +1055,8 @@ async function seedC3CapabilityBuilder(pool) {
         { page_id: 'DEMO-BP-L2-S7', uuid: H.L2_BP_S7, title: '[DEMO] Integration Processes',    domain: 'BusinessProcesses',      level: 2, parent_id: 'DEMO-BP-L1-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-BR-L2-S7', uuid: H.L2_BR_S7, title: '[DEMO] Integration Roles',        domain: 'BusinessRoles',          level: 2, parent_id: 'DEMO-BR-L1-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CP-L2-S7', uuid: H.L2_CP_S7, title: '[DEMO] Platform Capabilities',    domain: 'Capabilities',           level: 2, parent_id: 'DEMO-CP-L1-S7', spiral: 'Spiral_7' },
+        { page_id: 'DEMO-CP-L2-DATA-S7', uuid: H.L2_CP_DATA_S7, title: '[DEMO] Data & Insight Capabilities', domain: 'Capabilities', level: 2, parent_id: 'DEMO-CP-L1-S7', spiral: 'Spiral_7' },
+        { page_id: 'DEMO-CP-L2-OPS-S7', uuid: H.L2_CP_OPS_S7, title: '[DEMO] Operations & Automation Capabilities', domain: 'Capabilities', level: 2, parent_id: 'DEMO-CP-L1-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CI-L2-S7', uuid: H.L2_CI_S7, title: '[DEMO] Identity COI',             domain: 'COIServices',            level: 2, parent_id: 'DEMO-CI-L1-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CO-L2-S7', uuid: H.L2_CO_S7, title: '[DEMO] API Services',             domain: 'CommunicationsServices', level: 2, parent_id: 'DEMO-CO-L1-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CR-L2-S7', uuid: H.L2_CR_S7, title: '[DEMO] Analytics Services',       domain: 'CoreServices',           level: 2, parent_id: 'DEMO-CR-L1-S7', spiral: 'Spiral_7' },
@@ -1052,6 +1067,9 @@ async function seedC3CapabilityBuilder(pool) {
         { page_id: 'DEMO-BP-001', uuid: DEMO_UUIDS.CAP_BP, title: '[DEMO] Integration Business Process',   domain: 'BusinessProcesses',      level: 3, parent_id: 'DEMO-BP-L2-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-BR-001', uuid: DEMO_UUIDS.CAP_BR, title: '[DEMO] Integration Architect Role',     domain: 'BusinessRoles',          level: 3, parent_id: 'DEMO-BR-L2-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CP-001', uuid: DEMO_UUIDS.CAP_CP, title: '[DEMO] Platform Integration Capability', domain: 'Capabilities',           level: 3, parent_id: 'DEMO-CP-L2-S7', spiral: 'Spiral_7' },
+        { page_id: 'DEMO-CP-002', uuid: DEMO_UUIDS.CAP_IDENTITY, title: '[DEMO] Identity & Access Assurance Capability', domain: 'Capabilities', level: 3, parent_id: 'DEMO-CP-L2-S7', spiral: 'Spiral_7' },
+        { page_id: 'DEMO-CP-003', uuid: DEMO_UUIDS.CAP_DATA, title: '[DEMO] Data & Insight Enablement Capability', domain: 'Capabilities', level: 3, parent_id: 'DEMO-CP-L2-DATA-S7', spiral: 'Spiral_7' },
+        { page_id: 'DEMO-CP-004', uuid: DEMO_UUIDS.CAP_RPA, title: '[DEMO] Process Automation Capability', domain: 'Capabilities', level: 3, parent_id: 'DEMO-CP-L2-OPS-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CI-001', uuid: DEMO_UUIDS.CAP_CI, title: '[DEMO] Identity Management COI',        domain: 'COIServices',            level: 3, parent_id: 'DEMO-CI-L2-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CO-001', uuid: DEMO_UUIDS.CAP_CO, title: '[DEMO] API Bus Communication Service',  domain: 'CommunicationsServices', level: 3, parent_id: 'DEMO-CO-L2-S7', spiral: 'Spiral_7' },
         { page_id: 'DEMO-CR-S7',  uuid: DEMO_UUIDS.CAP_CR, title: '[DEMO] Analytics Core Service',         domain: 'CoreServices',           level: 3, parent_id: 'DEMO-CR-L2-S7', spiral: 'Spiral_7' },
@@ -1171,46 +1189,61 @@ async function seedC3Entities(pool) {
 
 // ── 8. SERVICE → C3 MAPPING ──────────────────────────────────────────────────────
 function buildDemoServiceC3Mappings() {
-    return [
-        // DEMO-PIS-001
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'C',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'PIS podporuje integrační business procesy.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'P',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'PIS podporuje roli integračního architekta.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'primary',     pace: 'A',  level: 3, domain: 'Capabilities',            is_primary: true,  note: 'PIS přímo realizuje platform integration capability.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'implements',  pace: 'P',   level: 3, domain: 'COIServices',             is_primary: false, note: 'PIS napojuje COI identity integration toky.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'implements',  pace: 'P',   level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'PIS poskytuje API bus jako komunikační službu.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports',    pace: 'C',  level: 3, domain: 'CoreServices',            is_primary: false, note: 'PIS podporuje core integrační a orchestration služby.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports',    pace: 'E', level: 3, domain: 'InformationProducts',     is_primary: false, note: 'PIS zásobuje dashboardy integračními telemetry daty.' },
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'P',   level: 3, domain: 'UserApplications',        is_primary: false, note: 'PIS obsluhuje user applications přes integrační API.' },
-        // DEMO-IAM-002
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'C',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'IAM podporuje přístupové workflow napříč business procesy.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'implements',  pace: 'A',  level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'IAM spravuje business role a oprávnění.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports',    pace: 'P',   level: 3, domain: 'Capabilities',            is_primary: false, note: 'IAM podporuje capability vrstvy bezpečnou identitou.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'primary',     pace: 'A',  level: 3, domain: 'COIServices',             is_primary: true,  note: 'IAM přímo realizuje COI Identity Management.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports',    pace: 'C',  level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'IAM chrání komunikační vrstvy a API komunikaci.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'implements',  pace: 'P',   level: 3, domain: 'CoreServices',            is_primary: false, note: 'IAM poskytuje core auth službu.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports',    pace: 'C',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'IAM auditní záznamy vstupují do information products.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'supports',    pace: 'C',  level: 3, domain: 'UserApplications',        is_primary: false, note: 'IAM obsluhuje přihlášení a session správu user applications.' },
-        // DEMO-DAP-003
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports',    pace: 'C',  level: 2, domain: 'BusinessProcesses',       is_primary: false, note: 'DAP podporuje reporting a rozhodovací business procesy.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports',    pace: 'P',   level: 2, domain: 'BusinessRoles',           is_primary: false, note: 'DAP poskytuje role-based dashboards a analytické pohledy.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports',    pace: 'P',   level: 3, domain: 'Capabilities',            is_primary: false, note: 'DAP rozšiřuje capability vrstvu o analytické scénáře.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CI, type: 'supports',    pace: 'C',  level: 3, domain: 'COIServices',             is_primary: false, note: 'DAP publikuje COI analytics služby.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports',    pace: 'P',   level: 3, domain: 'CommunicationsServices',  is_primary: false, note: 'DAP využívá komunikační služby pro ingest a notifikace.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'primary',     pace: 'A',  level: 3, domain: 'CoreServices',            is_primary: true,  note: 'DAP realizuje core analytics service.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_IP, type: 'implements',  pace: 'A',  level: 3, domain: 'InformationProducts',     is_primary: false, note: 'DAP produkuje information products a dashboardy.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA, type: 'implements',  pace: 'E', level: 3, domain: 'UserApplications',        is_primary: false, note: 'DAP poskytuje self-service analytics portal.' },
-        // governance cockpit additions
-        { service_id: 'DEMO-RPA-004', c3_uuid: DEMO_UUIDS.CAP_RPA, type: 'primary', pace: 'E', level: 3, domain: 'Capabilities', is_primary: true, note: 'RPA maps to an intentionally incomplete capability for readiness demo.' },
-        { service_id: 'DEMO-OBS-007', c3_uuid: DEMO_UUIDS.CAP_CP, type: 'supports', pace: 'P', level: 3, domain: 'Capabilities', is_primary: false, note: 'Observability adds over-coverage to the platform capability.' },
-        { service_id: 'DEMO-LRG-005', c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports', pace: 'C', level: 3, domain: 'CoreServices', is_primary: false, note: 'Legacy reporting remains a duplicate support path until retired.' },
-        // explicit demo L4 capability content for capability maps
-        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_BP_L4, type: 'implements', pace: 'P', level: 4, domain: 'BusinessProcesses', is_primary: false, note: 'PIS automatizuje workflow orchestration integračních procesů.' },
-        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_CI_L4, type: 'implements', pace: 'A', level: 4, domain: 'COIServices', is_primary: false, note: 'IAM zajišťuje federated identity brokerage mezi doménami.' },
-        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_UA_L4, type: 'implements', pace: 'E', level: 4, domain: 'UserApplications', is_primary: false, note: 'DAP napájí commander insight portal živými dashboardy.' },
+    const serviceCapabilityAssignments = [
+        { service_id: 'DEMO-PIS-001', c3_uuid: DEMO_UUIDS.CAP_CP, pace: 'A', note: 'PIS je primarni sluzba pro platform integration capability.' },
+        { service_id: 'DEMO-DOC-006', c3_uuid: DEMO_UUIDS.CAP_CP, pace: 'C', note: 'Document workspace doplnuje platformni spolupraci bez druhe L3 capability.' },
+        { service_id: 'DEMO-IAM-002', c3_uuid: DEMO_UUIDS.CAP_IDENTITY, pace: 'A', note: 'IAM je primarni sluzba pro identity and access assurance capability.' },
+        { service_id: 'DEMO-DAP-003', c3_uuid: DEMO_UUIDS.CAP_DATA, pace: 'A', note: 'DAP je primarni sluzba pro data and insight enablement capability.' },
+        { service_id: 'DEMO-LRG-005', c3_uuid: DEMO_UUIDS.CAP_DATA, pace: 'C', note: 'Legacy reporting je docasna migracni sluzba pod data capability.' },
+        { service_id: 'DEMO-LEG-008', c3_uuid: DEMO_UUIDS.CAP_DATA, pace: 'E', note: 'Retired field portal zustava historickou evidenci pod data capability.' },
+        { service_id: 'DEMO-RPA-004', c3_uuid: DEMO_UUIDS.CAP_RPA, pace: 'E', note: 'RPA je primarni sluzba pro process automation capability.' },
+        { service_id: 'DEMO-OBS-007', c3_uuid: DEMO_UUIDS.CAP_RPA, pace: 'P', note: 'Observability podporuje operacni automatizaci bez mapovani na dalsi L3 capability.' },
     ];
+    const contextMappings = [
+        { c3_uuid: DEMO_UUIDS.CAP_BP, type: 'supports', pace: 'C', level: 3, domain: 'BusinessProcesses', note: 'ma kontext business procesu.' },
+        { c3_uuid: DEMO_UUIDS.CAP_BR, type: 'supports', pace: 'P', level: 3, domain: 'BusinessRoles', note: 'ma kontext business role.' },
+        { c3_uuid: DEMO_UUIDS.CAP_CI, type: 'supports', pace: 'P', level: 3, domain: 'COIServices', note: 'ma kontext COI service.' },
+        { c3_uuid: DEMO_UUIDS.CAP_CO, type: 'supports', pace: 'P', level: 3, domain: 'CommunicationsServices', note: 'ma kontext communication service.' },
+        { c3_uuid: DEMO_UUIDS.CAP_CR, type: 'supports', pace: 'C', level: 3, domain: 'CoreServices', note: 'ma kontext core service.' },
+        { c3_uuid: DEMO_UUIDS.CAP_IP, type: 'supports', pace: 'C', level: 3, domain: 'InformationProducts', note: 'ma kontext information produktu.' },
+        { c3_uuid: DEMO_UUIDS.CAP_UA, type: 'supports', pace: 'C', level: 3, domain: 'UserApplications', note: 'ma kontext user application.' },
+    ];
+
+    return serviceCapabilityAssignments.flatMap((assignment) => [
+        {
+            service_id: assignment.service_id,
+            c3_uuid: assignment.c3_uuid,
+            type: 'primary',
+            pace: assignment.pace,
+            level: 3,
+            domain: 'Capabilities',
+            is_primary: true,
+            note: assignment.note,
+        },
+        ...contextMappings.map((context) => ({
+            service_id: assignment.service_id,
+            c3_uuid: context.c3_uuid,
+            type: context.type,
+            pace: context.pace,
+            level: context.level,
+            domain: context.domain,
+            is_primary: false,
+            note: `${assignment.service_id} ${context.note}`,
+        })),
+    ]);
 }
 
 async function seedServiceC3Mapping(pool) {
+    await safeQuery(pool, `
+        DELETE FROM data.service_c3_mapping
+        WHERE c3_source = 'demo-seed'
+           OR service_id IN (
+               SELECT id
+               FROM data.service_catalog
+               WHERE service_id LIKE 'DEMO-%'
+           )
+    `, [], 'service_c3_mapping:reset-demo');
+
     const mappings = buildDemoServiceC3Mappings();
     for (const m of mappings) {
         await safeQuery(pool, `
@@ -1234,6 +1267,9 @@ async function seedCapabilityEntityLinks(pool) {
     // Apps linked to capabilities: each capability has at least one link.
     const appLinks = [
         { capability_uuid: DEMO_UUIDS.CAP_CP, app_uuid: DEMO_UUIDS.APP_01, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_IDENTITY, app_uuid: DEMO_UUIDS.APP_01, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_DATA, app_uuid: DEMO_UUIDS.APP_02, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_RPA, app_uuid: DEMO_UUIDS.APP_01, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_UA, app_uuid: DEMO_UUIDS.APP_02, role: 'primary' },
         { capability_uuid: DEMO_UUIDS.CAP_CO, app_uuid: DEMO_UUIDS.APP_01, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_CR, app_uuid: DEMO_UUIDS.APP_02, role: 'supporting' },
@@ -1260,6 +1296,9 @@ async function seedCapabilityEntityLinks(pool) {
         { capability_uuid: DEMO_UUIDS.CAP_BP, tin_uuid: DEMO_UUIDS.TIN_01, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_BR, tin_uuid: DEMO_UUIDS.TIN_02, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_CP, tin_uuid: DEMO_UUIDS.TIN_02, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_IDENTITY, tin_uuid: DEMO_UUIDS.TIN_01, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_DATA, tin_uuid: DEMO_UUIDS.TIN_02, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_RPA, tin_uuid: DEMO_UUIDS.TIN_01, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_CI, tin_uuid: DEMO_UUIDS.TIN_01, role: 'primary' },
         { capability_uuid: DEMO_UUIDS.CAP_CO, tin_uuid: DEMO_UUIDS.TIN_01, role: 'primary' },
         { capability_uuid: DEMO_UUIDS.CAP_CR, tin_uuid: DEMO_UUIDS.TIN_02, role: 'primary' },
@@ -1284,6 +1323,12 @@ async function seedCapabilityEntityLinks(pool) {
         // Capability (CP)
         { capability_uuid: DEMO_UUIDS.CAP_CP, do_uuid: DEMO_UUIDS.DO_01, role: 'primary' },
         { capability_uuid: DEMO_UUIDS.CAP_CP, do_uuid: DEMO_UUIDS.DO_02, role: 'supporting' },
+        { capability_uuid: DEMO_UUIDS.CAP_IDENTITY, do_uuid: DEMO_UUIDS.DO_01, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_IDENTITY, do_uuid: DEMO_UUIDS.DO_02, role: 'supporting' },
+        { capability_uuid: DEMO_UUIDS.CAP_DATA, do_uuid: DEMO_UUIDS.DO_02, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_DATA, do_uuid: DEMO_UUIDS.DO_01, role: 'supporting' },
+        { capability_uuid: DEMO_UUIDS.CAP_RPA, do_uuid: DEMO_UUIDS.DO_01, role: 'primary' },
+        { capability_uuid: DEMO_UUIDS.CAP_RPA, do_uuid: DEMO_UUIDS.DO_02, role: 'supporting' },
         // Communication Service (CO)
         { capability_uuid: DEMO_UUIDS.CAP_CO, do_uuid: DEMO_UUIDS.DO_02, role: 'primary' },
         { capability_uuid: DEMO_UUIDS.CAP_CO, do_uuid: DEMO_UUIDS.DO_01, role: 'supporting' },
@@ -1322,6 +1367,9 @@ async function seedCapabilityEntityLinks(pool) {
     // C3 Services linked to capabilities: each capability has a C3 Service link.
     const svcLinks = [
         { capability_uuid: DEMO_UUIDS.CAP_CP, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'supporting' },
+        { capability_uuid: DEMO_UUIDS.CAP_IDENTITY, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'supporting' },
+        { capability_uuid: DEMO_UUIDS.CAP_DATA, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'supporting' },
+        { capability_uuid: DEMO_UUIDS.CAP_RPA, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_CO, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'primary' },
         { capability_uuid: DEMO_UUIDS.CAP_BP, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'supporting' },
         { capability_uuid: DEMO_UUIDS.CAP_BR, c3svc_uuid: DEMO_UUIDS.C3SVC_01, role: 'supporting' },
@@ -1458,29 +1506,112 @@ async function seedDemoData(pool, options = {}) {
 async function removeDemoData(pool) {
     logger.info('demo-seed: removing demo data...');
     try {
-        // Delete C3 entity links.
-        for (const uuid of Object.values(DEMO_UUIDS)) {
-            await safeQuery(pool, 'DELETE FROM data.c3_capability_application_link WHERE capability_uuid = $1', [uuid]);
-            await safeQuery(pool, 'DELETE FROM data.c3_capability_tin_link WHERE capability_uuid = $1', [uuid]);
-            await safeQuery(pool, 'DELETE FROM data.c3_capability_data_object_link WHERE capability_uuid = $1', [uuid]);
-            await safeQuery(pool, 'DELETE FROM data.c3_capability_c3_service_link WHERE capability_uuid = $1', [uuid]);
-        }
+        await safeQuery(pool, `
+            DELETE FROM data.service_c3_mapping
+            WHERE c3_uuid = ANY($1::text[])
+               OR service_id IN (
+                   SELECT id FROM data.service_catalog
+                   WHERE service_id LIKE 'DEMO-%'
+               )
+        `, [Object.values(DEMO_UUIDS)], 'service_c3_mapping:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.service_c3_mapping
+            WHERE c3_source = 'demo-seed'
+        `, [], 'service_c3_mapping:remove-demo-source');
+
+        await safeQuery(pool, `
+            DELETE FROM data.c3_entity_spiral_membership
+            WHERE spiral_code = ANY($1::text[])
+              AND (
+                  entity_uuid = ANY($2::text[])
+                  OR entity_uuid LIKE 'demo-%'
+              )
+        `, [DEMO_CAPABILITY_MAP_SPIRALS, Object.values(DEMO_UUIDS)], 'c3_entity_spiral_membership:remove-demo');
+
+        await safeQuery(pool, `
+            DELETE FROM data.c3_capability_builder
+            WHERE fmn_spiral = ANY($1::text[])
+              AND (
+                  page_id LIKE 'DEMO-%'
+                  OR uuid LIKE 'demo-%'
+                  OR title LIKE '[DEMO]%'
+              )
+        `, [DEMO_CAPABILITY_MAP_SPIRALS], 'c3_capability_builder:remove-demo-spirals-4-7');
+
+        // Delete C3 entity links from both sides so manually linked demo targets disappear too.
+        await safeQuery(pool, `
+            DELETE FROM data.c3_capability_application_link
+            WHERE capability_uuid = ANY($1::text[])
+               OR c3_application_id IN (
+                   SELECT id FROM data.c3_application
+                   WHERE uuid = ANY($2::text[])
+                      OR application_code LIKE 'DEMO-%'
+                      OR title LIKE '[DEMO]%'
+               )
+        `, [Object.values(DEMO_UUIDS), [DEMO_UUIDS.APP_01, DEMO_UUIDS.APP_02]], 'c3_capability_application_link:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.c3_capability_tin_link
+            WHERE capability_uuid = ANY($1::text[])
+               OR c3_tin_id IN (
+                   SELECT id FROM data.c3_technology_interaction
+                   WHERE uuid = ANY($2::text[])
+                      OR technology_interaction_code LIKE 'DEMO-%'
+                      OR title LIKE '[DEMO]%'
+               )
+        `, [Object.values(DEMO_UUIDS), [DEMO_UUIDS.TIN_01, DEMO_UUIDS.TIN_02]], 'c3_capability_tin_link:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.c3_capability_data_object_link
+            WHERE capability_uuid = ANY($1::text[])
+               OR c3_data_object_id IN (
+                   SELECT id FROM data.c3_data_object
+                   WHERE uuid = ANY($2::text[])
+                      OR data_object_code LIKE 'DEMO-%'
+                      OR title LIKE '[DEMO]%'
+               )
+        `, [Object.values(DEMO_UUIDS), [DEMO_UUIDS.DO_01, DEMO_UUIDS.DO_02]], 'c3_capability_data_object_link:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.c3_capability_c3_service_link
+            WHERE capability_uuid = ANY($1::text[])
+               OR c3_service_id IN (
+                   SELECT id FROM data.c3_service
+                   WHERE uuid = $2
+                      OR service_code LIKE 'DEMO-%'
+                      OR title LIKE '[DEMO]%'
+               )
+        `, [Object.values(DEMO_UUIDS), DEMO_UUIDS.C3SVC_01], 'c3_capability_c3_service_link:remove-demo');
         // Delete C3 entity records.
-        for (const uuid of [DEMO_UUIDS.APP_01, DEMO_UUIDS.APP_02]) {
-            await safeQuery(pool, 'DELETE FROM data.c3_application WHERE uuid = $1', [uuid]);
-        }
-        for (const uuid of [DEMO_UUIDS.TIN_01, DEMO_UUIDS.TIN_02]) {
-            await safeQuery(pool, 'DELETE FROM data.c3_technology_interaction WHERE uuid = $1', [uuid]);
-        }
-        for (const uuid of [DEMO_UUIDS.DO_01, DEMO_UUIDS.DO_02]) {
-            await safeQuery(pool, 'DELETE FROM data.c3_data_object WHERE uuid = $1', [uuid]);
-        }
-        await safeQuery(pool, 'DELETE FROM data.c3_service WHERE uuid = $1', [DEMO_UUIDS.C3SVC_01]);
+        await safeQuery(pool, `
+            DELETE FROM data.c3_application
+            WHERE uuid = ANY($1::text[])
+               OR application_code LIKE 'DEMO-%'
+               OR title LIKE '[DEMO]%'
+        `, [[DEMO_UUIDS.APP_01, DEMO_UUIDS.APP_02]], 'c3_application:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.c3_technology_interaction
+            WHERE uuid = ANY($1::text[])
+               OR technology_interaction_code LIKE 'DEMO-%'
+               OR title LIKE '[DEMO]%'
+        `, [[DEMO_UUIDS.TIN_01, DEMO_UUIDS.TIN_02]], 'c3_technology_interaction:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.c3_data_object
+            WHERE uuid = ANY($1::text[])
+               OR data_object_code LIKE 'DEMO-%'
+               OR title LIKE '[DEMO]%'
+        `, [[DEMO_UUIDS.DO_01, DEMO_UUIDS.DO_02]], 'c3_data_object:remove-demo');
+        await safeQuery(pool, `
+            DELETE FROM data.c3_service
+            WHERE uuid = $1
+               OR service_code LIKE 'DEMO-%'
+               OR title LIKE '[DEMO]%'
+        `, [DEMO_UUIDS.C3SVC_01], 'c3_service:remove-demo');
         // C3 taxonomy
-        for (const uuid of Object.values(DEMO_UUIDS)) {
-            await safeQuery(pool, 'DELETE FROM data.c3_taxonomy WHERE uuid = $1', [uuid]);
-        }
-        // C3 capability builder entries (L1/L2 hierarchy + L3 chips + L4 sub-chips for both spirals)
+        await safeQuery(pool, `
+            DELETE FROM data.c3_taxonomy
+            WHERE uuid = ANY($1::text[])
+               OR external_id LIKE 'DEMO-%'
+               OR title LIKE '[DEMO]%'
+        `, [Object.values(DEMO_UUIDS)], 'c3_taxonomy:remove-demo');
+        // Backward-compatible fallback for older DBs without fmn_spiral data on builder rows.
         await safeQuery(pool, `
             DELETE FROM data.c3_capability_builder
             WHERE page_id IN (
@@ -1490,9 +1621,11 @@ async function removeDemoData(pool) {
                 -- Spiral_7 L2
                 'DEMO-BP-L2-S7','DEMO-BR-L2-S7','DEMO-CP-L2-S7','DEMO-CI-L2-S7',
                 'DEMO-CO-L2-S7','DEMO-CR-L2-S7','DEMO-IP-L2-S7','DEMO-UA-L2-S7',
+                'DEMO-CP-L2-DATA-S7','DEMO-CP-L2-OPS-S7',
                 -- Spiral_7 L3
                 'DEMO-BP-001','DEMO-BR-001','DEMO-CP-001','DEMO-CI-001',
                 'DEMO-CO-001','DEMO-CR-S7','DEMO-IP-S7','DEMO-UA-S7',
+                'DEMO-CP-002','DEMO-CP-003','DEMO-CP-004',
                 -- Spiral_7 L4
                 'DEMO-BP-010','DEMO-CI-010','DEMO-UA-010',
                 -- Spiral_6 L1
@@ -1548,6 +1681,7 @@ async function removeDemoData(pool) {
 module.exports = {
     seedDemoData,
     removeDemoData,
+    DEMO_CAPABILITY_MAP_SPIRALS,
     DEMO_UUIDS,
     buildDemoFlavours,
     buildDemoGovernanceFixtures,

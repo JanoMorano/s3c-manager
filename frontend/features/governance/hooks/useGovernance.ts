@@ -18,6 +18,8 @@ function buildUrl(path: string, filters: GovernanceFilters = {}) {
   if (filters.scope) q.set('scope', filters.scope);
   if (filters.serviceId) q.set('service_id', filters.serviceId);
   if (filters.assignedTo) q.set('assigned_to', filters.assignedTo);
+  if (filters.mine) q.set('mine', '1');
+  if (filters.overdue) q.set('overdue', '1');
   if (filters.status) q.set('status', filters.status);
   if (filters.decision) q.set('decision', filters.decision);
   if (filters.decisionType) q.set('decision_type', filters.decisionType);

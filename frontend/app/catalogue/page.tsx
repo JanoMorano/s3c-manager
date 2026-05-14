@@ -98,10 +98,18 @@ export default function CataloguePage() {
       />
 
       <section className={styles.kpiGrid} aria-label="Catalogue KPIs">
-        <KpiCard label="Total services" value={formatNumber(totalServices)} tone="info" trendLabel={`${summary?.active_services ?? 0} active`} />
-        <KpiCard label="Requestable" value={formatNumber(requestable)} tone="success" trendLabel={`${totalServices ? Math.round((requestable / totalServices) * 100) : 0} %`} />
-        <KpiCard label="Readiness warnings" value={formatNumber(readinessWarnings)} tone={readinessWarnings ? 'warning' : 'success'} trendLabel={readinessWarnings ? 'vyžaduje pozornost' : 'bez varování'} />
-        <KpiCard label="Reviews due" value={formatNumber(reviewsDue)} tone={reviewsDue ? 'warning' : 'neutral'} trendLabel={reviewsDue ? 'otevřít governance' : 'bez fronty'} />
+        <Link href="/services/list" className={styles.kpiLink} aria-label="Otevřít všechny služby v katalogu">
+          <KpiCard label="Total services" value={formatNumber(totalServices)} tone="info" trendLabel={`${summary?.active_services ?? 0} active`} />
+        </Link>
+        <Link href="/services/list?requestable=true" className={styles.kpiLink} aria-label="Otevřít objednatelné služby">
+          <KpiCard label="Requestable" value={formatNumber(requestable)} tone="success" trendLabel={`${totalServices ? Math.round((requestable / totalServices) * 100) : 0} %`} />
+        </Link>
+        <Link href="/services/list?readiness=attention" className={styles.kpiLink} aria-label="Otevřít služby s readiness varováním">
+          <KpiCard label="Readiness warnings" value={formatNumber(readinessWarnings)} tone={readinessWarnings ? 'warning' : 'success'} trendLabel={readinessWarnings ? 'vyžaduje pozornost' : 'bez varování'} />
+        </Link>
+        <Link href="/services/list?review_due=overdue" className={styles.kpiLink} aria-label="Otevřít služby po termínu revize">
+          <KpiCard label="Reviews due" value={formatNumber(reviewsDue)} tone={reviewsDue ? 'warning' : 'neutral'} trendLabel={reviewsDue ? 'otevřít governance' : 'bez fronty'} />
+        </Link>
       </section>
 
       <BrowseSection

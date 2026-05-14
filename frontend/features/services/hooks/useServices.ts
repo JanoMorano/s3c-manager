@@ -5,6 +5,8 @@ import type {
   ServiceListResponse,
   CatalogQualityResponse,
   PortfolioListResponse,
+  PortfolioCapabilityListResponse,
+  PortfolioServiceScopeResponse,
   ServiceDetail,
   ServiceOverviewResponse,
   SlaResponse,
@@ -52,6 +54,23 @@ export function usePortfolioList() {
   return useSWR<PortfolioListResponse>('/api/v1/portfolio', apiFetch, {
     revalidateOnFocus: false,
     dedupingInterval: 120_000,
+  });
+}
+
+export function usePortfolioCapabilities() {
+  return useSWR<PortfolioCapabilityListResponse>('/api/v1/portfolio/capabilities', apiFetch, {
+    revalidateOnFocus: false,
+    dedupingInterval: 120_000,
+  });
+}
+
+export function usePortfolioServiceScope(
+  filter: 'all' | 'active' | 'planned' | 'retiring' | 'requestable' | 'overdue' | 'due_soon' | 'missing_owner' | 'readiness_blocked' = 'all',
+) {
+  const query = filter === 'all' ? '' : `?filter=${encodeURIComponent(filter)}`;
+  return useSWR<PortfolioServiceScopeResponse>(`/api/v1/portfolio/services${query}`, apiFetch, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
   });
 }
 

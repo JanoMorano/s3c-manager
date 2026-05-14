@@ -93,4 +93,4 @@ Optional. Enables C3 capabilities, C3 entities, capability maps, and related imp
 - `/administration/c3-ref`
 - `/administration/c3-capability-builder`
 
-Coverage, gaps and overlaps are folded into the canonical `/capabilities` workspace. Removed `/admin/*`, `/c3/graph`, and separate `/capabilities/{coverage,gaps,overlaps}` frontend aliases are not part of the v1.2 final surface.
+Coverage, gaps and overlaps are folded into the canonical `/capabilities` workspace. Removed `/admin/*`, `/c3/graph`, and separate `/capabilities/{coverage,gaps,overlaps}` frontend aliases are not part of the v1.2.1 final surface.

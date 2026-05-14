@@ -143,6 +143,30 @@ async function listReviews(filters = {}) {
         params.push(like(filters.assignedTo));
         where.push(`gr.assigned_to ILIKE $${params.length}`);
     }
+    if (filters.overdue) {
+        where.push('gr.due_at IS NOT NULL');
+        where.push('gr.completed_at IS NULL');
+        where.push('gr.due_at < CURRENT_TIMESTAMP');
+    }
+    if (filters.mine) {
+        const identities = Array.isArray(filters.mineIdentities)
+            ? filters.mineIdentities.map((value) => String(value ?? '').trim()).filter(Boolean)
+            : [];
+        if (identities.length === 0) {
+            where.push('FALSE');
+        } else {
+            params.push(identities.map((value) => value.toLowerCase()));
+            const exactPlaceholder = `$${params.length}`;
+            params.push(identities.map(like));
+            const likePlaceholder = `$${params.length}`;
+            where.push(`(
+                LOWER(COALESCE(gr.assigned_to, '')) = ANY(${exactPlaceholder}::text[])
+                OR LOWER(COALESCE(gr.requested_by, '')) = ANY(${exactPlaceholder}::text[])
+                OR gr.assigned_to ILIKE ANY(${likePlaceholder}::text[])
+                OR gr.requested_by ILIKE ANY(${likePlaceholder}::text[])
+            )`);
+        }
+    }
 
     const limitOffset = addLimitOffset(params, filters);
     const result = await getPool().query(`

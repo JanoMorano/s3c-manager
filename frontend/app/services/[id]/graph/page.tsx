@@ -5,7 +5,7 @@
 
 import Link from '@/app/components/AppLink';
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ReactFlow,
   Background,
@@ -42,6 +42,7 @@ type GraphNodeCardData = ServiceGraphV2Node & {
   selected?: boolean;
   onSelect?: () => void;
 };
+type ServiceGraphViewMode = 'detail' | 'graph-only' | 'text';
 
 const COLUMN_X: Record<ServiceGraphV2Node['node_kind'], number> = {
   service: 0,
@@ -82,6 +83,41 @@ const NODE_KIND_COLOR: Record<ServiceGraphV2Node['node_kind'], string> = {
   c3_data_object: 'var(--color-warning)',
   c3_service: 'var(--color-domain-relay)',
 };
+
+function normalizeViewMode(value: string | null | undefined): ServiceGraphViewMode {
+  if (value === 'graph-only' || value === 'text' || value === 'detail') return value;
+  return 'detail';
+}
+
+function edgeLabel(edge: ServiceGraphV2Edge & { mapping_type_code?: string | null }) {
+  return (edge.relation_label || edge.mapping_type_code || edge.relation_type || edge.edge_kind).replace(/_/g, ' ');
+}
+
+function buildRootServiceGraph(graphData: ServiceGraphV2Response | undefined) {
+  if (!graphData) return { nodes: [] as ServiceGraphV2Node[], edges: [] as ServiceGraphV2Edge[] };
+
+  const rootNodeId = `svc:${graphData.root_service_id}`;
+  const nodeById = new Map(graphData.nodes.map((node) => [node.id, node]));
+  const visibleIds = new Set<string>(nodeById.has(rootNodeId) ? [rootNodeId] : []);
+  const traversableEdges = graphData.edges.filter((edge) => edge.edge_kind !== 'service_relation');
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const edge of traversableEdges) {
+      if (visibleIds.has(edge.source) && !visibleIds.has(edge.target)) {
+        visibleIds.add(edge.target);
+        changed = true;
+      }
+    }
+  }
+
+  const nodes = graphData.nodes.filter((node) => visibleIds.has(node.id));
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const edges = traversableEdges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
+
+  return { nodes, edges };
+}
 
 function layoutNodes(
   items: ServiceGraphV2Node[],
@@ -219,8 +255,8 @@ function resolveNodeHref(node: ServiceGraphV2Node): string | null {
 export default function GraphPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = useLocale();
-  const [depth, setDepth] = useState(2);
   const [selectedNode, setSelectedNode] = useState<ServiceGraphV2Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<ServiceGraphV2Edge | null>(null);
   const [edgeType, setEdgeType] = useState<GraphEdgeType>('smoothstep');
@@ -228,19 +264,26 @@ export default function GraphPage({ params }: Props) {
   const graphCanvasRef = useRef<HTMLDivElement | null>(null);
   const { data: serviceList } = useServices({ limit: 500, sort: 'service_id', order: 'ASC' });
 
-  const { data, isLoading, error } = useServiceGraph(id, depth, 'v2');
+  const viewMode = normalizeViewMode(searchParams?.get('view'));
+  const canvasOnly = viewMode === 'graph-only';
+  const showTextAlternative = viewMode === 'text';
+  const detailOpen = viewMode === 'detail';
+
+  const { data, isLoading, error } = useServiceGraph(id, 1, 'v2');
   const graphData = data as ServiceGraphV2Response | undefined;
+  const rootGraph = useMemo(() => buildRootServiceGraph(graphData), [graphData]);
+  const graphNodeById = useMemo(() => new Map(rootGraph.nodes.map((node) => [node.id, node])), [rootGraph.nodes]);
 
   const rfNodes = useMemo(
-    () => layoutNodes(graphData?.nodes ?? [], selectedNode?.id ?? null, (node) => {
+    () => layoutNodes(rootGraph.nodes, selectedNode?.id ?? null, (node) => {
       setSelectedNode(node);
       setSelectedEdge(null);
     }, locale),
-    [graphData?.nodes, locale, selectedNode?.id],
+    [locale, rootGraph.nodes, selectedNode?.id],
   );
 
   const rfEdges = useMemo<Edge[]>(() => {
-    return (graphData?.edges ?? []).map((edge) => {
+    return rootGraph.edges.map((edge) => {
       const typedEdge = edge as ServiceGraphV2Edge & { mapping_type_code?: string | null };
       const visual = resolveServiceGraphEdgeVisual(typedEdge);
       const dash = applyLineStyleMode(visual, lineStyleMode).dash
@@ -263,7 +306,7 @@ export default function GraphPage({ params }: Props) {
         data: { raw: edge },
       };
     });
-  }, [edgeType, graphData?.edges, lineStyleMode]);
+  }, [edgeType, lineStyleMode, rootGraph.edges]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -274,15 +317,28 @@ export default function GraphPage({ params }: Props) {
   const nodeCounts = useMemo(() => {
     const counts = new Map<ServiceGraphV2Node['node_kind'], number>();
     NODE_KIND_ORDER.forEach((kind) => counts.set(kind, 0));
-    (graphData?.nodes ?? []).forEach((node) => counts.set(node.node_kind, (counts.get(node.node_kind) ?? 0) + 1));
+    rootGraph.nodes.forEach((node) => counts.set(node.node_kind, (counts.get(node.node_kind) ?? 0) + 1));
     return counts;
-  }, [graphData?.nodes]);
+  }, [rootGraph.nodes]);
 
   const edgeCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    (graphData?.edges ?? []).forEach((edge) => counts.set(edge.edge_kind, (counts.get(edge.edge_kind) ?? 0) + 1));
+    rootGraph.edges.forEach((edge) => counts.set(edge.edge_kind, (counts.get(edge.edge_kind) ?? 0) + 1));
     return counts;
-  }, [graphData?.edges]);
+  }, [rootGraph.edges]);
+
+  const textRelationRows = useMemo(() => rootGraph.edges.map((edge) => ({
+    id: edge.id,
+    source: graphNodeById.get(edge.source),
+    target: graphNodeById.get(edge.target),
+    label: edgeLabel(edge as ServiceGraphV2Edge & { mapping_type_code?: string | null }),
+    kind: edge.edge_kind.replace(/_/g, ' '),
+  })), [graphNodeById, rootGraph.edges]);
+
+  const selectViewMode = useCallback((mode: ServiceGraphViewMode) => {
+    const basePath = `/services/${encodeURIComponent(id)}/graph`;
+    router.push(mode === 'detail' ? basePath : `${basePath}?view=${mode}`, { scroll: false });
+  }, [id, router]);
 
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
     const href = resolveNodeHref(node.data as ServiceGraphV2Node);
@@ -310,30 +366,40 @@ export default function GraphPage({ params }: Props) {
     <GraphWorkspace
       title="Service graph"
       purpose="Vazby služby, offeringů, C3 prvků a readiness kontext v jedné pracovní ploše."
+      canvasOnly={canvasOnly}
+      detailOpen={detailOpen}
+      showWorkspaceActions={false}
       toolbar={(
         <>
-        <FilterGroup label="Hloubka">
-          <div className={shellStyles.meta}>
-            `1` = jen přímé vazby služby.
-          </div>
-          <div className={shellStyles.meta}>
-            `2` = přímé vazby a jejich navazující kontext.
-          </div>
-          <div className={shellStyles.meta}>
-            `3` = nejširší podgraf služby včetně širších závislostí.
-          </div>
-          <div className={shellStyles.typeList}>
-            {[1, 2, 3].map((value) => (
-              <button
-                key={value}
-                className={`${shellStyles.typeBtn} ${depth === value ? shellStyles.typeBtnOn : ''}`}
-                onClick={() => setDepth(value)}
-                type="button"
-              >
-                {value}
-              </button>
-            ))}
-          </div>
+        <FilterGroup label="Pohledy">
+          <Link href="/services/list" className={shellStyles.panelLink}>Seznam Služeb</Link>
+          <button
+            type="button"
+            className={`${shellStyles.viewModeButton} ${viewMode === 'graph-only' ? shellStyles.viewModeButtonActive : ''}`}
+            onClick={() => selectViewMode('graph-only')}
+          >
+            Pouze graf
+          </button>
+          <button
+            type="button"
+            className={`${shellStyles.viewModeButton} ${viewMode === 'text' ? shellStyles.viewModeButtonActive : ''}`}
+            onClick={() => selectViewMode('text')}
+          >
+            Vazby textově
+          </button>
+          <button
+            type="button"
+            className={`${shellStyles.viewModeButton} ${viewMode === 'detail' ? shellStyles.viewModeButtonActive : ''}`}
+            onClick={() => selectViewMode('detail')}
+          >
+            Detail
+          </button>
+        </FilterGroup>
+
+        <FilterGroup label="Souhrn">
+          <div className={shellStyles.meta}>Service: {graphData.root_service_id}</div>
+          <div className={shellStyles.meta}>Bloky: {rootGraph.nodes.length}</div>
+          <div className={shellStyles.meta}>Vazby: {rootGraph.edges.length}</div>
         </FilterGroup>
 
         <FilterGroup label="Uzly">
@@ -411,11 +477,11 @@ export default function GraphPage({ params }: Props) {
         </>
       )}
       canvas={(
-        <main className={shellStyles.main}>
+        <main className={`${shellStyles.main} ${canvasOnly ? shellStyles.mainGraphOnly : ''}`}>
         <div className={shellStyles.header}>
           <div className={shellStyles.title}>Service Graph</div>
           <div className={shellStyles.meta}>
-            {graphData.root_service_id} · {graphData.nodes.length} nodes · {graphData.edges.length} edges
+            {graphData.root_service_id} · {rootGraph.nodes.length} bloků · {rootGraph.edges.length} vazeb
           </div>
           <select
             className={shellStyles.selectInput}
@@ -461,6 +527,34 @@ export default function GraphPage({ params }: Props) {
             </ReactFlow>
           </div>
         </div>
+        {!canvasOnly && showTextAlternative ? (
+          <section
+            className={shellStyles.graphTextAlternative}
+            aria-labelledby="service-detail-graph-text-alt"
+          >
+            <div className={shellStyles.graphTextHeader}>
+              <h2 id="service-detail-graph-text-alt">Textová alternativa vazeb</h2>
+              <div className={shellStyles.graphTextHeaderActions}>
+                <span>{rootGraph.edges.length} vazeb, zobrazeno {Math.min(textRelationRows.length, 200)}</span>
+              </div>
+            </div>
+            {textRelationRows.length > 0 ? (
+              <ul id="service-detail-graph-text-alt-content" className={shellStyles.graphRelationList}>
+                {textRelationRows.slice(0, 200).map((relation) => (
+                  <li key={relation.id}>
+                    <strong>{relation.source?.label ?? relation.source?.code ?? relation.source?.id ?? relation.id}</strong>
+                    <span>{relation.label}</span>
+                    <strong>{relation.target?.label ?? relation.target?.code ?? relation.target?.id ?? 'Neznámý cíl'}</strong>
+                    <small>{relation.kind}</small>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {textRelationRows.length === 0 ? (
+              <p id="service-detail-graph-text-alt-content" className={shellStyles.meta}>Pro tuto službu nejsou evidované žádné vazby grafu.</p>
+            ) : null}
+          </section>
+        ) : null}
       </main>
       )}
       detailPanelContent={(

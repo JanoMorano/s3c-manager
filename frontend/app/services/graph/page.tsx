@@ -7,7 +7,7 @@
 
 import Link from '@/app/components/AppLink';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Background,
   Controls,
@@ -39,11 +39,17 @@ type ServiceGraphNodeData = GraphOverviewNode & Record<string, unknown> & {
   onSelect?: () => void;
 };
 type ServiceGraphEdgeData = GraphOverviewEdge & Record<string, unknown>;
+type ServicesGraphViewMode = 'detail' | 'graph-only' | 'text';
 
 const NODE_WIDTH = 250;
 const COLUMN_GAP = 300;
 const ROW_GAP = 116;
 const MAX_ROWS_PER_COLUMN = 10;
+
+function normalizeViewMode(value: string | null | undefined): ServicesGraphViewMode {
+  if (value === 'graph-only' || value === 'text' || value === 'detail') return value;
+  return 'detail';
+}
 
 function serviceNodeKey(node: GraphOverviewNode) {
   return node.service_id ?? node.id.replace(/^svc:/, '');
@@ -182,12 +188,17 @@ function nodeColor(node: Node) {
 
 export default function ServicesGraphPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = useLocale();
   const { data, isLoading, error } = useGraphOverview({ compact: true, includeC3: false });
   const [selectedNode, setSelectedNode] = useState<GraphOverviewNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphOverviewEdge | null>(null);
   const [edgeType, setEdgeType] = useState<GraphEdgeType>('smoothstep');
   const [lineStyleMode, setLineStyleMode] = useState<GraphLineStyleMode>('auto');
+  const viewMode = normalizeViewMode(searchParams?.get('view'));
+  const canvasOnly = viewMode === 'graph-only';
+  const showTextAlternative = viewMode === 'text';
+  const detailOpen = viewMode === 'detail';
 
   const services = useMemo(() => (data?.nodes ?? []).filter((node) => node.node_kind === 'service'), [data?.nodes]);
   const serviceIds = useMemo(() => new Set(services.map((node) => node.id)), [services]);
@@ -200,6 +211,11 @@ export default function ServicesGraphPage() {
     setSelectedNode(node);
     setSelectedEdge(null);
   }, []);
+
+  const selectViewMode = useCallback((mode: ServicesGraphViewMode) => {
+    const nextUrl = mode === 'detail' ? '/services/graph' : `/services/graph?view=${mode}`;
+    router.push(nextUrl, { scroll: false });
+  }, [router]);
 
   const initialNodes = useMemo(() => layoutNodes(services, selectedNode?.id ?? null, onSelectNode, locale), [locale, onSelectNode, selectedNode?.id, services]);
   const initialEdges = useMemo(() => layoutEdges(relations, edgeType, lineStyleMode), [edgeType, lineStyleMode, relations]);
@@ -257,11 +273,34 @@ export default function ServicesGraphPage() {
     <GraphWorkspace
       title="Service graph"
       purpose="Pohled na vazby mezi službami. Dvojklik na uzel otevře detail služby."
+      canvasOnly={canvasOnly}
+      detailOpen={detailOpen}
+      showWorkspaceActions={false}
       toolbar={(
         <>
           <FilterGroup label="Pohledy">
-            <Link href="/services/list" className={shellStyles.panelLink}>Service list</Link>
-            <Link href="/services/graph" className={shellStyles.panelLink}>Graph view</Link>
+            <Link href="/services/list" className={shellStyles.panelLink}>Seznam Služeb</Link>
+            <button
+              type="button"
+              className={`${shellStyles.viewModeButton} ${viewMode === 'graph-only' ? shellStyles.viewModeButtonActive : ''}`}
+              onClick={() => selectViewMode('graph-only')}
+            >
+              Pouze graf
+            </button>
+            <button
+              type="button"
+              className={`${shellStyles.viewModeButton} ${viewMode === 'text' ? shellStyles.viewModeButtonActive : ''}`}
+              onClick={() => selectViewMode('text')}
+            >
+              Vazby textově
+            </button>
+            <button
+              type="button"
+              className={`${shellStyles.viewModeButton} ${viewMode === 'detail' ? shellStyles.viewModeButtonActive : ''}`}
+              onClick={() => selectViewMode('detail')}
+            >
+              Detail
+            </button>
           </FilterGroup>
 
           <FilterGroup label="Souhrn">
@@ -317,12 +356,11 @@ export default function ServicesGraphPage() {
         </>
       )}
       canvas={(
-        <main className={shellStyles.main}>
+        <main className={`${shellStyles.main} ${canvasOnly ? shellStyles.mainGraphOnly : ''}`}>
           <div className={shellStyles.header}>
             <div className={shellStyles.title}>Services Graph</div>
             <div className={shellStyles.meta}>{services.length} services · {relations.length} relationships</div>
             {performanceMode && <div className={shellStyles.performanceBadge}>Large graph mode</div>}
-            <Link href="/services/list" className={shellStyles.panelLink}>List view</Link>
           </div>
           <div className={shellStyles.canvasWrap}>
             <div className={shellStyles.canvas} role="region" aria-label="Interactive service relationship graph">
@@ -346,13 +384,19 @@ export default function ServicesGraphPage() {
               </ReactFlow>
             </div>
           </div>
-          <section className={shellStyles.graphTextAlternative} aria-labelledby="service-graph-text-alt">
+          {!canvasOnly && showTextAlternative ? (
+          <section
+            className={shellStyles.graphTextAlternative}
+            aria-labelledby="service-graph-text-alt"
+          >
             <div className={shellStyles.graphTextHeader}>
               <h2 id="service-graph-text-alt">Textová alternativa vazeb</h2>
-              <span>{relations.length} vazeb, zobrazeno {Math.min(textRelationRows.length, 200)}</span>
+              <div className={shellStyles.graphTextHeaderActions}>
+                <span>{relations.length} vazeb, zobrazeno {Math.min(textRelationRows.length, 200)}</span>
+              </div>
             </div>
             {textRelationRows.length > 0 ? (
-              <ul className={shellStyles.graphRelationList}>
+              <ul id="service-graph-text-alt-content" className={shellStyles.graphRelationList}>
                 {textRelationRows.slice(0, 200).map((relation) => (
                   <li key={relation.id}>
                     <strong>{relation.source?.title ?? relation.source?.service_id ?? relation.id}</strong>
@@ -364,10 +408,12 @@ export default function ServicesGraphPage() {
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className={shellStyles.meta}>Žádné service-to-service vazby nejsou evidované.</p>
-            )}
+            ) : null}
+            {textRelationRows.length === 0 ? (
+              <p id="service-graph-text-alt-content" className={shellStyles.meta}>Žádné service-to-service vazby nejsou evidované.</p>
+            ) : null}
           </section>
+          ) : null}
         </main>
       )}
       detailPanelContent={(

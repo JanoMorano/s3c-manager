@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from '@/app/components/AppLink';
+import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/app/components/PageHeader';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
@@ -135,13 +136,6 @@ type RuleDetail = ReadinessRuleResult & {
   what_is_missing?: string | null;
 };
 
-const FILTERS: Array<{ id: ReadinessFilter; label: string }> = [
-  { id: 'blocked', label: 'Blocked' },
-  { id: 'warnings', label: 'Warnings' },
-  { id: 'ready', label: 'Ready' },
-  { id: 'exceptions', label: 'Exceptions' },
-];
-
 function exceptionItems(items: ServiceReadiness[]) {
   return items.filter((item) => (item.rules ?? []).some((rule) => rule.status === 'exception' || rule.exception));
 }
@@ -192,16 +186,28 @@ function defaultFilter(data: NonNullable<ReturnType<typeof useReadinessSummary>[
   return 'blocked';
 }
 
+function resolveReadinessFilter(value: string | null | undefined): ReadinessFilter | null {
+  return value === 'blocked' || value === 'warnings' || value === 'ready' || value === 'exceptions' ? value : null;
+}
+
+function readinessFilterHref(filter: ReadinessFilter, ownerFilter: string) {
+  const params = new URLSearchParams({ filter });
+  if (ownerFilter) params.set('owner', ownerFilter);
+  return `/operations/readiness?${params.toString()}`;
+}
+
 export default function ReadinessQueuePage() {
-  const { data, isLoading, error, mutate } = useReadinessSummary({ limit: 200 });
-  const [activeFilter, setActiveFilter] = useState<ReadinessFilter | null>(null);
+  const searchParams = useSearchParams();
+  const ownerFilter = searchParams?.get('owner') ?? '';
+  const requestedFilter = resolveReadinessFilter(searchParams?.get('filter'));
+  const { data, isLoading, error, mutate } = useReadinessSummary({ limit: 200, owner: ownerFilter || undefined });
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   if (isLoading) return <div className={styles.state}>Loading readiness data…</div>;
   if (error || !data) return <div className={styles.stateError}>Readiness queue is not available. ({String(error ?? 'no data')})</div>;
 
   // Resolve the active filter — set once when data first arrives, then user-controlled.
-  const resolvedFilter: ReadinessFilter = activeFilter ?? defaultFilter(data);
+  const resolvedFilter: ReadinessFilter = requestedFilter ?? defaultFilter(data);
 
   const filteredItems = visibleItems(resolvedFilter, data);
   const selectedItem = filteredItems.find((item) => item.service_id === selectedServiceId) ?? filteredItems[0] ?? null;
@@ -220,42 +226,28 @@ export default function ReadinessQueuePage() {
           { label: `${data.counts.blockers} blocked`, tone: data.counts.blockers ? 'bad' : 'ok' },
           { label: `${data.counts.ready} ready`, tone: 'ok' },
           { label: `${exceptionCount} exceptions`, tone: exceptionCount ? 'warn' : 'neutral' },
+          ...(ownerFilter ? [{ label: `Owner ${ownerFilter}`, tone: 'info' as const }] : []),
         ]}
-        primaryAction={{ label: 'Service list', href: '/services/list' }}
+        primaryAction={{
+          label: 'Service list',
+          href: ownerFilter ? `/services/list?owner=${encodeURIComponent(ownerFilter)}` : '/services/list',
+        }}
       />
 
       <section className={govStyles.readinessKpiGrid} aria-label="Readiness KPIs">
-        <KpiCard label="Blocked" value={data.counts.blockers} hint="blokuje publish bez opravy nebo výjimky" tone={data.counts.blockers ? 'danger' : 'success'} />
-        <KpiCard label="Warnings" value={data.counts.warnings} hint="neblokuje draft, ale vyžaduje pozornost" tone={data.counts.warnings ? 'warning' : 'success'} />
-        <KpiCard label="Ready" value={data.counts.ready} hint="služby bez blockerů a warningů" tone="success" />
-        <KpiCard label="Exceptions expiring" value={expiringCount} hint="výjimky s koncem do 30 dnů" tone={expiringCount ? 'warning' : 'neutral'} />
+        <Link href={readinessFilterHref('blocked', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'blocked' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit blokované služby" onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label="Blocked" value={data.counts.blockers} hint="blokuje publish bez opravy nebo výjimky" tone={data.counts.blockers ? 'danger' : 'success'} />
+        </Link>
+        <Link href={readinessFilterHref('warnings', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'warnings' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit služby s varováním" onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label="Warnings" value={data.counts.warnings} hint="neblokuje draft, ale vyžaduje pozornost" tone={data.counts.warnings ? 'warning' : 'success'} />
+        </Link>
+        <Link href={readinessFilterHref('ready', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'ready' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit připravené služby" onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label="Ready" value={data.counts.ready} hint="služby bez blockerů a warningů" tone="success" />
+        </Link>
+        <Link href={readinessFilterHref('exceptions', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'exceptions' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit služby s výjimkami" onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label="Exceptions expiring" value={expiringCount} hint="výjimky s koncem do 30 dnů" tone={expiringCount ? 'warning' : 'neutral'} />
+        </Link>
       </section>
-
-      <div className={govStyles.readinessTabs} role="tablist" aria-label="Readiness queues">
-        {FILTERS.map((filter) => {
-          const count = filter.id === 'blocked'
-            ? data.counts.blockers
-            : filter.id === 'warnings'
-              ? data.counts.warnings
-              : filter.id === 'ready'
-                ? data.counts.ready
-                : exceptionCount;
-          return (
-            <button
-              key={filter.id}
-              type="button"
-              className={filter.id === resolvedFilter ? govStyles.readinessTabActive : ''}
-              onClick={() => {
-                setActiveFilter(filter.id as ReadinessFilter);
-                setSelectedServiceId(null);
-              }}
-            >
-              <span>{filter.label}</span>
-              <strong>{count}</strong>
-            </button>
-          );
-        })}
-      </div>
 
       <section className={govStyles.readinessWorkspace} aria-label="Readiness gate workspace">
         <div className={govStyles.readinessTable}>

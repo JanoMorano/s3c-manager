@@ -49,7 +49,7 @@ Then smoke these routes in the browser:
 - Review workflow remains separate from service lifecycle.
 - Decision types use `publish`, `exception`, `lifecycle`, and `other`.
 - Legacy variant evidence remains historical/read-only evidence; new variants use service offerings.
-- Service request and notification APIs are physically removed in v1.2 final sunset cleanup.
+- Service request and notification APIs are physically removed in the v1.2.1 final surface.
 - Removed endpoint replacements are listed in `docs/api-deprecations.md`.
 - Old manual compatibility links are removed; use `/help`, `/help-cs`, or `/help-en`.
 - `/admin/*` and other legacy frontend aliases are removed from the Next.js redirect table.

@@ -35,6 +35,8 @@ const DEFAULT_SUMMARY_LINKS = {
   import_data_quality: '/import',
 };
 
+const OPEN_REVIEW_STATUS_FILTER = 'pending,in_review,deferred';
+
 type ReadinessItem = ReadinessSummaryResponse['items'][number];
 type MissingOwnerItem = Pick<CompletenessItem, 'service_id' | 'title' | 'service_status' | 'updated_at'>;
 
@@ -384,24 +386,30 @@ export default function OperationsPage() {
       </section>
 
       <section className={styles.kpiThree} aria-label="Operations queue KPIs">
-        <KpiCard
-          label="Readiness blockers"
-          value={readinessBlockerCount}
-          tone={readinessBlockerCount ? 'danger' : 'success'}
-          hint="blocks publish until fixed or excepted"
-        />
-        <KpiCard
-          label="Overdue reviews"
-          value={overdueReviewCount || summary?.overdue_reviews || 0}
-          tone={(overdueReviewCount || summary?.overdue_reviews || 0) ? 'danger' : 'success'}
-          hint="needs owner or governance action"
-        />
-        <KpiCard
-          label="Data quality fixes"
-          value={dataQualityCount}
-          tone={dataQualityCount ? 'warning' : 'success'}
-          hint="metadata, owners, import evidence"
-        />
+        <Link href="/operations/readiness?filter=blocked" className={styles.kpiLink} aria-label="Otevřít připravenost blokery">
+          <KpiCard
+            label="Readiness blockers"
+            value={readinessBlockerCount}
+            tone={readinessBlockerCount ? 'danger' : 'success'}
+            hint="blocks publish until fixed or excepted"
+          />
+        </Link>
+        <Link href={`/operations/reviews?overdue=1&status=${encodeURIComponent(OPEN_REVIEW_STATUS_FILTER)}`} className={styles.kpiLink} aria-label="Otevřít revize po termínu">
+          <KpiCard
+            label="Overdue reviews"
+            value={overdueReviewCount || summary?.overdue_reviews || 0}
+            tone={(overdueReviewCount || summary?.overdue_reviews || 0) ? 'danger' : 'success'}
+            hint="needs owner or governance action"
+          />
+        </Link>
+        <Link href="/operations#data-quality" className={styles.kpiLink} aria-label="Otevřít opravy kvality dat">
+          <KpiCard
+            label="Data quality fixes"
+            value={dataQualityCount}
+            tone={dataQualityCount ? 'warning' : 'success'}
+            hint="metadata, owners, import evidence"
+          />
+        </Link>
       </section>
 
       <section className={govStyles.governanceSection} aria-label="Operations action queue">

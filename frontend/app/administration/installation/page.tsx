@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../../admin/admin.module.css';
 import Link from '@/app/components/AppLink';
+import { useI18n } from '../../i18n/useI18n';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,6 +87,7 @@ function ModuleBadge({ enabled }: { enabled: boolean }) {
 // ---------------------------------------------------------------------------
 
 export default function InstallationPage() {
+  const { t } = useI18n();
   const [summary, setSummary] = useState<InstallSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export default function InstallationPage() {
 
   async function handleSeedDemo(action: 'seed' | 'remove') {
     if (action === 'remove') {
-      if (!confirm('Opravdu chcete smazat testovací data? Toto označí demo služby jako smazané.')) return;
+      if (!confirm(t('install.page.demo_remove_confirm'))) return;
     }
     setSeeding(true);
     setSeedResult(null);
@@ -306,8 +308,7 @@ export default function InstallationPage() {
             Testovací data
           </h2>
           <p style={{ font: 'var(--text-body-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-            Obnoví nebo odstraní 3 demo služby (DEMO-PIS-001, DEMO-IAM-002, DEMO-DAP-003) včetně ceníků, SLA, rolí a C3 vazeb.
-            Operace je idempotentní — lze spustit opakovaně bez rizika duplikátů.
+            {t('install.page.demo_data_management_description')}
           </p>
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
             <button

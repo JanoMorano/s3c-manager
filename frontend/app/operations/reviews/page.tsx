@@ -17,6 +17,9 @@ import govStyles from '../governance.module.css';
 type ReviewView = 'board' | 'list';
 type ReviewActionStatus = 'in_review' | 'approved' | 'rejected' | 'deferred' | 'cancelled';
 
+const OPEN_REVIEW_STATUS_FILTER = 'pending,in_review,deferred';
+const OPEN_REVIEW_STATUSES = new Set(['pending', 'in_review', 'deferred']);
+
 interface ReviewActionState {
   item: GovernanceReview;
   status: ReviewActionStatus;
@@ -44,6 +47,15 @@ function formatDate(value: string | null | undefined) {
 
 function isTerminalStatus(status: ReviewActionStatus) {
   return ['approved', 'rejected', 'deferred', 'cancelled'].includes(status);
+}
+
+function isTruthyFlag(value: string | null | undefined) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
+}
+
+function reviewFilterHref(params: Record<string, string>) {
+  const query = new URLSearchParams(params);
+  return `/operations/reviews?${query.toString()}`;
 }
 
 async function patchReview(id: number, body: Record<string, unknown>) {
@@ -112,7 +124,18 @@ function ReviewCard({ item, onAction }: { item: GovernanceReview; onAction: (sta
 export default function GovernanceReviewsPage() {
   const searchParams = useSearchParams();
   const serviceFilter = searchParams?.get('service_id') ?? '';
-  const { data, isLoading, error, mutate } = useGovernanceReviews({ limit: 200, serviceId: serviceFilter || undefined });
+  const assignedToFilter = searchParams?.get('assigned_to') ?? '';
+  const statusFilter = searchParams?.get('status') ?? '';
+  const mineFilter = isTruthyFlag(searchParams?.get('mine'));
+  const overdueFilter = isTruthyFlag(searchParams?.get('overdue'));
+  const { data, isLoading, error, mutate } = useGovernanceReviews({
+    limit: 200,
+    serviceId: serviceFilter || undefined,
+    assignedTo: assignedToFilter || undefined,
+    status: statusFilter || undefined,
+    mine: mineFilter || undefined,
+    overdue: overdueFilter || undefined,
+  });
   const [view, setView] = useState<ReviewView>('board');
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestDraft, setRequestDraft] = useState({ service_id: '', review_type: 'publish', assigned_to: '', due_at: '' });
@@ -135,9 +158,16 @@ export default function GovernanceReviewsPage() {
   );
 
   const reviews = useMemo(() => data?.items ?? [], [data?.items]);
+  const openReviewCount = reviews.filter((item) => OPEN_REVIEW_STATUSES.has(item.status)).length;
   const overdue = reviews.filter((item) => item.overdue).length;
   const inReview = reviews.filter((item) => item.status === 'in_review').length;
   const closed = reviews.filter((item) => ['approved', 'rejected', 'cancelled'].includes(item.status)).length;
+  const openReviewsHref = reviewFilterHref({ status: OPEN_REVIEW_STATUS_FILTER });
+  const inReviewHref = reviewFilterHref({ status: 'in_review' });
+  const overdueHref = reviewFilterHref({ status: OPEN_REVIEW_STATUS_FILTER, overdue: '1' });
+  const openReviewsActive = !overdueFilter && statusFilter === OPEN_REVIEW_STATUS_FILTER;
+  const inReviewActive = !overdueFilter && statusFilter === 'in_review';
+  const overdueActive = overdueFilter;
 
   const byColumn = useMemo(() => {
     return BOARD_COLUMNS.map((column) => ({
@@ -204,18 +234,40 @@ export default function GovernanceReviewsPage() {
         title="Governance Reviews"
         purpose="Review board pro publikaci, změny a výjimky. Stav se mění pouze přes akční modal s odůvodněním a náhledem zápisu do decision logu."
         chips={[
-          { label: `${reviews.length} open`, tone: 'info' },
+          { label: `${openReviewCount} open`, tone: 'info' },
           { label: `${overdue} overdue`, tone: overdue > 0 ? 'bad' : 'ok' },
           { label: `${closed} closed`, tone: 'neutral' },
+          ...(mineFilter ? [{ label: 'My reviews', tone: 'info' as const }] : []),
+          ...(overdueFilter ? [{ label: 'Overdue only', tone: 'bad' as const }] : []),
           ...(serviceFilter ? [{ label: `Service ${serviceFilter}`, tone: 'info' as const }] : []),
+          ...(assignedToFilter ? [{ label: `Assigned ${assignedToFilter}`, tone: 'info' as const }] : []),
+          ...(statusFilter ? [{ label: `Status ${statusFilter}`, tone: 'neutral' as const }] : []),
         ]}
         primaryAction={{ label: 'Decision log', href: '/operations/decisions' }}
       />
 
       <section className={styles.kpiThree} aria-label="Governance review KPIs">
-        <KpiCard label="Open reviews" value={reviews.length} hint="Items in review queue" />
-        <KpiCard label="In review" value={inReview} hint="Active workflow" />
-        <KpiCard label="Overdue" value={overdue} hint="Needs attention" tone={overdue > 0 ? 'danger' : 'success'} />
+        <Link
+          href={openReviewsHref}
+          className={`${styles.kpiLink} ${openReviewsActive ? govStyles.kpiLinkActive : ''}`}
+          aria-label="Filtrovat otevřené revize"
+        >
+          <KpiCard label="Open reviews" value={openReviewCount} hint="Items in review queue" />
+        </Link>
+        <Link
+          href={inReviewHref}
+          className={`${styles.kpiLink} ${inReviewActive ? govStyles.kpiLinkActive : ''}`}
+          aria-label="Filtrovat revize v revizi"
+        >
+          <KpiCard label="In review" value={inReview} hint="Active workflow" />
+        </Link>
+        <Link
+          href={overdueHref}
+          className={`${styles.kpiLink} ${overdueActive ? govStyles.kpiLinkActive : ''}`}
+          aria-label="Filtrovat revize po termínu"
+        >
+          <KpiCard label="Overdue" value={overdue} hint="Needs attention" tone={overdue > 0 ? 'danger' : 'success'} />
+        </Link>
       </section>
 
       <section className={govStyles.reviewToolbar} aria-label="Review controls">

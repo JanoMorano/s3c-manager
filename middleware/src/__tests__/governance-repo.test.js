@@ -92,6 +92,51 @@ describe('governance repo', () => {
         expect(query.mock.calls[1][1]).toEqual([25, 0]);
     });
 
+    test('filters my reviews by assigned reviewer or requester identity', async () => {
+        const query = jest.fn().mockResolvedValueOnce({
+            rows: [{ id: 11, service_id: 'SVC-IAM', status: 'pending' }],
+        });
+        const { getPool } = require('../db/pool');
+        getPool.mockReturnValue({ query });
+
+        const repo = require('../db/governance.repo');
+        await repo.listReviews({
+            mine: true,
+            mineIdentities: ['admin@example.com', 'Admin User'],
+            status: ['pending', 'in_review'],
+            limit: 25,
+            offset: 0,
+        });
+
+        expect(query.mock.calls[0][0]).toContain('LOWER(COALESCE(gr.assigned_to');
+        expect(query.mock.calls[0][0]).toContain('LOWER(COALESCE(gr.requested_by');
+        expect(query.mock.calls[0][0]).toContain('gr.assigned_to ILIKE ANY');
+        expect(query.mock.calls[0][0]).toContain('gr.requested_by ILIKE ANY');
+        expect(query.mock.calls[0][1]).toEqual([
+            ['pending', 'in_review'],
+            ['admin@example.com', 'admin user'],
+            ['%admin@example.com%', '%Admin User%'],
+            25,
+            0,
+        ]);
+    });
+
+    test('filters overdue governance reviews', async () => {
+        const query = jest.fn().mockResolvedValueOnce({
+            rows: [{ id: 11, service_id: 'SVC-IAM', status: 'pending', overdue: true }],
+        });
+        const { getPool } = require('../db/pool');
+        getPool.mockReturnValue({ query });
+
+        const repo = require('../db/governance.repo');
+        await repo.listReviews({ overdue: true, limit: 25, offset: 0 });
+
+        expect(query.mock.calls[0][0]).toContain('gr.due_at IS NOT NULL');
+        expect(query.mock.calls[0][0]).toContain('gr.completed_at IS NULL');
+        expect(query.mock.calls[0][0]).toContain('gr.due_at < CURRENT_TIMESTAMP');
+        expect(query.mock.calls[0][1]).toEqual([25, 0]);
+    });
+
     test('creates governance decisions for a resolved service', async () => {
         const query = jest.fn()
             .mockResolvedValueOnce({ rows: [{ id: 7 }] })

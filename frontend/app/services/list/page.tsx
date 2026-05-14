@@ -31,6 +31,7 @@ type QuickFilter = {
   isActive: (state: QuickFilterState) => boolean;
 };
 const READINESS_OPTIONS = [
+  { value: 'attention', label: 'Needs attention (<80%)' },
   { value: 'blocked', label: 'Blocked (<50%)' },
   { value: 'warning', label: 'Warning (50-79%)' },
   { value: 'ready', label: 'Ready (80%+)' },
@@ -120,6 +121,8 @@ function CatalogueInner() {
   )), [lifecycleParam]);
   const readiness  = getSearchParam('readiness') ?? '';
   const reviewDue  = getSearchParam('review_due') ?? '';
+  const requestableParam = getSearchParam('requestable') ?? '';
+  const requestable = requestableParam === 'true' ? true : requestableParam === 'false' ? false : undefined;
   const sort      = (getSearchParam('sort')    ?? 'service_id') as SortField;
   const order     = (getSearchParam('order')   ?? 'ASC') as SortOrder;
   const page      = Math.max(1, Number(getSearchParam('page') ?? '1') || 1);
@@ -162,15 +165,16 @@ function CatalogueInner() {
     lifecycle:   lifecycles.length ? lifecycles.join(',') : undefined,
     readiness:   readiness || undefined,
     reviewDue:   reviewDue || undefined,
+    requestable,
     page,
     limit,
     sort,
     order,
-  }), [domains, lifecycles, limit, order, owner, page, portfolio, readiness, reviewDue, search, sort]);
+  }), [domains, lifecycles, limit, order, owner, page, portfolio, readiness, requestable, reviewDue, search, sort]);
 
   const { data, isLoading, error } = useServices(params);
   const { data: qualityData } = useCatalogQualitySummary();
-  const hasFilters = !!(domains.length || owner || portfolio || search || lifecycles.length || readiness || reviewDue);
+  const hasFilters = !!(domains.length || owner || portfolio || search || lifecycles.length || readiness || reviewDue || requestableParam);
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / limit));
   const [role, setRole] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -248,10 +252,10 @@ function CatalogueInner() {
           <input
             className={styles.searchInput}
             type="search"
-            placeholder="Exact service owner"
+            placeholder="Owner or active role"
             value={owner}
             onChange={e => pushParams({ owner: e.target.value || undefined, page: undefined })}
-            aria-label="Filter by owner"
+            aria-label="Filter by owner or active role"
           />
         </FilterGroup>
 

@@ -7,6 +7,10 @@
 .card { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; }
 .card small { color: var(--color-text-muted); font: var(--text-label-sm); }
 .kpiGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+.kpiLink { min-width: 0; color: inherit; text-decoration: none; border-radius: var(--radius-lg); }
+.kpiLink:hover :global(article) { border-color: var(--color-border-strong); box-shadow: var(--shadow-medium); transform: translateY(-1px); }
+.kpiLink:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-info) 65%, transparent); outline-offset: 3px; }
+.kpiLink :global(article) { height: 100%; transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
 .layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-4); }
 .panel { padding: var(--space-4); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-bg-surface); }
 .governanceEmbedded { display: grid; gap: var(--space-4); }
@@ -101,6 +105,9 @@
 .studioLead { max-width: 78ch; margin: var(--space-3) 0 0; color: var(--color-text-secondary); font: var(--text-body-md); line-height: 1.6; }
 .studioMetricGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-5); }
 .studioMetric { display: grid; gap: 2px; min-height: 92px; padding: var(--space-3); border: 1px solid var(--color-border-default); border-left-width: 3px; border-radius: var(--radius-sm); background: var(--color-bg-canvas); }
+.studioMetricLink { color: inherit; text-decoration: none; transition: background .12s ease, border-color .12s ease, box-shadow .12s ease, transform .12s ease; }
+.studioMetricLink:hover { border-color: var(--color-border-strong); background: var(--color-bg-subtle); box-shadow: var(--shadow-low); transform: translateY(-1px); }
+.studioMetricLink:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-info) 65%, transparent); outline-offset: 3px; }
 .studioMetric strong { color: var(--color-text-primary); font: var(--text-title-md); font-variant-numeric: tabular-nums; }
 .studioMetric span { color: var(--color-text-muted); font: var(--text-label-sm); letter-spacing: .06em; text-transform: uppercase; }
 .studioMetric small { color: var(--color-text-secondary); font: var(--text-body-sm); overflow-wrap: anywhere; }

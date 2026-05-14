@@ -300,7 +300,7 @@ describe('install route security', () => {
             });
 
         expect(response.status).toBe(422);
-        expect(response.body.error).toMatch(/admin účet/i);
+        expect(response.body.error).toMatch(/administrátorský účet/i);
         expect(installSvc.executeInstall).not.toHaveBeenCalled();
     });
 
@@ -420,7 +420,7 @@ describe('install route security', () => {
             .send({});
 
         expect(response.status).toBe(401);
-        expect(response.body.error).toBe('The setup token is missing or invalid.');
+        expect(response.body.error).toBe('The setup token is missing or invalid. Set INSTALL_SETUP_TOKEN and enter the same value in the installer.');
     });
 
     test('POST /modules accepts a valid install setup token before READY', async () => {

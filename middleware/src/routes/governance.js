@@ -27,6 +27,16 @@ function actorFrom(req) {
     return req.user?.email || req.user?.username || req.user?.display_name || 'unknown';
 }
 
+function truthyFlag(value) {
+    return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
+}
+
+function identityFilters(req) {
+    return [req.user?.email, req.user?.username, req.user?.display_name]
+        .map((value) => String(value ?? '').trim())
+        .filter(Boolean);
+}
+
 const REVIEW_STATUSES = new Set(['pending', 'in_review', 'approved', 'rejected', 'deferred', 'cancelled']);
 const DECISIONS = new Set(['approved', 'rejected', 'deferred', 'cancelled']);
 const DECISION_TYPES = new Set(['publish', 'exception', 'lifecycle', 'other']);
@@ -52,10 +62,14 @@ function terminalCompletedAt(status, explicitValue) {
 }
 
 function workflowFilters(req) {
+    const mine = truthyFlag(req.query.mine);
     return {
         ...paging(req),
         serviceId: parseTextFilter(req.query.service_id || req.query.serviceId, { maxLength: 80 }),
         assignedTo: parseTextFilter(req.query.assigned_to || req.query.assignedTo, { maxLength: 255 }),
+        mine,
+        mineIdentities: mine ? identityFilters(req) : [],
+        overdue: truthyFlag(req.query.overdue),
         status: parseCsvFilter(req.query.status, { allowed: [...REVIEW_STATUSES] }),
         decision: parseCsvFilter(req.query.decision, { allowed: [...DECISIONS] }),
         decisionType: parseTextFilter(req.query.decision_type || req.query.decisionType, { maxLength: 80 }),

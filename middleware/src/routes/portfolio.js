@@ -78,6 +78,22 @@ router.get('/', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+router.get('/services', async (req, res, next) => {
+    try {
+        const result = await repo.listServices({
+            filter: req.query.filter,
+        });
+        res.json(result);
+    } catch (err) { next(err); }
+});
+
+router.get('/capabilities', async (req, res, next) => {
+    try {
+        const items = await repo.listCapabilities();
+        res.json({ items, count: items.length });
+    } catch (err) { next(err); }
+});
+
 router.get('/:code', async (req, res, next) => {
     try {
         const item = await repo.getByCode(req.params.code);

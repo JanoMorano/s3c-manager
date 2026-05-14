@@ -18,7 +18,7 @@ There are no locale prefixes in application URLs. Demo data seeding follows the
 resolved locale of the triggering request or the system locale when seeded from
 CLI automation.
 
-The historical `sk` and `de` catalogs were removed before the v1.2 handover.
+The historical `sk` and `de` catalogs were removed before the v1.2.1 handover.
 Do not reintroduce them without a separate product decision and i18n plan.
 
 ## Backup

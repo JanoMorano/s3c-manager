@@ -11,6 +11,13 @@ export interface GraphWorkspaceProps {
   detail?: ReactNode;
   detailPanelContent?: ReactNode;
   onDetailPanelClose?: () => void;
+  detailOpen?: boolean;
+  onDetailOpenChange?: (open: boolean) => void;
+  canvasOnly?: boolean;
+  canvasOnlyLabel?: string;
+  restoreWorkspaceLabel?: string;
+  onCanvasOnlyChange?: (canvasOnly: boolean) => void;
+  showWorkspaceActions?: boolean;
 }
 
 export default function GraphWorkspace({
@@ -21,17 +28,31 @@ export default function GraphWorkspace({
   detail,
   detailPanelContent,
   onDetailPanelClose,
+  detailOpen: controlledDetailOpen,
+  onDetailOpenChange,
+  canvasOnly = false,
+  canvasOnlyLabel = 'Jen graf',
+  restoreWorkspaceLabel = 'Zobrazit panely',
+  onCanvasOnlyChange,
+  showWorkspaceActions = true,
 }: GraphWorkspaceProps) {
   const detailContent = detailPanelContent ?? detail;
-  const [detailOpen, setDetailOpen] = useState(true);
+  const [internalDetailOpen, setInternalDetailOpen] = useState(true);
+  const detailOpen = controlledDetailOpen ?? internalDetailOpen;
+  const canUseCanvasOnly = Boolean(onCanvasOnlyChange);
 
-  function collapseDetail() {
-    setDetailOpen(false);
-    onDetailPanelClose?.();
+  function updateDetailOpen(open: boolean) {
+    if (controlledDetailOpen == null) setInternalDetailOpen(open);
+    onDetailOpenChange?.(open);
+    if (!open) onDetailPanelClose?.();
   }
 
   return (
-    <section className={`${styles.workspace} ${detailOpen ? '' : styles.workspaceDetailClosed}`} aria-label={title}>
+    <section
+      className={`${styles.workspace} ${detailOpen ? '' : styles.workspaceDetailClosed} ${canvasOnly ? styles.workspaceCanvasOnly : ''}`}
+      aria-label={title}
+    >
+      {!canvasOnly && (
       <aside className={styles.toolbar}>
         {(title || purpose) && (
           <div className={styles.toolbarHeader}>
@@ -39,31 +60,53 @@ export default function GraphWorkspace({
               {title ? <strong>{title}</strong> : null}
               {purpose ? <span>{purpose}</span> : null}
             </div>
-            <button
-              type="button"
-              className={styles.detailToggle}
-              aria-expanded={detailOpen}
-              onClick={() => setDetailOpen((open) => !open)}
-            >
-              Detail
-            </button>
+            <div className={styles.toolbarActions}>
+              {showWorkspaceActions && canUseCanvasOnly ? (
+                <button
+                  type="button"
+                  className={styles.detailToggle}
+                  aria-pressed={canvasOnly}
+                  onClick={() => onCanvasOnlyChange?.(true)}
+                >
+                  {canvasOnlyLabel}
+                </button>
+              ) : null}
+              {showWorkspaceActions ? (
+                <button
+                  type="button"
+                  className={styles.detailToggle}
+                  aria-expanded={detailOpen}
+                  onClick={() => updateDetailOpen(!detailOpen)}
+                >
+                  Detail
+                </button>
+              ) : null}
+            </div>
           </div>
         )}
         {toolbar}
       </aside>
+      )}
       <div className={styles.canvas}>
-        {!detailOpen && (
-          <button type="button" className={styles.floatingDetailToggle} onClick={() => setDetailOpen(true)}>
+        {showWorkspaceActions && canvasOnly ? (
+          <button type="button" className={styles.floatingDetailToggle} onClick={() => onCanvasOnlyChange?.(false)}>
+            {restoreWorkspaceLabel}
+          </button>
+        ) : null}
+        {showWorkspaceActions && !canvasOnly && !detailOpen && (
+          <button type="button" className={styles.floatingDetailToggle} onClick={() => updateDetailOpen(true)}>
             Detail panel
           </button>
         )}
         {canvas}
       </div>
-      {detailOpen && (
+      {!canvasOnly && detailOpen && (
         <aside className={styles.detail}>
-          <button type="button" className={styles.closeButton} onClick={collapseDetail}>
-            Collapse
-          </button>
+          {showWorkspaceActions ? (
+            <button type="button" className={styles.closeButton} onClick={() => updateDetailOpen(false)}>
+              Collapse
+            </button>
+          ) : null}
           {detailContent}
         </aside>
       )}

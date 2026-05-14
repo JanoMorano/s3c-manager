@@ -196,11 +196,16 @@ export interface ServiceOverviewResponse {
 export interface ServicePortfolio {
   id: number;
   portfolio_code: string;
+  portfolio_uuid?: string | null;
   title: string;
   description: string | null;
   status_code: string;
   owner_group_id: number | null;
   owner_group_name: string | null;
+  portfolio_level?: number | null;
+  spiral_code?: string | null;
+  capability_count?: number | null;
+  source_kind?: string | null;
   service_count: number;
   draft_service_count: number;
   active_service_count: number;
@@ -208,13 +213,105 @@ export interface ServicePortfolio {
   retired_service_count: number;
   requestable_service_count: number;
   overdue_review_count: number;
+  due_soon_review_count?: number;
+  missing_owner_count?: number;
+  readiness_blocker_count?: number;
+  capability_gap_count?: number;
+  active_governance_review_count?: number;
+  last_decision_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  services?: ServicePortfolioService[];
+  capabilities?: ServicePortfolioCapability[];
 }
 
 export interface PortfolioListResponse {
   items: ServicePortfolio[];
   count: number;
+}
+
+export interface PortfolioServiceScopeTotals {
+  service_count: number;
+  active_service_count: number;
+  planned_service_count?: number;
+  retiring_service_count?: number;
+  requestable_service_count: number;
+  overdue_review_count: number;
+  due_soon_review_count?: number;
+  missing_owner_count?: number;
+  readiness_blocker_count?: number;
+  active_governance_review_count?: number;
+}
+
+export interface PortfolioServiceScopeResponse {
+  items: ServicePortfolioService[];
+  count: number;
+  totals: PortfolioServiceScopeTotals;
+  filter: string;
+}
+
+export interface PortfolioCapabilityListResponse {
+  items: ServicePortfolioLevel3Capability[];
+  count: number;
+}
+
+export interface PortfolioDetailResponse {
+  item: ServicePortfolio;
+}
+
+export interface ServicePortfolioService {
+  id: number;
+  service_id: string;
+  title: string;
+  service_type: string | null;
+  service_status: string | null;
+  lifecycle_stage_code: string | null;
+  criticality_code: string | null;
+  completeness_score?: number | null;
+  review_due_at: string | null;
+  requestable: boolean | null;
+  c3_mapping_count?: number | null;
+  primary_capability_title?: string | null;
+  primary_capability_code?: string | null;
+  service_owner?: string | null;
+  manager?: string | null;
+  vlastnik?: string | null;
+  owner_missing?: boolean | null;
+  readiness_blocked?: boolean | null;
+  review_due_soon?: boolean | null;
+  active_review_count?: number | null;
+  last_decision?: string | null;
+  last_decision_at?: string | null;
+}
+
+export interface ServicePortfolioCapability {
+  id: number;
+  capability_code: string;
+  capability_uuid: string;
+  capability_title: string;
+  capability_level: number;
+  parent_id: string | null;
+  status_code: string | null;
+  service_count: number;
+  active_service_count?: number | null;
+  requestable_service_count?: number | null;
+  overdue_review_count?: number | null;
+  due_soon_review_count?: number | null;
+  missing_owner_count?: number | null;
+  readiness_blocker_count?: number | null;
+}
+
+export interface ServicePortfolioLevel3Capability extends ServicePortfolioCapability {
+  parent_portfolio_code: string;
+  parent_portfolio_uuid?: string | null;
+  parent_portfolio_title: string;
+  parent_status_code?: string | null;
+  spiral_code?: string | null;
+  source_kind?: 'c3_level3_capability' | string | null;
+  is_empty?: boolean | null;
+  planned_service_count?: number | null;
+  retiring_service_count?: number | null;
+  services?: ServicePortfolioService[];
 }
 
 export interface ImpactNode {

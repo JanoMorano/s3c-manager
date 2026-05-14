@@ -128,10 +128,15 @@ function hasLetters(value) {
 }
 
 function looksLikeTechnicalToken(value) {
+  if (/^\s*<\s*(svg|style)\b/i.test(value)) return true;
+  if (/\b(function\s*\(|localStorage|sessionStorage|document\.|window\.|NodeFilter|MutationObserver)\b/.test(value)) return true;
+  if (/\b(color-mix|var\(--|grid-template|repeat\(|minmax\(|prefers-color-scheme)\b/.test(value)) return true;
+  if (/^&[a-z0-9_]+=/.test(value)) return true;
   if (/^https?:\/\//i.test(value)) return true;
   if (/^\/(api|admin|c3|services|operations|catalogue|management|import|search|help|portfolio|spirals)(\/|$|\?)/.test(value)) return true;
   if (/^[@.#]/.test(value)) return true;
   if (/^var\(|^--/.test(value)) return true;
+  if (/^[a-z]+[A-Z][A-Za-z0-9]*$/.test(value)) return true;
   if (/^[a-z0-9_./:-]+$/.test(value) && !/[A-Z]/.test(value) && !/\s/.test(value)) return true;
   if (/^[A-Z0-9_./:-]+$/.test(value) && value.length > 2 && !/\s/.test(value)) return true;
   if (/^\{.*\}$/.test(value)) return true;

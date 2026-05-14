@@ -12,7 +12,7 @@ import type { GovernanceDecision } from '@/features/governance/types';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../governance.module.css';
 
-type DecisionFilter = 'all' | 'publish' | 'exception' | 'lifecycle' | 'other';
+type DecisionFilter = 'all' | 'approved' | 'deferred' | 'rejected';
 
 function decisionVariant(decision: string) {
   if (decision === 'approved') return 'success';
@@ -31,12 +31,19 @@ function optionalDecisionField(item: GovernanceDecision, key: 'evidence' | 'expi
   return (item as GovernanceDecision & Partial<Record<typeof key, string | null>>)[key] ?? null;
 }
 
-function normalizeDecisionType(type: string) {
-  const value = type.toLowerCase();
-  if (['publish', 'publish_approval', 'publish_rejection', 'approval', 'release'].includes(value)) return 'publish';
-  if (['exception', 'readiness_exception', 'deferral', 'defer', 'risk_acceptance', 'waiver'].includes(value)) return 'exception';
-  if (['lifecycle', 'lifecycle_transition', 'retirement', 'retirement_recommendation', 'retire'].includes(value)) return 'lifecycle';
-  return 'other';
+function resolveDecisionFilter(value: string | null | undefined): DecisionFilter {
+  if (value === 'approved' || value === 'deferred') return value;
+  if (value === 'rejected' || value === 'cancelled' || value === 'rejected,cancelled') return 'rejected';
+  return 'all';
+}
+
+function decisionFilterHref(filter: DecisionFilter, serviceFilter: string) {
+  const params = new URLSearchParams();
+  if (serviceFilter) params.set('service_id', serviceFilter);
+  if (filter === 'approved' || filter === 'deferred') params.set('decision', filter);
+  if (filter === 'rejected') params.set('decision', 'rejected,cancelled');
+  const qs = params.toString();
+  return `/operations/decisions${qs ? `?${qs}` : ''}`;
 }
 
 function DecisionCard({ item }: { item: GovernanceDecision }) {
@@ -82,15 +89,16 @@ function DecisionCard({ item }: { item: GovernanceDecision }) {
 export default function GovernanceDecisionsPage() {
   const searchParams = useSearchParams();
   const serviceFilter = searchParams?.get('service_id') ?? '';
+  const decisionFilter = resolveDecisionFilter(searchParams?.get('decision') ?? searchParams?.get('filter'));
   const { data, isLoading, error, mutate } = useGovernanceDecisions({ limit: 200, serviceId: serviceFilter || undefined });
   const [recordOpen, setRecordOpen] = useState(false);
-  const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>('all');
   const [recordError, setRecordError] = useState<string | null>(null);
   const [recordBusy, setRecordBusy] = useState(false);
   const decisions = data?.items ?? [];
   const visibleDecisions = decisions.filter((item) => {
     if (decisionFilter === 'all') return true;
-    return normalizeDecisionType(item.decision_type) === decisionFilter;
+    if (decisionFilter === 'rejected') return item.decision === 'rejected' || item.decision === 'cancelled';
+    return item.decision === decisionFilter;
   });
   const approved = decisions.filter((item) => item.decision === 'approved').length;
   const deferred = decisions.filter((item) => item.decision === 'deferred').length;
@@ -135,37 +143,26 @@ export default function GovernanceDecisionsPage() {
           { label: `${decisions.length} decisions`, tone: 'info' },
           { label: `${approved} approved`, tone: 'ok' },
           { label: `${deferred} deferred`, tone: deferred ? 'warn' : 'neutral' },
+          ...(decisionFilter !== 'all' ? [{ label: `Filter ${decisionFilter}`, tone: 'info' as const }] : []),
           ...(serviceFilter ? [{ label: `Service ${serviceFilter}`, tone: 'info' as const }] : []),
         ]}
         primaryAction={{ label: 'Record decision', onClick: () => setRecordOpen(true) }}
       />
 
       <section className={govStyles.decisionKpiGrid} aria-label="Governance decision KPIs">
-        <KpiCard label="Decisions" value={decisions.length} hint="Recorded governance decisions" tone="info" />
-        <KpiCard label="Approved" value={approved} hint="Accepted decisions" tone="success" />
-        <KpiCard label="Deferred" value={deferred} hint="Accepted with follow-up" tone={deferred ? 'warning' : 'neutral'} />
-        <KpiCard label="Rejected" value={rejected} hint="Rejected or cancelled" tone={rejected ? 'danger' : 'neutral'} />
+        <Link href={decisionFilterHref('all', serviceFilter)} className={`${govStyles.kpiLink} ${decisionFilter === 'all' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit všechna rozhodnutí">
+          <KpiCard label="Decisions" value={decisions.length} hint="Recorded governance decisions" tone="info" />
+        </Link>
+        <Link href={decisionFilterHref('approved', serviceFilter)} className={`${govStyles.kpiLink} ${decisionFilter === 'approved' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit schválená rozhodnutí">
+          <KpiCard label="Approved" value={approved} hint="Accepted decisions" tone="success" />
+        </Link>
+        <Link href={decisionFilterHref('deferred', serviceFilter)} className={`${govStyles.kpiLink} ${decisionFilter === 'deferred' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit odložená rozhodnutí">
+          <KpiCard label="Deferred" value={deferred} hint="Accepted with follow-up" tone={deferred ? 'warning' : 'neutral'} />
+        </Link>
+        <Link href={decisionFilterHref('rejected', serviceFilter)} className={`${govStyles.kpiLink} ${decisionFilter === 'rejected' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit odmítnutá rozhodnutí">
+          <KpiCard label="Rejected" value={rejected} hint="Rejected or cancelled" tone={rejected ? 'danger' : 'neutral'} />
+        </Link>
       </section>
-
-      <div className={govStyles.decisionFilters} aria-label="Decision filters">
-        {([
-          ['all', 'All decisions'],
-          ['publish', 'Publish'],
-          ['exception', 'Exceptions'],
-          ['lifecycle', 'Lifecycle'],
-          ['other', 'Other'],
-        ] as Array<[DecisionFilter, string]>).map(([filter, label]) => (
-          <button
-            key={filter}
-            type="button"
-            className={govStyles.decisionFilterChip}
-            aria-pressed={decisionFilter === filter}
-            onClick={() => setDecisionFilter(filter)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
 
       <section className={govStyles.workflowGrid}>
         <article className={govStyles.governancePanel}>
