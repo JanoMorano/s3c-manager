@@ -1,7 +1,7 @@
 # Removed API Endpoints
 
 Reduction release: `v1.1.3-reduction`
-Physical removal: `v1.2.1 final sunset state`
+Physical removal: `v1.2.2 final sunset state`
 Reason: this handover has no production compatibility window and no external consumers to preserve.
 
 These endpoints no longer return controlled `410 ENDPOINT_RETIRED` responses. They are intentionally removed from the mounted API surface; callers should use the listed replacement workflow or endpoint.

@@ -47,6 +47,10 @@
 }
 
 .searchButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-text-primary);
@@ -54,6 +58,93 @@
   padding: 12px 18px;
   font: var(--text-label-md);
   cursor: pointer;
+}
+
+.suggestions {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-medium);
+}
+
+.suggestionState {
+  padding: 10px 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.suggestionGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.suggestionGroupTitle {
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+  text-transform: uppercase;
+}
+
+.suggestionItems {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.suggestionItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: center;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestionItem:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-surface);
+}
+
+.suggestionItem code {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.suggestionItem span {
+  overflow: hidden;
+  font: var(--text-label-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestionItem small {
+  grid-column: 2;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestionFooter {
+  justify-self: start;
+  border: 0;
+  background: none;
+  color: var(--color-action-primary);
+  cursor: pointer;
+  font: var(--text-label-md);
+}
+
+.suggestionFooter:hover {
+  text-decoration: underline;
 }
 
 .resultsWrap {

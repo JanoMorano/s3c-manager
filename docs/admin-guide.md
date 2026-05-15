@@ -31,7 +31,7 @@ Back up PostgreSQL before every upgrade or DB cleanup stage.
 | Import profiles | `/administration/import` | Admin import evidence and profiles |
 | Installation | `/administration/installation` | Install status, modules, seed/repair flows |
 
-`/admin/*` frontend aliases were removed in the v1.2.1 final surface. New documentation, bookmarks, and user communication must use `/administration/*`.
+`/admin/*` frontend aliases were removed in the v1.2.2 final surface. New documentation, bookmarks, and user communication must use `/administration/*`.
 
 ## Roles
 

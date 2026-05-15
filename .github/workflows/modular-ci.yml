@@ -1,0 +1,59 @@
+name: Modular CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  module-boundaries:
+    name: Module boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/validate-module-boundaries.mjs
+
+  middleware:
+    name: Middleware tests
+    runs-on: ubuntu-latest
+    needs:
+      - module-boundaries
+    defaults:
+      run:
+        working-directory: middleware
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: middleware/package-lock.json
+      - run: npm ci
+      - run: npm run lint:modules
+      - run: npm test
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    needs:
+      - module-boundaries
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint:modules
+      - run: npm run lint
+      - run: npm run lint:i18n
+      - run: npm run build

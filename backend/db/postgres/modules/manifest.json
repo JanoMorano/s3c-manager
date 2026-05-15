@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "description": "Physical module ownership map for PostgreSQL schema slices.",
+  "modules": [
+    {
+      "code": "DATABASE_LAYER",
+      "directory": "database-layer",
+      "entrypoint": "database-layer/module.sql",
+      "depends_on": [],
+      "source_slices": [
+        "00_bootstrap.sql",
+        "01_platform.sql",
+        "02_ref.sql",
+        "10_indexes.sql",
+        "13_install_system.sql"
+      ]
+    },
+    {
+      "code": "PLATFORM_CORE",
+      "directory": "platform-core",
+      "entrypoint": "platform-core/module.sql",
+      "depends_on": [
+        "DATABASE_LAYER"
+      ],
+      "source_slices": [
+        "03_groups.sql",
+        "12_exports_retention.sql",
+        "18_user_persona.sql",
+        "31_locale_cs_en_only.sql"
+      ]
+    },
+    {
+      "code": "SERVICE_CATALOGUE_CORE",
+      "directory": "service-catalogue",
+      "entrypoint": "service-catalogue/module.sql",
+      "depends_on": [
+        "DATABASE_LAYER",
+        "PLATFORM_CORE"
+      ],
+      "source_slices": [
+        "04_core.sql",
+        "05_graph.sql",
+        "06_pricing.sql",
+        "07_domains.sql",
+        "08_ownership.sql",
+        "09_import.sql",
+        "15_itil_catalogue_phase1.sql",
+        "16_consumer_value.sql",
+        "29_reduction_low_risk_cleanup.sql",
+        "30_reduction_domain_model_simplification.sql",
+        "32_final_reduction_sunset_cleanup.sql"
+      ]
+    },
+    {
+      "code": "C3_TAXONOMY",
+      "directory": "c3-taxonomy",
+      "entrypoint": "c3-taxonomy/module.sql",
+      "depends_on": [
+        "DATABASE_LAYER",
+        "PLATFORM_CORE",
+        "SERVICE_CATALOGUE_CORE"
+      ],
+      "source_slices": [
+        "11_c3.sql",
+        "14_spiral_versioning.sql",
+        "17_spiral_membership.sql",
+        "19_capability_abbreviations.sql",
+        "20_capability_coverage_views.sql",
+        "25_capability_governance.sql"
+      ]
+    },
+    {
+      "code": "MANAGEMENT",
+      "directory": "management",
+      "entrypoint": "management/module.sql",
+      "depends_on": [
+        "DATABASE_LAYER",
+        "PLATFORM_CORE",
+        "SERVICE_CATALOGUE_CORE"
+      ],
+      "optional_integrations": [
+        "C3_TAXONOMY"
+      ],
+      "source_slices": [
+        "21_contract_governance.sql",
+        "22_governance_views.sql",
+        "23_service_portfolio.sql",
+        "24_readiness_rules.sql",
+        "26_governance_workflow.sql",
+        "27_impact_analysis.sql",
+        "28_enterprise_governance_contracts.sql"
+      ]
+    }
+  ]
+}

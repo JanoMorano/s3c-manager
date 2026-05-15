@@ -20,6 +20,7 @@ const router  = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { canEdit } = require('../middleware/rbac');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
+const { MODULE_CODES } = require('../modules/manifest');
 const { getPool } = require('../db/pool');
 const { logGraphLayoutChange } = require('../db/audit.repo');
 const relationsRepo = require('../db/relations.repo');
@@ -819,7 +820,7 @@ async function buildC3RelationPayload(query) {
 // Response: { nodes: GraphNode[], edges: GraphEdge[] }
 router.get('/c3-relations', async (req, res, next) => {
     try {
-        const c3Enabled = await isModuleApiEnabled('C3_TAXONOMY');
+        const c3Enabled = await isModuleApiEnabled(MODULE_CODES.C3);
         if (!c3Enabled) {
             return res.status(404).json({ error: 'C3 Taxonomy modul není aktivní.' });
         }
@@ -830,7 +831,7 @@ router.get('/c3-relations', async (req, res, next) => {
 
 router.get('/overview', async (req, res, next) => {
     try {
-        const includeC3 = req.query.include_c3 !== '0' && await isModuleApiEnabled('C3_TAXONOMY');
+        const includeC3 = req.query.include_c3 !== '0' && await isModuleApiEnabled(MODULE_CODES.C3);
         const payload = await buildOverviewPayload(req.query, { compact: false, includeC3 });
         res.json(payload);
     } catch (err) { next(err); }
@@ -838,7 +839,7 @@ router.get('/overview', async (req, res, next) => {
 
 router.get('/overview/compact', async (req, res, next) => {
     try {
-        const includeC3 = req.query.include_c3 !== '0' && await isModuleApiEnabled('C3_TAXONOMY');
+        const includeC3 = req.query.include_c3 !== '0' && await isModuleApiEnabled(MODULE_CODES.C3);
         const payload = await buildOverviewPayload(req.query, { compact: true, includeC3 });
         res.json(payload);
     } catch (err) { next(err); }

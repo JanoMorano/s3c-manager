@@ -9,23 +9,11 @@ import {
   invalidateInstallStatusCache,
   markInstallReady,
 } from '@/features/install/installStatus';
+import { MODULE_CODES, moduleForPath } from '@/features/modules/manifest';
 import { PermissionGate } from './layout-v2';
 
 // Install wizard route: always available without authentication.
 const INSTALL_PATH = '/install';
-
-function isC3ScopedPath(pathname: string) {
-  return (
-    pathname === '/c3-dashboard' ||
-    pathname.startsWith('/c3/') ||
-    pathname === '/admin/new-c3' ||
-    pathname === '/administration/c3-ref' ||
-    pathname === '/administration/c3-capability-builder' ||
-    pathname === '/admin/c3' ||
-    pathname.startsWith('/admin/c3/') ||
-    pathname.startsWith('/admin/c3-')
-  );
-}
 
 export { invalidateInstallStatusCache, markInstallReady };
 
@@ -66,7 +54,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (!installFetchFailed && isC3ScopedPath(pathname) && !isModuleUiVisible(installStatus, 'C3_TAXONOMY')) {
+      const routeModule = moduleForPath(pathname);
+      if (
+        !installFetchFailed &&
+        routeModule &&
+        routeModule.code !== MODULE_CODES.CORE &&
+        !isModuleUiVisible(installStatus, routeModule.code)
+      ) {
         router.replace('/');
         return;
       }

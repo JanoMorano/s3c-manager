@@ -107,7 +107,7 @@ function readOpenSections() {
 export default function SidebarNav() {
   const pathname = usePathname() ?? '';
   const { t } = useI18n();
-  const { c3Visible } = useInstallStatus();
+  const { c3Visible, serviceCatalogueVisible, managementVisible } = useInstallStatus();
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -129,7 +129,8 @@ export default function SidebarNav() {
 
   const canEdit = hasRoleAccess(role, 'editor');
   const isAdminRole = hasRoleAccess(role, 'admin');
-  const showServiceGovernance = true;
+  const showServiceCatalogue = serviceCatalogueVisible;
+  const showServiceGovernance = managementVisible;
   const showArchitecture = c3Visible && canEdit;
   const showImport = canEdit;
   const showAdministration = isAdminRole;
@@ -199,13 +200,15 @@ export default function SidebarNav() {
         {showServiceGovernance && <NavItem href="/cockpit/my-tasks" icon={<ClipboardCheck size={16} />} label={t('nav.sidebar.my_tasks')} active={isMyTasks} />}
       </NavSection>
 
-      <NavSection id="services" label={t('nav.sidebar.services')} open={openSections.has('services')} onToggle={() => toggleSection('services')}>
-        <NavItem href="/catalogue" icon={<BookOpen size={16} />} label={t('nav.sidebar.service_catalogue')} active={isCatalogue} />
-        {showServiceGovernance && <NavItem href="/portfolio" icon={<BriefcaseBusiness size={16} />} label={t('nav.sidebar.portfolio')} active={isPortfolio} />}
-        <NavItem href="/services/list" icon={<List size={16} />} label={t('nav.sidebar.service_list')} active={isServiceList || isServiceDetail} />
-        <NavItem href="/services/graph" icon={<Map size={16} />} label={t('nav.sidebar.service_graph')} active={isServiceGraph} />
-        {canEdit && <NavItem href="/management/new-service" icon={<FileStack size={16} />} label={t('nav.sidebar.new_service')} active={isNewService} />}
-      </NavSection>
+      {showServiceCatalogue && (
+        <NavSection id="services" label={t('nav.sidebar.services')} open={openSections.has('services')} onToggle={() => toggleSection('services')}>
+          <NavItem href="/catalogue" icon={<BookOpen size={16} />} label={t('nav.sidebar.service_catalogue')} active={isCatalogue} />
+          {showServiceGovernance && <NavItem href="/portfolio" icon={<BriefcaseBusiness size={16} />} label={t('nav.sidebar.portfolio')} active={isPortfolio} />}
+          <NavItem href="/services/list" icon={<List size={16} />} label={t('nav.sidebar.service_list')} active={isServiceList || isServiceDetail} />
+          <NavItem href="/services/graph" icon={<Map size={16} />} label={t('nav.sidebar.service_graph')} active={isServiceGraph} />
+          {canEdit && <NavItem href="/management/new-service" icon={<FileStack size={16} />} label={t('nav.sidebar.new_service')} active={isNewService} />}
+        </NavSection>
+      )}
 
       {showArchitecture && (
         <NavSection id="architecture" label={t('nav.sidebar.architecture')} open={openSections.has('architecture')} onToggle={() => toggleSection('architecture')}>

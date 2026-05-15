@@ -17,8 +17,13 @@
 const crypto = require('crypto');
 const bcrypt  = require('bcrypt');
 const logger  = require('../utils/logger');
+const {
+    MODULE_CODES,
+    getInstallableModuleDefinitions,
+} = require('../modules/manifest');
+const { serializeRegisteredModule } = require('../modules/module-serialization');
 
-const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.2';
+const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.2.2';
 const INSTALL_SCHEMA_VERSION = process.env.SCHEMA_VERSION || '2.2.1';
 const BCRYPT_ROUNDS = 12;
 
@@ -449,12 +454,64 @@ async function markModuleReferenceSeedInstalled(pool, moduleCode, performedBy = 
     `, [moduleCode, INSTALL_APP_VERSION, INSTALL_SCHEMA_VERSION, performedBy]);
 }
 
+async function setModuleRuntimeAvailability(pool, moduleCode, { uiVisible, apiEnabled }) {
+    await pool.query(`
+        UPDATE platform.module_registry
+        SET ui_visible = $2,
+            api_enabled = $3,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE module_code = $1
+    `, [moduleCode, uiVisible === true, apiEnabled === true]);
+}
+
+async function markManifestModuleInstalled(pool, definition, performedBy = 'installer') {
+    const activation = await activateModule(pool, definition.code, performedBy);
+    if (!activation.ok) {
+        logger.warn(`install.service: module ${definition.code} missing from registry; skipping manifest activation`);
+        return false;
+    }
+
+    await markModuleSchemaInstalled(pool, definition.code, performedBy);
+    await markModuleReferenceSeedInstalled(pool, definition.code, performedBy);
+    await setModuleRuntimeAvailability(pool, definition.code, {
+        uiVisible: definition.uiVisibleByDefault,
+        apiEnabled: definition.apiEnabledByDefault,
+    });
+    return true;
+}
+
 async function getModules(pool) {
     const result = await pool.query(`
         SELECT * FROM platform.module_registry
         ORDER BY install_order
     `);
     return result.rows;
+}
+
+const serializeModule = serializeRegisteredModule;
+
+async function ensureManifestModulesRegistered(pool) {
+    for (const definition of getInstallableModuleDefinitions()) {
+        await pool.query(`
+            INSERT INTO platform.module_registry
+                (module_code, module_label, is_mandatory, enabled, schema_installed,
+                 reference_seed_installed, business_data_present, ui_visible, api_enabled,
+                 version, install_order)
+            VALUES
+                ($1, $2, $3, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, $4, $5)
+            ON CONFLICT (module_code) DO UPDATE
+            SET module_label = EXCLUDED.module_label,
+                is_mandatory = EXCLUDED.is_mandatory,
+                install_order = EXCLUDED.install_order,
+                updated_at = CURRENT_TIMESTAMP
+        `, [
+            definition.code,
+            definition.label,
+            definition.mandatory === true,
+            '1.0.0',
+            definition.installOrder,
+        ]);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -469,30 +526,29 @@ async function executeInstall(pool, { activateC3, seedDemoData = false, importJo
             started_at: new Date().toISOString(),
         });
 
-        // SERVICE_CATALOGUE_CORE is always mandatory
-        await activateModule(pool, 'SERVICE_CATALOGUE_CORE', performedBy);
-        await markModuleSchemaInstalled(pool, 'SERVICE_CATALOGUE_CORE', performedBy);
-        await markModuleReferenceSeedInstalled(pool, 'SERVICE_CATALOGUE_CORE', performedBy);
+        // Register module boundaries; schemas are already applied by init.
+        const definitions = getInstallableModuleDefinitions();
+        const installCoreCodes = new Set([
+            MODULE_CODES.DATABASE,
+            MODULE_CODES.CORE,
+            MODULE_CODES.SERVICE_CATALOGUE,
+        ]);
+        const managementDefinition = definitions.find((definition) => definition.code === MODULE_CODES.MANAGEMENT);
+        const c3Definition = definitions.find((definition) => definition.code === MODULE_CODES.C3);
 
-        await pool.query(`
-            UPDATE platform.module_registry
-            SET ui_visible = TRUE, api_enabled = TRUE, updated_at = CURRENT_TIMESTAMP
-            WHERE module_code = 'SERVICE_CATALOGUE_CORE'
-        `);
+        for (const definition of definitions.filter((item) => installCoreCodes.has(item.code))) {
+            await markManifestModuleInstalled(pool, definition, performedBy);
+        }
 
         await transitionTo(pool, 'CORE_INSTALLED', performedBy);
 
         // C3 module — optional
-        if (activateC3) {
-            await activateModule(pool, 'C3_TAXONOMY', performedBy);
-            await markModuleSchemaInstalled(pool, 'C3_TAXONOMY', performedBy);
-            await markModuleReferenceSeedInstalled(pool, 'C3_TAXONOMY', performedBy);
+        if (activateC3 && c3Definition) {
+            await markManifestModuleInstalled(pool, c3Definition, performedBy);
+        }
 
-            await pool.query(`
-                UPDATE platform.module_registry
-                SET ui_visible = TRUE, api_enabled = TRUE, updated_at = CURRENT_TIMESTAMP
-                WHERE module_code = 'C3_TAXONOMY'
-            `);
+        if (managementDefinition) {
+            await markManifestModuleInstalled(pool, managementDefinition, performedBy);
         }
 
         await transitionTo(pool, 'MODULES_CONFIGURED', performedBy);
@@ -580,17 +636,7 @@ async function getInstallSummary(pool) {
         failed_at:      row?.failed_at    ?? null,
         failure_reason: row?.failure_reason ?? null,
         performed_by:   row?.performed_by  ?? null,
-        modules: modules.map(m => ({
-            code:              m.module_code,
-            label:             m.module_label,
-            is_mandatory:      m.is_mandatory,
-            enabled:           m.enabled,
-            schema_installed:  m.schema_installed,
-            seed_installed:    m.reference_seed_installed,
-            ui_visible:        m.ui_visible,
-            api_enabled:       m.api_enabled,
-            version:           m.version,
-        })),
+        modules: modules.map(serializeModule),
     };
 }
 
@@ -610,7 +656,9 @@ module.exports = {
     bootstrapAdmin,
     hasActiveAdminAccount,
     activateModule,
+    ensureManifestModulesRegistered,
     getModules,
+    serializeModule,
     executeInstall,
     INSTALL_APP_VERSION,
     INSTALL_SCHEMA_VERSION,

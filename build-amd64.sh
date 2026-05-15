@@ -24,7 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── Auto-detect version from APP_VERSION / docker-compose.yml ────────────────
-# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.2}
+# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.2.2}
 detect_app_version() {
   if [ -n "${APP_VERSION:-}" ]; then
     printf '%s\n' "$APP_VERSION"
@@ -205,7 +205,7 @@ BUNDLE_SIZE=$(du -sh "$BUNDLE_TAR" | cut -f1)
 # ── GitHub release (optional) ─────────────────────────────────────────────────
 if [ "$DO_RELEASE" = true ]; then
   # Git tag uses the plain version (with optional leading v), e.g. v1.2
-  # The image tag has the arch suffix (sc-app:1.2-amd64) but the release tag does not.
+# The image tag has the arch suffix (sc-app:1.2.2-amd64) but the release tag does not.
   GIT_TAG="${IMAGE_TAG}"
   # Prepend 'v' if not already present
   [[ "$GIT_TAG" != v* ]] && GIT_TAG="v${GIT_TAG}"

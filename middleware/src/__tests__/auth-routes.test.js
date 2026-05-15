@@ -176,7 +176,8 @@ describe('auth routes', () => {
             .set('x-remote-email', 'jan.novak@example.local');
 
         expect(response.status).toBe(403);
-        expect(response.body.error).toMatch(/trusted-proxy secret/i);
+        expect(response.body.error).toMatch(/proxy/i);
+        expect(response.body.error).toMatch(/SSO/i);
         expect(queryMock).not.toHaveBeenCalled();
     });
 

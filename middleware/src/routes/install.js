@@ -27,6 +27,8 @@ const logger      = require('../utils/logger');
 const { requireAuth } = require('../middleware/auth');
 const { invalidateModuleStatus } = require('../middleware/module-gates');
 const { resolveRequestLocale, tReq } = require('../utils/i18n');
+const { getInstallableModuleDefinitions } = require('../modules/manifest');
+const { serializeModuleDefinition } = require('../modules/module-serialization');
 
 const router = express.Router();
 const INSTALL_SETUP_TOKEN_HEADER = 'x-install-setup-token';
@@ -151,14 +153,7 @@ router.get('/status', async (req, res) => {
             app_version:    installSvc.INSTALL_APP_VERSION,
             schema_version: installSvc.INSTALL_SCHEMA_VERSION,
             admin_exists: adminExists,
-            modules: modules.map(m => ({
-                code:         m.module_code,
-                label:        m.module_label,
-                is_mandatory: m.is_mandatory,
-                enabled:      m.enabled,
-                ui_visible:   m.ui_visible,
-                api_enabled:  m.api_enabled,
-            })),
+            modules: modules.map(installSvc.serializeModule),
         });
     } catch (err) {
         // If the DB does not exist yet, return a fresh-install state.
@@ -325,17 +320,15 @@ router.post('/modules', requireInstallWriteAccess, checkNotReady, async (req, re
     try {
         const activateC3 = req.body?.activate_c3 === true;
 
-        // SERVICE_CATALOGUE_CORE is always active; the UI cannot change it.
-        logger.info(`install/modules: SERVICE_CATALOGUE_CORE=mandatory, C3=${activateC3}`);
+        logger.info(`install/modules: catalogue/core/management=mandatory, C3=${activateC3}`);
+        const modules = getInstallableModuleDefinitions()
+            .map((definition) => serializeModuleDefinition(definition, { activateC3 }));
 
         // Move to the MODULES_CONFIGURED transition state for visibility.
         // Actual activation happens in /execute.
         return res.json({
             ok: true,
-            modules: [
-                { code: 'SERVICE_CATALOGUE_CORE', mandatory: true, will_activate: true },
-                { code: 'C3_TAXONOMY', mandatory: false, will_activate: activateC3 },
-            ],
+            modules,
         });
     } catch (err) {
         next(err);

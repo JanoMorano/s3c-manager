@@ -4,26 +4,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { useT } from '@/app/i18n/useI18n';
-import { authHeaders } from '@/features/services/api/services.api';
+import { fetchGlobalSearch } from '@/features/search/search.api';
+import type { GlobalSearchGroup, GlobalSearchResponse } from '@/features/search/search.types';
 import styles from '../layout.module.css';
-
-interface PaletteItem {
-  code: string;
-  title: string;
-  subtitle?: string | null;
-  href: string;
-}
-
-interface PaletteResponse {
-  groups: Record<string, PaletteItem[]>;
-  total: number;
-}
-
-const PALETTE_GROUPS = [
-  ['services', 'Services'],
-  ['capabilities', 'Capabilities'],
-  ['frameworks', 'Frameworks'],
-] as const;
 
 export default function NavGlobalSearch() {
   const t = useT();
@@ -31,7 +14,7 @@ export default function NavGlobalSearch() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams?.get('query') ?? '');
-  const [palette, setPalette] = useState<PaletteResponse | null>(null);
+  const [palette, setPalette] = useState<GlobalSearchResponse | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteBusy, setPaletteBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -69,13 +52,7 @@ export default function NavGlobalSearch() {
     const timer = window.setTimeout(async () => {
       setPaletteBusy(true);
       try {
-        const response = await fetch(`/api/v1/search?q=${encodeURIComponent(next)}&type=any&limit=4`, {
-          credentials: 'include',
-          signal: controller.signal,
-          headers: authHeaders(),
-        });
-        const json = await response.json().catch(() => null);
-        if (response.ok) setPalette(json as PaletteResponse);
+        setPalette(await fetchGlobalSearch(next, { endpoint: 'suggest', limit: 4, signal: controller.signal }));
       } catch {
         if (!controller.signal.aborted) setPalette(null);
       } finally {
@@ -91,14 +68,24 @@ export default function NavGlobalSearch() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    openSearchPage();
+  }
+
+  function openSearchPage() {
     const next = query.trim();
     setPaletteOpen(false);
-    router.push(next ? `/services/list?search=${encodeURIComponent(next)}` : '/services/list');
+    router.push(next ? `/search?query=${encodeURIComponent(next)}` : '/search');
   }
 
   function goTo(href: string) {
     setPaletteOpen(false);
     router.push(href);
+  }
+
+  function groupHeading(group: GlobalSearchGroup) {
+    if (group.kind === 'help') return 'Help';
+    if (group.module_label && group.module_label !== group.label) return `${group.module_label} - ${group.label}`;
+    return group.label;
   }
 
   return (
@@ -109,7 +96,7 @@ export default function NavGlobalSearch() {
           ref={inputRef}
           className={styles.navSearchInput}
           type="search"
-          placeholder="Search services, capabilities, decisions..."
+          placeholder="Search any word across the application..."
           value={query}
           onFocus={() => setPaletteOpen(true)}
           onChange={(event) => {
@@ -118,33 +105,29 @@ export default function NavGlobalSearch() {
           }}
           aria-label={t('nav.global_search_aria')}
         />
-        <kbd className={styles.navSearchKbd}>⌘K</kbd>
+        <kbd className={styles.navSearchKbd}>Ctrl K</kbd>
         <button type="submit" className={styles.navSearchSubmit}>
           {t('nav.global_search_submit')}
         </button>
       </form>
       {paletteOpen && query.trim().length >= 2 && (
-        <div className={styles.commandPalette} role="dialog" aria-label="Command palette search results">
-          {paletteBusy && <div className={styles.commandState}>Searching…</div>}
+        <div className={styles.commandPalette} role="dialog" aria-label="Global search suggestions">
+          {paletteBusy && <div className={styles.commandState}>Searching...</div>}
           {!paletteBusy && palette && palette.total === 0 && <div className={styles.commandState}>{t('nav.global_search_no_results_service_list')}</div>}
-          {!paletteBusy && palette && palette.total > 0 && PALETTE_GROUPS.map(([key, label]) => {
-            const items = palette.groups?.[key] ?? [];
-            if (!items.length) return null;
-            return (
-              <section key={key} className={styles.commandGroup}>
-                <h3>{label}</h3>
-                {items.map((item) => (
-                  <button key={`${key}-${item.code}-${item.href}`} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => goTo(item.href)}>
-                    <code>{item.code}</code>
-                    <span>{item.title}</span>
-                    {item.subtitle && <small>{item.subtitle}</small>}
-                  </button>
-                ))}
-              </section>
-            );
-          })}
-          <button type="button" className={styles.commandFooter} onMouseDown={(event) => event.preventDefault()} onClick={() => handleSubmit({ preventDefault: () => undefined } as FormEvent<HTMLFormElement>)}>
-            {t('nav.global_search_open_service_list', { query: query.trim() })}
+          {!paletteBusy && palette && palette.total > 0 && palette.groups.map((group) => (
+            <section key={group.key} className={styles.commandGroup}>
+              <h3>{groupHeading(group)}</h3>
+              {(group.items ?? []).map((item) => (
+                <button key={`${group.key}-${item.code}-${item.href}`} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => goTo(item.href)}>
+                  <code>{item.code}</code>
+                  <span>{item.title}</span>
+                  {item.subtitle && <small>{item.subtitle}</small>}
+                </button>
+              ))}
+            </section>
+          ))}
+          <button type="button" className={styles.commandFooter} onMouseDown={(event) => event.preventDefault()} onClick={openSearchPage}>
+            Open grouped results for "{query.trim()}"
           </button>
         </div>
       )}

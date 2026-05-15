@@ -21,12 +21,22 @@ import { useI18n } from '../../i18n/useI18n';
 interface ModuleStatus {
   code: string;
   label: string;
+  kind?: string | null;
   is_mandatory: boolean;
   enabled: boolean;
   schema_installed?: boolean;
+  seed_installed?: boolean;
   reference_seed_installed?: boolean;
   api_enabled?: boolean;
+  ui_visible?: boolean;
   version?: string;
+  install_order?: number;
+  depends_on?: string[];
+  optional_integrations?: string[];
+  api_route_prefixes?: string[];
+  ui_route_prefixes?: string[];
+  db_slices?: string[];
+  manifest_managed?: boolean;
 }
 
 interface InstallSummary {
@@ -281,10 +291,17 @@ export default function InstallationPage() {
                     )}
                   </div>
                   <div style={{ font: 'var(--text-label-sm)', color: 'var(--color-text-muted)', fontFamily: 'monospace', fontSize: 11 }}>{mod.code}</div>
+                  {(mod.kind || (mod.depends_on?.length ?? 0) > 0) && (
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>
+                      {mod.kind && <span>Typ: {mod.kind}</span>}
+                      {mod.kind && (mod.depends_on?.length ?? 0) > 0 && <span> · </span>}
+                      {(mod.depends_on?.length ?? 0) > 0 && <span>Zavislosti: {mod.depends_on?.join(', ')}</span>}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                     {[
                       { label: 'Schema', val: mod.schema_installed },
-                      { label: 'Seed', val: mod.reference_seed_installed },
+                      { label: 'Seed', val: mod.seed_installed ?? mod.reference_seed_installed },
                       { label: 'API', val: mod.api_enabled },
                     ].map(({ label, val }) => (
                       <span key={label} style={{ fontSize: 11, color: val ? 'var(--color-success)' : 'var(--color-text-muted)' }}>

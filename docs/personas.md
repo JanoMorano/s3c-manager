@@ -1,4 +1,4 @@
-# Product Personas for s3c-manager v1.2.1
+# Product Personas for s3c-manager v1.2.2
 
 Personas are UX lenses over the same RBAC-secured data. They do not grant permissions.
 
@@ -35,4 +35,4 @@ Canonical route families:
 - `/capabilities/*` is the capability manager workspace.
 - `/c3/*` is expert/reference overflow, not a primary journey.
 - `/administration/*` is the canonical administration namespace.
-- `/admin/*` frontend aliases are not part of the v1.2.1 final surface.
+- `/admin/*` frontend aliases are not part of the v1.2.2 final surface.

@@ -11,21 +11,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 No unreleased changes yet.
 
-## [1.2.1] — 2026-05-14
+## [1.2.2] — 2026-05-15
 
 ### Added
-- Added v1.2.1 release notes under `docs/releases/v1.2.1.md`.
-- Documented v1.2.1 as the active documentation/release-preparation baseline.
+- Added v1.2.2 release notes under `docs/releases/v1.2.2.md`.
+- Documented v1.2.2 as the active documentation/release-preparation baseline.
 
 ### Changed
-- Updated active `docs/` version references so the current product surface is documented as v1.2.1.
+- Updated active `docs/` version references so the current product surface is documented as v1.2.2.
 - Synchronized generated UI text documentation state so the i18n catalogue has no missing or stale entries.
 - Polished Czech and English UI copy for readiness, governance, capabilities, operations, installer, graph, and portfolio wording.
 
 ### Fixed
 - Corrected Czech review wording from `V revize` to `V revizi`.
 - Corrected English generated-text leftovers that still contained Czech phrases such as `CSV export selhal`.
-- Clarified that removed API and legacy route surfaces remain outside the v1.2.1 final product surface.
+- Clarified that removed API and legacy route surfaces remain outside the v1.2.2 final product surface.
 
 ## [1.1.2] — 2026-05-03
 
@@ -137,8 +137,8 @@ No unreleased changes yet.
 - Design tokens — CSS custom properties for color, spacing, radius, and typography
 - Dashboard — KPI tiles, distribution charts, and review due lists
 
-[Unreleased]: https://github.com/example/service-catalogue/compare/v1.2.1...HEAD
-[1.2.1]: https://github.com/example/service-catalogue/releases/tag/v1.2.1
+[Unreleased]: https://github.com/example/service-catalogue/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/example/service-catalogue/releases/tag/v1.2.2
 [1.1.2]: https://github.com/example/service-catalogue/releases/tag/v1.1.2
 [1.1.1]: https://github.com/example/service-catalogue/releases/tag/v1.1.1
 [1.1.0]: https://github.com/example/service-catalogue/releases/tag/v1.1.0

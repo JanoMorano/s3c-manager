@@ -69,6 +69,7 @@ jest.mock('../services/install.service', () => ({
     checkConnectivity: jest.fn(),
     getInstallSummary: jest.fn(),
     getModules: jest.fn(),
+    serializeModule: jest.fn((row) => row),
     releaseLock: jest.fn(),
     transitionTo: jest.fn(),
 }));
@@ -424,6 +425,7 @@ describe('install route security', () => {
     });
 
     test('POST /modules accepts a valid install setup token before READY', async () => {
+        const { MODULE_CODES } = require('../modules/manifest');
         const app = buildApp();
 
         const response = await request(app)
@@ -434,8 +436,8 @@ describe('install route security', () => {
         expect(response.status).toBe(200);
         expect(response.body.ok).toBe(true);
         expect(response.body.modules).toEqual(expect.arrayContaining([
-            expect.objectContaining({ code: 'SERVICE_CATALOGUE_CORE' }),
-            expect.objectContaining({ code: 'C3_TAXONOMY' }),
+            expect.objectContaining({ code: MODULE_CODES.SERVICE_CATALOGUE }),
+            expect.objectContaining({ code: MODULE_CODES.C3 }),
         ]));
     });
 });

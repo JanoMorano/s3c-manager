@@ -181,20 +181,34 @@ ON CONFLICT (id) DO NOTHING;
 -- Seed: module registry — definitions for the two supported modules
 -- SERVICE_CATALOGUE_CORE is mandatory and cannot be disabled
 -- C3_TAXONOMY is optional
+-- DATABASE_LAYER, PLATFORM_CORE, and MANAGEMENT make the modular-monolith
+-- ownership boundaries explicit while preserving the historical catalogue code.
 -- ---------------------------------------------------------------------------
 INSERT INTO module_registry
     (module_code, module_label, is_mandatory, enabled, schema_installed,
      reference_seed_installed, business_data_present, ui_visible, api_enabled,
      version, install_order)
 VALUES
-    ('SERVICE_CATALOGUE_CORE',
-     'Service Catalogue Core',
+    ('DATABASE_LAYER',
+     'Database Layer',
+     TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE,
+     '1.0.0', 0),
+    ('PLATFORM_CORE',
+     'Platform Core',
      TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE,
      '1.0.0', 1),
+    ('SERVICE_CATALOGUE_CORE',
+     'Service Catalogue',
+     TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE,
+     '1.0.0', 2),
     ('C3_TAXONOMY',
      'C3 Capability Taxonomy',
      FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE,
-     '1.0.0', 2)
+     '1.0.0', 3),
+    ('MANAGEMENT',
+     'Management Cockpit',
+     TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE,
+     '1.0.0', 4)
 ON CONFLICT (module_code) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
