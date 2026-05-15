@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "code": "DATABASE_LAYER",
+      "depends_on": [],
+      "owned_paths": [
+        "backend/db/postgres/modules/database-layer"
+      ]
+    },
+    {
+      "code": "PLATFORM_CORE",
+      "depends_on": [
+        "DATABASE_LAYER"
+      ],
+      "owned_paths": [
+        "middleware/src/modules/core",
+        "middleware/src/routes/auth.js",
+        "middleware/src/routes/install.js",
+        "middleware/src/routes/admin.js",
+        "middleware/src/routes/groups.js",
+        "middleware/src/routes/ref.js",
+        "middleware/src/routes/search.js",
+        "middleware/src/modules/core/search.routes.js",
+        "frontend/app/search",
+        "frontend/app/login",
+        "frontend/app/install",
+        "frontend/app/user-info",
+        "frontend/app/administration",
+        "frontend/features/auth",
+        "frontend/features/admin",
+        "frontend/features/install",
+        "frontend/features/modules",
+        "frontend/features/search"
+      ]
+    },
+    {
+      "code": "SERVICE_CATALOGUE_CORE",
+      "depends_on": [
+        "DATABASE_LAYER",
+        "PLATFORM_CORE"
+      ],
+      "owned_paths": [
+        "middleware/src/modules/service-catalogue",
+        "middleware/src/routes/services.js",
+        "middleware/src/routes/flavours.js",
+        "middleware/src/routes/relations.js",
+        "middleware/src/routes/stats.js",
+        "middleware/src/routes/graph.js",
+        "middleware/src/routes/import.js",
+        "middleware/src/routes/exports.js",
+        "middleware/src/routes/taxonomy.js",
+        "frontend/app/catalogue",
+        "frontend/app/services",
+        "frontend/app/import",
+        "frontend/app/graph",
+        "frontend/features/services",
+        "frontend/features/graph"
+      ]
+    },
+    {
+      "code": "C3_TAXONOMY",
+      "depends_on": [
+        "DATABASE_LAYER",
+        "PLATFORM_CORE",
+        "SERVICE_CATALOGUE_CORE"
+      ],
+      "owned_paths": [
+        "middleware/src/modules/c3-taxonomy",
+        "middleware/src/routes/capabilities.js",
+        "middleware/src/routes/capability-links.js",
+        "middleware/src/routes/spirals.js",
+        "frontend/app/c3",
+        "frontend/app/c3-entities",
+        "frontend/app/capabilities",
+        "frontend/app/spirals",
+        "frontend/features/c3",
+        "frontend/features/capabilities"
+      ]
+    },
+    {
+      "code": "MANAGEMENT",
+      "depends_on": [
+        "DATABASE_LAYER",
+        "PLATFORM_CORE",
+        "SERVICE_CATALOGUE_CORE"
+      ],
+      "optional_integrations": [
+        "C3_TAXONOMY"
+      ],
+      "owned_paths": [
+        "middleware/src/modules/management",
+        "middleware/src/routes/dashboard.js",
+        "middleware/src/routes/governance.js",
+        "middleware/src/routes/portfolio.js",
+        "middleware/src/routes/readiness.js",
+        "middleware/src/routes/impact.js",
+        "frontend/app/cockpit",
+        "frontend/app/operations",
+        "frontend/app/portfolio",
+        "frontend/features/governance"
+      ]
+    }
+  ]
+}

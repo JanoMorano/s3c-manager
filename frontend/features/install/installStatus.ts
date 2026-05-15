@@ -1,14 +1,31 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  MODULE_CODES,
+  isModuleMandatoryByDefault,
+  normalizeModuleCode,
+} from '@/features/modules/manifest';
 
 export interface InstallModuleInfo {
   code: string;
   label?: string;
+  kind?: string | null;
   is_mandatory?: boolean;
   enabled: boolean;
+  schema_installed?: boolean;
+  seed_installed?: boolean;
+  reference_seed_installed?: boolean;
   ui_visible?: boolean;
   api_enabled?: boolean;
+  version?: string;
+  install_order?: number;
+  depends_on?: string[];
+  optional_integrations?: string[];
+  api_route_prefixes?: string[];
+  ui_route_prefixes?: string[];
+  db_slices?: string[];
+  manifest_managed?: boolean;
 }
 
 export interface InstallStatusSnapshot {
@@ -76,13 +93,16 @@ export function markInstallReady(modules: InstallModuleInfo[] = []) {
 }
 
 export function isModuleEnabled(status: InstallStatusSnapshot | null | undefined, moduleCode: string) {
-  const moduleInfo = status?.modules?.find((item) => item.code === moduleCode);
+  const normalizedCode = normalizeModuleCode(moduleCode);
+  const moduleInfo = status?.modules?.find((item) => normalizeModuleCode(item.code) === normalizedCode);
+  if (!moduleInfo) return isModuleMandatoryByDefault(normalizedCode);
   return Boolean(moduleInfo?.enabled);
 }
 
 export function isModuleUiVisible(status: InstallStatusSnapshot | null | undefined, moduleCode: string) {
-  const moduleInfo = status?.modules?.find((item) => item.code === moduleCode);
-  if (!moduleInfo) return false;
+  const normalizedCode = normalizeModuleCode(moduleCode);
+  const moduleInfo = status?.modules?.find((item) => normalizeModuleCode(item.code) === normalizedCode);
+  if (!moduleInfo) return isModuleMandatoryByDefault(normalizedCode);
   return Boolean(moduleInfo.enabled && (moduleInfo.ui_visible ?? true));
 }
 
@@ -121,7 +141,9 @@ export function useInstallStatus() {
   return {
     status,
     loading,
-    c3Enabled: isModuleEnabled(status, 'C3_TAXONOMY'),
-    c3Visible: isModuleUiVisible(status, 'C3_TAXONOMY'),
+    c3Enabled: isModuleEnabled(status, MODULE_CODES.C3),
+    c3Visible: isModuleUiVisible(status, MODULE_CODES.C3),
+    serviceCatalogueVisible: isModuleUiVisible(status, MODULE_CODES.SERVICE_CATALOGUE),
+    managementVisible: isModuleUiVisible(status, MODULE_CODES.MANAGEMENT),
   };
 }

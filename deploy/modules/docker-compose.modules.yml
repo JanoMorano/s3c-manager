@@ -1,0 +1,63 @@
+# Module build/deploy units for module-scoped runtime instances.
+#
+# These services intentionally share the same Dockerfile and image context, but
+# each service starts with S3C_ACTIVE_MODULES so only the selected API module is
+# mounted in that runtime instance.
+
+x-s3c-module-build: &s3c-module-build
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  labels:
+    com.s3c.deployable: "module-runtime"
+
+services:
+  module-database-layer:
+    <<: *s3c-module-build
+    image: ${S3C_IMAGE_PREFIX:-s3c-manager}:module-db
+    profiles: ["module-database-layer"]
+    environment:
+      S3C_ACTIVE_MODULES: "DATABASE_LAYER"
+      S3C_MODULE_ROLE: "database-layer"
+    labels:
+      com.s3c.module: "DATABASE_LAYER"
+
+  module-platform-core:
+    <<: *s3c-module-build
+    image: ${S3C_IMAGE_PREFIX:-s3c-manager}:module-core
+    profiles: ["module-platform-core"]
+    environment:
+      S3C_ACTIVE_MODULES: "PLATFORM_CORE"
+      S3C_MODULE_ROLE: "platform-core"
+    labels:
+      com.s3c.module: "PLATFORM_CORE"
+
+  module-service-catalogue:
+    <<: *s3c-module-build
+    image: ${S3C_IMAGE_PREFIX:-s3c-manager}:module-service-catalogue
+    profiles: ["module-service-catalogue"]
+    environment:
+      S3C_ACTIVE_MODULES: "SERVICE_CATALOGUE_CORE"
+      S3C_MODULE_ROLE: "service-catalogue"
+    labels:
+      com.s3c.module: "SERVICE_CATALOGUE_CORE"
+
+  module-c3-taxonomy:
+    <<: *s3c-module-build
+    image: ${S3C_IMAGE_PREFIX:-s3c-manager}:module-c3-taxonomy
+    profiles: ["module-c3-taxonomy"]
+    environment:
+      S3C_ACTIVE_MODULES: "C3_TAXONOMY"
+      S3C_MODULE_ROLE: "c3-taxonomy"
+    labels:
+      com.s3c.module: "C3_TAXONOMY"
+
+  module-management:
+    <<: *s3c-module-build
+    image: ${S3C_IMAGE_PREFIX:-s3c-manager}:module-management
+    profiles: ["module-management"]
+    environment:
+      S3C_ACTIVE_MODULES: "MANAGEMENT"
+      S3C_MODULE_ROLE: "management"
+    labels:
+      com.s3c.module: "MANAGEMENT"

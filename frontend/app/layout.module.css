@@ -696,7 +696,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: 280px;
+  width: 330px;
   height: 30px;
   padding: 0 8px;
   border: 1px solid var(--color-border-default);
@@ -793,7 +793,7 @@
 .commandFooter {
   width: 100%;
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr);
+  grid-template-columns: 120px minmax(0, 1fr);
   gap: var(--space-2);
   align-items: center;
   padding: var(--space-2);
@@ -814,6 +814,9 @@
 .commandGroup code {
   font: var(--text-mono-sm);
   color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .commandGroup span {

@@ -4,12 +4,22 @@
 *.pyc
 *.tsbuildinfo
 *.log
+*.tmp
+*.temp
+Thumbs.db
 coverage/
 backups/
+.cache/
+.npm-cache/
+.turbo/
 
 frontend/.next/
 frontend/node_modules/
+frontend/coverage/
+frontend/playwright-report/
+frontend/blob-report/
 middleware/node_modules/
+middleware/coverage/
 dev/
 
 logs/
@@ -22,6 +32,7 @@ docs/superpowers
 
 # Playwright/runtime test artifacts
 frontend/test-results/
+screenshots/
 
 # Secrets & keys — never commit
 .env

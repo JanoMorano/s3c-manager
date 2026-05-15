@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "deployable": "module-runtime",
+  "units": [
+    {
+      "code": "DATABASE_LAYER",
+      "name": "Database Layer",
+      "profile": "module-database-layer",
+      "db_entrypoint": "backend/db/postgres/modules/database-layer/module.sql",
+      "backend_owner": null,
+      "frontend_owner": null,
+      "active_modules": [
+        "DATABASE_LAYER"
+      ],
+      "image_tag_suffix": "db"
+    },
+    {
+      "code": "PLATFORM_CORE",
+      "name": "Platform Core",
+      "profile": "module-platform-core",
+      "db_entrypoint": "backend/db/postgres/modules/platform-core/module.sql",
+      "backend_owner": "middleware/src/modules/core/routes.js",
+      "frontend_owner": "frontend/features/modules/domain-modules.ts",
+      "active_modules": [
+        "PLATFORM_CORE"
+      ],
+      "image_tag_suffix": "core"
+    },
+    {
+      "code": "SERVICE_CATALOGUE_CORE",
+      "name": "Service Catalogue",
+      "profile": "module-service-catalogue",
+      "db_entrypoint": "backend/db/postgres/modules/service-catalogue/module.sql",
+      "backend_owner": "middleware/src/modules/service-catalogue/routes.js",
+      "frontend_owner": "frontend/features/modules/domain-modules.ts",
+      "active_modules": [
+        "SERVICE_CATALOGUE_CORE"
+      ],
+      "image_tag_suffix": "service-catalogue"
+    },
+    {
+      "code": "C3_TAXONOMY",
+      "name": "C3 Capability Taxonomy",
+      "profile": "module-c3-taxonomy",
+      "db_entrypoint": "backend/db/postgres/modules/c3-taxonomy/module.sql",
+      "backend_owner": "middleware/src/modules/c3-taxonomy/routes.js",
+      "frontend_owner": "frontend/features/modules/domain-modules.ts",
+      "active_modules": [
+        "C3_TAXONOMY"
+      ],
+      "image_tag_suffix": "c3-taxonomy"
+    },
+    {
+      "code": "MANAGEMENT",
+      "name": "Management Cockpit",
+      "profile": "module-management",
+      "db_entrypoint": "backend/db/postgres/modules/management/module.sql",
+      "backend_owner": "middleware/src/modules/management/routes.js",
+      "frontend_owner": "frontend/features/modules/domain-modules.ts",
+      "active_modules": [
+        "MANAGEMENT"
+      ],
+      "image_tag_suffix": "management"
+    }
+  ]
+}

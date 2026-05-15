@@ -21,6 +21,8 @@ import { useRouter } from 'next/navigation';
 import { markInstallReady } from '@/app/components/AuthGuard';
 import { useI18n } from '@/app/i18n/useI18n';
 import type { Locale } from '@/app/i18n/messages';
+import type { InstallModuleInfo } from '@/features/install/installStatus';
+import { MODULE_CODES } from '@/features/modules/manifest';
 import styles from './install.module.css';
 
 // ---------------------------------------------------------------------------
@@ -32,13 +34,10 @@ type InstallStatus = 'NOT_INSTALLED' | 'INSTALL_IN_PROGRESS' | 'CORE_INSTALLED' 
                      'MODULES_CONFIGURED' | 'DATA_IMPORT_IN_PROGRESS' | 'READY' |
                      'INSTALL_FAILED' | 'UPGRADE_REQUIRED' | 'REPAIR_REQUIRED';
 
-interface ModuleInfo {
-  code: string;
-  label: string;
-  is_mandatory: boolean;
-  enabled: boolean;
-  ui_visible?: boolean;
-  api_enabled?: boolean;
+interface ModuleInfo extends Omit<InstallModuleInfo, 'enabled'> {
+  mandatory?: boolean;
+  enabled?: boolean;
+  will_activate?: boolean;
 }
 
 interface InstallStatusResponse {
@@ -49,8 +48,14 @@ interface InstallStatusResponse {
   app_version: string;
   schema_version: string;
   admin_exists: boolean;
-  modules: ModuleInfo[];
+  modules: InstallModuleInfo[];
   db_error?: string;
+}
+
+interface InstallModulesResponse {
+  ok: boolean;
+  modules: ModuleInfo[];
+  error?: string;
 }
 
 interface ConnectivityChecks {
@@ -77,7 +82,7 @@ interface StepDef {
 // Constants
 // ---------------------------------------------------------------------------
 
-const STEPS: StepDef[] = [
+const INSTALL_WIZARD_MANIFEST: StepDef[] = [
   { id: 'welcome',     label: 'install.step.welcome' },
   { id: 'setup-token', label: 'install.step.setup_token' },
   { id: 'config',      label: 'install.step.config' },
@@ -163,6 +168,9 @@ export default function InstallPage() {
 
   // Step 7 — modules and optional demo seed
   const [activateC3, setActivateC3] = useState(false);
+  const [modulePlan, setModulePlan] = useState<ModuleInfo[]>([]);
+  const [modulePlanLoading, setModulePlanLoading] = useState(false);
+  const [modulePlanError, setModulePlanError] = useState<string | null>(null);
   const [seedDemoData, setSeedDemoData] = useState(false);
 
   // Step 8 — execute
@@ -193,6 +201,14 @@ export default function InstallPage() {
   useEffect(() => {
     fetchInstallStatus();
   }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
+
+  /* eslint-disable react-hooks/exhaustive-deps -- U5: module plan is loaded from installer API whenever the wizard enters module selection or C3 changes. */
+  useEffect(() => {
+    if (step === STEP_INDEX.modules) {
+      void fetchModulePlan(activateC3);
+    }
+  }, [step, activateC3]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   async function fetchInstallStatus() {
@@ -231,9 +247,9 @@ export default function InstallPage() {
     setErrorSteps(prev => new Set([...prev, stepIdx]));
   }
 
-  function goNext() {
+function goNext() {
     markDone(step);
-    setStep(s => Math.min(s + 1, STEPS.length - 1));
+    setStep(s => Math.min(s + 1, INSTALL_WIZARD_MANIFEST.length - 1));
   }
 
   function installRequestHeaders(): HeadersInit {
@@ -382,6 +398,30 @@ export default function InstallPage() {
     }
   }
 
+  async function fetchModulePlan(nextActivateC3 = activateC3) {
+    setModulePlanLoading(true);
+    setModulePlanError(null);
+    try {
+      const res = await fetch('/api/v1/install/modules', {
+        method: 'POST',
+        headers: installRequestHeaders(),
+        body: JSON.stringify({ activate_c3: nextActivateC3 }),
+      });
+      const data: InstallModulesResponse = await res.json();
+      if (!res.ok || !data.ok || !Array.isArray(data.modules)) {
+        setModulePlanError(data.error || t('install.page.modules.load_failed'));
+        return [];
+      }
+      setModulePlan(data.modules);
+      return data.modules;
+    } catch {
+      setModulePlanError(t('install.page.modules.load_failed'));
+      return [];
+    } finally {
+      setModulePlanLoading(false);
+    }
+  }
+
   function validateAdminForm(): boolean {
     const errors: Partial<Record<string, string>> = {};
     if (!adminForm.username.trim()) errors.username = t('install.page.admin.validation.required');
@@ -475,7 +515,7 @@ export default function InstallPage() {
 
       logMsg(t('install.page.execute.log.loading_report'));
       setExecuteProgress(95);
-      let readyModules: ModuleInfo[] = [];
+      let readyModules: InstallModuleInfo[] = [];
       if (data.summary) {
         setSummary(data.summary);
         readyModules = Array.isArray(data.summary.modules) ? data.summary.modules : [];
@@ -529,6 +569,100 @@ export default function InstallPage() {
         <span className={styles.checkIcon}>{icon}</span>
         <span className={styles.checkLabel}>{label}</span>
         {detail && <span className={styles.checkDetail}>{detail}</span>}
+      </div>
+    );
+  }
+
+  function isMandatoryModule(module: ModuleInfo) {
+    return module.is_mandatory === true || module.mandatory === true;
+  }
+
+  function isC3Module(module: ModuleInfo) {
+    return module.code === MODULE_CODES.C3;
+  }
+
+  function isSelectableModule(module: ModuleInfo) {
+    return !isMandatoryModule(module) && isC3Module(module);
+  }
+
+  function resolveModuleWillActivate(module: ModuleInfo) {
+    if (isMandatoryModule(module)) return true;
+    if (isC3Module(module)) return activateC3;
+    return module.will_activate === true || module.enabled === true;
+  }
+
+  function moduleDescription(module: ModuleInfo) {
+    const details = [
+      module.kind ? `${t('install.page.modules.kind')}: ${module.kind}` : null,
+      (module.depends_on?.length ?? 0) > 0
+        ? `${t('install.page.modules.dependencies')}: ${module.depends_on?.join(', ')}`
+        : t('install.page.modules.no_dependencies'),
+      (module.db_slices?.length ?? 0) > 0
+        ? `${t('install.page.modules.db_slices')}: ${module.db_slices?.length}`
+        : null,
+      (module.api_route_prefixes?.length ?? 0) > 0
+        ? `${t('install.page.modules.api_routes')}: ${module.api_route_prefixes?.length}`
+        : null,
+      (module.ui_route_prefixes?.length ?? 0) > 0
+        ? `${t('install.page.modules.ui_routes')}: ${module.ui_route_prefixes?.length}`
+        : null,
+      (module.optional_integrations?.length ?? 0) > 0
+        ? `${t('install.page.modules.optional_integrations')}: ${module.optional_integrations?.join(', ')}`
+        : null,
+    ].filter(Boolean);
+
+    return details.join(' | ');
+  }
+
+  function setModuleActivation(module: ModuleInfo, selected: boolean) {
+    if (isC3Module(module)) {
+      setActivateC3(selected);
+    }
+  }
+
+  function plannedInstallModules(): ModuleInfo[] {
+    if (modulePlan.length > 0) return modulePlan;
+    return installInfo?.modules ?? [];
+  }
+
+  function renderModuleCard(module: ModuleInfo) {
+    const mandatory = isMandatoryModule(module);
+    const selected = resolveModuleWillActivate(module);
+    const selectable = isSelectableModule(module);
+    const cardClass = [
+      styles.moduleCard,
+      mandatory ? styles.mandatory : '',
+      selected && !mandatory ? styles.selected : '',
+    ].filter(Boolean).join(' ');
+
+    return (
+      <div
+        key={module.code}
+        className={cardClass}
+        onClick={selectable ? () => setModuleActivation(module, !selected) : undefined}
+        style={selectable ? { cursor: 'pointer' } : undefined}
+      >
+        <div className={styles.moduleToggle}>
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={!selectable}
+            onChange={e => setModuleActivation(module, e.target.checked)}
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+        <div className={styles.moduleInfo}>
+          <div className={styles.moduleTitle}>
+            {module.label || module.code}
+            <span className={styles.moduleCode}>{module.code}</span>
+            <span className={styles.moduleMandatoryBadge}>
+              {mandatory ? t('common.mandatory') : t('common.optional')}
+            </span>
+          </div>
+          <div className={styles.moduleDesc}>
+            {moduleDescription(module)}
+          </div>
+        </div>
       </div>
     );
   }
@@ -760,7 +894,9 @@ export default function InstallPage() {
 
         <div className={styles.actions}>
           <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
-          <button className={styles.btnPrimary} onClick={goNext}>{t('common.continue')} →</button>
+          <button className={styles.btnPrimary} onClick={goNext}>
+            {t('common.continue')} →
+          </button>
         </div>
       </>
     );
@@ -935,6 +1071,8 @@ export default function InstallPage() {
   }
 
   function renderStep5_Modules() {
+    const modules = plannedInstallModules();
+
     return (
       <>
         <h1 className={styles.panelTitle}>{t('install.page.modules.title')}</h1>
@@ -942,41 +1080,18 @@ export default function InstallPage() {
           {t('install.page.modules.subtitle')}
         </p>
 
-        <div className={styles.moduleGrid}>
-          <div className={`${styles.moduleCard} ${styles.mandatory}`}>
-            <div className={styles.moduleToggle}>
-              <input type="checkbox" checked disabled />
-            </div>
-            <div className={styles.moduleInfo}>
-              <div className={styles.moduleTitle}>
-                {t('install.page.modules.service_catalogue_core')}
-                <span className={styles.moduleMandatoryBadge}>{t('common.mandatory')}</span>
-              </div>
-              <div className={styles.moduleDesc}>
-                {t('install.page.modules.core_desc')}
-              </div>
-            </div>
-          </div>
+        {modulePlanLoading && (
+          <Alert type="info">
+            <Spinner dark /> {t('install.page.modules.loading')}
+          </Alert>
+        )}
 
-          <div
-            className={`${styles.moduleCard} ${activateC3 ? styles.selected : ''}`}
-            onClick={() => setActivateC3(v => !v)}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className={styles.moduleToggle}>
-              <input
-                type="checkbox"
-                checked={activateC3}
-                onChange={e => setActivateC3(e.target.checked)}
-              />
-            </div>
-            <div className={styles.moduleInfo}>
-              <div className={styles.moduleTitle}>{t('install.page.modules.c3_taxonomy')}</div>
-              <div className={styles.moduleDesc}>
-                {t('install.page.modules.c3_desc')}
-              </div>
-            </div>
-          </div>
+        {modulePlanError && (
+          <Alert type="error">{modulePlanError}</Alert>
+        )}
+
+        <div className={styles.moduleGrid}>
+          {modules.map(renderModuleCard)}
         </div>
 
         <div className={styles.packageList}>
@@ -1009,13 +1124,21 @@ export default function InstallPage() {
 
         <div className={styles.actions}>
           <button className={styles.btnSecondary} onClick={goBack}>{t('common.back')}</button>
-          <button className={styles.btnPrimary} onClick={goNext}>{t('common.continue')} →</button>
+          <button
+            className={styles.btnPrimary}
+            onClick={goNext}
+            disabled={modulePlanLoading || !!modulePlanError || modules.length === 0}
+          >
+            {t('common.continue')} →
+          </button>
         </div>
       </>
     );
   }
 
   function renderStep6_Execute() {
+    const modules = plannedInstallModules();
+
     return (
       <>
         <h1 className={styles.panelTitle}>{t('install.page.execute_title')}</h1>
@@ -1025,9 +1148,13 @@ export default function InstallPage() {
 
         {!executing && !completedSteps.has(STEP_INDEX.execute) && (
           <div className={styles.checkList}>
-            {renderConnCheck(t('install.page.modules.service_catalogue_core'), true, t('install.page.execute.will_be_activated'))}
-            {renderConnCheck(t('install.page.modules.c3_taxonomy'), activateC3 ? undefined : true,
-              activateC3 ? t('install.page.execute.will_be_activated') : t('install.page.execute.skipped'))}
+            {modules.map(module => renderConnCheck(
+              module.label || module.code,
+              true,
+              resolveModuleWillActivate(module)
+                ? t('install.page.execute.will_be_activated')
+                : t('install.page.execute.skipped'),
+            ))}
             {renderConnCheck(t('install.page.execute.admin_account'), installInfo?.admin_exists || !!adminForm.username, t('install.page.execute.ready'))}
             {renderConnCheck(t('install.page.execute.release_metadata'), true, `v${installInfo?.app_version}`)}
           </div>
@@ -1144,17 +1271,17 @@ export default function InstallPage() {
   // Step dispatch
   // ---------------------------------------------------------------------------
 
-  const STEP_RENDERERS = [
-    renderStep0_Welcome,
-    renderStep1_SetupToken,
-    renderStep2_Config,
-    renderStep2_Secrets,
-    renderStep3_Admin,
-    renderStep4_Connectivity,
-    renderStep5_Modules,
-    renderStep6_Execute,
-    renderStep7_Summary,
-  ];
+  const STEP_RENDERERS: Record<string, () => React.ReactNode> = {
+    welcome: renderStep0_Welcome,
+    'setup-token': renderStep1_SetupToken,
+    config: renderStep2_Config,
+    secrets: renderStep2_Secrets,
+    admin: renderStep3_Admin,
+    connectivity: renderStep4_Connectivity,
+    modules: renderStep5_Modules,
+    execute: renderStep6_Execute,
+    summary: renderStep7_Summary,
+  };
 
   // ---------------------------------------------------------------------------
   // Loading state
@@ -1181,7 +1308,7 @@ export default function InstallPage() {
     <div className={styles.shell}>
       <div className={styles.header}>
         <span className={styles.headerLogo}>{t('home.title')}</span>
-        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.2'}</span>
+        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.2.2'}</span>
       </div>
 
       <div className={styles.main}>
@@ -1189,7 +1316,7 @@ export default function InstallPage() {
         <nav className={styles.stepper}>
           <div className={styles.stepperTitle}>{t('install.wizard_title')}</div>
           <ul className={styles.stepList}>
-            {STEPS.map((s, idx) => {
+            {INSTALL_WIZARD_MANIFEST.map((s, idx) => {
               const st = stepStatus(idx);
               return (
                 <li key={s.id} className={`${styles.stepItem} ${styles[st]}`}>
@@ -1207,7 +1334,7 @@ export default function InstallPage() {
             <Alert type="error">{globalError}</Alert>
           )}
           <div className={styles.panel}>
-            {STEP_RENDERERS[step]?.()}
+            {STEP_RENDERERS[INSTALL_WIZARD_MANIFEST[step]?.id]?.()}
           </div>
         </div>
       </div>

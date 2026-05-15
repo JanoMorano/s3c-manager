@@ -12,6 +12,7 @@ const audit   = require('../db/audit.repo');
 const { requireAuth } = require('../middleware/auth');
 const { canEdit, canAdmin } = require('../middleware/rbac');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
+const { MODULE_CODES } = require('../modules/manifest');
 const {
     validateCreate,
     validateUpdate,
@@ -380,7 +381,7 @@ router.get('/:id/360', async (req, res, next) => {
 
         if (!service && !overview) return res.status(404).json({ error: 'Služba nenalezena' });
 
-        const c3Enabled = await isModuleApiEnabled('C3_TAXONOMY');
+        const c3Enabled = await isModuleApiEnabled(MODULE_CODES.C3);
         const [relations, c3Mappings] = await Promise.all([
             relRepo.findByService(serviceId),
             c3Enabled ? getPool().query(`
@@ -972,7 +973,7 @@ router.post('/:id/preview-mapping', canEdit, async (req, res, next) => {
 // Returns all C3 taxonomy mappings for the selected service, not only the primary one.
 router.get('/:id/c3-mappings', async (req, res, next) => {
     try {
-        const c3Enabled = await isModuleApiEnabled('C3_TAXONOMY');
+        const c3Enabled = await isModuleApiEnabled(MODULE_CODES.C3);
         if (!c3Enabled) {
             return res.json({ mappings: [] });
         }

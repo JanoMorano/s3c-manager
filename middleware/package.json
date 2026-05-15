@@ -1,6 +1,6 @@
 {
   "name": "service-catalogue-middleware",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "Czech Army Service Catalogue — Node.js/Express Middleware",
   "main": "src/server.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "lint": "eslint src/",
+    "lint:modules": "node ../scripts/validate-module-boundaries.mjs",
     "migrate": "node ../backend/migrations/005_sp_migration.js"
   },
   "dependencies": {

@@ -4,6 +4,7 @@ const NodeCache  = require('node-cache');
 const { getPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
+const { MODULE_CODES } = require('../modules/manifest');
 const config = require('../config');
 
 const router = express.Router();
@@ -16,7 +17,7 @@ async function loadDashboardStats() {
     const cached = cache.get(CACHE_KEY);
     if (cached) return { ...cached, _cached: true };
 
-    const c3Enabled = await isModuleApiEnabled('C3_TAXONOMY');
+    const c3Enabled = await isModuleApiEnabled(MODULE_CODES.C3);
 
     const [stats, byType, byPortfolio, byDomain, byOwner, expensiveFlavours, c3Coverage, byLifecycle] = await Promise.all([
         getPool().query(`

@@ -1,7 +1,7 @@
 # TypeScript migration assessment
 
 Date: 2026-05-14
-Version context: S3C Manager 1.2.1 worktree
+Version context: S3C Manager 1.2.2 worktree
 
 ## What was safely converted now
 
@@ -68,7 +68,7 @@ The application is already TypeScript-first on the frontend. The only safe immed
 
 ### Decision
 
-TypeScript migration has clear architectural value for a modern S3C Manager, but it should be treated as a controlled platform-modernization track after the current v1.2.1 stabilization, not as another reduction task and not as a one-shot rename of JavaScript files.
+TypeScript migration has clear architectural value for a modern S3C Manager, but it should be treated as a controlled platform-modernization track after the current v1.2.2 stabilization, not as another reduction task and not as a one-shot rename of JavaScript files.
 
 Recommended decision: proceed later in staged form, starting with middleware typecheck/build infrastructure and low-coupling utility modules. Do not convert the full middleware runtime until Docker startup, Jest, linting and production packaging run from compiled output.
 
@@ -149,4 +149,4 @@ The migration should be considered successful only when:
 
 ### Final recommendation
 
-Yes, this work has meaning for a modern application, especially for long-term governance, security and maintainability. It should not be done immediately as a broad conversion during v1.2.1 cleanup. The right timing is after v1.2.1 commit/release readiness, as a separate hardening roadmap with small safe milestones and rollback points.
+Yes, this work has meaning for a modern application, especially for long-term governance, security and maintainability. It should not be done immediately as a broad conversion during v1.2.2 cleanup. The right timing is after v1.2.2 commit/release readiness, as a separate hardening roadmap with small safe milestones and rollback points.

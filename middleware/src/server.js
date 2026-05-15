@@ -12,37 +12,22 @@ const logger  = require('./utils/logger');
 const { attachRequestContext, sanitizeUrlForLog } = require('./utils/request-context');
 const { initDb, closePools, getPool } = require('./db/pool');
 const { startRetentionScheduler, stopRetentionScheduler } = require('./services/retention');
-const { requireModuleApiEnabled } = require('./middleware/module-gates');
+const { invalidateModuleStatus, requireModuleApiEnabled } = require('./middleware/module-gates');
 const { tReq } = require('./utils/i18n');
 const { assertProductionSecrets, isWeakJwtSecret } = require('./utils/security-config');
-
-// Routes
-const authRoutes      = require('./routes/auth');
-const installRoutes   = require('./routes/install');
-const servicesRoutes  = require('./routes/services');
-const flavoursRoutes  = require('./routes/flavours');
-const relationsRoutes = require('./routes/relations');
-const statsRoutes     = require('./routes/stats');
-const dashboardRoutes = require('./routes/dashboard');
-const { router: capabilitiesRoutes } = require('./routes/capabilities');
-const spiralsRoutes   = require('./routes/spirals');
-const taxonomyRoutes  = require('./routes/taxonomy');
-const importRoutes    = require('./routes/import');
-const adminRoutes     = require('./routes/admin');
-const graphRoutes     = require('./routes/graph');
-const exportRoutes    = require('./routes/exports');
-const searchRoutes    = require('./routes/search');
-const governanceRoutes = require('./routes/governance');
-const portfolioRoutes = require('./routes/portfolio');
-const readinessRoutes = require('./routes/readiness');
-const impactRoutes    = require('./routes/impact');
-const { router: refRoutes }  = require('./routes/ref');
-const { router: capLinksRoutes } = require('./routes/capability-links');
-const groupsRoutes = require('./routes/groups');
+const { MODULE_CODES } = require('./modules/manifest');
+const { buildApiRouteGroups, mountApiRouteGroups } = require('./modules/api-route-groups');
+const { parseActiveModuleCodes } = require('./modules/module-runtime');
 const installSvc      = require('./services/install.service');
 
 const app = express();
-const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', (req) => tReq(req, 'taxonomy.errors.module_inactive'));
+
+function buildModuleGate(moduleCode) {
+    const message = moduleCode === MODULE_CODES.C3
+        ? (req) => tReq(req, 'taxonomy.errors.module_inactive')
+        : undefined;
+    return requireModuleApiEnabled(moduleCode, message);
+}
 
 // Important for reverse proxy setups (nginx, Docker, Kubernetes)
 app.set('trust proxy', 1);
@@ -124,31 +109,9 @@ app.use('/api/', rateLimit({
     message: { error: 'Příliš mnoho požadavků. Zkuste to znovu za chvíli.' }
 }));
 
-// Install wizard — always available (before and after installation)
-app.use('/api/v1/install',   installRoutes);
-
-app.use('/api/v1/auth',      authRoutes);
-app.use('/api/v1/services',  servicesRoutes);
-app.use('/api/v1/flavours',  flavoursRoutes);
-app.use('/api/v1/relations', relationsRoutes);
-app.use('/api/v1/stats',     statsRoutes);
-app.use('/api/v1/dashboard', dashboardRoutes);
-app.use('/api/v1/capabilities', capabilitiesRoutes);
-app.use('/api/v1/spirals',   spiralsRoutes);
-app.use('/api/v1/taxonomy',  taxonomyRoutes);
-app.use('/api/v1/import',    importRoutes);
-app.use('/api/v1/admin',     adminRoutes);
-app.use('/api/v1/admin',     groupsRoutes);
-app.use('/api/v1/graph',     graphRoutes);
-app.use('/api/v1/export',    exportRoutes);
-app.use('/api/v1/search',    searchRoutes);
-app.use('/api/v1/governance', governanceRoutes);
-app.use('/api/v1/portfolio', portfolioRoutes);
-app.use('/api/v1/readiness', readinessRoutes);
-app.use('/api/v1/impact',    impactRoutes);
-app.use('/api/v1/ref',       refRoutes);
-// capability links: /api/v1/taxonomy/c3/:uuid/links/*
-app.use('/api/v1/taxonomy/c3/:uuid/links', requireC3ModuleApiEnabled, capLinksRoutes);
+// API route groups are mounted through the module manifest boundary.
+const activeModuleCodes = parseActiveModuleCodes(process.env.S3C_ACTIVE_MODULES);
+mountApiRouteGroups(app, buildApiRouteGroups({ moduleGate: buildModuleGate, activeModules: activeModuleCodes }));
 
 function respondLive(req, res) {
     res.json({ status: 'ok', uptime: process.uptime(), request_id: req.id });
@@ -352,6 +315,13 @@ function logRuntimeSecurityWarnings() {
 async function start() {
     assertProductionSecrets(config);
     await initDb(); // internally calls process.exit(1) on failure
+    try {
+        const { getPlatformPool } = require('./db/pool');
+        await installSvc.ensureManifestModulesRegistered(getPlatformPool());
+        invalidateModuleStatus();
+    } catch (err) {
+        logger.warn(`module registry sync failed: ${err.message}`);
+    }
     logRuntimeSecurityWarnings();
     await clearStaleLockOnStartup(); // release stale lock before any other step
     // Upgrade detection — explicit on startup, not a read-side effect

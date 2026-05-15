@@ -15,6 +15,7 @@ const PROTECTED_PATH_PREFIXES = [
   '/management',
   '/operations',
   '/portfolio',
+  '/search',
   '/spirals',
   '/services',
   '/user-info',
@@ -91,17 +92,6 @@ async function isValidSessionToken(token: string | undefined, nowSeconds = Math.
   }
 }
 
-function legacySearchRedirect(request: NextRequest) {
-  const nextUrl = request.nextUrl.clone();
-  const term = nextUrl.searchParams.get('query')
-    ?? nextUrl.searchParams.get('q')
-    ?? nextUrl.searchParams.get('search');
-  nextUrl.pathname = '/services/list';
-  nextUrl.search = '';
-  if (term?.trim()) nextUrl.searchParams.set('search', term.trim());
-  return NextResponse.redirect(nextUrl, 307);
-}
-
 function loginRedirect(request: NextRequest, normalizedPath: string) {
   const nextUrl = request.nextUrl.clone();
   nextUrl.pathname = '/login';
@@ -113,10 +103,6 @@ function loginRedirect(request: NextRequest, normalizedPath: string) {
 }
 
 export async function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === '/search') {
-    return legacySearchRedirect(request);
-  }
-
   const normalizedPath = normalizeLegacyC3Path(request.nextUrl.pathname);
   if (normalizedPath !== request.nextUrl.pathname) {
     const nextUrl = request.nextUrl.clone();

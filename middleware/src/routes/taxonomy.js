@@ -6,6 +6,7 @@ const { getPool, getPlatformPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { canAdmin, canEdit } = require('../middleware/rbac');
 const { requireModuleApiEnabled } = require('../middleware/module-gates');
+const { MODULE_CODES } = require('../modules/manifest');
 const { logTaxonomyMappingChange } = require('../db/audit.repo');
 const { recordMembershipBatch } = require('../db/spiral-membership.repo');
 const { parseCsvFilter, parseTextFilter, parseIntFilter } = require('../utils/query-filters');
@@ -35,7 +36,7 @@ const { tReq } = require('../utils/i18n');
 const { _private: capabilityCoverageEngine } = require('./capabilities');
 
 const router = express.Router();
-const requireC3ModuleApiEnabled = requireModuleApiEnabled('C3_TAXONOMY', (req) => tReq(req, 'taxonomy.errors.module_inactive'));
+const requireC3ModuleApiEnabled = requireModuleApiEnabled(MODULE_CODES.C3, (req) => tReq(req, 'taxonomy.errors.module_inactive'));
 
 const cache = new NodeCache({ stdTTL: config.cache.c3TaxonomyTtl });
 const ALLOWED_C3_ITEM_TYPES = ['BP', 'BR', 'CI', 'CO', 'CP', 'CR', 'IP', 'UA', 'OTHER'];

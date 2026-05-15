@@ -1,12 +1,13 @@
 {
   "name": "service-catalogue-frontend",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
+    "lint:modules": "node ../scripts/validate-module-boundaries.mjs",
     "lint:i18n": "node scripts/i18n-audit.mjs --check",
     "i18n:translate-cs": "node scripts/translate-generated-cs.mjs",
     "lint:styles": "node scripts/lint-styles.mjs",
@@ -39,6 +40,9 @@
     "tailwindcss": "^4.2.4",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
