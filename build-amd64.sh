@@ -5,14 +5,15 @@
 # Post-migration architecture: ONE app container (Next.js + Express together)
 #                              + a separate postgres container (from Docker Hub)
 #
-# Version is read automatically from docker-compose.yml (APP_VERSION default).
+# Version is read automatically from active docs first, then docker-compose.yml.
 # Output filenames include the version, e.g.:
-#   - s3c-manager.v1.2.tar
-#   - s3c-manager.v1.2.tar.gz
+#   - s3c-manager.v1.2.2.tar
+#   - s3c-manager.v1.2.2.tar.gz
 #
 # Usage:
 #   chmod +x build-amd64.sh
-#   ./build-amd64.sh                      # auto-detects version from docker-compose.yml
+#   ./build-amd64.sh                      # auto-detects version from docs/installation.md
+#   ./build-amd64.sh --print-version      # show detected version and exit
 #   ./build-amd64.sh --tag v1.0.3         # override version tag
 #   ./build-amd64.sh --release            # build + create GitHub release
 #   ./build-amd64.sh --no-cache           # clean build without cache
@@ -23,34 +24,82 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ── Auto-detect version from APP_VERSION / docker-compose.yml ────────────────
-# Reads the default value of APP_VERSION, e.g.: APP_VERSION: ${APP_VERSION:-1.2.2}
-detect_app_version() {
-  if [ -n "${APP_VERSION:-}" ]; then
-    printf '%s\n' "$APP_VERSION"
-    return
+# ── Auto-detect version from APP_VERSION / docs / docker-compose.yml ─────────
+# Docs are the product handover source. Compose remains a runtime fallback.
+DETECTED_VERSION_SOURCE=""
+
+is_valid_version() {
+  [[ "${1:-}" =~ ^[A-Za-z0-9_.-]+$ ]]
+}
+
+detect_version_from_docs() {
+  local version
+
+  if [ -f "docs/installation.md" ]; then
+    version="$(awk -F'|' '
+      $2 ~ /^[[:space:]]*Application release[[:space:]]*$/ {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3);
+        gsub(/^`|`$/, "", $3);
+        sub(/^v/, "", $3);
+        print $3;
+        exit;
+      }
+    ' docs/installation.md)"
+    if is_valid_version "$version"; then
+      DETECTED_VERSION_SOURCE="docs/installation.md"
+      printf '%s\n' "$version"
+      return
+    fi
   fi
 
-  if [ ! -f "docker-compose.yml" ]; then
-    return
+  if [ -d "docs/releases" ]; then
+    version="$(find docs/releases -maxdepth 1 -type f -name 'v*.md' -exec basename {} .md \; \
+      | sed -E 's/^v//' \
+      | grep -E '^[0-9]+([.][0-9]+){1,2}([.-][A-Za-z0-9]+)?$' \
+      | sort -V \
+      | tail -1 || true)"
+    if is_valid_version "$version"; then
+      DETECTED_VERSION_SOURCE="docs/releases"
+      printf '%s\n' "$version"
+      return
+    fi
   fi
+}
+
+detect_version_from_compose() {
+  [ -f "docker-compose.yml" ] || return
 
   local line value
   line="$(grep -E '^[[:space:]]*APP_VERSION:[[:space:]]*' docker-compose.yml | head -1 || true)"
   [ -n "$line" ] || return
 
-  value="$(printf '%s\n' "$line" | sed -E 's/.*\$\{APP_VERSION:-([^}]+)\}.*/\1/')"
-  if [ "$value" = "$line" ]; then
-    value="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*APP_VERSION:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')"
+  value="$(printf '%s\n' "$line" | sed -nE 's/.*[$][{]APP_VERSION:-([^}]+)[}].*/\1/p')"
+  if [ -z "$value" ]; then
+    value="$(printf '%s\n' "$line" | sed -nE 's/^[[:space:]]*APP_VERSION:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/p')"
   fi
 
-  printf '%s\n' "$value"
+  if is_valid_version "$value"; then
+    DETECTED_VERSION_SOURCE="docker-compose.yml"
+    printf '%s\n' "$value"
+  fi
+}
+
+detect_app_version() {
+  if [ -n "${APP_VERSION:-}" ]; then
+    DETECTED_VERSION_SOURCE="APP_VERSION environment"
+    printf '%s\n' "$APP_VERSION"
+    return
+  fi
+
+  detect_version_from_docs && return
+  detect_version_from_compose && return
 }
 
 DETECTED_VERSION="$(detect_app_version)"
-if ! [[ "$DETECTED_VERSION" =~ ^[A-Za-z0-9_.-]+$ ]]; then
-  echo "⚠ Could not detect APP_VERSION from docker-compose.yml — falling back to 'latest'"
+if ! is_valid_version "$DETECTED_VERSION"; then
+  echo "⚠ Could not detect version from APP_VERSION, docs, or docker-compose.yml — falling back to 'latest'"
   DETECTED_VERSION="latest"
+  DETECTED_VERSION_SOURCE="fallback"
 fi
 
 # ── Parameters ────────────────────────────────────────────────────────────────
@@ -61,6 +110,7 @@ IMAGE_TAG="${TAG:-${DETECTED_VERSION}}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-alpine}"
 NO_CACHE=""
 DO_RELEASE=false
+PRINT_VERSION=false
 # Output names are set after argument parsing so --tag can still override them
 OUTPUT_TAR_OVERRIDE=""
 BUNDLE_TAR_OVERRIDE=""
@@ -92,12 +142,21 @@ while [ "$#" -gt 0 ]; do
       DO_RELEASE=true
       shift
       ;;
+    --print-version)
+      PRINT_VERSION=true
+      shift
+      ;;
     *)
       echo "❌ Unknown parameter: $1"
       exit 1
       ;;
   esac
 done
+
+if [ "$PRINT_VERSION" = true ]; then
+  printf '%s\n' "$IMAGE_TAG"
+  exit 0
+fi
 
 # Derive versioned, arch-stamped filenames (can be overridden via --output / --bundle)
 OUTPUT_TAR="${OUTPUT_TAR_OVERRIDE:-s3c-manager.v${IMAGE_TAG}.tar}"
@@ -138,7 +197,7 @@ fi
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "════════════════════════════════════════════════"
 echo "  Service Catalogue — $(echo "$ARCH" | tr '[:lower:]' '[:upper:]') image build"
-echo "  Version   : $IMAGE_TAG  (from docker-compose.yml: $DETECTED_VERSION)"
+echo "  Version   : $IMAGE_TAG  (detected: $DETECTED_VERSION from $DETECTED_VERSION_SOURCE)"
 echo "  Platform  : $PLATFORM"
 echo "  Image     : $FULL_IMAGE"
 echo "  PostgreSQL: $POSTGRES_IMAGE"
@@ -191,10 +250,18 @@ echo ""
 echo "▶ Preparing deployment bundle ${BUNDLE_TAR}..."
 TMP_DIR="$(mktemp -d)"
 
-# Inject the deployable image tag into the env example.
-sed "s/^SC_APP_TAG=.*/SC_APP_TAG=${DEPLOY_IMAGE_TAG}/" .env.qnap > "$TMP_DIR/.env.qnap"
+# Inject the docs-detected release into deployment files copied to the bundle.
+sed \
+  -e "s/^SC_APP_TAG=.*/SC_APP_TAG=${DEPLOY_IMAGE_TAG}/" \
+  -e "s/^APP_VERSION=.*/APP_VERSION=${IMAGE_TAG}/" \
+  .env.qnap > "$TMP_DIR/.env.qnap"
 
-cp portainer-stack.yml "$TMP_DIR/portainer-stack.yml"
+sed \
+  -e "s/default: [A-Za-z0-9_.-]*-amd64/default: ${DEPLOY_IMAGE_TAG}/" \
+  -e "s/sc-app:\${SC_APP_TAG:-[A-Za-z0-9_.-]*-amd64}/sc-app:\${SC_APP_TAG:-${DEPLOY_IMAGE_TAG}}/" \
+  -e "s/APP_VERSION: \${APP_VERSION:-[A-Za-z0-9_.-]*}/APP_VERSION: \${APP_VERSION:-${IMAGE_TAG}}/" \
+  -e "s/com.service-catalogue.version: \"\${SC_APP_TAG:-[A-Za-z0-9_.-]*-amd64}\"/com.service-catalogue.version: \"\${SC_APP_TAG:-${DEPLOY_IMAGE_TAG}}\"/" \
+  portainer-stack.yml > "$TMP_DIR/portainer-stack.yml"
 cp "$OUTPUT_TAR"       "$TMP_DIR/${OUTPUT_TAR}"
 
 tar -czf "$BUNDLE_TAR" -C "$TMP_DIR" .
@@ -204,8 +271,8 @@ BUNDLE_SIZE=$(du -sh "$BUNDLE_TAR" | cut -f1)
 
 # ── GitHub release (optional) ─────────────────────────────────────────────────
 if [ "$DO_RELEASE" = true ]; then
-  # Git tag uses the plain version (with optional leading v), e.g. v1.2
-# The image tag has the arch suffix (sc-app:1.2.2-amd64) but the release tag does not.
+  # Git tag uses the plain version (with optional leading v), e.g. v1.2.2.
+  # The image tag has the arch suffix (sc-app:1.2.2-amd64) but the release tag does not.
   GIT_TAG="${IMAGE_TAG}"
   # Prepend 'v' if not already present
   [[ "$GIT_TAG" != v* ]] && GIT_TAG="v${GIT_TAG}"
