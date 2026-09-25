@@ -47,8 +47,9 @@
         "15_itil_catalogue_phase1.sql",
         "16_consumer_value.sql",
         "29_reduction_low_risk_cleanup.sql",
-        "30_reduction_domain_model_simplification.sql",
-        "32_final_reduction_sunset_cleanup.sql"
+        "32_final_reduction_sunset_cleanup.sql",
+        "36_service_sla_canonical.sql",
+        "37_offering_request_inheritance.sql"
       ]
     },
     {
@@ -66,7 +67,10 @@
         "17_spiral_membership.sql",
         "19_capability_abbreviations.sql",
         "20_capability_coverage_views.sql",
-        "25_capability_governance.sql"
+        "25_capability_governance.sql",
+        "34_c3_board_state.sql",
+        "38_c3_entity_link_view.sql",
+        "42_c3_entity_link_table.sql"
       ]
     },
     {
@@ -88,7 +92,12 @@
         "24_readiness_rules.sql",
         "26_governance_workflow.sql",
         "27_impact_analysis.sql",
-        "28_enterprise_governance_contracts.sql"
+        "30_reduction_domain_model_simplification.sql",
+        "33_readiness_rule_explanations.sql",
+        "35_canonical_service_fields.sql",
+        "39_drop_legacy_service_mirrors.sql",
+        "40_service_catalog_source.sql",
+        "41_graph_node_layout.sql"
       ]
     }
   ]

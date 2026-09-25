@@ -14,20 +14,20 @@
 #   Either JWT_SECRET or JWT_SECRET_FILE
 #
 # Optional:
-#   SC_APP_TAG          — Docker image tag to deploy  (default: 1.2.2-amd64)
+#   SC_APP_TAG          — Docker image tag to deploy  (default: 1.3.0-amd64)
 #   APP_PORT            — host port for the web UI    (default: 8080)
 # ══════════════════════════════════════════════════════════════════════════════
 
 services:
   app:
-    image: sc-app:${SC_APP_TAG:-1.2.2-amd64}
+    image: sc-app:${SC_APP_TAG:-1.3.0-amd64}
     container_name: sc-app
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:3000"
     environment:
       NODE_ENV: production
-      APP_VERSION: ${APP_VERSION:-1.2.2}
+      APP_VERSION: ${APP_VERSION:-1.3.0}
       DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -47,6 +47,7 @@ services:
       NEXT_PORT: "3000"
       MIDDLEWARE_URL: http://127.0.0.1:4000
       APP_RUN_DB_INIT: ${APP_RUN_DB_INIT:-true}
+      SCHEMA_USE_BASELINE: ${SCHEMA_USE_BASELINE:-true}
       INIT_WITH_TEST_SEEDS: ${INIT_WITH_TEST_SEEDS:-false}
       INIT_WITH_C3_ENTITY_SEEDS: "false"
       INIT_WITH_C3_BASELINE_TAXONOMY_SEED: "false"
@@ -82,7 +83,7 @@ services:
       retries: 3
       start_period: 60s
     labels:
-      com.service-catalogue.version: "${SC_APP_TAG:-1.2.2-amd64}"
+      com.service-catalogue.version: "${SC_APP_TAG:-1.3.0-amd64}"
       com.service-catalogue.component: "app"
 
   postgres:

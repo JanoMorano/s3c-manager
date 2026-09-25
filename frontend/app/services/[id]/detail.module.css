@@ -1208,7 +1208,7 @@
   font-weight: 500;
 }
 .lifecycleBannerDeprecated {
-  background: var(--color-bg-surface)beb;
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface));
   border-bottom: 1px solid var(--color-warning);
   color: var(--color-warning);
 }
@@ -1241,14 +1241,14 @@
 .lifecycleUnderReview  { background: color-mix(in srgb, var(--color-info) 10%, transparent); color: var(--color-info); }
 .lifecycleApproved     { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); }
 .lifecycleLive         { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); border: 1px solid var(--color-success); }
-.lifecycleDeprecated   { background: var(--color-bg-surface)beb; color: var(--color-warning); }
+.lifecycleDeprecated   { background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface)); color: var(--color-warning); }
 .lifecycleRetired      { background: color-mix(in srgb, var(--color-danger) 10%, transparent); color: var(--color-danger); }
 
 /* Phase 6: operational gap warning — requestable service missing support/channel */
 .operationalGap {
   font: var(--text-body-sm);
   color: var(--color-warning);
-  background: var(--color-bg-surface)beb;
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface));
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
@@ -1344,7 +1344,7 @@
   padding: var(--space-3) var(--space-4);
 }
 .reviewCardOverdue { background: color-mix(in srgb, var(--color-danger) 10%, transparent); border-color: var(--color-danger); }
-.reviewCardSoon    { background: var(--color-bg-surface)beb; border-color: var(--color-warning); }
+.reviewCardSoon    { background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface)); border-color: var(--color-warning); }
 .reviewCardLabel   { font: var(--text-label-sm); text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-muted); margin-bottom: var(--space-2); }
 .reviewMeta {
   display: flex;

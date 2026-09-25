@@ -420,7 +420,7 @@
 
 .auditBadge {
   font: var(--text-label-sm);
-  background: var(--color-bg-surface)3f3;
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface));
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-pill);
   padding: 1px var(--space-2);

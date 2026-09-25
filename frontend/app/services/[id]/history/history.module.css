@@ -59,7 +59,7 @@
 .entryDot[data-action="update"]      { border-color: var(--color-action-primary); background: color-mix(in srgb, var(--color-info) 10%, transparent); }
 .entryDot[data-action="soft_delete"] { border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
 .entryDot[data-action="delete"]      { border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
-.entryDot[data-action="restore"]     { border-color: var(--color-warning); background: var(--color-bg-surface)ae6; }
+.entryDot[data-action="restore"]     { border-color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg-surface)); }
 
 .entryContent {
   flex: 1;

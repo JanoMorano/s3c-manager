@@ -19,6 +19,7 @@ jest.mock('../db/service-overview.repo', () => ({
 }));
 jest.mock('../db/audit.repo', () => ({}));
 jest.mock('../services/validation', () => ({
+    targetLifecycleStage: jest.requireActual('../services/validation').targetLifecycleStage,
     validateCreate: () => [],
     validateUpdate: () => [],
     validateOffering: () => [],

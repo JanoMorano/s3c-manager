@@ -1,6 +1,20 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const graphLayoutRepo = require('./graph-layout.repo');
+const { toLifecycleStage } = require('../utils/lifecycle');
+const {
+    SERVICE_STATUS_SQL,
+    LIFECYCLE_STATE_SQL,
+    PRIMARY_SLA_JOIN,
+    SOURCE_JOIN,
+    OVERVIEW_LAYOUT_JOIN,
+    sourceRawSql,
+    canonicalizeServiceInput,
+    resolvePortfolioId,
+    upsertPrimarySla,
+    upsertServiceSource,
+} = require('./service-fields');
 
 const SC_COLUMNS = `
     sc.id,
@@ -9,12 +23,12 @@ const SC_COLUMNS = `
     sc.portfolio_id,
     sp.portfolio_code,
     sp.title AS portfolio_title,
-    sc.portfolio_group_code AS portfolio_group,
-    COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
+    sp.portfolio_code AS portfolio_group,
+    COALESCE(pg.name, sp.title, sp.portfolio_code) AS portfolio_group_name,
     sc.service_type_code AS service_type,
     COALESCE(st.name, sc.service_type_code) AS service_type_name,
-    sc.service_status_code AS service_status,
-    COALESCE(ss.name, sc.service_status_code) AS service_status_name,
+    ${SERVICE_STATUS_SQL} AS service_status,
+    COALESCE(ss.name, ${SERVICE_STATUS_SQL}) AS service_status_name,
     sc.catalogue_version,
     sc.short_description AS summary,
     sc.description AS detailed_description,
@@ -22,40 +36,37 @@ const SC_COLUMNS = `
     COALESCE(gsg.name, sc.global_service_group_code) AS global_service_group_name,
     sc.service_line_code,
     COALESCE(sl.name, sc.service_line_code) AS service_line_name,
-    sc.value_proposition,
     sc.service_features,
-    sc.business_purpose,
-    sc.business_summary,
     sc.consumer_value,
     sc.unit_of_measure,
     sc.charging_basis,
     sc.rate_note,
     sc.ordering_note,
     sc.exclusions,
-    sc.service_area_raw AS service_area,
+    ${sourceRawSql('service_area_raw')} AS service_area,
     sc.security_classification_code AS security_classification,
     (
         SELECT string_agg(sao.domain_code, ',')
         FROM data.service_available_on sao
         WHERE sao.service_id = sc.id
     ) AS available_on,
-    sc.customer_type_json AS customer_type,
+    ${sourceRawSql('customer_type_json')} AS customer_type,
     sc.service_url AS source_url,
-    sc.sla_availability,
-    sc.sla_restoration_hours AS sla_restoration,
-    sc.sla_delivery_days AS sla_delivery,
-    sc.sla_restoration_text,
-    sc.sla_delivery_text,
+    sla.availability_pct AS sla_availability,
+    sla.restoration_hours AS sla_restoration,
+    sla.delivery_days AS sla_delivery,
+    sla.restoration_text AS sla_restoration_text,
+    sla.delivery_text AS sla_delivery_text,
     sc.scope_text,
     sc.operational_notes_raw,
-    sc.support_locations_raw,
-    sc.request_process_raw,
-    sc.support_availability_raw,
-    sc.service_cost_raw,
-    sc.additional_information_raw,
+    ${sourceRawSql('support_locations_raw')} AS support_locations_raw,
+    ${sourceRawSql('request_process_raw')} AS request_process_raw,
+    ${sourceRawSql('support_availability_raw')} AS support_availability_raw,
+    ${sourceRawSql('service_cost_raw')} AS service_cost_raw,
+    ${sourceRawSql('additional_information_raw')} AS additional_information_raw,
     sc.target_audience_summary,
     sc.requestable,
-    sc.lifecycle_state,
+    ${LIFECYCLE_STATE_SQL} AS lifecycle_state,
     sc.lifecycle_stage_code,
     sc.criticality_code,
     sc.review_due_at,
@@ -63,36 +74,35 @@ const SC_COLUMNS = `
     sc.request_channel_url,
     sc.approval_required,
     sc.fulfillment_lead_time_text,
-    sc.service_features_raw,
-    sc.ext_tools_raw,
-    sc.legacy_ssl_mapping_raw,
+    ${sourceRawSql('service_features_raw')} AS service_features_raw,
+    ${sourceRawSql('ext_tools_raw')} AS ext_tools_raw,
+    ${sourceRawSql('legacy_ssl_mapping_raw')} AS legacy_ssl_mapping_raw,
     sc.budget_activity_code,
-    sc.other_info_raw,
-    sc.pricing_note_raw,
+    ${sourceRawSql('other_info_raw')} AS other_info_raw,
+    ${sourceRawSql('pricing_note_raw')} AS pricing_note_raw,
     sc.review_owner_user_id,
-    sc.next_review_due_at,
-    sc.graph_x,
-    sc.graph_y,
-    sc.options_json AS options,
+    gl.x AS graph_x,
+    gl.y AS graph_y,
+    ${sourceRawSql('options_json')} AS options,
     sc.notes_json AS notes,
-    sc.training_refs_json AS training_refs,
+    ${sourceRawSql('training_refs_json')} AS training_refs,
     sc.retired_note,
-    sc.source_local_id,
-    sc.source_sp_id,
-    sc.source_etag,
-    sc.prerequisites_json,
-    sc.dependencies_json,
+    src.source_local_id,
+    src.source_sp_id,
+    src.source_etag,
+    ${sourceRawSql('prerequisites_json')} AS prerequisites_json,
+    ${sourceRawSql('dependencies_json')} AS dependencies_json,
     sc.organizational_element_code,
     sc.is_deleted,
     sc.is_stub,
-    sc.cp_service_type_raw,
-    sc.is_available_status_ambiguous,
+    ${sourceRawSql('cp_service_type_raw')} AS cp_service_type_raw,
+    COALESCE(src.is_available_status_ambiguous, FALSE) AS is_available_status_ambiguous,
     sc.created_at,
     sc.created_by,
     sc.updated_at,
     sc.updated_by,
-    sc.created_at_source,
-    sc.modified_at_source,
+    src.created_at_source,
+    src.modified_at_source,
     sc.completeness_score,
     (
         SELECT display_name
@@ -152,14 +162,6 @@ function parseInteger(value) {
     if (value == null) return null;
     const parsed = parseInt(value, 10);
     return Number.isNaN(parsed) ? null : parsed;
-}
-
-function rawTextIfNonNumeric(value) {
-    if (value == null) return null;
-    if (typeof value === 'number') return null;
-    const normalized = String(value).trim();
-    if (!normalized) return null;
-    return Number.isNaN(parseInt(normalized, 10)) ? normalized : null;
 }
 
 function parseJsonArray(value) {
@@ -246,17 +248,19 @@ async function findAllDirect({
     const domainValues = splitCsv(domain);
     const lifecycleValues = splitCsv(lifecycleState);
     const sortColMap = {
-        service_id: 'service_id',
-        title: 'title',
-        service_status: 'service_status_code',
-        service_type: 'service_type_code',
-        portfolio_group: 'portfolio_group_code',
-        updated_at: 'updated_at',
+        service_id: 'sc.service_id',
+        title: 'sc.title',
+        service_status: SERVICE_STATUS_SQL,
+        service_type: 'sc.service_type_code',
+        portfolio_group: 'sp.portfolio_code',
+        updated_at: 'sc.updated_at',
     };
-    const sortCol = sortColMap[sort] || 'title';
+    const sortCol = sortColMap[sort] || 'sc.title';
     const sortDir = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
     const filters = ['sc.is_deleted = FALSE', 'sc.is_stub = FALSE'];
+    // Legacy status and lifecycle filters are mapped to lifecycle stages.
+    const statusStageValues = statusValues.map((value) => toLifecycleStage(value) ?? value);
     const values = [];
 
     function bind(value) {
@@ -265,23 +269,23 @@ async function findAllDirect({
     }
 
     if (statusValues.length) {
-        filters.push(`sc.service_status_code = ANY(${bind(statusValues)}::varchar[])`);
+        filters.push(`sc.lifecycle_stage_code = ANY(${bind(statusStageValues)}::varchar[])`);
     }
     if (serviceTypeValues.length) {
         filters.push(`sc.service_type_code = ANY(${bind(serviceTypeValues)}::varchar[])`);
     }
     if (portfolioGroup) {
-        filters.push(`sc.portfolio_group_code = ${bind(portfolioGroup)}`);
+        filters.push(`EXISTS (
+            SELECT 1 FROM data.service_portfolio sp_group
+            WHERE sp_group.id = sc.portfolio_id AND sp_group.portfolio_code = ${bind(portfolioGroup)}
+        )`);
     }
     if (portfolioCode) {
-        filters.push(`(
-            sc.portfolio_group_code = ${bind(portfolioCode)}
-            OR EXISTS (
-                SELECT 1
-                FROM data.service_portfolio sp_filter
-                WHERE sp_filter.id = sc.portfolio_id
-                  AND sp_filter.portfolio_code = ${bind(portfolioCode)}
-            )
+        filters.push(`EXISTS (
+            SELECT 1
+            FROM data.service_portfolio sp_filter
+            WHERE sp_filter.id = sc.portfolio_id
+              AND sp_filter.portfolio_code = ${bind(portfolioCode)}
         )`);
     }
     if (domainValues.length) {
@@ -300,15 +304,19 @@ async function findAllDirect({
             OR sc.short_description       ILIKE ${searchPlaceholder}
             OR sc.description             ILIKE ${searchPlaceholder}
             OR sc.target_audience_summary ILIKE ${searchPlaceholder}
-            OR sc.business_summary        ILIKE ${searchPlaceholder}
             OR sc.consumer_value          ILIKE ${searchPlaceholder}
-            OR sc.value_proposition       ILIKE ${searchPlaceholder}
-            OR sc.business_purpose        ILIKE ${searchPlaceholder}
-            OR sc.service_area_raw        ILIKE ${searchPlaceholder}
             OR sc.service_line_code       ILIKE ${searchPlaceholder}
-            OR sc.portfolio_group_code    ILIKE ${searchPlaceholder}
+            OR EXISTS (
+                SELECT 1 FROM data.service_portfolio sp_s
+                WHERE sp_s.id = sc.portfolio_id AND sp_s.portfolio_code ILIKE ${searchPlaceholder}
+            )
             OR sc.service_type_code       ILIKE ${searchPlaceholder}
-            OR COALESCE(sc.customer_type_json::text, '') ILIKE ${searchPlaceholder}
+            OR EXISTS (
+                SELECT 1 FROM data.service_catalog_source src_s
+                WHERE src_s.service_catalog_id = sc.id
+                  AND (src_s.raw_fields->>'service_area_raw' ILIKE ${searchPlaceholder}
+                       OR src_s.raw_fields->>'customer_type_json' ILIKE ${searchPlaceholder})
+            )
             OR EXISTS (
                 SELECT 1
                 FROM data.service_audience_policy sap_s
@@ -335,29 +343,29 @@ async function findAllDirect({
         )`);
     }
     if (lifecycleValues.length) {
-        filters.push(`sc.lifecycle_state = ANY(${bind(lifecycleValues)}::varchar[])`);
+        filters.push(`sc.lifecycle_stage_code = ANY(${bind(lifecycleValues.map((value) => toLifecycleStage(value) ?? value))}::varchar[])`);
     }
-    const lifecycleStageValues = splitCsv(lifecycleStageCode);
+    const lifecycleStageValues = splitCsv(lifecycleStageCode).map((value) => toLifecycleStage(value) ?? value);
     if (lifecycleStageValues.length) {
-        filters.push(`COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) = ANY(${bind(lifecycleStageValues)}::varchar[])`);
+        filters.push(`sc.lifecycle_stage_code = ANY(${bind(lifecycleStageValues)}::varchar[])`);
     }
     const criticalityValues = splitCsv(criticalityCode);
     if (criticalityValues.length) {
         filters.push(`sc.criticality_code = ANY(${bind(criticalityValues)}::varchar[])`);
     }
     if (reviewDue === 'overdue') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP`);
+        filters.push(`sc.review_due_at < CURRENT_TIMESTAMP`);
     } else if (reviewDue === 'missing') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) IS NULL`);
+        filters.push(`sc.review_due_at IS NULL`);
     } else if (reviewDue === 'next_30') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '30 days'`);
+        filters.push(`sc.review_due_at >= CURRENT_TIMESTAMP`);
+        filters.push(`sc.review_due_at < CURRENT_TIMESTAMP + INTERVAL '30 days'`);
     } else if (reviewDue === 'next_90') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
+        filters.push(`sc.review_due_at >= CURRENT_TIMESTAMP`);
+        filters.push(`sc.review_due_at < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
     }
     if (readiness === 'attention') {
-        filters.push(`COALESCE(sc.service_status_code, '') <> 'retired'`);
+        filters.push(`COALESCE(sc.lifecycle_stage_code, '') <> 'retired'`);
         filters.push(`COALESCE(sc.completeness_score, 0) < 80`);
     } else if (readiness === 'blocked') {
         filters.push(`COALESCE(sc.completeness_score, 0) < 50`);
@@ -389,7 +397,7 @@ async function findAllDirect({
                 FROM data.service_offering so_requestable
                 WHERE so_requestable.service_id = sc.id
                   AND so_requestable.status <> 'deleted'
-                  AND COALESCE(so_requestable.requestable, FALSE) = TRUE
+                  AND COALESCE(so_requestable.requestable, sc.requestable, FALSE) = TRUE
             )
         )`);
         filters.push(`NULLIF(BTRIM(COALESCE(sc.request_channel_type, '')), '') IS NULL`);
@@ -430,7 +438,7 @@ async function findAllDirect({
             sp.title AS portfolio_title,
             sc.short_description,
             sc.service_type_code AS service_type,
-            sc.service_status_code AS service_status,
+            ${SERVICE_STATUS_SQL} AS service_status,
             sc.unit_of_measure,
             sc.charging_basis,
             (
@@ -438,21 +446,21 @@ async function findAllDirect({
                 FROM data.service_available_on sao
                 WHERE sao.service_id = sc.id
             ) AS available_on,
-            sc.sla_availability,
-            sc.sla_delivery_days AS sla_delivery,
-            sc.sla_restoration_hours AS sla_restoration,
-            sc.portfolio_group_code AS portfolio_group,
-            COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
-            COALESCE(sp.title, pg.name, sc.portfolio_group_code) AS portfolio_display_name,
+            sla.availability_pct AS sla_availability,
+            sla.delivery_days AS sla_delivery,
+            sla.restoration_hours AS sla_restoration,
+            sp.portfolio_code AS portfolio_group,
+            COALESCE(pg.name, sp.title, sp.portfolio_code) AS portfolio_group_name,
+            COALESCE(sp.title, pg.name, sp.portfolio_code) AS portfolio_display_name,
             COALESCE(sl.name, sc.service_line_code) AS service_line_name,
             COALESCE(gsg.name, sc.global_service_group_code) AS global_service_group_name,
-            sc.lifecycle_state,
+            ${LIFECYCLE_STATE_SQL} AS lifecycle_state,
             sc.lifecycle_stage_code,
             sc.criticality_code,
-            COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at,
+            sc.review_due_at,
             sc.requestable,
-            sc.graph_x,
-            sc.graph_y,
+            gl.x AS graph_x,
+            gl.y AS graph_y,
             sc.updated_at,
             scm.c3_uuid,
             EXISTS (
@@ -532,13 +540,16 @@ async function findAllDirect({
         LEFT JOIN data.service_c3_mapping scm
             ON scm.service_id = sc.id AND scm.is_primary = TRUE
         LEFT JOIN data.ref_portfolio_group pg
-            ON pg.code = sc.portfolio_group_code
+            ON pg.code = sp.portfolio_code
+        ${PRIMARY_SLA_JOIN}
+        ${SOURCE_JOIN}
+        ${OVERVIEW_LAYOUT_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
             ON gsg.code = sc.global_service_group_code
         WHERE ${whereClause}
-        ORDER BY sc.${sortCol} ${sortDir}
+        ORDER BY ${sortCol} ${sortDir}
         LIMIT $${dataValues.length - 1}
         OFFSET $${dataValues.length}
     `, dataValues);
@@ -575,7 +586,10 @@ async function findByServiceId(serviceId) {
         LEFT JOIN data.service_portfolio sp
             ON sp.id = sc.portfolio_id
         LEFT JOIN data.ref_portfolio_group pg
-            ON pg.code = sc.portfolio_group_code
+            ON pg.code = sp.portfolio_code
+        ${PRIMARY_SLA_JOIN}
+        ${SOURCE_JOIN}
+        ${OVERVIEW_LAYOUT_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -583,7 +597,7 @@ async function findByServiceId(serviceId) {
         LEFT JOIN data.ref_service_type st
             ON st.code = sc.service_type_code
         LEFT JOIN data.ref_service_status ss
-            ON ss.code = sc.service_status_code
+            ON ss.code = ${SERVICE_STATUS_SQL}
         WHERE sc.service_id = $1
           AND sc.is_deleted = FALSE
     `, [serviceId]);
@@ -623,7 +637,10 @@ async function findAllForExport() {
         LEFT JOIN data.service_portfolio sp
             ON sp.id = sc.portfolio_id
         LEFT JOIN data.ref_portfolio_group pg
-            ON pg.code = sc.portfolio_group_code
+            ON pg.code = sp.portfolio_code
+        ${PRIMARY_SLA_JOIN}
+        ${SOURCE_JOIN}
+        ${OVERVIEW_LAYOUT_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -631,10 +648,10 @@ async function findAllForExport() {
         LEFT JOIN data.ref_service_type st
             ON st.code = sc.service_type_code
         LEFT JOIN data.ref_service_status ss
-            ON ss.code = sc.service_status_code
+            ON ss.code = ${SERVICE_STATUS_SQL}
         WHERE sc.is_deleted = FALSE
           AND sc.is_stub = FALSE
-        ORDER BY sc.portfolio_group_code, sc.service_type_code, sc.title
+        ORDER BY sp.portfolio_code, sc.service_type_code, sc.title
     `);
     return result.rows;
 }
@@ -646,12 +663,11 @@ async function getCatalogQualitySummary() {
                 sc.id,
                 sc.service_id,
                 sc.title,
-                sc.lifecycle_state,
-                sc.service_status_code,
+                sc.lifecycle_stage_code,
                 sc.requestable,
                 sc.request_channel_type,
                 sc.request_channel_url,
-                COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at
+                sc.review_due_at
             FROM data.service_catalog sc
             WHERE sc.is_deleted = FALSE
               AND sc.is_stub = FALSE
@@ -683,10 +699,10 @@ async function getCatalogQualitySummary() {
                     FROM data.service_offering so
                     WHERE so.service_id = svc.id
                       AND so.status <> 'deleted'
-                      AND COALESCE(so.requestable, FALSE) = TRUE
+                      AND COALESCE(so.requestable, svc.requestable, FALSE) = TRUE
                       AND (
-                          NULLIF(BTRIM(COALESCE(so.request_channel_type, '')), '') IS NOT NULL
-                          OR NULLIF(BTRIM(COALESCE(so.request_channel_url, '')), '') IS NOT NULL
+                          NULLIF(BTRIM(COALESCE(so.request_channel_type, svc.request_channel_type, '')), '') IS NOT NULL
+                          OR NULLIF(BTRIM(COALESCE(so.request_channel_url, svc.request_channel_url, '')), '') IS NOT NULL
                       )
                 ) AS has_offering_request_channel
             FROM active_services svc
@@ -718,7 +734,7 @@ async function getCatalogQualitySummary() {
             COUNT(*) FILTER (WHERE review_due_at IS NULL)::integer AS missing_review_date_count,
             COUNT(*) FILTER (WHERE review_due_at < CURRENT_TIMESTAMP)::integer AS overdue_review_count,
             COUNT(*) FILTER (
-                WHERE LOWER(COALESCE(lifecycle_state, service_status_code, '')) IN ('deprecated', 'retired')
+                WHERE lifecycle_stage_code IN ('retiring', 'retired')
             )::integer AS deprecated_or_retired_count,
             (
                 SELECT COUNT(*)::integer
@@ -832,126 +848,98 @@ async function setRole(serviceId, roleCode, displayName, email = null, orgName =
     `, [catalogId, roleCode, displayName, email ?? null, orgName ?? null]);
 }
 
-async function create(data, performedBy) {
-    const createServiceStatus = Object.prototype.hasOwnProperty.call(data, 'service_status')
-        ? (data.service_status === '' ? null : data.service_status)
-        : (data.service_status_code ?? 'active');
+async function create(input, performedBy) {
+    const { fields: data, portfolioCode, sla, source, fallbacks, layout } = canonicalizeServiceInput(input);
+    // A new service without any lifecycle/status input starts as active (previous default).
+    const createStage = Object.prototype.hasOwnProperty.call(data, 'lifecycle_stage_code')
+        ? data.lifecycle_stage_code
+        : 'active';
     const createIsStub = data.is_stub != null ? !!data.is_stub : false;
+    const pool = getPool();
+    const portfolioId = data.portfolio_id ?? await resolvePortfolioId(pool, portfolioCode);
 
-    await getPool().query(`
-        INSERT INTO data.service_catalog (
-            service_id, title, portfolio_group_code,
-            service_type_code, service_status_code, catalogue_version,
-            global_service_group_code, service_line_code, organizational_element_code,
-            short_description, description,
-            value_proposition, service_features, business_summary,
-            business_purpose, scope_text,
-            operational_notes_raw, support_locations_raw, request_process_raw,
-            support_availability_raw, service_cost_raw, additional_information_raw,
-            target_audience_summary, requestable, lifecycle_state, request_channel_type,
-            request_channel_url, approval_required, fulfillment_lead_time_text,
-            service_features_raw, ext_tools_raw, legacy_ssl_mapping_raw,
-            budget_activity_code, other_info_raw, pricing_note_raw, review_owner_user_id, next_review_due_at,
-            unit_of_measure, charging_basis, rate_note, ordering_note,
-            exclusions, service_area_raw, security_classification_code,
-            cp_service_type_raw, is_available_status_ambiguous, is_stub,
-            customer_type_json, service_url,
-            sla_availability, sla_restoration_hours, sla_delivery_days,
-            sla_restoration_text, sla_delivery_text,
-            graph_x, graph_y,
-            options_json, notes_json, training_refs_json, retired_note,
-            source_local_id, source_sp_id, source_etag,
-            prerequisites_json, dependencies_json,
-            created_at_source, modified_at_source,
-            consumer_value,
-            created_by, updated_by
-        ) VALUES (
-            $1, $2, $3, $4, $5, $6,
-            $7, $8, $9, $10, $11,
-            $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-            $22, $23, $24, $25, $26, $27, $28, $29, $30, $31,
-            $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,
-            $42, $43, $44, $45, $46, $47, $48, $49, $50, $51,
-            $52, $53, $54, $55, $56, $57, $58, $59, $60, $61,
-            $62, $63, $64, $65, $66, $67, $68, $69, $70
-        )
-    `, [
-        data.service_id,
-        data.title,
-        data.portfolio_group_code || data.portfolio_group || null,
-        data.service_type || data.service_type_code,
-        createServiceStatus,
-        data.catalogue_version || null,
-        data.global_service_group_code || null,
-        data.service_line_code || null,
-        data.organizational_element_code || null,
-        data.short_description || data.summary || null,
-        data.description || data.detailed_description || null,
-        data.value_proposition || null,
-        data.service_features || null,
-        data.business_summary || null,
-        data.business_purpose || null,
-        data.scope_text || null,
-        data.operational_notes_raw || null,
-        data.support_locations_raw || null,
-        data.request_process_raw || null,
-        data.support_availability_raw || null,
-        data.service_cost_raw || null,
-        data.additional_information_raw || null,
-        data.target_audience_summary || null,
-        data.requestable == null ? null : !!data.requestable,
-        data.lifecycle_state || null,
-        data.request_channel_type || null,
-        data.request_channel_url || null,
-        data.approval_required == null ? null : !!data.approval_required,
-        data.fulfillment_lead_time_text || null,
-        data.service_features_raw || null,
-        data.ext_tools_raw || null,
-        data.legacy_ssl_mapping_raw || null,
-        data.budget_activity_code || null,
-        data.other_info_raw || null,
-        data.pricing_note_raw || null,
-        data.review_owner_user_id == null ? null : parseInteger(data.review_owner_user_id),
-        sanitizeDate(data.next_review_due_at),
-        data.unit_of_measure || null,
-        data.charging_basis || null,
-        data.rate_note || null,
-        data.ordering_note || null,
-        data.exclusions || null,
-        data.service_area_raw || data.service_area || null,
-        data.security_classification || data.security_classification_code || null,
-        data.cp_service_type_raw || null,
-        data.is_available_status_ambiguous ?? false,
-        createIsStub,
-        serializeJson(data.customer_type),
-        data.service_url || data.source_url || null,
-        parseDecimal(data.sla_availability),
-        parseInteger(data.sla_restoration ?? data.sla_restoration_hours),
-        parseInteger(data.sla_delivery ?? data.sla_delivery_days),
-        rawTextIfNonNumeric(data.sla_restoration ?? data.sla_restoration_hours),
-        rawTextIfNonNumeric(data.sla_delivery ?? data.sla_delivery_days),
-        data.graph_x ?? null,
-        data.graph_y ?? null,
-        serializeJson(data.options),
-        serializeJson(data.notes),
-        serializeJson(data.training_refs),
-        data.retired_note || null,
-        data.source_local_id || data.localId || null,
-        data.source_sp_id ?? data.spId ?? null,
-        data.source_etag || data.etag || null,
-        serializeJson(data.prerequisites_json) || null,
-        serializeJson(data.dependencies_json) || null,
-        sanitizeDate(data.created_at_source),
-        sanitizeDate(data.modified_at_source),
-        data.consumer_value || null,
-        performedBy,
-        performedBy,
-    ]);
+    const columns = {
+        service_id: data.service_id,
+        title: data.title,
+        portfolio_id: portfolioId,
+        service_type_code: data.service_type || data.service_type_code,
+        lifecycle_stage_code: createStage,
+        catalogue_version: data.catalogue_version || null,
+        global_service_group_code: data.global_service_group_code || null,
+        service_line_code: data.service_line_code || null,
+        organizational_element_code: data.organizational_element_code || null,
+        short_description: data.short_description || data.summary || fallbacks.short_description || null,
+        description: data.description || data.detailed_description || null,
+        service_features: data.service_features || null,
+        scope_text: data.scope_text || null,
+        operational_notes_raw: data.operational_notes_raw || null,
+        target_audience_summary: data.target_audience_summary || null,
+        requestable: data.requestable == null ? null : !!data.requestable,
+        criticality_code: data.criticality_code || null,
+        request_channel_type: data.request_channel_type || null,
+        request_channel_url: data.request_channel_url || null,
+        approval_required: data.approval_required == null ? null : !!data.approval_required,
+        fulfillment_lead_time_text: data.fulfillment_lead_time_text || null,
+        budget_activity_code: data.budget_activity_code || null,
+        review_owner_user_id: data.review_owner_user_id == null ? null : parseInteger(data.review_owner_user_id),
+        review_due_at: sanitizeDate(data.review_due_at),
+        unit_of_measure: data.unit_of_measure || null,
+        charging_basis: data.charging_basis || null,
+        rate_note: data.rate_note || null,
+        ordering_note: data.ordering_note || null,
+        exclusions: data.exclusions || null,
+        security_classification_code: data.security_classification || data.security_classification_code || null,
+        is_stub: createIsStub,
+        service_url: data.service_url || data.source_url || null,
+        notes_json: serializeJson(data.notes),
+        retired_note: data.retired_note || null,
+        consumer_value: data.consumer_value || fallbacks.consumer_value || null,
+        created_by: performedBy,
+        updated_by: performedBy,
+    };
+    const names = Object.keys(columns);
+    const inserted = await pool.query(`
+        INSERT INTO data.service_catalog (${names.join(', ')})
+        VALUES (${names.map((_, index) => `$${index + 1}`).join(', ')})
+        RETURNING id
+    `, Object.values(columns));
 
+    const catalogId = inserted.rows[0].id;
+    await upsertPrimarySla(pool, catalogId, sla);
+    await upsertServiceSource(pool, catalogId, normalizeSource(source));
+    await saveOverviewPosition(pool, data.service_id, layout, performedBy);
     return data.service_id;
 }
 
-async function update(serviceId, data, performedBy) {
+/**
+ * Stores graph_x/graph_y input as the service position in the overview
+ * portfolio grid. Null input is ignored (imports always send the keys);
+ * positions are removed through DELETE /graph/layout.
+ */
+async function saveOverviewPosition(pool, serviceId, layout, performedBy) {
+    const positions = layout
+        ? graphLayoutRepo.normalizePositions([{ node_id: `svc:${serviceId}`, x: layout.x ?? NaN, y: layout.y ?? NaN }])
+        : [];
+    if (positions.length === 0) return;
+    await graphLayoutRepo.saveLayout(graphLayoutRepo.SERVICE_OVERVIEW_VIEW, positions, performedBy, pool);
+}
+
+/** Normalizes import provenance input (see service-fields SOURCE_* lists). */
+function normalizeSource(source) {
+    if (!source) return null;
+    const normalized = {};
+    for (const [key, value] of Object.entries(source)) {
+        if (key === 'source_sp_id') normalized[key] = value == null || value === '' ? null : parseInteger(value);
+        else if (key === 'created_at_source' || key === 'modified_at_source') normalized[key] = sanitizeDate(value);
+        else if (key === 'is_available_status_ambiguous') normalized[key] = value == null ? false : !!value;
+        else if (key.endsWith('_json')) normalized[key] = serializeJson(value) || null;
+        else normalized[key] = value === '' ? null : value ?? null;
+    }
+    return normalized;
+}
+
+async function update(serviceId, input, performedBy) {
+    const { fields: data, portfolioCode, sla, source, fallbacks, layout } = canonicalizeServiceInput(input);
     const skipFields = new Set([
         'id', 'service_id', 'created_at', 'created_by', 'is_deleted',
         'completeness_score', 'prerequisites', 'dependencies',
@@ -962,48 +950,33 @@ async function update(serviceId, data, performedBy) {
 
     const colMap = {
         service_type: 'service_type_code',
-        service_status: 'service_status_code',
         security_classification: 'security_classification_code',
-        customer_type: 'customer_type_json',
-        options: 'options_json',
         notes: 'notes_json',
-        training_refs: 'training_refs_json',
-        sla_restoration: 'sla_restoration_hours',
-        sla_delivery: 'sla_delivery_days',
-        portfolio_group: 'portfolio_group_code',
         source_url: 'service_url',
         summary: 'short_description',
         detailed_description: 'description',
-        service_area: 'service_area_raw',
     };
 
     const allowedFields = new Set([
-        'title', 'portfolio_group', 'portfolio_group_code', 'service_type', 'service_status',
-        'catalogue_version', 'value_proposition', 'service_features', 'business_summary', 'summary',
+        'title', 'service_type',
+        'catalogue_version', 'service_features', 'summary',
         'short_description', 'detailed_description', 'description', 'unit_of_measure',
-        'charging_basis', 'rate_note', 'ordering_note', 'exclusions', 'service_area',
-        'service_area_raw', 'security_classification', 'customer_type', 'source_url',
-        'service_url', 'sla_availability', 'sla_restoration', 'sla_delivery', 'graph_x',
-        'graph_y', 'options', 'notes', 'training_refs', 'retired_note', 'cp_service_type_raw',
-        'is_available_status_ambiguous', 'source_local_id', 'source_sp_id', 'source_etag',
-        'prerequisites_json', 'dependencies_json', 'business_purpose', 'scope_text',
-        'operational_notes_raw', 'support_locations_raw', 'request_process_raw',
-        'support_availability_raw', 'service_cost_raw', 'additional_information_raw',
-        'service_features_raw', 'ext_tools_raw', 'legacy_ssl_mapping_raw',
-        'budget_activity_code', 'other_info_raw', 'pricing_note_raw',
+        'charging_basis', 'rate_note', 'ordering_note', 'exclusions',
+        'security_classification', 'source_url',
+        'service_url', 'notes', 'retired_note', 'scope_text',
+        'operational_notes_raw', 'budget_activity_code',
         'global_service_group_code', 'service_line_code', 'organizational_element_code',
-        'sla_restoration_text', 'sla_delivery_text', 'created_at_source', 'modified_at_source',
-        'target_audience_summary', 'requestable', 'lifecycle_state', 'lifecycle_stage_code',
+        'target_audience_summary', 'requestable', 'lifecycle_stage_code',
         'criticality_code', 'review_due_at', 'portfolio_id', 'request_channel_type',
         'request_channel_url', 'approval_required', 'fulfillment_lead_time_text',
-        'review_owner_user_id', 'next_review_due_at', 'consumer_value',
+        'review_owner_user_id', 'consumer_value',
     ]);
 
-    const jsonFields = new Set(['customer_type', 'options', 'notes', 'training_refs', 'prerequisites_json', 'dependencies_json']);
-    const integerFields = new Set(['sla_restoration', 'sla_delivery', 'source_sp_id', 'review_owner_user_id', 'portfolio_id']);
-    const decimalFields = new Set(['sla_availability']);
-    const dateFields = new Set(['created_at_source', 'modified_at_source', 'next_review_due_at', 'review_due_at']);
-    const booleanFields = new Set(['is_available_status_ambiguous', 'requestable', 'approval_required']);
+    const jsonFields = new Set(['notes']);
+    const integerFields = new Set(['review_owner_user_id', 'portfolio_id']);
+    const decimalFields = new Set();
+    const dateFields = new Set(['review_due_at']);
+    const booleanFields = new Set(['requestable', 'approval_required']);
 
     const values = [performedBy];
     const setClauses = ['updated_at = CURRENT_TIMESTAMP', 'updated_by = $1'];
@@ -1029,25 +1002,35 @@ async function update(serviceId, data, performedBy) {
         setClauses.push(`${colMap[key] || key} = $${values.length}`);
     }
 
-    if (('sla_restoration' in data || 'sla_restoration_hours' in data) && !('sla_restoration_text' in data)) {
-        values.push(rawTextIfNonNumeric(data.sla_restoration ?? data.sla_restoration_hours));
-        setClauses.push(`sla_restoration_text = $${values.length}`);
-    }
-    if (('sla_delivery' in data || 'sla_delivery_days' in data) && !('sla_delivery_text' in data)) {
-        values.push(rawTextIfNonNumeric(data.sla_delivery ?? data.sla_delivery_days));
-        setClauses.push(`sla_delivery_text = $${values.length}`);
+    if (portfolioCode !== undefined && !Object.prototype.hasOwnProperty.call(data, 'portfolio_id')) {
+        values.push(portfolioCode);
+        setClauses.push(`portfolio_id = (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $${values.length})`);
     }
 
-    if (setClauses.length === 2) return null;
+    for (const [column, value] of Object.entries(fallbacks)) {
+        const inputKeys = column === 'short_description' ? ['short_description', 'summary'] : [column];
+        if (inputKeys.some((key) => Object.prototype.hasOwnProperty.call(data, key))) continue;
+        values.push(value);
+        setClauses.push(`${column} = COALESCE(NULLIF(btrim(${column}), ''), $${values.length})`);
+    }
 
+    if (setClauses.length === 2 && !sla && !source && !layout) return null;
+
+    const pool = getPool();
     values.push(serviceId);
-    await getPool().query(`
+    const updated = await pool.query(`
         UPDATE data.service_catalog
         SET ${setClauses.join(', ')}
         WHERE service_id = $${values.length}
           AND is_deleted = FALSE
+        RETURNING id
     `, values);
 
+    if (updated.rows[0]) {
+        await upsertPrimarySla(pool, updated.rows[0].id, sla);
+        await upsertServiceSource(pool, updated.rows[0].id, normalizeSource(source));
+        await saveOverviewPosition(pool, serviceId, layout, performedBy);
+    }
     return findByServiceId(serviceId);
 }
 

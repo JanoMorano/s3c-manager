@@ -247,11 +247,11 @@
 }
 .resultInserted { border-color: var(--color-success); background: color-mix(in srgb, var(--color-success) 10%, transparent); }
 .resultInserted .resultNum { color: var(--color-success); }
-.resultUpdated  { border-color: var(--color-warning); background: var(--color-bg-surface)beb; }
+.resultUpdated  { border-color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface)); }
 .resultUpdated .resultNum { color: var(--color-warning); }
 .resultUpdatedZero { border-color: var(--color-border-default); }
 .resultUpdatedZero .resultNum { color: var(--color-text-muted); }
-.resultFailed   { border-color: var(--color-danger); background: var(--color-bg-surface)3f3; }
+.resultFailed   { border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface)); }
 .resultFailed .resultNum { color: var(--color-danger); }
 .resultFailedZero .resultNum { color: var(--color-text-muted); }
 .diffBadge {
@@ -314,10 +314,10 @@
 .dropTitle    { font: var(--text-title-sm); color: var(--color-text-primary); }
 .dropSubtitle { font: var(--text-body-sm); color: var(--color-text-muted); }
 .clearBtn     { margin-top: var(--space-2); font: var(--text-label-sm); color: var(--color-danger); background: none; border: 1px solid var(--color-danger); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-3); cursor: pointer; }
-.clearBtn:hover { background: var(--color-bg-surface)3f3; }
+.clearBtn:hover { background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface)); }
 
 /* Messages */
-.errorBanner    { background: var(--color-bg-surface)3f3; border: 1px solid var(--color-danger); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font: var(--text-body-sm); color: var(--color-danger); }
+.errorBanner    { background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface)); border: 1px solid var(--color-danger); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font: var(--text-body-sm); color: var(--color-danger); }
 .progressBanner { background: color-mix(in srgb, var(--color-success) 10%, transparent); border: 1px solid var(--color-success); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font: var(--text-body-sm); color: var(--color-success); }
 
 /* Actions */

@@ -71,9 +71,10 @@ chore(deps): upgrade bcrypt to 5.1.1
 
 ### Database Schemas
 
-- add new tables to the appropriate file under `backend/db/postgres/schema/`
-- file numbering defines apply order
-- add the corresponding record to `platform.schema_migrations` in `13_install_system.sql`
+- add schema changes as a new, idempotent file `backend/db/postgres/schema/NN_*.sql`; file numbering defines apply order
+- register the migration in `platform.schema_migrations` at the end of the file and assign it to its module manifest
+- the init runner applies each file once and re-applies it when its checksum changes, so do not edit an applied data migration unless re-running it is intended
+- if you edit a file covered by `backend/db/postgres/baseline/manifest.txt`, rebuild the baseline with `scripts/build-schema-baseline.sh` (see `backend/db/postgres/README.md`)
 - do not introduce `DROP` statements without a migration path
 
 ### Testing

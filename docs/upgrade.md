@@ -8,6 +8,21 @@
 4. Stop non-essential import jobs.
 5. Communicate that `/help` is the locale-aware help entry, `/help-cs` and `/help-en` are the canonical static help surfaces, and `/administration/*` is the canonical admin namespace.
 
+## How Schema Migrations Are Applied
+
+On start (`APP_RUN_DB_INIT=true`) `init/init-db-postgres.sh` applies the files in `backend/db/postgres/schema/` in file-name order. Each file runs in its own transaction and is recorded with its sha256 checksum in `platform.schema_file_ledger`:
+
+- a new file is applied and recorded;
+- an unchanged file is skipped on later starts;
+- a changed file is applied again (schema files are written to be idempotent);
+- a failing file stops the start-up and is not recorded, so it is retried on the next start.
+
+A fresh, empty database is created from `backend/db/postgres/baseline/baseline.sql` (a generated dump of the chain) and only the files newer than the baseline are applied; `SCHEMA_USE_BASELINE=false` replays the whole chain instead. Existing databases never use the baseline.
+
+The first start after upgrading to this runner applies every file once (the previous behaviour on every start) and records them. Replaying the whole history on an existing database is not supported: `39_drop_legacy_service_mirrors.sql` removes columns that earlier files still reference.
+
+New schema changes go into a new file with the next two-digit prefix; do not edit an applied data migration unless re-running it is intended.
+
 ## Reduction Migrations
 
 Apply migrations in order through the normal init/upgrade flow.

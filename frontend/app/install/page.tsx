@@ -1308,7 +1308,7 @@ function goNext() {
     <div className={styles.shell}>
       <div className={styles.header}>
         <span className={styles.headerLogo}>{t('home.title')}</span>
-        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.2.2'}</span>
+        <span className={styles.headerSub}>{t('install.wizard_title')} · v{installInfo?.app_version ?? '1.3.0'}</span>
       </div>
 
       <div className={styles.main}>

@@ -7,5 +7,6 @@
 \ir ../../schema/15_itil_catalogue_phase1.sql
 \ir ../../schema/16_consumer_value.sql
 \ir ../../schema/29_reduction_low_risk_cleanup.sql
-\ir ../../schema/30_reduction_domain_model_simplification.sql
 \ir ../../schema/32_final_reduction_sunset_cleanup.sql
+\ir ../../schema/36_service_sla_canonical.sql
+\ir ../../schema/37_offering_request_inheritance.sql

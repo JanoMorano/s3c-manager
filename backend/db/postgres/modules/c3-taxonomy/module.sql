@@ -4,3 +4,6 @@
 \ir ../../schema/19_capability_abbreviations.sql
 \ir ../../schema/20_capability_coverage_views.sql
 \ir ../../schema/25_capability_governance.sql
+\ir ../../schema/34_c3_board_state.sql
+\ir ../../schema/38_c3_entity_link_view.sql
+\ir ../../schema/42_c3_entity_link_table.sql

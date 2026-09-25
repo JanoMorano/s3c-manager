@@ -48,6 +48,7 @@ jest.mock('../db/operational-links.repo', () => ({
     remove: jest.fn(),
 }));
 jest.mock('../services/validation', () => ({
+    targetLifecycleStage: jest.requireActual('../services/validation').targetLifecycleStage,
     validateCreate: jest.fn(() => []),
     validateUpdate: jest.fn(() => []),
     validateOffering: jest.fn(() => []),
@@ -101,7 +102,6 @@ describe('services phase 1 routes', () => {
             service_status: 'draft',
             service_type: 'CF',
             summary: 'Current summary',
-            business_summary: 'Business summary',
             requestable: true,
             lifecycle_state: 'draft',
             target_audience_summary: 'Internal staff',
@@ -143,7 +143,7 @@ describe('services phase 1 routes', () => {
         expect(response.body.audience_policies).toHaveLength(1);
         expect(response.body.operational_links).toHaveLength(1);
         expect(response.body.business_view).toEqual(expect.objectContaining({
-            business_summary: 'Business summary',
+            business_summary: 'Current summary',
             requestable: true,
             lifecycle_state: 'draft',
             primary_offering: expect.objectContaining({ offering_code: 'STD' }),
@@ -206,7 +206,43 @@ describe('services phase 1 routes', () => {
         expect(validation.validateUpdate).toHaveBeenCalledWith(
             { requestable: true },
             expect.objectContaining({ service_id: 'SVC-1', service_status: 'draft' }),
+            { offeringHasRequestChannel: false },
         );
+    });
+
+    test('PUT /services/:id passes offering request channels to validation', async () => {
+        const validation = require('../services/validation');
+        const offeringsRepo = require('../db/offerings.repo');
+        const servicesRepo = require('../db/services.repo');
+        servicesRepo.update.mockResolvedValue({ service_id: 'SVC-1', service_status: 'draft' });
+        offeringsRepo.listByService.mockResolvedValue([{ id: 1, offering_code: 'STD', status: 'active', request_channel_type: 'portal' }]);
+
+        await request(buildApp())
+            .put('/api/v1/services/SVC-1')
+            .send({ requestable: true });
+
+        expect(validation.validateUpdate).toHaveBeenCalledWith(
+            { requestable: true },
+            expect.anything(),
+            { offeringHasRequestChannel: true },
+        );
+    });
+
+    test('PUT /services/:id does not re-run the live transition gate when editing a live service', async () => {
+        const servicesRepo = require('../db/services.repo');
+        const offeringsRepo = require('../db/offerings.repo');
+        const supportModelRepo = require('../db/support-model.repo');
+        servicesRepo.findByServiceId.mockResolvedValue({ id: 10, service_id: 'SVC-1', lifecycle_state: 'live', requestable: true, request_channel_type: 'portal' });
+        servicesRepo.update.mockResolvedValue({ service_id: 'SVC-1', lifecycle_state: 'live' });
+        offeringsRepo.listByService.mockResolvedValue([]);
+        supportModelRepo.listByService.mockResolvedValue([]);
+
+        const response = await request(buildApp())
+            .put('/api/v1/services/SVC-1')
+            .send({ title: 'Renamed service' });
+
+        expect(response.status).toBe(200);
+        expect(supportModelRepo.listByService).not.toHaveBeenCalled();
     });
 
     test('PUT /services/:id blocks lifecycle live when requestable service lacks support model and offering', async () => {

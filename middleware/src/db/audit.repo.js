@@ -78,21 +78,4 @@ async function logTaxonomyMappingChange({ servicePk, c3Uuid, mappingId = null, a
     ]);
 }
 
-async function logGraphLayoutChange({ servicePk, nodeKind, oldX, oldY, newX, newY, changedBy }) {
-    await getPool().query(`
-        INSERT INTO data.graph_layout_audit
-            (service_id, node_kind, old_x, old_y, new_x, new_y, changed_by)
-        VALUES
-            ($1, $2, $3, $4, $5, $6, $7)
-    `, [
-        servicePk,
-        nodeKind,
-        oldX ?? null,
-        oldY ?? null,
-        newX ?? null,
-        newY ?? null,
-        changedBy || 'system',
-    ]);
-}
-
-module.exports = { log, findByRecord, addChangelog, logTaxonomyMappingChange, logGraphLayoutChange };
+module.exports = { log, findByRecord, addChangelog, logTaxonomyMappingChange };

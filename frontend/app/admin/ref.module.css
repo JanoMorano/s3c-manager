@@ -263,12 +263,12 @@ table.refTable {
   font: var(--text-label-sm);
   cursor: pointer;
 }
-.btnDel:hover { border-color: var(--color-danger); background: var(--color-bg-surface)3f3; }
+.btnDel:hover { border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface)); }
 
 /* ── Error / empty ──────────────────────────────────────────────────────────── */
 .errorBanner {
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-surface)3f3;
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface));
   border-bottom: 1px solid var(--color-danger);
   color: var(--color-danger);
   font: var(--text-body-sm);

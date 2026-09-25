@@ -167,9 +167,20 @@ export const fetchServiceSla = (id: string) =>
 export const fetchServiceGraph = (id: string) =>
   apiFetch<GraphResponse>(`${BASE}/services/${id}/graph`);
 
-export function buildGraphOverviewUrl(params: { compact?: boolean; includeC3?: boolean } = {}): string {
+export interface GraphOverviewParams {
+  compact?: boolean;
+  includeC3?: boolean;
+  search?: string;
+  portfolio?: string;
+  status?: string;
+}
+
+export function buildGraphOverviewUrl(params: GraphOverviewParams = {}): string {
   const q = new URLSearchParams();
   if (params.includeC3 === false) q.set('include_c3', '0');
+  if (params.search) q.set('search', params.search);
+  if (params.portfolio) q.set('portfolio', params.portfolio);
+  if (params.status) q.set('status', params.status);
   const base = params.compact ? `${BASE}/graph/overview/compact` : `${BASE}/graph/overview`;
   const qs = q.toString();
   return `${base}${qs ? `?${qs}` : ''}`;

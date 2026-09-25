@@ -148,12 +148,9 @@
           <tr><td>Basic Identity</td><td><code>service_status</code></td><td>Legacy/public stav služby.</td><td>active, retired, deprecated, draft. Nezaměňovat s lifecycle_state.</td></tr>
           <tr><td>Description</td><td><code>summary</code></td><td>Krátký popis do listu a karet.</td><td>Pomáhá vyhledávání a manažerské čitelnosti; doporučeno stručné.</td></tr>
           <tr><td>Description</td><td><code>detailed_description</code></td><td>Delší popis fungování služby.</td><td>Zobrazuje se v detailu, pomáhá reviewerovi pochopit rozsah.</td></tr>
-          <tr><td>Description</td><td><code>value_proposition</code></td><td>Proč služba existuje a jakou hodnotu přináší.</td><td>Business orientace, vhodné pro manažera a konzumenta.</td></tr>
-          <tr><td>Description</td><td><code>business_purpose</code></td><td>Jaký business problém nebo outcome služba řeší.</td><td>Pomáhá portfolio a capability alignmentu.</td></tr>
           <tr><td>Description</td><td><code>service_features</code></td><td>Klíčové funkce služby.</td><td>Vysvětluje, co uživatel získá; nemá být interní technický dump.</td></tr>
           <tr><td>Description</td><td><code>scope_text</code></td><td>Co je a není v rozsahu služby.</td><td>Snižuje spory o očekávání, request odkazy a support.</td></tr>
-          <tr><td>Catalogue Access</td><td><code>business_summary</code></td><td>Business-friendly shrnutí pro katalog.</td><td>Viditelné v business view a catalogue browse.</td></tr>
-          <tr><td>Catalogue Access</td><td><code>consumer_value</code></td><td>Hodnota z pohledu uživatele.</td><td>Pomáhá konzumentovi rozhodnout, zda službu potřebuje.</td></tr>
+          <tr><td>Catalogue Access</td><td><code>consumer_value</code></td><td>Hodnota z pohledu uživatele: proč služba existuje, jaký problém řeší a co konzument získá (dříve také value_proposition a business_purpose).</td><td>Pomáhá konzumentovi rozhodnout, zda službu potřebuje; viditelné v business view.</td></tr>
           <tr><td>Catalogue Access</td><td><code>lifecycle_state</code></td><td>Governance workflow stav.</td><td>draft, under_review, approved, live, deprecated, retired; transition rules.</td></tr>
           <tr><td>Catalogue Access</td><td><code>requestable</code></td><td>Říká, zda lze službu požádat.</td><td>Pokud true, vyžaduje request channel a ideálně default offering/support.</td></tr>
           <tr><td>Catalogue Access</td><td><code>request_channel_type</code></td><td>Typ kanálu pro požadavek: ITSM portal, email, form, external URL apod.</td><td>Readiness/publish gate pro requestable služby.</td></tr>

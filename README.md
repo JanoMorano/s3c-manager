@@ -8,13 +8,16 @@ Lightweight, self-hosted service and capability governance cockpit for organizat
 
 > **Stack:** Next.js 16.2 · React 19.2 · Express 5.2 · PostgreSQL 16 · Docker Compose
 
-## What's New in V1.2 - Help Alignment & Docker Readiness
+## What's New in V1.3 - Canonical Data Model, Graphs & Localization
 
-- Czech and English in-app help are aligned to the current reduced product surface and no longer describe removed user workflows as active screens.
-- Main help runs through `/help-cs` and `/help-en`; compatibility help routes remain available only as legacy entry points.
-- Governance copy focuses on readiness, reviews, decisions, owner load, capability coverage, service graphs, and import/data quality.
-- Deprecated API compatibility surfaces remain explicit 410 endpoints and are tracked outside user help in the API deprecation inventory.
-- Runtime, package metadata, Docker Compose defaults, installer fallback, `.env.example`, and visible UI version metadata are aligned to `1.2`.
+- **Schema runner and baseline:** schema files are applied once with a checksum ledger; fresh installs restore a generated, deterministic baseline and apply only newer files (schema version 3.9.0).
+- **Simpler data model:** one canonical field per concept (lifecycle stage, review date, portfolio, service-level SLA); import provenance in `service_catalog_source`; the seven C3 link tables merged into `c3_entity_link`. The API keeps its field names (see the upgrade notes).
+- **Graphs:** colour-blind-safe relation encoding, dependency layout with path highlighting, legend, dark-mode minimap, server-side filters and saved node positions per view.
+- **Service editor:** tabs, lifecycle stage select, offerings inheriting request settings from the service.
+- **Localization:** service detail, editor and service graph are fully Czech/English.
+- **Quality:** frontend unit tests in CI, large route and editor files split into modules, fresh-install and CSS fixes.
+
+See [V1.3 Release Notes](docs/releases/v1.3.md) and [CHANGELOG](CHANGELOG.md).
 
 See [Governance Cockpit](docs/governance-cockpit.md) for the end-to-end operating model.
 
@@ -137,10 +140,15 @@ Canonical runtime:
 
 Runtime dependency versions are controlled by the committed package manifests and lockfiles.
 
+Database schema:
+
+- `backend/db/postgres/schema/*.sql` are applied in order by `init/init-db-postgres.sh`, each once (checksums in `platform.schema_file_ledger`).
+- Fresh installs restore `backend/db/postgres/baseline/baseline.sql` (rebuild with `scripts/build-schema-baseline.sh` after changing schema files).
+
 ## Main Features
 
 - Service Catalogue: list, detail, edit, history, dashboard
-- Service Graph: full catalogue graph and per-service dependency graph
+- Service Graph: full catalogue graph (dependency or portfolio layout, filters, path highlight) and per-service graph, with saved node positions per view
 - Offerings & SLA: requestable variants, service-level evidence, support windows
 - Service Governance: readiness signals, ownership, review evidence, and decision support
 - Capability Governance: capability coverage, gaps, overlaps, and consolidation evidence
@@ -199,6 +207,7 @@ These screenshots are static preview assets. To interact with the product, run t
 - [Modules](docs/modules.md)
 - [Demo Guide](DEMO.md)
 - [Upgrade Guide](docs/upgrade.md)
+- [V1.3 Release Notes](docs/releases/v1.3.md)
 - [V1.2 Release Notes](docs/releases/v1.2.md)
 - [V1.1.2 Release Notes](docs/releases/v1.1.2.md)
 
@@ -219,7 +228,7 @@ For details, see [docs/import-formats.md](docs/import-formats.md).
 
 ```bash
 cd middleware && npm ci && npm test
-cd ../frontend && npm ci && npm run lint && npm run build
+cd ../frontend && npm ci && npm run lint && npm run lint:i18n && npm test && npm run build
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for coding and review rules.

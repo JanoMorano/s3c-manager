@@ -259,7 +259,7 @@
 
 .badgeOk      { background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-success); }
 .badgeDanger  { background: color-mix(in srgb, var(--color-danger) 10%, transparent); color: var(--color-danger); }
-.badgeWarn    { background: var(--color-bg-surface)ae6; color: var(--color-warning); }
+.badgeWarn    { background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg-surface)); color: var(--color-warning); }
 .badgeNeutral { background: var(--color-bg-canvas); color: var(--color-text-muted); }
 
 /* ── Issue panel ─────────────────────────────────────────────────────────── */

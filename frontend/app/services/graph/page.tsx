@@ -9,42 +9,41 @@ import Link from '@/app/components/AppLink';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Background,
-  Controls,
-  Handle,
   MarkerType,
-  MiniMap,
-  Position,
-  ReactFlow,
   useEdgesState,
   useNodesState,
   type Edge,
   type EdgeMouseHandler,
   type Node,
   type NodeMouseHandler,
-  type NodeTypes,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import { GraphWorkspace } from '@/app/components/layout-v2';
-import { StatusPill } from '@/features/services/components/StatusPill';
-import { useGraphOverview } from '@/features/services/hooks/useServices';
-import { applyLineStyleMode, resolveServiceGraphEdgeVisual, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { useGraphOverview, usePortfolioGroups } from '@/features/services/hooks/useServices';
+import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_SERVICE_STATUS, lifecycleStageLabelKey } from '@/features/services/lifecycle';
+import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
+import { applyLineStyleMode, resolveServiceRelationVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { GraphCanvas, isLargeGraph } from '@/features/graph/GraphCanvas';
+import { GRAPH_NODE_TYPE } from '@/features/graph/GraphNodeCard';
+import { layoutByDependency } from '@/features/graph/autoLayout';
+import { computeGraphHighlight, DIMMED_EDGE_OPACITY, DIMMED_NODE_OPACITY, type GraphHighlight } from '@/features/graph/graphHighlight';
+import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import type { GraphOverviewEdge, GraphOverviewNode } from '@/features/services/model/service.types';
 import { compareText } from '@/app/i18n/format';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import shellStyles from '../../graph/overview.module.css';
 
-type ServiceGraphNodeData = GraphOverviewNode & Record<string, unknown> & {
-  selected?: boolean;
-  onSelect?: () => void;
-};
+type ServiceGraphNodeData = GraphOverviewNode & Record<string, unknown>;
 type ServiceGraphEdgeData = GraphOverviewEdge & Record<string, unknown>;
 type ServicesGraphViewMode = 'detail' | 'graph-only' | 'text';
+type ServicesGraphLayoutMode = 'dependency' | 'portfolio';
 
 const NODE_WIDTH = 250;
 const COLUMN_GAP = 300;
 const ROW_GAP = 116;
 const MAX_ROWS_PER_COLUMN = 10;
+const LAYOUT_NODE_WIDTH = 220;
+const LAYOUT_NODE_HEIGHT = 104;
+const HIGHLIGHT_DEPTHS = [1, 2, 3, 5];
 
 function normalizeViewMode(value: string | null | undefined): ServicesGraphViewMode {
   if (value === 'graph-only' || value === 'text' || value === 'detail') return value;
@@ -55,17 +54,74 @@ function serviceNodeKey(node: GraphOverviewNode) {
   return node.service_id ?? node.id.replace(/^svc:/, '');
 }
 
-function relationLabel(edge: GraphOverviewEdge) {
-  return (edge.relation_label || edge.relation_type || edge.edge_kind).replace(/_/g, ' ');
+function relationLabel(edge: GraphOverviewEdge, t: (key: string) => string) {
+  if (edge.relation_label) return edge.relation_label;
+  return edge.relation_type ? t(relationTypeLabelKey(edge.relation_type)) : edge.edge_kind.replace(/_/g, ' ');
 }
 
 function groupLabel(node: GraphOverviewNode) {
   return node.portfolio_group || 'No portfolio';
 }
 
-function layoutNodes(
+function toFlowNode(
+  node: GraphOverviewNode,
+  position: { x: number; y: number },
+  selectedNodeId: string | null,
+  highlight: GraphHighlight | null,
+  onSelectNode: (node: GraphOverviewNode) => void,
+  portfolio?: string,
+): Node<ServiceGraphNodeData> {
+  const dimmed = highlight !== null && !highlight.nodeIds.has(node.id);
+  const portfolioGroup = node.portfolio_group ?? portfolio ?? null;
+  return {
+    id: node.id,
+    type: GRAPH_NODE_TYPE,
+    position,
+    style: dimmed ? { opacity: DIMMED_NODE_OPACITY } : undefined,
+    data: {
+      ...node,
+      portfolio_group: portfolioGroup,
+      card: {
+        variant: 'service',
+        code: node.service_id ?? node.code ?? node.id,
+        title: node.title,
+        status: node.service_status ?? node.status ?? 'draft',
+        meta: [portfolioGroup ?? 'No portfolio'],
+        selected: selectedNodeId === node.id,
+        onSelect: () => onSelectNode(node),
+      },
+    },
+  };
+}
+
+function computeDependencyPositions(items: GraphOverviewNode[], relations: GraphOverviewEdge[], locale: string) {
+  // Stable input order keeps dagre's placement deterministic between renders.
+  const ordered = items.slice().sort((a, b) => compareText(
+    locale,
+    `${groupLabel(a)} ${a.service_id ?? ''}`,
+    `${groupLabel(b)} ${b.service_id ?? ''}`,
+    { numeric: true, sensitivity: 'base' },
+  ));
+  return layoutByDependency(
+    ordered.map((node) => ({ id: node.id, width: LAYOUT_NODE_WIDTH, height: LAYOUT_NODE_HEIGHT })),
+    relations,
+  );
+}
+
+function layoutNodesByDependency(
+  items: GraphOverviewNode[],
+  positions: Map<string, { x: number; y: number }>,
+  selectedNodeId: string | null,
+  highlight: GraphHighlight | null,
+  onSelectNode: (node: GraphOverviewNode) => void,
+): Node<ServiceGraphNodeData>[] {
+  return items.map((node) => toFlowNode(node, positions.get(node.id) ?? { x: 0, y: 0 }, selectedNodeId, highlight, onSelectNode));
+}
+
+function layoutNodesByPortfolio(
   items: GraphOverviewNode[],
   selectedNodeId: string | null,
+  highlight: GraphHighlight | null,
   onSelectNode: (node: GraphOverviewNode) => void,
   locale: string,
 ): Node<ServiceGraphNodeData>[] {
@@ -88,20 +144,10 @@ function layoutNodes(
     return sorted.map((node, index) => {
       const lane = Math.floor(index / MAX_ROWS_PER_COLUMN);
       const row = index % MAX_ROWS_PER_COLUMN;
-      return {
-        id: node.id,
-        type: 'serviceNode',
-        position: {
-          x: node.graph_x ?? (groupIndex * COLUMN_GAP) + (lane * (NODE_WIDTH + 36)),
-          y: node.graph_y ?? row * ROW_GAP,
-        },
-        data: {
-          ...node,
-          portfolio_group: node.portfolio_group ?? portfolio,
-          selected: selectedNodeId === node.id,
-          onSelect: () => onSelectNode(node),
-        },
-      };
+      return toFlowNode(node, {
+        x: (groupIndex * COLUMN_GAP) + (lane * (NODE_WIDTH + 36)),
+        y: row * ROW_GAP,
+      }, selectedNodeId, highlight, onSelectNode, portfolio);
     });
   });
 }
@@ -110,55 +156,30 @@ function layoutEdges(
   items: GraphOverviewEdge[],
   edgeType: GraphEdgeType,
   lineStyleMode: GraphLineStyleMode,
+  highlight: GraphHighlight | null,
 ): Edge<ServiceGraphEdgeData>[] {
   return items.map((edge) => {
-    const visual = resolveServiceGraphEdgeVisual(edge);
-    const autoDash = edge.is_verified === false ? '6 4' : visual.dash;
-    const dash = applyLineStyleMode({ ...visual, dash: autoDash }, lineStyleMode).dash;
-    const strokeColor = edge.is_mandatory ? 'var(--color-danger)' : visual.color;
+    const visual = resolveServiceRelationVisual(edge);
+    const dash = applyLineStyleMode(visual, lineStyleMode).dash;
+    const dimmed = highlight !== null && !highlight.edgeIds.has(edge.id);
 
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: edgeType,
-      label: edge.is_mandatory ? 'mandatory' : undefined,
-      markerEnd: { type: MarkerType.ArrowClosed, color: strokeColor },
+      markerEnd: { type: MarkerType.ArrowClosed, color: visual.color },
       style: {
-        strokeWidth: edge.is_mandatory ? Math.max(visual.width ?? 1.8, 2.4) : (visual.width ?? 1.6),
-        stroke: strokeColor,
+        strokeWidth: visual.width,
+        stroke: visual.color,
         strokeDasharray: dash,
+        opacity: dimmed ? DIMMED_EDGE_OPACITY : visual.opacity,
       },
-      labelStyle: { fontSize: 10, fill: strokeColor, fontWeight: 600 },
-      labelBgStyle: { fill: 'var(--color-bg-surface)', fillOpacity: 0.88 },
+      zIndex: highlight !== null && !dimmed ? 1 : 0,
       data: edge as ServiceGraphEdgeData,
     };
   });
 }
-
-function ServiceNodeCard({ data }: { data: ServiceGraphNodeData }) {
-  return (
-    <button
-      type="button"
-      className={`${shellStyles.node} ${data.selected ? shellStyles.nodeSelected : ''}`}
-      onClick={data.onSelect}
-      title={data.title}
-      aria-label={`Select service ${data.title}`}
-      aria-pressed={data.selected ? 'true' : 'false'}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className={shellStyles.nodeId}>{data.service_id ?? data.code ?? data.id}</div>
-      <div className={shellStyles.nodeTitle}>{data.title}</div>
-      <div className={shellStyles.nodeStatus}>
-        <StatusPill status={data.service_status ?? data.status ?? 'draft'} size="sm" />
-      </div>
-      <div className={shellStyles.meta}>{data.portfolio_group ?? 'No portfolio'}</div>
-      <Handle type="source" position={Position.Right} />
-    </button>
-  );
-}
-
-const nodeTypes: NodeTypes = { serviceNode: ServiceNodeCard };
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -190,11 +211,31 @@ export default function ServicesGraphPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
-  const { data, isLoading, error } = useGraphOverview({ compact: true, includeC3: false });
+  const t = useT();
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [portfolioFilter, setPortfolioFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+  // Filters run on the server, so large catalogues load only the visible services.
+  const { data, isLoading, error } = useGraphOverview({
+    compact: true,
+    includeC3: false,
+    search,
+    portfolio: portfolioFilter,
+    status: statusFilter,
+  });
+  const { data: portfolioGroups } = usePortfolioGroups();
   const [selectedNode, setSelectedNode] = useState<GraphOverviewNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphOverviewEdge | null>(null);
   const [edgeType, setEdgeType] = useState<GraphEdgeType>('smoothstep');
   const [lineStyleMode, setLineStyleMode] = useState<GraphLineStyleMode>('auto');
+  const [layoutMode, setLayoutMode] = useState<ServicesGraphLayoutMode>('dependency');
+  const layout = useGraphLayout(`service-overview/${layoutMode}`);
+  const [highlightDepth, setHighlightDepth] = useState<number>(2);
   const viewMode = normalizeViewMode(searchParams?.get('view'));
   const canvasOnly = viewMode === 'graph-only';
   const showTextAlternative = viewMode === 'text';
@@ -217,8 +258,25 @@ export default function ServicesGraphPage() {
     router.push(nextUrl, { scroll: false });
   }, [router]);
 
-  const initialNodes = useMemo(() => layoutNodes(services, selectedNode?.id ?? null, onSelectNode, locale), [locale, onSelectNode, selectedNode?.id, services]);
-  const initialEdges = useMemo(() => layoutEdges(relations, edgeType, lineStyleMode), [edgeType, lineStyleMode, relations]);
+  const highlight = useMemo(
+    () => computeGraphHighlight(selectedNode?.id ?? null, relations, highlightDepth),
+    [highlightDepth, relations, selectedNode?.id],
+  );
+  const dependencyPositions = useMemo(
+    () => (layoutMode === 'dependency' ? computeDependencyPositions(services, relations, locale) : null),
+    [layoutMode, locale, relations, services],
+  );
+  const initialNodes = useMemo(
+    () => applyNodePositions(dependencyPositions
+      ? layoutNodesByDependency(services, dependencyPositions, selectedNode?.id ?? null, highlight, onSelectNode)
+      : layoutNodesByPortfolio(services, selectedNode?.id ?? null, highlight, onSelectNode, locale), layout.positions),
+    [dependencyPositions, highlight, layout.positions, locale, onSelectNode, selectedNode?.id, services],
+  );
+  const initialEdges = useMemo(
+    () => layoutEdges(relations, edgeType, lineStyleMode, highlight),
+    [edgeType, highlight, lineStyleMode, relations],
+  );
+  const legendItems = useMemo(() => serviceGraphLegendItems(t, relations), [relations, t]);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
@@ -238,17 +296,16 @@ export default function ServicesGraphPage() {
 
   const mandatoryCount = relations.filter((edge) => edge.is_mandatory).length;
   const unverifiedCount = relations.filter((edge) => edge.is_verified === false).length;
-  const performanceMode = nodes.length > 250 || edges.length > 500;
-  const showMiniMap = nodes.length <= 350;
+  const performanceMode = isLargeGraph(nodes.length, edges.length);
   const serviceByNodeId = useMemo(() => new Map(services.map((node) => [node.id, node])), [services]);
   const textRelationRows = useMemo(() => relations.map((relation) => ({
     id: relation.id,
     source: serviceByNodeId.get(relation.source),
     target: serviceByNodeId.get(relation.target),
-    label: relationLabel(relation),
+    label: relationLabel(relation, t),
     mandatory: Boolean(relation.is_mandatory),
     verified: relation.is_verified !== false,
-  })), [relations, serviceByNodeId]);
+  })), [relations, serviceByNodeId, t]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     setSelectedNode(node.data as unknown as ServiceGraphNodeData);
@@ -303,6 +360,40 @@ export default function ServicesGraphPage() {
             </button>
           </FilterGroup>
 
+          <FilterGroup label={t('graph.filter.search')}>
+            <input
+              type="search"
+              className={shellStyles.searchInput}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={t('graph.filter.search')}
+              aria-label={t('graph.filter.search')}
+            />
+            <select
+              className={shellStyles.selectInput}
+              value={portfolioFilter}
+              onChange={(event) => setPortfolioFilter(event.target.value)}
+              aria-label={t('graph.filter.portfolio')}
+            >
+              <option value="">{t('graph.filter.portfolio')}: {t('graph.filter.all')}</option>
+              {(portfolioGroups ?? []).map((group) => (
+                <option key={group.code} value={group.code}>{group.name || group.code}</option>
+              ))}
+            </select>
+            <select
+              className={shellStyles.selectInput}
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label={t('graph.filter.status')}
+            >
+              <option value="">{t('graph.filter.status')}: {t('graph.filter.all')}</option>
+              {LIFECYCLE_STAGES.map((stage) => (
+                <option key={stage} value={LIFECYCLE_STAGE_SERVICE_STATUS[stage]}>{t(lifecycleStageLabelKey(stage))}</option>
+              ))}
+            </select>
+            <div className={shellStyles.meta}>{t('graph.filter.shown', { count: services.length })}</div>
+          </FilterGroup>
+
           <FilterGroup label="Souhrn">
             <div className={shellStyles.meta}>Services: {services.length}</div>
             <div className={shellStyles.meta}>Relations: {relations.length}</div>
@@ -314,6 +405,41 @@ export default function ServicesGraphPage() {
             {nodeCountsByPortfolio.slice(0, 12).map(([portfolio, count]) => (
               <div key={portfolio} className={shellStyles.meta}>{portfolio}: {count}</div>
             ))}
+          </FilterGroup>
+
+          <FilterGroup label={t('graph.layout.title')}>
+            <div className={shellStyles.typeList}>
+              {([
+                { value: 'dependency', label: t('graph.layout.dependency') },
+                { value: 'portfolio', label: t('graph.layout.portfolio') },
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`${shellStyles.typeBtn} ${layoutMode === option.value ? shellStyles.typeBtnOn : ''}`}
+                  aria-pressed={layoutMode === option.value}
+                  onClick={() => setLayoutMode(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </FilterGroup>
+
+          <FilterGroup label={t('graph.highlight.depth')}>
+            <div className={shellStyles.typeList}>
+              {HIGHLIGHT_DEPTHS.map((depth) => (
+                <button
+                  key={depth}
+                  type="button"
+                  className={`${shellStyles.typeBtn} ${highlightDepth === depth ? shellStyles.typeBtnOn : ''}`}
+                  aria-pressed={highlightDepth === depth}
+                  onClick={() => setHighlightDepth(depth)}
+                >
+                  {depth}
+                </button>
+              ))}
+            </div>
           </FilterGroup>
 
           <FilterGroup label="Typ spojnic">
@@ -364,24 +490,20 @@ export default function ServicesGraphPage() {
           </div>
           <div className={shellStyles.canvasWrap}>
             <div className={shellStyles.canvas} role="region" aria-label="Interactive service relationship graph">
-              <ReactFlow
+              <GraphCanvas
                 nodes={nodes}
                 edges={edges}
-                nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
                 onNodeDoubleClick={onNodeDoubleClick}
                 onEdgeClick={onEdgeClick}
-                nodesConnectable={false}
-                onlyRenderVisibleElements={performanceMode}
-                fitView
-                fitViewOptions={{ padding: 0.18 }}
-              >
-                <Background gap={24} size={1} />
-                <Controls />
-                {showMiniMap && <MiniMap nodeColor={nodeColor} />}
-              </ReactFlow>
+                onPaneClick={() => { setSelectedNode(null); setSelectedEdge(null); }}
+                fitViewPadding={0.18}
+                minimapNodeColor={nodeColor}
+                legend={{ title: t('graph.legend.title'), items: legendItems }}
+                layout={layout}
+              />
             </div>
           </div>
           {!canvasOnly && showTextAlternative ? (
@@ -437,8 +559,8 @@ export default function ServicesGraphPage() {
 
             {selectedEdge ? (
               <>
-                <PanelRow label="Relation">{relationLabel(selectedEdge)}</PanelRow>
-                <PanelRow label="Type">{selectedEdge.relation_type}</PanelRow>
+                <PanelRow label="Relation">{relationLabel(selectedEdge, t)}</PanelRow>
+                <PanelRow label="Type">{t(relationTypeLabelKey(selectedEdge.relation_type))}</PanelRow>
                 <PanelRow label="Mandatory">{selectedEdge.is_mandatory ? 'Ano' : 'Ne'}</PanelRow>
                 <PanelRow label="Verified">{selectedEdge.is_verified ? 'Ano' : 'Ne'}</PanelRow>
                 <PanelRow label="Impact">{selectedEdge.impact_level ?? '—'}</PanelRow>

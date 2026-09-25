@@ -127,7 +127,7 @@ export default function NavGlobalSearch() {
             </section>
           ))}
           <button type="button" className={styles.commandFooter} onMouseDown={(event) => event.preventDefault()} onClick={openSearchPage}>
-            Open grouped results for "{query.trim()}"
+            Open grouped results for “{query.trim()}”
           </button>
         </div>
       )}

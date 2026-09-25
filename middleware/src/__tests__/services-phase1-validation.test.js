@@ -56,11 +56,25 @@ describe('services phase 1 validation', () => {
     });
 
     test('validateLifecycleTransition blocks invalid lifecycle jump', () => {
+        // Legacy values are accepted as input and mapped to stages (live -> active).
         const errors = validateLifecycleTransition('live', 'draft');
 
         expect(errors).toEqual(expect.arrayContaining([
-            expect.objectContaining({ field: 'lifecycle_state' }),
+            expect.objectContaining({ field: 'lifecycle_stage_code' }),
         ]));
+    });
+
+    test('validateLifecycleTransition follows the canonical stage flow', () => {
+        expect(validateLifecycleTransition('draft', 'design')).toEqual([]);
+        expect(validateLifecycleTransition('design', 'active')).toEqual([]);
+        expect(validateLifecycleTransition('active', 'retiring')).toEqual([]);
+        expect(validateLifecycleTransition(null, 'retired')).toEqual([]);
+        expect(validateLifecycleTransition('retired', 'active')).toEqual([
+            expect.objectContaining({ field: 'lifecycle_stage_code' }),
+        ]);
+        expect(validateLifecycleTransition(null, 'unknown', 'lifecycle_state')).toEqual([
+            expect.objectContaining({ field: 'lifecycle_state' }),
+        ]);
     });
 
     test('validateLifecycleTransition maps legacy review states before transition checks', () => {
@@ -77,13 +91,27 @@ describe('services phase 1 validation', () => {
 
         expect(errors).toEqual(expect.arrayContaining([
             expect.objectContaining({
-                field: 'lifecycle_state',
+                field: 'lifecycle_stage_code',
                 message: expect.stringContaining('offering'),
             }),
             expect.objectContaining({
-                field: 'lifecycle_state',
+                field: 'lifecycle_stage_code',
                 message: expect.stringContaining('support model'),
             }),
         ]));
+    });
+});
+
+describe('requestability with offering channels', () => {
+    const { validateUpdate } = require('../services/validation');
+
+    test('a requestable service without its own channel is valid when an offering defines one', () => {
+        expect(validateUpdate({ requestable: true }, {}, { offeringHasRequestChannel: true })).toEqual([]);
+    });
+
+    test('a requestable service without any channel is rejected', () => {
+        expect(validateUpdate({ requestable: true }, {}, {})).toEqual([
+            expect.objectContaining({ field: 'requestable' }),
+        ]);
     });
 });

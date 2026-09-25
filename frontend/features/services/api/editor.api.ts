@@ -20,8 +20,6 @@ export interface ServiceUpdateBody {
   organizational_element_code?: string;
   summary?: string;
   detailed_description?: string;
-  value_proposition?: string;
-  business_purpose?: string | null;
   service_features?: string;
   security_classification?: string;
   source_url?: string;
@@ -43,9 +41,8 @@ export interface ServiceUpdateBody {
   exclusions?: string;
   service_area?: string;
   customer_type?: string | null;
-  business_summary?: string | null;
   requestable?: boolean | null;
-  lifecycle_state?: string | null;
+  lifecycle_stage_code?: string | null;
   target_audience_summary?: string | null;
   request_channel_type?: string | null;
   request_channel_url?: string | null;
@@ -188,7 +185,8 @@ export interface ServiceOfferingBody {
   title?: string;
   description?: string | null;
   is_default?: boolean;
-  requestable?: boolean;
+  /** null = inherit from the service */
+  requestable?: boolean | null;
   approval_required?: boolean | null;
   request_channel_type?: string | null;
   request_channel_url?: string | null;

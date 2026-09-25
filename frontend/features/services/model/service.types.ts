@@ -380,8 +380,6 @@ export interface ServiceDetail {
   portfolio_group_name: string | null;       // COALESCE(pg.name, portfolio_group_code)
   service_type_name: string | null;          // COALESCE(st.name, service_type_code)
   service_status_name: string | null;        // COALESCE(ss.name, service_status_code)
-  value_proposition: string | null;
-  business_purpose: string | null;
   service_features: string | null;
   unit_of_measure: string | null;
   charging_basis: string | null;
@@ -465,7 +463,6 @@ export interface ServiceDetail {
   // JSON fields
   customer_type: unknown | null;
   options: unknown | null;
-  business_summary: string | null;
   consumer_value: string | null;
   requestable: boolean | null;
   lifecycle_state: string | null;
@@ -478,7 +475,6 @@ export interface ServiceDetail {
   fulfillment_lead_time_text: string | null;
   review_owner_user_id: number | null;
   review_due_at: string | null;
-  next_review_due_at: string | null;
   offerings: ServiceOffering[];
   primary_offering: ServiceOffering | null;
   support_model: ServiceSupportModel[];
@@ -495,7 +491,8 @@ export interface ServiceOffering {
   title: string;
   description: string | null;
   is_default: boolean;
-  requestable: boolean;
+  /** Own value; null = inherited from the service (see effective_*). */
+  requestable: boolean | null;
   approval_required: boolean | null;
   request_channel_type: string | null;
   request_channel_url: string | null;
@@ -505,6 +502,11 @@ export interface ServiceOffering {
   display_order: number | null;
   created_at: string;
   updated_at: string;
+  effective_requestable?: boolean;
+  effective_approval_required?: boolean | null;
+  effective_request_channel_type?: string | null;
+  effective_request_channel_url?: string | null;
+  effective_lead_time_text?: string | null;
 }
 
 export interface ServiceSupportModel {
@@ -673,6 +675,8 @@ export interface SlaRecord {
   availability_pct: number | null;
   restoration_hours: number | null;
   delivery_days: number | null;
+  restoration_text?: string | null;
+  delivery_text?: string | null;
   priority_model_raw: string | null;
   sla_note_raw: string | null;
   source_field: string | null;
@@ -849,39 +853,6 @@ export interface ServiceGraphV2Response {
   edges: ServiceGraphV2Edge[];
 }
 
-export interface C3RelationGraphNode {
-  [key: string]: unknown;
-  id: string;
-  node_kind: 'c3_capability' | 'c3_application' | 'c3_tin' | 'c3_data_object' | 'c3_service';
-  label: string;
-  code: string | null;
-  status: string | null;
-  item_type?: string | null;
-  completeness_status?: string | null;
-  c3_uuid?: string | null;
-  entity_uuid?: string | null;
-}
-
-export interface C3RelationGraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  edge_kind:
-    | 'capability_application'
-    | 'capability_tin'
-    | 'capability_data_object'
-    | 'capability_c3_service'
-    | 'tin_application'
-    | 'tin_data_object'
-    | 'tin_c3_service';
-  relation_type: string;
-}
-
-export interface C3RelationGraphResponse {
-  nodes: C3RelationGraphNode[];
-  edges: C3RelationGraphEdge[];
-}
-
 export interface GraphOverviewNode {
   id: string;
   node_kind:
@@ -1019,7 +990,7 @@ export interface DashboardOwnedService {
   service_status: string | null;
   lifecycle_stage_code: string | null;
   completeness_score: number | null;
-  next_review_due_at: string | null;
+  review_due_at: string | null;
   updated_at: string | null;
 }
 

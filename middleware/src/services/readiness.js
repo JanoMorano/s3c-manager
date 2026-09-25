@@ -65,7 +65,7 @@ const RULE_EVALUATORS = {
     ),
     service_has_dependency_classification: (row) => toCount(row.dependency_relation_count) > 0,
     service_has_relations: (row) => toCount(row.relation_count) > 0,
-    service_has_review_date: (row) => hasValue(row.review_due_at) || hasValue(row.next_review_due_at),
+    service_has_review_date: (row) => hasValue(row.review_due_at),
     requestable_service_has_pricing: (row) => {
         if (!row.requestable) return true;
         return toCount(row.priced_flavour_count) > 0 || Boolean(row.has_price_note);

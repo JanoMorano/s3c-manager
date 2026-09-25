@@ -152,7 +152,7 @@ export default function HomePage() {
                 <SignalRow
                   key={item.service_id}
                   title={item.title}
-                  meta={`${item.lifecycle_stage_code ?? item.service_status ?? 'bez lifecycle'} · review ${formatDateTime(item.next_review_due_at)}`}
+                  meta={`${item.lifecycle_stage_code ?? item.service_status ?? 'bez lifecycle'} · review ${formatDateTime(item.review_due_at)}`}
                   pill={`${item.completeness_score ?? 0}%`}
                   tone={(item.completeness_score ?? 0) < 60 ? 'warn' : 'ok'}
                   href={`/services/${item.service_id}`}

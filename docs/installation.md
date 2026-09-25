@@ -358,7 +358,17 @@ SQL file order:
 25_capability_governance.sql — coverage, gap, and overlap views
 26_governance_workflow.sql — reviews and decision log
 27_impact_analysis.sql — recursive service/capability impact analysis
-28_enterprise_governance_contracts.sql — notifications, preferences, request log, C3 board state
+29_reduction_low_risk_cleanup.sql … 32_final_reduction_sunset_cleanup.sql — v1.2 reduction cleanup
+33_readiness_rule_explanations.sql — readiness rule why/how-to/evidence texts
+34_c3_board_state.sql — C3 governance board state and board lanes
+35_canonical_service_fields.sql — canonical lifecycle stage, review date and portfolio (legacy columns kept in sync)
+36_service_sla_canonical.sql — service-level SLA canonical in service_sla (catalog sla_* columns kept in sync)
+37_offering_request_inheritance.sql — offering request/approval/channel/lead-time fields inherit from the service (NULL = inherit)
+38_c3_entity_link_view.sql — v_c3_entity_link, one read model over the seven C3 link tables
+39_drop_legacy_service_mirrors.sql — removes lifecycle_state, service_status_code, next_review_due_at, portfolio_group_code and catalogue sla_* columns
+40_service_catalog_source.sql — moves import provenance and raw import fields to service_catalog_source; merges value_proposition/business_purpose into consumer_value and business_summary into short_description
+41_graph_node_layout.sql — per-view graph node positions (graph_node_layout); replaces service_catalog.graph_x/graph_y
+42_c3_entity_link_table.sql — merges the seven C3 link tables into c3_entity_link (old names kept as updatable views)
 ```
 
 ---

@@ -728,7 +728,7 @@ relation_counts AS (
     SELECT
         sc.id AS service_id,
         COUNT(sr.id) AS relation_count,
-        SUM(CASE WHEN sr.relation_type_code IN ('depends_on', 'prerequisite', 'underlying') THEN 1 ELSE 0 END) AS dependency_relation_count
+        SUM(CASE WHEN sr.relation_type_code IN ('depends_on', 'prerequisite', 'underlying', 'requires_account', 'uses') THEN 1 ELSE 0 END) AS dependency_relation_count
     FROM service_catalog sc
     LEFT JOIN service_relation sr
       ON sr.is_deleted = FALSE

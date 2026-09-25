@@ -1,23 +1,27 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const { toLifecycleStage } = require('../utils/lifecycle');
+const { DEPENDENCY_RELATION_TYPE_CODES } = require('../../../shared/service-catalogue/relationTypes');
+
+// Static codes from the shared relation type definition, not user input.
+const DEPENDENCY_RELATION_TYPES_SQL = DEPENDENCY_RELATION_TYPE_CODES.map((code) => `'${code}'`).join(', ');
 
 const SERVICE_STATE_SELECT = `
     SELECT
         sc.id AS service_pk,
         sc.service_id,
         sc.title,
-        sc.service_status_code AS service_status,
+        data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status,
         sc.lifecycle_stage_code,
-        sc.lifecycle_state,
+        data.fn_lifecycle_state_from_stage(sc.lifecycle_stage_code) AS lifecycle_state,
         sc.requestable,
         sc.review_due_at,
-        sc.next_review_due_at,
-        sc.sla_availability,
-        sc.sla_restoration_hours AS sla_restoration,
-        sc.sla_delivery_days AS sla_delivery,
-        sc.service_cost_raw,
-        sc.pricing_note_raw,
+        sla.availability_pct AS sla_availability,
+        sla.restoration_hours AS sla_restoration,
+        sla.delivery_days AS sla_delivery,
+        src.raw_fields->>'service_cost_raw' AS service_cost_raw,
+        src.raw_fields->>'pricing_note_raw' AS pricing_note_raw,
         COALESCE(owner.owner_count, 0) AS owner_count,
         COALESCE(offering.offering_count, 0) AS offering_count,
         COALESCE(sla_records.sla_record_count, 0) AS sla_record_count,
@@ -43,12 +47,14 @@ const SERVICE_STATE_SELECT = `
         CASE WHEN comp.completeness_status = 'complete' THEN TRUE ELSE FALSE END AS has_complete_primary_capability,
         CASE WHEN COALESCE(active_flavour.active_flavour_count, 0) > 0 THEN TRUE ELSE FALSE END AS has_active_flavour,
         CASE
-            WHEN COALESCE(sc.service_cost_raw, '') <> ''
-              OR COALESCE(sc.pricing_note_raw, '') <> ''
+            WHEN COALESCE(src.raw_fields->>'service_cost_raw', '') <> ''
+              OR COALESCE(src.raw_fields->>'pricing_note_raw', '') <> ''
               OR COALESCE(pricing.priced_flavour_count, 0) > 0
             THEN TRUE ELSE FALSE
         END AS has_price_note
     FROM data.service_catalog sc
+    LEFT JOIN data.service_sla sla ON sla.id = data.fn_service_primary_sla_id(sc.id)
+    LEFT JOIN data.service_catalog_source src ON src.service_catalog_id = sc.id
     LEFT JOIN LATERAL (
         SELECT COUNT(*)::integer AS owner_count
         FROM data.service_role_assignment sra
@@ -85,7 +91,7 @@ const SERVICE_STATE_SELECT = `
     LEFT JOIN LATERAL (
         SELECT
             COUNT(sr.id)::integer AS relation_count,
-            SUM(CASE WHEN sr.relation_type_code IN ('depends_on', 'prerequisite', 'underlying', 'requires_account', 'uses') THEN 1 ELSE 0 END)::integer AS dependency_relation_count
+            SUM(CASE WHEN sr.relation_type_code IN (${DEPENDENCY_RELATION_TYPES_SQL}) THEN 1 ELSE 0 END)::integer AS dependency_relation_count
         FROM data.service_relation sr
         WHERE sr.is_deleted = FALSE
           AND (sr.from_service_id = sc.id OR sr.to_service_id = sc.id)
@@ -161,8 +167,8 @@ async function listServiceStates(filters = {}) {
     const where = ['sc.is_deleted = FALSE', 'sc.is_stub = FALSE'];
 
     if (filters.lifecycle) {
-        params.push(filters.lifecycle);
-        where.push(`(sc.lifecycle_stage_code = $${params.length} OR sc.lifecycle_state = $${params.length})`);
+        params.push(toLifecycleStage(filters.lifecycle) ?? filters.lifecycle);
+        where.push(`sc.lifecycle_stage_code = $${params.length}`);
     }
     if (filters.owner) {
         params.push(`%${String(filters.owner).trim()}%`);

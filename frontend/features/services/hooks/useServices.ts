@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { apiFetch, buildGraphOverviewUrl, buildListUrl } from '../api/services.api';
+import { apiFetch, buildGraphOverviewUrl, buildListUrl, type GraphOverviewParams } from '../api/services.api';
 import type { ListParams } from '../api/services.api';
 import type {
   ServiceListResponse,
@@ -13,7 +13,6 @@ import type {
   GraphResponse,
   ServiceGraphV2Response,
   GraphOverviewResponse,
-  C3RelationGraphResponse,
   DashboardResponse,
   DashboardHeadlineResponse,
   DashboardInboxResponse,
@@ -165,26 +164,13 @@ export function useServiceFrameworks(id: string | null) {
   );
 }
 
-export function useGraphOverview(options: { compact?: boolean; includeC3?: boolean } = {}) {
+export function useGraphOverview(options: GraphOverviewParams = {}) {
   return useSWR<GraphOverviewResponse>(
     buildGraphOverviewUrl(options),
     apiFetch,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
+    // Keep the current graph on screen while a filtered one loads.
+    { revalidateOnFocus: false, dedupingInterval: 60_000, keepPreviousData: true }
   );
-}
-
-export function useC3RelationGraph(params: { search?: string; itemType?: string; domainCode?: string; l3PageId?: string; enabled?: boolean } = {}) {
-  const q = new URLSearchParams();
-  if (params.search) q.set('search', params.search);
-  if (params.itemType) q.set('item_type', params.itemType);
-  if (params.domainCode) q.set('domain_code', params.domainCode);
-  if (params.l3PageId) q.set('l3_page_id', params.l3PageId);
-  const key = params.enabled === false
-    ? null
-    : `/api/v1/graph/c3-relations${q.toString() ? `?${q.toString()}` : ''}`;
-  return useSWR<C3RelationGraphResponse>(key, apiFetch, {
-    revalidateOnFocus: false,
-  });
 }
 
 export function useServiceImpact(params: {
