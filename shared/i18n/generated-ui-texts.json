@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-14T19:42:40.363Z",
+  "generated_at": "2026-09-25T18:00:29.702Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -489,15 +489,6 @@
       ]
     },
     {
-      "key": "ui.generated.k.5yyb",
-      "source": "⌘K",
-      "cs": "⌘K",
-      "en": "⌘K",
-      "files": [
-        "frontend/app/components/NavGlobalSearch.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.due_soon.aqidxq",
       "source": "⏰ Due soon ·",
       "cs": "⏰ Brzy po termínu ·",
@@ -813,30 +804,12 @@
       ]
     },
     {
-      "key": "ui.generated.1_identita.6avrtj",
-      "source": "1. Identita",
-      "cs": "1. Identita",
-      "en": "1. Identita",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.1_popis.r02nqg",
       "source": "1. Popis",
       "cs": "1. Popis",
       "en": "1. Popis",
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.2_hodnota_a_rozsah.on8xcl",
-      "source": "2. Hodnota a rozsah",
-      "cs": "2. Hodnota a rozsah",
-      "en": "2. Hodnota a rozsah",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
       ]
     },
     {
@@ -855,15 +828,6 @@
       "en": "2. Source & status",
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.3_request_a_pristup.rde11x",
-      "source": "3. Request a přístup",
-      "cs": "3. Požadavek a přístup",
-      "en": "3. Request and access",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
       ]
     },
     {
@@ -912,30 +876,12 @@
       ]
     },
     {
-      "key": "ui.generated.4_vlastnictvi_a_support.51vbs7",
-      "source": "4. Vlastnictví a support",
-      "cs": "4. Vlastnictví a podpora",
-      "en": "4. Ownership and support",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.4ec1702a.i08rp4",
       "source": "4ec1702a-...",
       "cs": "4ec1702a-...",
       "en": "4ec1702a-...",
       "files": [
         "frontend/app/admin/c3-capability-builder/C3CapabilityBuilderPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.5_dostupnost_a_vazby.dt07u1",
-      "source": "5. Dostupnost a vazby",
-      "cs": "5. Dostupnost a vazby",
-      "en": "5. Availability and relations",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
       ]
     },
     {
@@ -954,78 +900,6 @@
       "en": "5. Structured data (raw JSON/text)",
       "files": [
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.6_readiness_a_governance.bpea2n",
-      "source": "6. Readiness a governance",
-      "cs": "6. Připravenost a správa",
-      "en": "6. Readiness a governance",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.6b_service_offerings.94ajxg",
-      "source": "6b. Service Offerings",
-      "cs": "6b. Nabídky služby",
-      "en": "6b. Service Offerings",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.7_pracovnich_sekci_podle_redukcni_etapy_4.n350rx",
-      "source": "7 pracovních sekcí podle redukční Etapy 4.",
-      "cs": "7 pracovních sekcí podle redukční Etapy 4.",
-      "en": "7 working sections according to Reduction Stage 4.",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.7_advanced_evidence.9rlrvw",
-      "source": "7. Advanced evidence",
-      "cs": "7. Pokročilá evidence",
-      "en": "7. Advanced evidence",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.7_relationships.9scrrm",
-      "source": "7. Relationships",
-      "cs": "7. Vazby",
-      "en": "7. Relationships",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.7c_support_model.vufgyu",
-      "source": "7c. Support Model",
-      "cs": "7c. Model podpory",
-      "en": "7c. Support Model",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.7d_audience_policies.4yb51p",
-      "source": "7d. Audience Policies",
-      "cs": "7d. Pravidla publika",
-      "en": "7d. Audience Policies",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.7e_operational_links.lfkqs5",
-      "source": "7e. Operational Links",
-      "cs": "7e. Provozní odkazy",
-      "en": "7e. Operational Links",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
       ]
     },
     {
@@ -1079,7 +953,6 @@
       "cs": "Akce",
       "en": "Action",
       "files": [
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/capabilities/[slug]/page.tsx",
         "frontend/app/capabilities/page.tsx"
       ]
@@ -1232,7 +1105,6 @@
       "en": "Administration",
       "files": [
         "frontend/app/administration/import/page.tsx",
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/components/MainNav.tsx"
       ]
     },
@@ -1833,15 +1705,6 @@
       ]
     },
     {
-      "key": "ui.generated.audit_logs.b1xbe4",
-      "source": "Audit Logs",
-      "cs": "Auditní logy",
-      "en": "Audit Logs",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.audit_trail.d3x0td",
       "source": "Audit trail",
       "cs": "Auditní stopa",
@@ -2433,7 +2296,8 @@
       "files": [
         "frontend/app/capabilities/page.tsx",
         "frontend/app/components/C3Breadcrumbs.tsx",
-        "frontend/app/management/new-service/page.tsx"
+        "frontend/app/management/new-service/page.tsx",
+        "frontend/features/modules/manifest.ts"
       ]
     },
     {
@@ -2546,6 +2410,15 @@
       "en": "C3 Capability Map is not available. Check middleware or the capability map source data.",
       "files": [
         "frontend/app/c3/capability-map/CapabilityMapPage.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.c3_capability_taxonomy.1uc3g7",
+      "source": "C3 Capability Taxonomy",
+      "cs": "C3 taxonomie schopností",
+      "en": "C3 Capability Taxonomy",
+      "files": [
+        "frontend/features/modules/manifest.ts"
       ]
     },
     {
@@ -3000,7 +2873,6 @@
       "files": [
         "frontend/app/capabilities/page.tsx",
         "frontend/app/components/MainNav.tsx",
-        "frontend/app/components/NavGlobalSearch.tsx",
         "frontend/app/management/new-service/page.tsx",
         "frontend/app/services/[id]/page.tsx"
       ]
@@ -3526,7 +3398,6 @@
       "en": "Chyba:",
       "files": [
         "frontend/app/administration/import/page.tsx",
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/c3/[uuid]/edit/page.tsx",
         "frontend/features/admin/components/RefTableEditor.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
@@ -3616,21 +3487,21 @@
       ]
     },
     {
+      "key": "ui.generated.clear.12tbn1",
+      "source": "Clear",
+      "cs": "Vymazat",
+      "en": "Clear",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.clear_filters.f9lce0",
       "source": "Clear filters",
       "cs": "Vymazat filtry",
       "en": "Clear filters",
       "files": [
         "frontend/app/services/list/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.client.xfbnqj",
-      "source": "Client",
-      "cs": "Client",
-      "en": "Client",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
       ]
     },
     {
@@ -3725,15 +3596,6 @@
       "en": "Collapse",
       "files": [
         "frontend/app/components/layout-v2/GraphWorkspace.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.command_palette_search_results.ls8yu0",
-      "source": "Command palette search results",
-      "cs": "Výsledky hledání v příkazové paletě",
-      "en": "Command palette search results",
-      "files": [
-        "frontend/app/components/NavGlobalSearch.tsx"
       ]
     },
     {
@@ -4117,7 +3979,6 @@
         "frontend/app/admin/c3-entities/config.tsx",
         "frontend/app/administration/groups/[id]/page.tsx",
         "frontend/app/administration/import/page.tsx",
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/app/catalogue/page.tsx",
         "frontend/app/cockpit/my-tasks/page.tsx",
@@ -4162,6 +4023,15 @@
       "en": "CSV export requires the Content Admin or Admin role.",
       "files": [
         "frontend/app/services/list/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.ctrl_k.xjvunq",
+      "source": "Ctrl K",
+      "cs": "Ctrl K",
+      "en": "Ctrl K",
+      "files": [
+        "frontend/app/components/NavGlobalSearch.tsx"
       ]
     },
     {
@@ -4312,6 +4182,15 @@
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.database_layer.iy4yhg",
+      "source": "Database Layer",
+      "cs": "Databázová vrstva",
+      "en": "Database Layer",
+      "files": [
+        "frontend/features/modules/manifest.ts"
       ]
     },
     {
@@ -5386,6 +5265,15 @@
       ]
     },
     {
+      "key": "ui.generated.enter_at_least_two_characters_multi_word_queries.e5f8vt",
+      "source": "Enter at least two characters. Multi-word queries are split into words and matched across the full application index.",
+      "cs": "Zadejte alespoň dva znaky. Víceslovné dotazy se rozdělí na slova a hledají se v celém indexu aplikace.",
+      "en": "Enter at least two characters. Multi-word queries are split into words and matched across the full application index.",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.error_digest.nrzs8u",
       "source": "Error digest:",
       "cs": "Chyba digest:",
@@ -5439,6 +5327,15 @@
       "en": "Every decision is audit visible. Fill what changed, why, what it affects, and evidence when available.",
       "files": [
         "frontend/app/components/layout-v2/DecisionRecordModal.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.every_word_is_matched_across_services_c3_managem.7ab840",
+      "source": "Every word is matched across services, C3, management records, application pages and help content.",
+      "cs": "Každé slovo se hledá ve službách, C3, záznamech správy, stránkách aplikace a v nápovědě.",
+      "en": "Every word is matched across services, C3, management records, application pages and help content.",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -5871,15 +5768,6 @@
       ]
     },
     {
-      "key": "ui.generated.filtrovat_podle_tabulky_akce_zaznamu_nebo_uzivat.tkb3o2",
-      "source": "Filtrovat podle tabulky, akce, záznamu nebo uživatele…",
-      "cs": "Filtrovat podle tabulky, akce, záznamu nebo uživatele…",
-      "en": "Filter by table, action, record, or user…",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.filtrovat_revize_po_terminu.dxukzb",
       "source": "Filtrovat revize po termínu",
       "cs": "Filtrovat revize po termínu",
@@ -6030,8 +5918,7 @@
       "cs": "Frameworks",
       "en": "Frameworks",
       "files": [
-        "frontend/app/components/MainNav.tsx",
-        "frontend/app/components/NavGlobalSearch.tsx"
+        "frontend/app/components/MainNav.tsx"
       ]
     },
     {
@@ -6151,6 +6038,33 @@
       "en": "Generated evidence",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.global_search.8t7o7v",
+      "source": "Global search",
+      "cs": "Globální vyhledávání",
+      "en": "Global search",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.global_search_query.9976h9",
+      "source": "Global search query",
+      "cs": "Dotaz globálního vyhledávání",
+      "en": "Global search query",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.global_search_suggestions.lo45bo",
+      "source": "Global search suggestions",
+      "cs": "Návrhy globálního vyhledávání",
+      "en": "Global search suggestions",
+      "files": [
+        "frontend/app/components/NavGlobalSearch.tsx"
       ]
     },
     {
@@ -6354,6 +6268,16 @@
       "en": "Heatmap",
       "files": [
         "frontend/app/spirals/[code]/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.help.1c4m9",
+      "source": "Help",
+      "cs": "Nápověda",
+      "en": "Help",
+      "files": [
+        "frontend/app/components/NavGlobalSearch.tsx",
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -6635,15 +6559,6 @@
       "files": [
         "frontend/app/administration/import/page.tsx",
         "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.import_source_evidence.br8fxb",
-      "source": "Import source evidence",
-      "cs": "Importní zdrojová evidence",
-      "en": "Import source evidence",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
       ]
     },
     {
@@ -7364,15 +7279,6 @@
       ]
     },
     {
-      "key": "ui.generated.legacy_variant_evidence.734rft",
-      "source": "Legacy variant evidence",
-      "cs": "Evidence historických variant",
-      "en": "Legacy variant evidence",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.legacy_variant_evidence_could_not_be_loaded.n46qov",
       "source": "Legacy variant evidence could not be loaded",
       "cs": "Evidenci historických variant se nepodařilo načíst",
@@ -7662,15 +7568,6 @@
       ]
     },
     {
-      "key": "ui.generated.loading_logs.3739v1",
-      "source": "Loading logs…",
-      "cs": "Načítání logs…",
-      "en": "Loading logs…",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.loading_my_tasks.6u5low",
       "source": "Loading my tasks...",
       "cs": "Načítání my tasks...",
@@ -7734,6 +7631,15 @@
       ]
     },
     {
+      "key": "ui.generated.loading_search.1azv0i",
+      "source": "Loading search...",
+      "cs": "Načítám vyhledávání…",
+      "en": "Loading search...",
+      "files": [
+        "frontend/app/search/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.loading_services.vba458",
       "source": "Loading services…",
       "cs": "Načítání služby…",
@@ -7757,7 +7663,6 @@
       "cs": "Načítám…",
       "en": "Loading…",
       "files": [
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/import/page.tsx",
         "frontend/app/services/[id]/page.tsx",
         "frontend/app/services/list/page.tsx"
@@ -7833,6 +7738,15 @@
       "en": "Make this capability explainable",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.management_cockpit.s9o1uy",
+      "source": "Management Cockpit",
+      "cs": "Řídicí panel správy",
+      "en": "Management Cockpit",
+      "files": [
+        "frontend/features/modules/manifest.ts"
       ]
     },
     {
@@ -9544,12 +9458,12 @@
       ]
     },
     {
-      "key": "ui.generated.no_log_entries.it3l5l",
-      "source": "No log entries.",
-      "cs": "Žádné log entries.",
-      "en": "No log entries.",
+      "key": "ui.generated.no_live_matches_yet.fedwoo",
+      "source": "No live matches yet.",
+      "cs": "Zatím žádné shody.",
+      "en": "No live matches yet.",
       "files": [
-        "frontend/app/administration/logs/page.tsx"
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -9757,6 +9671,15 @@
       "en": "No relationships defined.",
       "files": [
         "frontend/app/services/[id]/edit/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.no_results_found_in_modules_or_help.tcren1",
+      "source": "No results found in modules or help.",
+      "cs": "V modulech ani v nápovědě nebylo nic nalezeno.",
+      "en": "No results found in modules or help.",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -10314,6 +10237,15 @@
       ]
     },
     {
+      "key": "ui.generated.open_all_grouped_results_for.5r9zh2",
+      "source": "Open all grouped results for \"",
+      "cs": "Otevřít všechny seskupené výsledky pro „",
+      "en": "Open all grouped results for “",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.open_audit_trail.34ln5v",
       "source": "Open audit trail →",
       "cs": "Otevřít audit trail →",
@@ -10384,6 +10316,15 @@
       "en": "Open governance decisions",
       "files": [
         "frontend/app/services/[id]/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.open_grouped_results_for.g5i2zb",
+      "source": "Open grouped results for \"",
+      "cs": "Otevřít seskupené výsledky pro „",
+      "en": "Open grouped results for “",
+      "files": [
+        "frontend/app/components/NavGlobalSearch.tsx"
       ]
     },
     {
@@ -11592,6 +11533,15 @@
       "en": "Plain readout",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.platform_core.l4ijho",
+      "source": "Platform Core",
+      "cs": "Jádro platformy",
+      "en": "Platform Core",
+      "files": [
+        "frontend/features/modules/manifest.ts"
       ]
     },
     {
@@ -12975,12 +12925,12 @@
       ]
     },
     {
-      "key": "ui.generated.record.um28wf",
-      "source": "Record",
-      "cs": "Záznam",
-      "en": "Record",
+      "key": "ui.generated.recent_searches.u2op7p",
+      "source": "Recent searches",
+      "cs": "Nedávná hledání",
+      "en": "Recent searches",
       "files": [
-        "frontend/app/administration/logs/page.tsx"
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -13182,15 +13132,6 @@
       "en": "References (raw)",
       "files": [
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.refresh.pjrwp1",
-      "source": "Refresh",
-      "cs": "Refresh",
-      "en": "Refresh",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
       ]
     },
     {
@@ -14154,6 +14095,24 @@
       ]
     },
     {
+      "key": "ui.generated.s3c_globalsearch_recent.oylrv7",
+      "source": "s3c.globalSearch.recent",
+      "cs": "s3c.globalSearch.recent",
+      "en": "s3c.globalSearch.recent",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.s3c_globalsearch_saved.cxg4mp",
+      "source": "s3c.globalSearch.saved",
+      "cs": "s3c.globalSearch.saved",
+      "en": "s3c.globalSearch.saved",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.safe_to_commit_after_validation.e9v74k",
       "source": "safe to commit after validation",
       "cs": "bezpečné zapsat po validaci",
@@ -14218,6 +14177,15 @@
       ]
     },
     {
+      "key": "ui.generated.save_search.v1l3lh",
+      "source": "Save search",
+      "cs": "Uložit hledání",
+      "en": "Save search",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.save_status.utc4rv",
       "source": "Save status",
       "cs": "Uložit stav",
@@ -14233,6 +14201,24 @@
       "en": "Save support model",
       "files": [
         "frontend/app/services/[id]/edit/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.saved.1bfcyv",
+      "source": "Saved",
+      "cs": "Uloženo",
+      "en": "Saved",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.saved_searches.44ldyn",
+      "source": "Saved searches",
+      "cs": "Uložená hledání",
+      "en": "Saved searches",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -14357,21 +14343,57 @@
       ]
     },
     {
+      "key": "ui.generated.search.u51um0",
+      "source": "Search",
+      "cs": "Hledat",
+      "en": "Search",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.search_across_s3c_manager.3rp8ih",
+      "source": "Search across S3C Manager",
+      "cs": "Hledat v S3C Manažeru",
+      "en": "Search across S3C Manager",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.search_any_word_across_services_c3_management_pa.3ni4gg",
+      "source": "Search any word across services, C3, management, pages or help...",
+      "cs": "Hledejte libovolné slovo ve službách, C3, správě, stránkách nebo nápovědě…",
+      "en": "Search any word across services, C3, management, pages or help...",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.search_any_word_across_the_application.w5v2jg",
+      "source": "Search any word across the application...",
+      "cs": "Hledejte libovolné slovo v celé aplikaci…",
+      "en": "Search any word across the application...",
+      "files": [
+        "frontend/app/components/NavGlobalSearch.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.search_failed.tr5od1",
+      "source": "Search failed",
+      "cs": "Vyhledávání selhalo",
+      "en": "Search failed",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.search_services.juuo96",
       "source": "Search services",
       "cs": "Hledat služby",
       "en": "Search services",
       "files": [
         "frontend/app/services/list/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.search_services_capabilities_decisions.rprx2t",
-      "source": "Search services, capabilities, decisions...",
-      "cs": "Hledat služby, schopnosti, rozhodnutí...",
-      "en": "Search services, capabilities, decisions...",
-      "files": [
-        "frontend/app/components/NavGlobalSearch.tsx"
       ]
     },
     {
@@ -14384,12 +14406,21 @@
       ]
     },
     {
-      "key": "ui.generated.searching.l88q4s",
-      "source": "Searching…",
-      "cs": "Searching…",
-      "en": "Searching…",
+      "key": "ui.generated.search_suggestions.7vuvs9",
+      "source": "Search suggestions",
+      "cs": "Návrhy hledání",
+      "en": "Search suggestions",
       "files": [
-        "frontend/app/components/NavGlobalSearch.tsx"
+        "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.searching_all_modules.cv5hhw",
+      "source": "Searching all modules...",
+      "cs": "Prohledávám všechny moduly…",
+      "en": "Searching all modules...",
+      "files": [
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -14398,7 +14429,9 @@
       "cs": "Searching...",
       "en": "Searching...",
       "files": [
-        "frontend/app/components/layout-v2/Pickers.tsx"
+        "frontend/app/components/NavGlobalSearch.tsx",
+        "frontend/app/components/layout-v2/Pickers.tsx",
+        "frontend/app/search/SearchPageClient.tsx"
       ]
     },
     {
@@ -14539,7 +14572,8 @@
       "files": [
         "frontend/app/administration/groups/[id]/page.tsx",
         "frontend/app/layout.tsx",
-        "frontend/app/login/page.tsx"
+        "frontend/app/login/page.tsx",
+        "frontend/features/modules/manifest.ts"
       ]
     },
     {
@@ -14918,7 +14952,6 @@
       "files": [
         "frontend/app/administration/c3-ref/page.tsx",
         "frontend/app/capabilities/[slug]/page.tsx",
-        "frontend/app/components/NavGlobalSearch.tsx",
         "frontend/app/import/page.tsx",
         "frontend/app/import/upload/page.tsx",
         "frontend/app/management/new-service/page.tsx",
@@ -16306,15 +16339,6 @@
       ]
     },
     {
-      "key": "ui.generated.table.1byqwe",
-      "source": "Table",
-      "cs": "Tabulka",
-      "en": "Table",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.target_audience_summary.iwzf8n",
       "source": "Target Audience Summary",
       "cs": "Cíl Publikum Souhrn",
@@ -16632,15 +16656,6 @@
       ]
     },
     {
-      "key": "ui.generated.time.1jvfx",
-      "source": "Time",
-      "cs": "Time",
-      "en": "Time",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.tin.1biyip",
       "source": "TIN (",
       "cs": "TIN (",
@@ -16805,6 +16820,15 @@
       ]
     },
     {
+      "key": "ui.generated.typ.1k7cf",
+      "source": "Typ:",
+      "cs": "Typ:",
+      "en": "Type:",
+      "files": [
+        "frontend/app/administration/installation/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.type.1k7dm",
       "source": "Type",
       "cs": "Typ",
@@ -16813,15 +16837,6 @@
         "frontend/app/capabilities/[slug]/page.tsx",
         "frontend/app/services/[id]/page.tsx",
         "frontend/app/services/graph/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.udrzujte_jen_sedm_pracovnich_oblasti_ktere_rozho.2eoehm",
-      "source": "Udržujte jen sedm pracovních oblastí, které rozhodují o katalogu, žádosti, vlastnictví, supportu, readiness a governance.",
-      "cs": "Udržujte jen sedm pracovních oblastí, které rozhodují o katalogu, žádosti, vlastnictví, podpory, připravenost a správa.",
-      "en": "Keep only the seven working areas that decide the catalogue, request, ownership, support, readiness, and governance.",
-      "files": [
-        "frontend/app/services/[id]/edit/page.tsx"
       ]
     },
     {
@@ -17224,7 +17239,6 @@
         "frontend/app/administration/groups/page.tsx",
         "frontend/app/administration/import/page.tsx",
         "frontend/app/administration/installation/page.tsx",
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/administration/page.tsx",
         "frontend/app/administration/users/page.tsx",
         "frontend/app/administration/web/page.tsx",
@@ -17283,6 +17297,7 @@
         "frontend/app/page.tsx",
         "frontend/app/portfolio/[code]/page.tsx",
         "frontend/app/portfolio/page.tsx",
+        "frontend/app/search/SearchPageClient.tsx",
         "frontend/app/services/[id]/edit/page.tsx",
         "frontend/app/services/[id]/graph/page.tsx",
         "frontend/app/services/[id]/page.tsx",
@@ -17334,7 +17349,6 @@
       "cs": "Uživatel",
       "en": "User",
       "files": [
-        "frontend/app/administration/logs/page.tsx",
         "frontend/app/components/layout-v2/Pickers.tsx"
       ]
     },
@@ -18639,15 +18653,6 @@
       ]
     },
     {
-      "key": "ui.generated.zadne_zaznamy_neodpovidaji_filtru.dlhj79",
-      "source": "Žádné záznamy neodpovídají filtru.",
-      "cs": "Žádné záznamy neodpovídají filtru.",
-      "en": "No records match the filter.",
-      "files": [
-        "frontend/app/administration/logs/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.zadne_zaznamy.xofx8h",
       "source": "Žádné záznamy.",
       "cs": "Žádné záznamy.",
@@ -18791,6 +18796,15 @@
       "en": "Severity",
       "files": [
         "frontend/app/administration/import/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.zavislosti.punc9a",
+      "source": "Zavislosti:",
+      "cs": "Závislosti:",
+      "en": "Dependencies:",
+      "files": [
+        "frontend/app/administration/installation/page.tsx"
       ]
     },
     {

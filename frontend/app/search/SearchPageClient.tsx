@@ -225,7 +225,7 @@ export default function SearchPageClient() {
             onMouseDown={(event) => event.preventDefault()}
             onClick={openInputQuery}
           >
-            Open all grouped results for "{input.trim()}"
+            Open all grouped results for “{input.trim()}”
           </button>
         </section>
       )}

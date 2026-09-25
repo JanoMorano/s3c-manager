@@ -24,6 +24,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Module manifests: `30_reduction_domain_model_simplification.sql` belongs to the Management module, which owns the `readiness_rule` table it writes.
 
 ### Fixed
+- Frontend CI was red on `main`: `react/no-unescaped-entities` errors in the global search (`NavGlobalSearch`, `SearchPageClient`) and 32 UI strings missing from `shared/i18n/generated-ui-texts.json`. The quotes are typographic now and the catalogue is regenerated with Czech translations for the new strings (stale entries removed).
 - Every container start re-ran all schema files, so data migration 30 reset the readiness rule configuration (enabled/blocking flags set by an administrator) on each restart.
 - The editor's publish gate and request-access warnings now accept a request channel defined on an offering, matching the backend rule.
 - Saving any change to a live service re-ran the "transition to live" gate and was rejected when the service had no support model; the gate now runs only on the transition itself.
