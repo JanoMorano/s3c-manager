@@ -24,6 +24,7 @@ const { MODULE_CODES } = require('../modules/manifest');
 const { getPool } = require('../db/pool');
 const { logGraphLayoutChange } = require('../db/audit.repo');
 const relationsRepo = require('../db/relations.repo');
+const { filterLinksForCapabilities, linkEdge, linkTargetNode, listC3EntityLinks } = require('../db/c3-entity-links.repo');
 const { parseCsvFilter, parseTextFilter } = require('../utils/query-filters');
 const { RELATION_TYPE_CODES } = require('../../../shared/service-catalogue/relationTypes');
 
@@ -149,13 +150,7 @@ async function buildOverviewPayload(query, options = {}) {
         };
     }
 
-    const [
-        relatedCapabilitiesResult,
-        capabilityLinksAppsResult,
-        capabilityLinksTinsResult,
-        capabilityLinksDosResult,
-        capabilityLinksSvcsResult,
-    ] = await Promise.all([
+    const [relatedCapabilitiesResult, c3Links] = await Promise.all([
         pool.query(`
             WITH RECURSIVE related AS (
                 SELECT c.uuid, c.parent_uuid, c.external_id, c.title, c.item_type, c.item_status
@@ -177,94 +172,8 @@ async function buildOverviewPayload(query, options = {}) {
             FROM related r
             LEFT JOIN data.v_c3capabilitycompleteness comp ON comp.uuid = r.uuid
         `, [mappedCapabilityUuids]),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                app.uuid AS entity_uuid,
-                app.application_code AS code,
-                app.title,
-                app.item_status
-            FROM data.c3_capability_application_link l
-            JOIN data.c3_application app ON app.id = l.c3_application_id
-            WHERE l.capability_uuid = ANY($1::varchar[])
-        `, [mappedCapabilityUuids]),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                tin.id AS entity_id,
-                tin.uuid AS entity_uuid,
-                tin.technology_interaction_code AS code,
-                tin.title,
-                tin.item_status
-            FROM data.c3_capability_tin_link l
-            JOIN data.c3_technology_interaction tin ON tin.id = l.c3_tin_id
-            WHERE l.capability_uuid = ANY($1::varchar[])
-        `, [mappedCapabilityUuids]),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                dob.uuid AS entity_uuid,
-                dob.data_object_code AS code,
-                dob.title,
-                dob.item_status
-            FROM data.c3_capability_data_object_link l
-            JOIN data.c3_data_object dob ON dob.id = l.c3_data_object_id
-            WHERE l.capability_uuid = ANY($1::varchar[])
-        `, [mappedCapabilityUuids]),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                svc.uuid AS entity_uuid,
-                svc.service_code AS code,
-                svc.title,
-                svc.item_status
-            FROM data.c3_capability_c3_service_link l
-            JOIN data.c3_service svc ON svc.id = l.c3_service_id
-            WHERE l.capability_uuid = ANY($1::varchar[])
-        `, [mappedCapabilityUuids]),
+        listC3EntityLinks(pool, { capabilityUuids: mappedCapabilityUuids }),
     ]);
-
-    const tinEntityIds = [...new Set(capabilityLinksTinsResult.rows.map((row) => row.entity_id).filter(Boolean))];
-    const [tinAppsResult, tinDosResult, tinSvcsResult] = tinEntityIds.length > 0
-        ? await Promise.all([
-            pool.query(`
-                SELECT
-                    ti.uuid AS tin_uuid,
-                    app.uuid AS entity_uuid,
-                    app.application_code AS code,
-                    app.title,
-                    app.item_status
-                FROM data.c3_technology_interaction_application_link link_
-                JOIN data.c3_technology_interaction ti ON ti.id = link_.technology_interaction_id
-                JOIN data.c3_application app ON app.id = link_.c3_application_id
-                WHERE link_.technology_interaction_id = ANY($1::bigint[])
-            `, [tinEntityIds]),
-            pool.query(`
-                SELECT
-                    ti.uuid AS tin_uuid,
-                    dob.uuid AS entity_uuid,
-                    dob.data_object_code AS code,
-                    dob.title,
-                    dob.item_status
-                FROM data.c3_technology_interaction_data_object_link link_
-                JOIN data.c3_technology_interaction ti ON ti.id = link_.technology_interaction_id
-                JOIN data.c3_data_object dob ON dob.id = link_.c3_data_object_id
-                WHERE link_.technology_interaction_id = ANY($1::bigint[])
-            `, [tinEntityIds]),
-            pool.query(`
-                SELECT
-                    ti.uuid AS tin_uuid,
-                    svc.uuid AS entity_uuid,
-                    svc.service_code AS code,
-                    svc.title,
-                    svc.item_status
-                FROM data.c3_technology_interaction_service_link link_
-                JOIN data.c3_technology_interaction ti ON ti.id = link_.technology_interaction_id
-                JOIN data.c3_service svc ON svc.id = link_.c3_service_id
-                WHERE link_.technology_interaction_id = ANY($1::bigint[])
-            `, [tinEntityIds]),
-        ])
-        : [{ rows: [] }, { rows: [] }, { rows: [] }];
 
     const nodeMap = new Map();
     const upsertNode = (node) => {
@@ -301,37 +210,20 @@ async function buildOverviewPayload(query, options = {}) {
         });
     });
 
-    const entityDefinitions = [
-        { rows: capabilityLinksAppsResult.rows, prefix: 'app', node_kind: 'c3_application' },
-        { rows: capabilityLinksTinsResult.rows, prefix: 'tin', node_kind: 'c3_tin' },
-        { rows: capabilityLinksDosResult.rows, prefix: 'do', node_kind: 'c3_data_object' },
-        { rows: capabilityLinksSvcsResult.rows, prefix: 'c3svc', node_kind: 'c3_service' },
-        { rows: tinAppsResult.rows, prefix: 'app', node_kind: 'c3_application' },
-        { rows: tinDosResult.rows, prefix: 'do', node_kind: 'c3_data_object' },
-        { rows: tinSvcsResult.rows, prefix: 'c3svc', node_kind: 'c3_service' },
-    ];
-
-    entityDefinitions.forEach(({ rows, prefix, node_kind }) => {
-        rows.forEach((row) => {
-            upsertNode({
-                id: `${prefix}:${row.entity_uuid}`,
-                node_kind,
-                title: row.title,
-                code: row.code,
-                status: row.item_status,
-                service_id: null,
-                c3_uuid: null,
-                service_type: null,
-                service_status: null,
-                portfolio_group: null,
-                available_on: null,
-                sla_availability: null,
-                graph_x: null,
-                graph_y: null,
-                item_type: null,
-                parent_uuid: null,
-                entity_uuid: row.entity_uuid,
-            });
+    c3Links.forEach((link) => {
+        upsertNode({
+            ...linkTargetNode(link, 'title'),
+            service_id: null,
+            c3_uuid: null,
+            service_type: null,
+            service_status: null,
+            portfolio_group: null,
+            available_on: null,
+            sla_availability: null,
+            graph_x: null,
+            graph_y: null,
+            item_type: null,
+            parent_uuid: null,
         });
     });
 
@@ -357,102 +249,8 @@ async function buildOverviewPayload(query, options = {}) {
         ...serviceEdges,
         ...mappingEdgesResult.rows.filter((edge) => visibleServiceIds.has(edge.source)),
         ...c3ParentEdges.filter((edge) => relationTypes.length === 0 || relationTypes.includes(edge.relation_type)),
-        ...capabilityLinksAppsResult.rows.map((row) => ({
-            id: `cap-app:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `app:${row.entity_uuid}`,
-            edge_kind: 'capability_application',
-            relation_type: 'capability_application',
-            relation_label: null,
-            mapping_type_code: null,
-            is_mandatory: false,
-            impact_level: null,
-            pace_code: null,
-            is_verified: true,
-            parse_confidence: 1,
-            relation_note: null,
-        })),
-        ...capabilityLinksTinsResult.rows.map((row) => ({
-            id: `cap-tin:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `tin:${row.entity_uuid}`,
-            edge_kind: 'capability_tin',
-            relation_type: 'capability_tin',
-            relation_label: null,
-            mapping_type_code: null,
-            is_mandatory: false,
-            impact_level: null,
-            pace_code: null,
-            is_verified: true,
-            parse_confidence: 1,
-            relation_note: null,
-        })),
-        ...capabilityLinksDosResult.rows.map((row) => ({
-            id: `cap-do:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `do:${row.entity_uuid}`,
-            edge_kind: 'capability_data_object',
-            relation_type: 'capability_data_object',
-            relation_label: null,
-            mapping_type_code: null,
-            is_mandatory: false,
-            impact_level: null,
-            pace_code: null,
-            is_verified: true,
-            parse_confidence: 1,
-            relation_note: null,
-        })),
-        ...capabilityLinksSvcsResult.rows.map((row) => ({
-            id: `cap-svc:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `c3svc:${row.entity_uuid}`,
-            edge_kind: 'capability_c3_service',
-            relation_type: 'capability_c3_service',
-            relation_label: null,
-            mapping_type_code: null,
-            is_mandatory: false,
-            impact_level: null,
-            pace_code: null,
-            is_verified: true,
-            parse_confidence: 1,
-            relation_note: null,
-        })),
-        ...tinAppsResult.rows.map((row) => ({
-            id: `tin-app:${row.tin_uuid}:${row.entity_uuid}`,
-            source: `tin:${row.tin_uuid}`,
-            target: `app:${row.entity_uuid}`,
-            edge_kind: 'tin_application',
-            relation_type: 'tin_application',
-            relation_label: null,
-            mapping_type_code: null,
-            is_mandatory: false,
-            impact_level: null,
-            pace_code: null,
-            is_verified: true,
-            parse_confidence: 1,
-            relation_note: null,
-        })),
-        ...tinDosResult.rows.map((row) => ({
-            id: `tin-do:${row.tin_uuid}:${row.entity_uuid}`,
-            source: `tin:${row.tin_uuid}`,
-            target: `do:${row.entity_uuid}`,
-            edge_kind: 'tin_data_object',
-            relation_type: 'tin_data_object',
-            relation_label: null,
-            mapping_type_code: null,
-            is_mandatory: false,
-            impact_level: null,
-            pace_code: null,
-            is_verified: true,
-            parse_confidence: 1,
-            relation_note: null,
-        })),
-        ...tinSvcsResult.rows.map((row) => ({
-            id: `tin-svc:${row.tin_uuid}:${row.entity_uuid}`,
-            source: `tin:${row.tin_uuid}`,
-            target: `c3svc:${row.entity_uuid}`,
-            edge_kind: 'tin_c3_service',
-            relation_type: 'tin_c3_service',
+        ...c3Links.map((link) => ({
+            ...linkEdge(link),
             relation_label: null,
             mapping_type_code: null,
             is_mandatory: false,
@@ -480,7 +278,7 @@ async function buildC3RelationPayload(query) {
         allowed: ['BP', 'BR', 'CI', 'CO', 'CP', 'CR', 'IP', 'UA', 'OTHER'],
     });
 
-    const [capabilityResult, capAppResult, capTinResult, capDoResult, capSvcResult, tinAppResult, tinDoResult, tinSvcResult, builderResult] = await Promise.all([
+    const [capabilityResult, allC3Links, builderResult] = await Promise.all([
         pool.query(`
             SELECT
                 c.uuid,
@@ -494,79 +292,7 @@ async function buildC3RelationPayload(query) {
               ON comp.uuid = c.uuid
             ORDER BY c.title
         `),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                app.uuid AS entity_uuid,
-                app.application_code AS code,
-                app.title,
-                app.item_status
-            FROM data.c3_capability_application_link l
-            JOIN data.c3_application app ON app.id = l.c3_application_id
-        `),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                tin.uuid AS entity_uuid,
-                tin.technology_interaction_code AS code,
-                tin.title,
-                tin.item_status
-            FROM data.c3_capability_tin_link l
-            JOIN data.c3_technology_interaction tin ON tin.id = l.c3_tin_id
-        `),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                dob.uuid AS entity_uuid,
-                dob.data_object_code AS code,
-                dob.title,
-                dob.item_status
-            FROM data.c3_capability_data_object_link l
-            JOIN data.c3_data_object dob ON dob.id = l.c3_data_object_id
-        `),
-        pool.query(`
-            SELECT
-                l.capability_uuid,
-                svc.uuid AS entity_uuid,
-                svc.service_code AS code,
-                svc.title,
-                svc.item_status
-            FROM data.c3_capability_c3_service_link l
-            JOIN data.c3_service svc ON svc.id = l.c3_service_id
-        `),
-        pool.query(`
-            SELECT
-                ti.uuid AS tin_uuid,
-                app.uuid AS entity_uuid,
-                app.application_code AS code,
-                app.title,
-                app.item_status
-            FROM data.c3_technology_interaction_application_link link_
-            JOIN data.c3_technology_interaction ti ON ti.id = link_.technology_interaction_id
-            JOIN data.c3_application app ON app.id = link_.c3_application_id
-        `),
-        pool.query(`
-            SELECT
-                ti.uuid AS tin_uuid,
-                dob.uuid AS entity_uuid,
-                dob.data_object_code AS code,
-                dob.title,
-                dob.item_status
-            FROM data.c3_technology_interaction_data_object_link link_
-            JOIN data.c3_technology_interaction ti ON ti.id = link_.technology_interaction_id
-            JOIN data.c3_data_object dob ON dob.id = link_.c3_data_object_id
-        `),
-        pool.query(`
-            SELECT
-                ti.uuid AS tin_uuid,
-                svc.uuid AS entity_uuid,
-                svc.service_code AS code,
-                svc.title,
-                svc.item_status
-            FROM data.c3_technology_interaction_service_link link_
-            JOIN data.c3_technology_interaction ti ON ti.id = link_.technology_interaction_id
-            JOIN data.c3_service svc ON svc.id = link_.c3_service_id
-        `),
+        listC3EntityLinks(pool),
         pool.query(`
             SELECT
                 b.page_id,
@@ -631,11 +357,7 @@ async function buildC3RelationPayload(query) {
     });
     const visibleCapabilityUuids = new Set(capabilities.map((row) => row.uuid));
 
-    const capabilityApps = capAppResult.rows.filter((row) => visibleCapabilityUuids.has(row.capability_uuid));
-    const capabilityTins = capTinResult.rows.filter((row) => visibleCapabilityUuids.has(row.capability_uuid));
-    const capabilityDos = capDoResult.rows.filter((row) => visibleCapabilityUuids.has(row.capability_uuid));
-    const capabilitySvcs = capSvcResult.rows.filter((row) => visibleCapabilityUuids.has(row.capability_uuid));
-    const visibleTinUuids = new Set(capabilityTins.map((row) => row.entity_uuid));
+    const c3Links = filterLinksForCapabilities(allC3Links, visibleCapabilityUuids);
 
     const nodeMap = new Map();
     const upsertNode = (node) => {
@@ -654,140 +376,9 @@ async function buildC3RelationPayload(query) {
             c3_uuid: row.uuid,
         });
     });
-    capabilityApps.forEach((row) => {
-        upsertNode({
-            id: `app:${row.entity_uuid}`,
-            node_kind: 'c3_application',
-            label: row.title,
-            code: row.code,
-            status: row.item_status,
-            entity_uuid: row.entity_uuid,
-        });
-    });
-    capabilityTins.forEach((row) => {
-        upsertNode({
-            id: `tin:${row.entity_uuid}`,
-            node_kind: 'c3_tin',
-            label: row.title,
-            code: row.code,
-            status: row.item_status,
-            entity_uuid: row.entity_uuid,
-        });
-    });
-    capabilityDos.forEach((row) => {
-        upsertNode({
-            id: `do:${row.entity_uuid}`,
-            node_kind: 'c3_data_object',
-            label: row.title,
-            code: row.code,
-            status: row.item_status,
-            entity_uuid: row.entity_uuid,
-        });
-    });
-    capabilitySvcs.forEach((row) => {
-        upsertNode({
-            id: `c3svc:${row.entity_uuid}`,
-            node_kind: 'c3_service',
-            label: row.title,
-            code: row.code,
-            status: row.item_status,
-            entity_uuid: row.entity_uuid,
-        });
-    });
-    tinAppResult.rows
-        .filter((row) => visibleTinUuids.has(row.tin_uuid))
-        .forEach((row) => {
-            upsertNode({
-                id: `app:${row.entity_uuid}`,
-                node_kind: 'c3_application',
-                label: row.title,
-                code: row.code,
-                status: row.item_status,
-                entity_uuid: row.entity_uuid,
-            });
-        });
-    tinDoResult.rows
-        .filter((row) => visibleTinUuids.has(row.tin_uuid))
-        .forEach((row) => {
-            upsertNode({
-                id: `do:${row.entity_uuid}`,
-                node_kind: 'c3_data_object',
-                label: row.title,
-                code: row.code,
-                status: row.item_status,
-                entity_uuid: row.entity_uuid,
-            });
-        });
-    tinSvcResult.rows
-        .filter((row) => visibleTinUuids.has(row.tin_uuid))
-        .forEach((row) => {
-            upsertNode({
-                id: `c3svc:${row.entity_uuid}`,
-                node_kind: 'c3_service',
-                label: row.title,
-                code: row.code,
-                status: row.item_status,
-                entity_uuid: row.entity_uuid,
-            });
-        });
+    c3Links.forEach((link) => upsertNode(linkTargetNode(link)));
 
-    const edges = [
-        ...capabilityApps.map((row) => ({
-            id: `cap-app:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `app:${row.entity_uuid}`,
-            edge_kind: 'capability_application',
-            relation_type: 'capability_application',
-        })),
-        ...capabilityTins.map((row) => ({
-            id: `cap-tin:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `tin:${row.entity_uuid}`,
-            edge_kind: 'capability_tin',
-            relation_type: 'capability_tin',
-        })),
-        ...capabilityDos.map((row) => ({
-            id: `cap-do:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `do:${row.entity_uuid}`,
-            edge_kind: 'capability_data_object',
-            relation_type: 'capability_data_object',
-        })),
-        ...capabilitySvcs.map((row) => ({
-            id: `cap-svc:${row.capability_uuid}:${row.entity_uuid}`,
-            source: `c3:${row.capability_uuid}`,
-            target: `c3svc:${row.entity_uuid}`,
-            edge_kind: 'capability_c3_service',
-            relation_type: 'capability_c3_service',
-        })),
-        ...tinAppResult.rows
-            .filter((row) => visibleTinUuids.has(row.tin_uuid))
-            .map((row) => ({
-                id: `tin-app:${row.tin_uuid}:${row.entity_uuid}`,
-                source: `tin:${row.tin_uuid}`,
-                target: `app:${row.entity_uuid}`,
-                edge_kind: 'tin_application',
-                relation_type: 'tin_application',
-            })),
-        ...tinDoResult.rows
-            .filter((row) => visibleTinUuids.has(row.tin_uuid))
-            .map((row) => ({
-                id: `tin-do:${row.tin_uuid}:${row.entity_uuid}`,
-                source: `tin:${row.tin_uuid}`,
-                target: `do:${row.entity_uuid}`,
-                edge_kind: 'tin_data_object',
-                relation_type: 'tin_data_object',
-            })),
-        ...tinSvcResult.rows
-            .filter((row) => visibleTinUuids.has(row.tin_uuid))
-            .map((row) => ({
-                id: `tin-svc:${row.tin_uuid}:${row.entity_uuid}`,
-                source: `tin:${row.tin_uuid}`,
-                target: `c3svc:${row.entity_uuid}`,
-                edge_kind: 'tin_c3_service',
-                relation_type: 'tin_c3_service',
-            })),
-    ];
+    const edges = c3Links.map(linkEdge);
 
     if (search) {
         const q = search.toLowerCase();

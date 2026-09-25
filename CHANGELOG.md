@@ -23,6 +23,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Offering request fields (`requestable`, `approval_required`, request channel, lead time) inherit from the service: an empty offering field means "inherit", a value overrides it (migration `37_offering_request_inheritance.sql`, view `v_service_offering_effective`). Offering values equal to the service value were reset to inherit, so no effective value changed. The offerings API returns `effective_*` values; the editor uses one shared offering form (previously duplicated for add/edit) with "inherit / yes / no" choices and shows inherited values.
 
+- The seven C3 link tables have one read model, `v_c3_entity_link` (migration `38_c3_entity_link_view.sql`). The service graph, overview graph and C3 relation graph read it through `db/c3-entity-links.repo.js` instead of seven queries and seven mapping blocks each; their API output is unchanged (verified on demo data). `routes/graph.js` shrank from 905 to 497 lines.
+
 ### Fixed
 - Saving any change to a live service re-ran the "transition to live" gate and was rejected when the service had no support model; the gate now runs only on the transition itself.
 - A requestable service whose request channel is defined only on its offerings was rejected on every save; offering channels now satisfy the rule.

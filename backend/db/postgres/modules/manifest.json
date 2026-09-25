@@ -69,7 +69,8 @@
         "19_capability_abbreviations.sql",
         "20_capability_coverage_views.sql",
         "25_capability_governance.sql",
-        "34_c3_board_state.sql"
+        "34_c3_board_state.sql",
+        "38_c3_entity_link_view.sql"
       ]
     },
     {

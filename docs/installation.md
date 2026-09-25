@@ -364,6 +364,7 @@ SQL file order:
 35_canonical_service_fields.sql — canonical lifecycle stage, review date and portfolio (legacy columns kept in sync)
 36_service_sla_canonical.sql — service-level SLA canonical in service_sla (catalog sla_* columns kept in sync)
 37_offering_request_inheritance.sql — offering request/approval/channel/lead-time fields inherit from the service (NULL = inherit)
+38_c3_entity_link_view.sql — v_c3_entity_link, one read model over the seven C3 link tables
 ```
 
 ---
