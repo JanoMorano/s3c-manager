@@ -58,6 +58,10 @@ function sourceRawSql(field) {
     return `src.raw_fields->>'${field}'`;
 }
 
+// Saved position of the service in the overview portfolio grid (41_graph_node_layout.sql),
+// exposed as graph_x/graph_y; `gl` is data.graph_node_layout.
+const OVERVIEW_LAYOUT_JOIN = "LEFT JOIN data.graph_node_layout gl ON gl.view_key = 'service-overview/portfolio' AND gl.node_id = CONCAT('svc:', sc.service_id)";
+
 const SLA_INPUT_KEYS = Object.freeze({
     sla_availability: 'availability_pct',
     sla_restoration: 'restoration_hours',
@@ -92,6 +96,7 @@ function textIfNonNumeric(value) {
  *   portfolioCode — portfolio code to resolve into portfolio_id (or undefined),
  *   sla           — patch for the primary service-level SLA row (or null),
  *   source        — patch for the import provenance row (or null),
+ *   layout        — { x, y } overview position (or null),
  *   fallbacks     — values for catalogue columns that apply only when the
  *                   column is empty (value_proposition/business_purpose →
  *                   consumer_value, business_summary → short_description).
@@ -167,7 +172,15 @@ function canonicalizeServiceInput(data = {}) {
         source[target] = value;
     }
 
-    return { fields, portfolioCode, sla, source, fallbacks };
+    // Overview position (graph_x/graph_y) is stored per graph view.
+    let layout = null;
+    if (has(data, 'graph_x') || has(data, 'graph_y')) {
+        layout = { x: data.graph_x ?? null, y: data.graph_y ?? null };
+        delete fields.graph_x;
+        delete fields.graph_y;
+    }
+
+    return { fields, portfolioCode, sla, source, fallbacks, layout };
 }
 
 /** Resolves a portfolio code to service_portfolio.id (null when unknown or empty). */
@@ -237,6 +250,7 @@ module.exports = {
     PORTFOLIO_JOIN,
     PRIMARY_SLA_JOIN,
     SOURCE_JOIN,
+    OVERVIEW_LAYOUT_JOIN,
     SOURCE_COLUMNS,
     SOURCE_RAW_FIELDS,
     sourceRawSql,

@@ -22,7 +22,7 @@ const { canEdit } = require('../middleware/rbac');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
 const { MODULE_CODES } = require('../modules/manifest');
 const { getPool } = require('../db/pool');
-const { logGraphLayoutChange } = require('../db/audit.repo');
+const graphLayoutRepo = require('../db/graph-layout.repo');
 const relationsRepo = require('../db/relations.repo');
 const { filterLinksForCapabilities, linkEdge, linkTargetNode, listC3EntityLinks } = require('../db/c3-entity-links.repo');
 const { parseCsvFilter, parseTextFilter } = require('../utils/query-filters');
@@ -44,26 +44,51 @@ async function buildOverviewPayload(query, options = {}) {
         allowed: RELATION_TYPE_CODES,
     });
 
+    // Filters run in SQL so only the visible part of the catalogue is loaded.
+    const nodeFilters = [];
+    const nodeValues = [graphLayoutRepo.SERVICE_OVERVIEW_VIEW];
+    const bind = (value) => {
+        nodeValues.push(value);
+        return `$${nodeValues.length}`;
+    };
+    if (search) nodeFilters.push(`(n.service_id ILIKE ${bind(`%${search}%`)} OR n.title ILIKE $${nodeValues.length})`);
+    if (statuses.length > 0) nodeFilters.push(`n.service_status = ANY(${bind(statuses)}::varchar[])`);
+    if (portfolios.length > 0) nodeFilters.push(`n.portfolio_group = ANY(${bind(portfolios)}::varchar[])`);
+    if (serviceTypes.length > 0) nodeFilters.push(`n.service_type = ANY(${bind(serviceTypes)}::varchar[])`);
+    if (domains.length > 0) {
+        nodeFilters.push(`(
+            SELECT COUNT(DISTINCT sao.domain_code)
+            FROM data.service_available_on sao
+            WHERE sao.service_id = n.service_pk
+              AND sao.domain_code = ANY(${bind(domains)}::varchar[])
+        ) = ${domains.length}`);
+    }
+
     const serviceNodesResult = await pool.query(`
         SELECT
-            id,
-            node_kind,
-            title,
-            service_id,
+            n.id,
+            n.node_kind,
+            n.title,
+            n.service_id,
             NULL::varchar(100) AS c3_uuid,
-            service_type,
-            service_status,
-            portfolio_group,
-            available_on,
-            sla_availability,
-            graph_x,
-            graph_y,
+            n.service_type,
+            n.service_status,
+            n.portfolio_group,
+            n.available_on,
+            n.sla_availability,
+            gl.x AS graph_x,
+            gl.y AS graph_y,
             NULL::varchar(20) AS item_type,
             NULL::varchar(100) AS parent_uuid,
-            service_pk
-        FROM data.v_graphoverviewnodes
-        ORDER BY portfolio_group, service_id
-    `);
+            n.service_pk
+        FROM data.v_graphoverviewnodes n
+        LEFT JOIN data.graph_node_layout gl ON gl.view_key = $1 AND gl.node_id = n.id
+        ${nodeFilters.length > 0 ? `WHERE ${nodeFilters.join(' AND ')}` : ''}
+        ORDER BY n.portfolio_group, n.service_id
+    `, nodeValues);
+    const filteredServiceNodes = serviceNodesResult.rows;
+    const visibleServiceIds = new Set(filteredServiceNodes.map((node) => node.id));
+    const visibleServicePks = filteredServiceNodes.map((node) => node.service_pk);
 
     const serviceEdgesResult = await pool.query(`
         SELECT
@@ -84,28 +109,11 @@ async function buildOverviewPayload(query, options = {}) {
         JOIN data.service_catalog f ON f.id = sr.from_service_id AND f.is_deleted = FALSE
         JOIN data.service_catalog t ON t.id = sr.to_service_id   AND t.is_deleted = FALSE
         WHERE sr.is_deleted = FALSE
-    `);
-
-    const filteredServiceNodes = serviceNodesResult.rows.filter((node) => {
-        if (search) {
-            const haystack = `${node.service_id ?? ''} ${node.title ?? ''}`.toLowerCase();
-            if (!haystack.includes(search.toLowerCase())) return false;
-        }
-        if (statuses.length > 0 && !statuses.includes(node.service_status)) return false;
-        if (portfolios.length > 0 && !portfolios.includes(node.portfolio_group)) return false;
-        if (serviceTypes.length > 0 && !serviceTypes.includes(node.service_type)) return false;
-        if (domains.length > 0) {
-            const nodeDomains = String(node.available_on ?? '').split(',').map((item) => item.trim()).filter(Boolean);
-            if (!domains.every((domain) => nodeDomains.includes(domain))) return false;
-        }
-        return true;
-    });
-    const visibleServiceIds = new Set(filteredServiceNodes.map((node) => node.id));
-    const serviceEdges = serviceEdgesResult.rows.filter((edge) =>
-        visibleServiceIds.has(edge.source) &&
-        visibleServiceIds.has(edge.target) &&
-        (relationTypes.length === 0 || relationTypes.includes(edge.relation_type))
-    );
+          AND sr.from_service_id = ANY($1::bigint[])
+          AND sr.to_service_id = ANY($1::bigint[])
+          AND (cardinality($2::varchar[]) = 0 OR sr.relation_type_code = ANY($2::varchar[]))
+    `, [visibleServicePks, relationTypes]);
+    const serviceEdges = serviceEdgesResult.rows;
 
     if (!includeC3) {
         return {
@@ -278,7 +286,8 @@ async function buildC3RelationPayload(query) {
         allowed: ['BP', 'BR', 'CI', 'CO', 'CP', 'CR', 'IP', 'UA', 'OTHER'],
     });
 
-    const [capabilityResult, allC3Links, builderResult] = await Promise.all([
+    const useBuilderFilter = Boolean(domainCode || l3PageId);
+    const [capabilityResult, builderResult] = await Promise.all([
         pool.query(`
             SELECT
                 c.uuid,
@@ -290,10 +299,10 @@ async function buildC3RelationPayload(query) {
             FROM data.c3_taxonomy c
             LEFT JOIN data.v_c3capabilitycompleteness comp
               ON comp.uuid = c.uuid
+            WHERE cardinality($1::varchar[]) = 0 OR COALESCE(c.item_type, 'OTHER') = ANY($1::varchar[])
             ORDER BY c.title
-        `),
-        listC3EntityLinks(pool),
-        pool.query(`
+        `, [itemTypes]),
+        useBuilderFilter ? pool.query(`
             SELECT
                 b.page_id,
                 b.parent_id,
@@ -317,7 +326,7 @@ async function buildC3RelationPayload(query) {
                 LIMIT 1
             ) linked
             ON TRUE
-        `),
+        `) : Promise.resolve({ rows: [] }),
     ]);
 
     let builderRows = builderResult.rows;
@@ -348,16 +357,15 @@ async function buildC3RelationPayload(query) {
             .map((row) => row.linked_c3_uuid)
             .filter(Boolean)
     );
-    const useBuilderFilter = Boolean(domainCode || l3PageId);
-
-    const capabilities = capabilityResult.rows.filter((row) => {
-        if (itemTypes.length > 0 && !itemTypes.includes(String(row.item_type ?? 'OTHER'))) return false;
-        if (useBuilderFilter && !capabilityFilterUuids.has(row.uuid)) return false;
-        return true;
-    });
+    const capabilities = useBuilderFilter
+        ? capabilityResult.rows.filter((row) => capabilityFilterUuids.has(row.uuid))
+        : capabilityResult.rows;
     const visibleCapabilityUuids = new Set(capabilities.map((row) => row.uuid));
 
-    const c3Links = filterLinksForCapabilities(allC3Links, visibleCapabilityUuids);
+    // Unfiltered views need every link; filtered views load only the links they show.
+    const c3Links = useBuilderFilter || itemTypes.length > 0
+        ? await listC3EntityLinks(pool, { capabilityUuids: [...visibleCapabilityUuids] })
+        : filterLinksForCapabilities(await listC3EntityLinks(pool), visibleCapabilityUuids);
 
     const nodeMap = new Map();
     const upsertNode = (node) => {
@@ -437,44 +445,57 @@ router.get('/overview/compact', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// ─── Graph layout per view ───────────────────────────────────────────────────
+// GET    /api/v1/graph/layout?view=<view_key>   → { view_key, positions[] }
+// PUT    /api/v1/graph/layout  { view, positions: [{ node_id, x, y }] }
+// DELETE /api/v1/graph/layout?view=<view_key>   → back to the automatic layout
+function requireViewKey(value, res) {
+    if (!graphLayoutRepo.isValidViewKey(value)) {
+        res.status(400).json({ error: 'view must be a graph view key, e.g. service-overview/portfolio' });
+        return null;
+    }
+    return value;
+}
+
+router.get('/layout', async (req, res, next) => {
+    try {
+        const viewKey = requireViewKey(req.query.view, res);
+        if (!viewKey) return;
+        res.json({ view_key: viewKey, positions: await graphLayoutRepo.getLayout(viewKey) });
+    } catch (err) { next(err); }
+});
+
+router.put('/layout', canEdit, async (req, res, next) => {
+    try {
+        const viewKey = requireViewKey(req.body?.view, res);
+        if (!viewKey) return;
+        const positions = graphLayoutRepo.normalizePositions(req.body?.positions);
+        if (!positions) return res.status(422).json({ error: 'positions must be an array' });
+        const saved = await graphLayoutRepo.saveLayout(viewKey, positions, req.user?.username);
+        res.json({ view_key: viewKey, saved });
+    } catch (err) { next(err); }
+});
+
+router.delete('/layout', canEdit, async (req, res, next) => {
+    try {
+        const viewKey = requireViewKey(req.query.view, res);
+        if (!viewKey) return;
+        const removed = await graphLayoutRepo.resetLayout(viewKey, req.user?.username);
+        res.json({ view_key: viewKey, removed });
+    } catch (err) { next(err); }
+});
+
+// Previous endpoint: service positions of the overview portfolio grid.
 router.put('/overview/layout', canEdit, async (req, res, next) => {
     try {
         const positions = Array.isArray(req.body?.positions) ? req.body.positions : null;
         if (!positions) return res.status(422).json({ error: 'positions musí být pole' });
 
-        const servicePositions = positions
-            .filter(p => p && p.node_kind === 'service' && p.service_id && Number.isFinite(p.x) && Number.isFinite(p.y));
-
-        for (const pos of servicePositions) {
-            const previous = await getPool().query(`
-                SELECT id, graph_x, graph_y
-                FROM data.service_catalog
-                WHERE service_id = $1 AND is_deleted = FALSE
-            `, [pos.service_id]);
-            const previousRow = previous.rows[0];
-
-            await getPool().query(`
-                UPDATE data.service_catalog
-                SET graph_x = $2,
-                    graph_y = $3,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE service_id = $1 AND is_deleted = FALSE
-            `, [pos.service_id, pos.x, pos.y]);
-
-            if (previousRow) {
-                await logGraphLayoutChange({
-                    servicePk: previousRow.id,
-                    nodeKind: 'service',
-                    oldX: previousRow.graph_x,
-                    oldY: previousRow.graph_y,
-                    newX: pos.x,
-                    newY: pos.y,
-                    changedBy: req.user?.username || 'system',
-                });
-            }
-        }
-
-        res.json({ saved: servicePositions.length });
+        const servicePositions = graphLayoutRepo.normalizePositions(positions
+            .filter((p) => p && p.node_kind === 'service' && p.service_id)
+            .map((p) => ({ node_id: `svc:${p.service_id}`, x: p.x, y: p.y })));
+        const saved = await graphLayoutRepo.saveLayout(graphLayoutRepo.SERVICE_OVERVIEW_VIEW, servicePositions, req.user?.username);
+        res.json({ saved });
     } catch (err) { next(err); }
 });
 

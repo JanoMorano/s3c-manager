@@ -28,7 +28,10 @@ import {
 import '@xyflow/react/dist/style.css';
 import { GraphWorkspace } from '@/app/components/layout-v2';
 import { StatusPill } from '@/features/services/components/StatusPill';
-import { useGraphOverview } from '@/features/services/hooks/useServices';
+import { useGraphOverview, usePortfolioGroups } from '@/features/services/hooks/useServices';
+import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_SERVICE_STATUS, lifecycleStageLabelKey } from '@/features/services/lifecycle';
+import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
+import { GraphLayoutControls } from '@/features/graph/GraphLayoutControls';
 import { applyLineStyleMode, resolveServiceRelationVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
 import { GraphLegend } from '@/features/graph/GraphLegend';
 import { layoutByDependency } from '@/features/graph/autoLayout';
@@ -147,8 +150,8 @@ function layoutNodesByPortfolio(
       const lane = Math.floor(index / MAX_ROWS_PER_COLUMN);
       const row = index % MAX_ROWS_PER_COLUMN;
       return toFlowNode(node, {
-        x: node.graph_x ?? (groupIndex * COLUMN_GAP) + (lane * (NODE_WIDTH + 36)),
-        y: node.graph_y ?? row * ROW_GAP,
+        x: (groupIndex * COLUMN_GAP) + (lane * (NODE_WIDTH + 36)),
+        y: row * ROW_GAP,
       }, selectedNodeId, highlight, onSelectNode, portfolio);
     });
   });
@@ -238,12 +241,29 @@ export default function ServicesGraphPage() {
   const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useT();
-  const { data, isLoading, error } = useGraphOverview({ compact: true, includeC3: false });
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [portfolioFilter, setPortfolioFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+  // Filters run on the server, so large catalogues load only the visible services.
+  const { data, isLoading, error } = useGraphOverview({
+    compact: true,
+    includeC3: false,
+    search,
+    portfolio: portfolioFilter,
+    status: statusFilter,
+  });
+  const { data: portfolioGroups } = usePortfolioGroups();
   const [selectedNode, setSelectedNode] = useState<GraphOverviewNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphOverviewEdge | null>(null);
   const [edgeType, setEdgeType] = useState<GraphEdgeType>('smoothstep');
   const [lineStyleMode, setLineStyleMode] = useState<GraphLineStyleMode>('auto');
   const [layoutMode, setLayoutMode] = useState<ServicesGraphLayoutMode>('dependency');
+  const layout = useGraphLayout(`service-overview/${layoutMode}`);
   const [highlightDepth, setHighlightDepth] = useState<number>(2);
   const viewMode = normalizeViewMode(searchParams?.get('view'));
   const canvasOnly = viewMode === 'graph-only';
@@ -276,10 +296,10 @@ export default function ServicesGraphPage() {
     [layoutMode, locale, relations, services],
   );
   const initialNodes = useMemo(
-    () => (dependencyPositions
+    () => applyNodePositions(dependencyPositions
       ? layoutNodesByDependency(services, dependencyPositions, selectedNode?.id ?? null, highlight, onSelectNode)
-      : layoutNodesByPortfolio(services, selectedNode?.id ?? null, highlight, onSelectNode, locale)),
-    [dependencyPositions, highlight, locale, onSelectNode, selectedNode?.id, services],
+      : layoutNodesByPortfolio(services, selectedNode?.id ?? null, highlight, onSelectNode, locale), layout.positions),
+    [dependencyPositions, highlight, layout.positions, locale, onSelectNode, selectedNode?.id, services],
   );
   const initialEdges = useMemo(
     () => layoutEdges(relations, edgeType, lineStyleMode, highlight),
@@ -368,6 +388,40 @@ export default function ServicesGraphPage() {
             >
               Detail
             </button>
+          </FilterGroup>
+
+          <FilterGroup label={t('graph.filter.search')}>
+            <input
+              type="search"
+              className={shellStyles.searchInput}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={t('graph.filter.search')}
+              aria-label={t('graph.filter.search')}
+            />
+            <select
+              className={shellStyles.selectInput}
+              value={portfolioFilter}
+              onChange={(event) => setPortfolioFilter(event.target.value)}
+              aria-label={t('graph.filter.portfolio')}
+            >
+              <option value="">{t('graph.filter.portfolio')}: {t('graph.filter.all')}</option>
+              {(portfolioGroups ?? []).map((group) => (
+                <option key={group.code} value={group.code}>{group.name || group.code}</option>
+              ))}
+            </select>
+            <select
+              className={shellStyles.selectInput}
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label={t('graph.filter.status')}
+            >
+              <option value="">{t('graph.filter.status')}: {t('graph.filter.all')}</option>
+              {LIFECYCLE_STAGES.map((stage) => (
+                <option key={stage} value={LIFECYCLE_STAGE_SERVICE_STATUS[stage]}>{t(lifecycleStageLabelKey(stage))}</option>
+              ))}
+            </select>
+            <div className={shellStyles.meta}>{t('graph.filter.shown', { count: services.length })}</div>
           </FilterGroup>
 
           <FilterGroup label="Souhrn">
@@ -474,6 +528,7 @@ export default function ServicesGraphPage() {
                 onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
                 onNodeDoubleClick={onNodeDoubleClick}
+                onNodeDragStop={layout.onNodeDragStop}
                 onEdgeClick={onEdgeClick}
                 onPaneClick={() => { setSelectedNode(null); setSelectedEdge(null); }}
                 nodesConnectable={false}
@@ -486,6 +541,14 @@ export default function ServicesGraphPage() {
                 {showMiniMap && <MiniMap nodeColor={nodeColor} />}
                 <Panel position="bottom-left">
                   <GraphLegend title={t('graph.legend.title')} items={legendItems} />
+                </Panel>
+                <Panel position="top-right">
+                  <GraphLayoutControls
+                    canSave={layout.canSave}
+                    hasCustomLayout={layout.hasCustomLayout}
+                    saveError={layout.saveError}
+                    onReset={layout.resetLayout}
+                  />
                 </Panel>
               </ReactFlow>
             </div>

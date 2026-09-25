@@ -20,3 +20,12 @@ export function selectableLifecycleStages(current: LifecycleStage | null): Lifec
 export function lifecycleStageLabelKey(stage: string): string {
   return `lifecycle_stage.${stage}`;
 }
+
+/** API service_status of each stage (data.fn_service_status_from_stage). */
+export const LIFECYCLE_STAGE_SERVICE_STATUS: Record<LifecycleStage, string> = {
+  draft: 'draft',
+  design: 'planned',
+  active: 'active',
+  retiring: 'deprecated',
+  retired: 'retired',
+};

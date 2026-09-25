@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { apiFetch, buildGraphOverviewUrl, buildListUrl } from '../api/services.api';
+import { apiFetch, buildGraphOverviewUrl, buildListUrl, type GraphOverviewParams } from '../api/services.api';
 import type { ListParams } from '../api/services.api';
 import type {
   ServiceListResponse,
@@ -165,11 +165,12 @@ export function useServiceFrameworks(id: string | null) {
   );
 }
 
-export function useGraphOverview(options: { compact?: boolean; includeC3?: boolean } = {}) {
+export function useGraphOverview(options: GraphOverviewParams = {}) {
   return useSWR<GraphOverviewResponse>(
     buildGraphOverviewUrl(options),
     apiFetch,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
+    // Keep the current graph on screen while a filtered one loads.
+    { revalidateOnFocus: false, dedupingInterval: 60_000, keepPreviousData: true }
   );
 }
 

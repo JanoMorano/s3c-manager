@@ -948,5 +948,14 @@
   "lifecycle_stage.retired": "Retired",
   "service_editor.lifecycle.label": "Lifecycle stage",
   "service_editor.lifecycle.current": "current",
-  "service_editor.lifecycle.allowed_next": "Allowed next: {{stages}}"
+  "service_editor.lifecycle.allowed_next": "Allowed next: {{stages}}",
+  "graph.layout.drag_to_save": "Drag nodes to arrange; positions are saved for this view.",
+  "graph.layout.drag_local": "Drag nodes to arrange (not saved — editor role required).",
+  "graph.layout.save_failed": "Layout could not be saved.",
+  "graph.layout.reset": "Reset layout",
+  "graph.filter.search": "Search services",
+  "graph.filter.portfolio": "Portfolio",
+  "graph.filter.status": "Status",
+  "graph.filter.all": "All",
+  "graph.filter.shown": "{{count}} services shown"
 }

@@ -5,7 +5,7 @@ const flRepo  = require('../db/flavours.repo');
 const relRepo = require('../db/relations.repo');
 const offeringsRepo = require('../db/offerings.repo');
 const { listC3EntityLinks, linkTargetNode, linkEdge } = require('../db/c3-entity-links.repo');
-const { SERVICE_STATUS_SQL, PORTFOLIO_JOIN, PRIMARY_SLA_JOIN, canonicalizeServiceInput } = require('../db/service-fields');
+const { SERVICE_STATUS_SQL, PORTFOLIO_JOIN, PRIMARY_SLA_JOIN, OVERVIEW_LAYOUT_JOIN, canonicalizeServiceInput } = require('../db/service-fields');
 const supportModelRepo = require('../db/support-model.repo');
 const audienceRepo = require('../db/audience.repo');
 const operationalLinksRepo = require('../db/operational-links.repo');
@@ -1070,10 +1070,11 @@ router.get('/:id/graph', async (req, res, next) => {
                    sc.service_type_code   AS service_type,
                    ${SERVICE_STATUS_SQL} AS service_status,
                    sp.portfolio_code AS portfolio_group,
-                   sla.availability_pct AS sla_availability, sc.graph_x, sc.graph_y
+                   sla.availability_pct AS sla_availability, gl.x AS graph_x, gl.y AS graph_y
             FROM data.service_catalog sc
             ${PORTFOLIO_JOIN}
             ${PRIMARY_SLA_JOIN}
+            ${OVERVIEW_LAYOUT_JOIN}
             WHERE sc.service_id = ANY($1::varchar[])
               AND sc.is_deleted = FALSE
         `, [nodeIds]);

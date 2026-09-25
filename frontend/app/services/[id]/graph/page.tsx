@@ -27,6 +27,8 @@ import '@xyflow/react/dist/style.css';
 import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
 import { applyLineStyleMode, resolveServiceGraphEdgeVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
 import { GraphLegend } from '@/features/graph/GraphLegend';
+import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
+import { GraphLayoutControls } from '@/features/graph/GraphLayoutControls';
 import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import { useServiceGraph, useServices } from '@/features/services/hooks/useServices';
 import type { ServiceGraphV2Response, ServiceGraphV2Node, ServiceGraphV2Edge } from '@/features/services/model/service.types';
@@ -279,12 +281,13 @@ export default function GraphPage({ params }: Props) {
   const graphNodeById = useMemo(() => new Map(rootGraph.nodes.map((node) => [node.id, node])), [rootGraph.nodes]);
   const legendItems = useMemo(() => serviceGraphLegendItems(t, rootGraph.edges), [rootGraph.edges, t]);
 
+  const layout = useGraphLayout(id ? `service/${id}` : null);
   const rfNodes = useMemo(
-    () => layoutNodes(rootGraph.nodes, selectedNode?.id ?? null, (node) => {
+    () => applyNodePositions(layoutNodes(rootGraph.nodes, selectedNode?.id ?? null, (node) => {
       setSelectedNode(node);
       setSelectedEdge(null);
-    }, locale),
-    [locale, rootGraph.nodes, selectedNode?.id],
+    }, locale), layout.positions),
+    [layout.positions, locale, rootGraph.nodes, selectedNode?.id],
   );
 
   const rfEdges = useMemo<Edge[]>(() => {
@@ -521,6 +524,7 @@ export default function GraphPage({ params }: Props) {
               onEdgesChange={onEdgesChange}
               onNodeClick={onNodeClick}
               onNodeDoubleClick={onNodeDoubleClick}
+              onNodeDragStop={layout.onNodeDragStop}
               onEdgeClick={onEdgeClick}
               nodeTypes={nodeTypes}
               fitView
@@ -531,6 +535,14 @@ export default function GraphPage({ params }: Props) {
               <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'} />
               <Panel position="bottom-left">
                 <GraphLegend title={t('graph.legend.title')} items={legendItems} />
+              </Panel>
+              <Panel position="top-right">
+                <GraphLayoutControls
+                  canSave={layout.canSave}
+                  hasCustomLayout={layout.hasCustomLayout}
+                  saveError={layout.saveError}
+                  onReset={layout.resetLayout}
+                />
               </Panel>
             </ReactFlow>
           </div>

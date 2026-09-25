@@ -1,12 +1,14 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const graphLayoutRepo = require('./graph-layout.repo');
 const { toLifecycleStage } = require('../utils/lifecycle');
 const {
     SERVICE_STATUS_SQL,
     LIFECYCLE_STATE_SQL,
     PRIMARY_SLA_JOIN,
     SOURCE_JOIN,
+    OVERVIEW_LAYOUT_JOIN,
     sourceRawSql,
     canonicalizeServiceInput,
     resolvePortfolioId,
@@ -79,8 +81,8 @@ const SC_COLUMNS = `
     ${sourceRawSql('other_info_raw')} AS other_info_raw,
     ${sourceRawSql('pricing_note_raw')} AS pricing_note_raw,
     sc.review_owner_user_id,
-    sc.graph_x,
-    sc.graph_y,
+    gl.x AS graph_x,
+    gl.y AS graph_y,
     ${sourceRawSql('options_json')} AS options,
     sc.notes_json AS notes,
     ${sourceRawSql('training_refs_json')} AS training_refs,
@@ -457,8 +459,8 @@ async function findAllDirect({
             sc.criticality_code,
             sc.review_due_at,
             sc.requestable,
-            sc.graph_x,
-            sc.graph_y,
+            gl.x AS graph_x,
+            gl.y AS graph_y,
             sc.updated_at,
             scm.c3_uuid,
             EXISTS (
@@ -541,6 +543,7 @@ async function findAllDirect({
             ON pg.code = sp.portfolio_code
         ${PRIMARY_SLA_JOIN}
         ${SOURCE_JOIN}
+        ${OVERVIEW_LAYOUT_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -586,6 +589,7 @@ async function findByServiceId(serviceId) {
             ON pg.code = sp.portfolio_code
         ${PRIMARY_SLA_JOIN}
         ${SOURCE_JOIN}
+        ${OVERVIEW_LAYOUT_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -636,6 +640,7 @@ async function findAllForExport() {
             ON pg.code = sp.portfolio_code
         ${PRIMARY_SLA_JOIN}
         ${SOURCE_JOIN}
+        ${OVERVIEW_LAYOUT_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -844,7 +849,7 @@ async function setRole(serviceId, roleCode, displayName, email = null, orgName =
 }
 
 async function create(input, performedBy) {
-    const { fields: data, portfolioCode, sla, source, fallbacks } = canonicalizeServiceInput(input);
+    const { fields: data, portfolioCode, sla, source, fallbacks, layout } = canonicalizeServiceInput(input);
     // A new service without any lifecycle/status input starts as active (previous default).
     const createStage = Object.prototype.hasOwnProperty.call(data, 'lifecycle_stage_code')
         ? data.lifecycle_stage_code
@@ -886,8 +891,6 @@ async function create(input, performedBy) {
         security_classification_code: data.security_classification || data.security_classification_code || null,
         is_stub: createIsStub,
         service_url: data.service_url || data.source_url || null,
-        graph_x: data.graph_x ?? null,
-        graph_y: data.graph_y ?? null,
         notes_json: serializeJson(data.notes),
         retired_note: data.retired_note || null,
         consumer_value: data.consumer_value || fallbacks.consumer_value || null,
@@ -904,7 +907,21 @@ async function create(input, performedBy) {
     const catalogId = inserted.rows[0].id;
     await upsertPrimarySla(pool, catalogId, sla);
     await upsertServiceSource(pool, catalogId, normalizeSource(source));
+    await saveOverviewPosition(pool, data.service_id, layout, performedBy);
     return data.service_id;
+}
+
+/**
+ * Stores graph_x/graph_y input as the service position in the overview
+ * portfolio grid. Null input is ignored (imports always send the keys);
+ * positions are removed through DELETE /graph/layout.
+ */
+async function saveOverviewPosition(pool, serviceId, layout, performedBy) {
+    const positions = layout
+        ? graphLayoutRepo.normalizePositions([{ node_id: `svc:${serviceId}`, x: layout.x ?? NaN, y: layout.y ?? NaN }])
+        : [];
+    if (positions.length === 0) return;
+    await graphLayoutRepo.saveLayout(graphLayoutRepo.SERVICE_OVERVIEW_VIEW, positions, performedBy, pool);
 }
 
 /** Normalizes import provenance input (see service-fields SOURCE_* lists). */
@@ -922,7 +939,7 @@ function normalizeSource(source) {
 }
 
 async function update(serviceId, input, performedBy) {
-    const { fields: data, portfolioCode, sla, source, fallbacks } = canonicalizeServiceInput(input);
+    const { fields: data, portfolioCode, sla, source, fallbacks, layout } = canonicalizeServiceInput(input);
     const skipFields = new Set([
         'id', 'service_id', 'created_at', 'created_by', 'is_deleted',
         'completeness_score', 'prerequisites', 'dependencies',
@@ -946,8 +963,7 @@ async function update(serviceId, input, performedBy) {
         'short_description', 'detailed_description', 'description', 'unit_of_measure',
         'charging_basis', 'rate_note', 'ordering_note', 'exclusions',
         'security_classification', 'source_url',
-        'service_url', 'graph_x',
-        'graph_y', 'notes', 'retired_note', 'scope_text',
+        'service_url', 'notes', 'retired_note', 'scope_text',
         'operational_notes_raw', 'budget_activity_code',
         'global_service_group_code', 'service_line_code', 'organizational_element_code',
         'target_audience_summary', 'requestable', 'lifecycle_stage_code',
@@ -998,7 +1014,7 @@ async function update(serviceId, input, performedBy) {
         setClauses.push(`${column} = COALESCE(NULLIF(btrim(${column}), ''), $${values.length})`);
     }
 
-    if (setClauses.length === 2 && !sla && !source) return null;
+    if (setClauses.length === 2 && !sla && !source && !layout) return null;
 
     const pool = getPool();
     values.push(serviceId);
@@ -1013,6 +1029,7 @@ async function update(serviceId, input, performedBy) {
     if (updated.rows[0]) {
         await upsertPrimarySla(pool, updated.rows[0].id, sla);
         await upsertServiceSource(pool, updated.rows[0].id, normalizeSource(source));
+        await saveOverviewPosition(pool, serviceId, layout, performedBy);
     }
     return findByServiceId(serviceId);
 }

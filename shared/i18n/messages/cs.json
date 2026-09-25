@@ -948,5 +948,14 @@
   "lifecycle_stage.retired": "Vyřazená",
   "service_editor.lifecycle.label": "Fáze životního cyklu",
   "service_editor.lifecycle.current": "aktuální",
-  "service_editor.lifecycle.allowed_next": "Povolený další krok: {{stages}}"
+  "service_editor.lifecycle.allowed_next": "Povolený další krok: {{stages}}",
+  "graph.layout.drag_to_save": "Uzly lze přetáhnout; pozice se uloží pro tento pohled.",
+  "graph.layout.drag_local": "Uzly lze přetáhnout (neukládá se — vyžaduje roli editor).",
+  "graph.layout.save_failed": "Rozložení se nepodařilo uložit.",
+  "graph.layout.reset": "Obnovit rozložení",
+  "graph.filter.search": "Hledat služby",
+  "graph.filter.portfolio": "Portfolio",
+  "graph.filter.status": "Stav",
+  "graph.filter.all": "Vše",
+  "graph.filter.shown": "Zobrazeno služeb: {{count}}"
 }

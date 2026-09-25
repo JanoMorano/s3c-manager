@@ -9,3 +9,4 @@
 \ir ../../schema/35_canonical_service_fields.sql
 \ir ../../schema/39_drop_legacy_service_mirrors.sql
 \ir ../../schema/40_service_catalog_source.sql
+\ir ../../schema/41_graph_node_layout.sql
