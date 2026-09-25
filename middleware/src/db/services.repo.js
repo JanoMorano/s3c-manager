@@ -1,6 +1,7 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const { toLifecycleStage } = require('../utils/lifecycle');
 
 const SC_COLUMNS = `
     sc.id,
@@ -337,24 +338,24 @@ async function findAllDirect({
     if (lifecycleValues.length) {
         filters.push(`sc.lifecycle_state = ANY(${bind(lifecycleValues)}::varchar[])`);
     }
-    const lifecycleStageValues = splitCsv(lifecycleStageCode);
+    const lifecycleStageValues = splitCsv(lifecycleStageCode).map((value) => toLifecycleStage(value) ?? value);
     if (lifecycleStageValues.length) {
-        filters.push(`COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) = ANY(${bind(lifecycleStageValues)}::varchar[])`);
+        filters.push(`sc.lifecycle_stage_code = ANY(${bind(lifecycleStageValues)}::varchar[])`);
     }
     const criticalityValues = splitCsv(criticalityCode);
     if (criticalityValues.length) {
         filters.push(`sc.criticality_code = ANY(${bind(criticalityValues)}::varchar[])`);
     }
     if (reviewDue === 'overdue') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP`);
+        filters.push(`sc.review_due_at < CURRENT_TIMESTAMP`);
     } else if (reviewDue === 'missing') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) IS NULL`);
+        filters.push(`sc.review_due_at IS NULL`);
     } else if (reviewDue === 'next_30') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '30 days'`);
+        filters.push(`sc.review_due_at >= CURRENT_TIMESTAMP`);
+        filters.push(`sc.review_due_at < CURRENT_TIMESTAMP + INTERVAL '30 days'`);
     } else if (reviewDue === 'next_90') {
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) >= CURRENT_TIMESTAMP`);
-        filters.push(`COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
+        filters.push(`sc.review_due_at >= CURRENT_TIMESTAMP`);
+        filters.push(`sc.review_due_at < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
     }
     if (readiness === 'attention') {
         filters.push(`COALESCE(sc.service_status_code, '') <> 'retired'`);
@@ -449,7 +450,7 @@ async function findAllDirect({
             sc.lifecycle_state,
             sc.lifecycle_stage_code,
             sc.criticality_code,
-            COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at,
+            sc.review_due_at,
             sc.requestable,
             sc.graph_x,
             sc.graph_y,
@@ -646,12 +647,11 @@ async function getCatalogQualitySummary() {
                 sc.id,
                 sc.service_id,
                 sc.title,
-                sc.lifecycle_state,
-                sc.service_status_code,
+                sc.lifecycle_stage_code,
                 sc.requestable,
                 sc.request_channel_type,
                 sc.request_channel_url,
-                COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at
+                sc.review_due_at
             FROM data.service_catalog sc
             WHERE sc.is_deleted = FALSE
               AND sc.is_stub = FALSE
@@ -718,7 +718,7 @@ async function getCatalogQualitySummary() {
             COUNT(*) FILTER (WHERE review_due_at IS NULL)::integer AS missing_review_date_count,
             COUNT(*) FILTER (WHERE review_due_at < CURRENT_TIMESTAMP)::integer AS overdue_review_count,
             COUNT(*) FILTER (
-                WHERE LOWER(COALESCE(lifecycle_state, service_status_code, '')) IN ('deprecated', 'retired')
+                WHERE lifecycle_stage_code IN ('retiring', 'retired')
             )::integer AS deprecated_or_retired_count,
             (
                 SELECT COUNT(*)::integer

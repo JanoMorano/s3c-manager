@@ -132,6 +132,7 @@ run_psql "pg reduction cleanup — locale cut to cs/en" /pgdb/schema/31_locale_c
 run_psql "pg reduction cleanup — final sunset" /pgdb/schema/32_final_reduction_sunset_cleanup.sql
 run_psql "pg readiness rule explanations — why/how-to/evidence texts" /pgdb/schema/33_readiness_rule_explanations.sql
 run_psql "pg C3 board state — governance board lanes" /pgdb/schema/34_c3_board_state.sql
+run_psql "pg canonical service fields — lifecycle, review date, portfolio sync" /pgdb/schema/35_canonical_service_fields.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

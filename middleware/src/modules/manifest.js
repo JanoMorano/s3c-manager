@@ -179,6 +179,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '26_governance_workflow',
             '27_impact_analysis',
             '33_readiness_rule_explanations',
+            '35_canonical_service_fields',
         ],
     },
 ]);

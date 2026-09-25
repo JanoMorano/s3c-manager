@@ -12,6 +12,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - Service relation types now have one source of truth, `shared/service-catalogue/relationTypes.json` (code, category, editable). Validation, the graph relation filter, readiness dependency counts, the service editor and the service detail read from it; a test keeps it aligned with the `ref_relation_type` seed. Relation types have Czech and English labels.
 
+- `lifecycle_stage_code`, `review_due_at` and `portfolio_id` are now the canonical service fields (migration `35_canonical_service_fields.sql`). The legacy `lifecycle_state`, `service_status_code`, `next_review_due_at` and `portfolio_group_code` columns are kept in sync by a trigger in both directions, so imports and the lifecycle workflow keep working while readers drop their `COALESCE` fallbacks. Lifecycle filters still accept legacy values such as `live`.
+- `v_owner_load` counts live services by `lifecycle_stage_code`, critical services by `criticality_code = 'mission_critical'` (previously service type `CF`/`CFS`) and overdue reviews by `review_due_at`.
+
 ### Fixed
 - The service editor no longer silently rewrites a relation whose type is not in the editable subset (for example `uses` or `part_of`); the current type stays selectable.
 - The graph `relation_type` filter accepted non-existent codes and rejected valid ones (`uses`, `part_of`, `provides`, …).

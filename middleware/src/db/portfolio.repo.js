@@ -1,6 +1,7 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const { toLifecycleStage } = require('../utils/lifecycle');
 
 function toInteger(value) {
     if (value == null || value === '') return null;
@@ -147,21 +148,21 @@ function portfolioSelect() {
             COUNT(DISTINCT d.node_page_id) FILTER (WHERE d.node_level > p.portfolio_level)::integer AS capability_count,
             COUNT(DISTINCT sc.id)::integer AS service_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) IN ('draft', 'design', 'under_review')
+                WHERE sc.lifecycle_stage_code IN ('draft', 'design')
             )::integer AS draft_service_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) IN ('active', 'live', 'approved', 'production')
+                WHERE sc.lifecycle_stage_code = 'active'
             )::integer AS active_service_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) IN ('retiring', 'deprecated')
+                WHERE sc.lifecycle_stage_code = 'retiring'
             )::integer AS retiring_service_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) = 'retired'
+                WHERE sc.lifecycle_stage_code = 'retired'
             )::integer AS retired_service_count,
             COUNT(DISTINCT sc.id) FILTER (WHERE sc.requestable = TRUE)::integer AS requestable_service_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE COALESCE(sc.review_due_at, sc.next_review_due_at) IS NOT NULL
-                  AND COALESCE(sc.review_due_at, sc.next_review_due_at) < CURRENT_TIMESTAMP
+                WHERE sc.review_due_at IS NOT NULL
+                  AND sc.review_due_at < CURRENT_TIMESTAMP
             )::integer AS overdue_review_count,
             COUNT(DISTINCT sc.id) FILTER (
                 WHERE ${dueSoonReviewCondition('sc')}
@@ -213,26 +214,26 @@ function portfolioGroupBy() {
 }
 
 function activeServiceCondition(alias = 'sc') {
-    return `COALESCE(${alias}.lifecycle_stage_code, ${alias}.lifecycle_state) IN ('active', 'live', 'approved', 'production')`;
+    return `${alias}.lifecycle_stage_code = 'active'`;
 }
 
 function plannedServiceCondition(alias = 'sc') {
-    return `COALESCE(${alias}.lifecycle_stage_code, ${alias}.lifecycle_state) IN ('draft', 'design', 'under_review', 'planned', 'planning')`;
+    return `${alias}.lifecycle_stage_code IN ('draft', 'design')`;
 }
 
 function retiringServiceCondition(alias = 'sc') {
-    return `COALESCE(${alias}.lifecycle_stage_code, ${alias}.lifecycle_state) IN ('retiring', 'deprecated', 'retired')`;
+    return `${alias}.lifecycle_stage_code IN ('retiring', 'retired')`;
 }
 
 function overdueReviewCondition(alias = 'sc') {
-    return `COALESCE(${alias}.review_due_at, ${alias}.next_review_due_at) IS NOT NULL
-            AND COALESCE(${alias}.review_due_at, ${alias}.next_review_due_at) < CURRENT_TIMESTAMP`;
+    return `${alias}.review_due_at IS NOT NULL
+            AND ${alias}.review_due_at < CURRENT_TIMESTAMP`;
 }
 
 function dueSoonReviewCondition(alias = 'sc') {
-    return `COALESCE(${alias}.review_due_at, ${alias}.next_review_due_at) IS NOT NULL
-            AND COALESCE(${alias}.review_due_at, ${alias}.next_review_due_at) >= CURRENT_TIMESTAMP
-            AND COALESCE(${alias}.review_due_at, ${alias}.next_review_due_at) < CURRENT_TIMESTAMP + INTERVAL '90 days'`;
+    return `${alias}.review_due_at IS NOT NULL
+            AND ${alias}.review_due_at >= CURRENT_TIMESTAMP
+            AND ${alias}.review_due_at < CURRENT_TIMESTAMP + INTERVAL '90 days'`;
 }
 
 function missingOwnerCondition(alias = 'sc') {
@@ -281,7 +282,7 @@ async function list({ status, ownerGroupId, lifecycle } = {}) {
         filters.push(`p.owner_group_id = ${bind(parsedOwnerGroupId)}`);
     }
 
-    const normalizedLifecycle = normalizeText(lifecycle);
+    const normalizedLifecycle = toLifecycleStage(normalizeText(lifecycle)) ?? normalizeText(lifecycle);
     if (normalizedLifecycle) {
         filters.push(`EXISTS (
             SELECT 1
@@ -293,7 +294,7 @@ async function list({ status, ownerGroupId, lifecycle } = {}) {
              AND sc_filter.is_deleted = FALSE
              AND sc_filter.is_stub = FALSE
             WHERE d_filter.portfolio_id = p.id
-              AND COALESCE(sc_filter.lifecycle_stage_code, sc_filter.lifecycle_state) = ${bind(normalizedLifecycle)}
+              AND sc_filter.lifecycle_stage_code = ${bind(normalizedLifecycle)}
         )`);
     }
 
@@ -321,11 +322,11 @@ function portfolioServiceScopeCte() {
                 sc.title,
                 sc.service_type_code AS service_type,
                 sc.service_status_code AS service_status,
-                COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) AS lifecycle_stage_code,
+                sc.lifecycle_stage_code,
                 sc.lifecycle_state,
                 sc.criticality_code,
                 sc.completeness_score,
-                COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at,
+                sc.review_due_at,
                 sc.requestable,
                 sc.portfolio_group_code AS portfolio_group,
                 (
@@ -519,10 +520,10 @@ async function listCapabilities() {
                         sc_service.title,
                         sc_service.service_type_code AS service_type,
                         sc_service.service_status_code AS service_status,
-                        COALESCE(sc_service.lifecycle_stage_code, sc_service.lifecycle_state) AS lifecycle_stage_code,
+                        sc_service.lifecycle_stage_code,
                         sc_service.criticality_code,
                         sc_service.completeness_score,
-                        COALESCE(sc_service.review_due_at, sc_service.next_review_due_at) AS review_due_at,
+                        sc_service.review_due_at,
                         sc_service.requestable,
                         (
                             SELECT display_name
@@ -608,10 +609,10 @@ async function getByCode(code) {
             sc.title,
             sc.service_type_code AS service_type,
             sc.service_status_code AS service_status,
-            COALESCE(sc.lifecycle_stage_code, sc.lifecycle_state) AS lifecycle_stage_code,
+            sc.lifecycle_stage_code,
             sc.criticality_code,
             sc.completeness_score,
-            COALESCE(sc.review_due_at, sc.next_review_due_at) AS review_due_at,
+            sc.review_due_at,
             sc.requestable,
             COUNT(DISTINCT scm.c3_uuid)::integer AS c3_mapping_count,
             MAX(ct.title) FILTER (WHERE scm.is_primary = TRUE) AS primary_capability_title,
