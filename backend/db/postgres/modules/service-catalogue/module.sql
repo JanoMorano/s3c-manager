@@ -10,3 +10,4 @@
 \ir ../../schema/30_reduction_domain_model_simplification.sql
 \ir ../../schema/32_final_reduction_sunset_cleanup.sql
 \ir ../../schema/36_service_sla_canonical.sql
+\ir ../../schema/37_offering_request_inheritance.sql

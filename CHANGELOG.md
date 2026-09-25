@@ -21,7 +21,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The service-level SLA has one source of truth: the primary `service_sla` row of a service (no offering). The `service_catalog` `sla_*` columns are a trigger-synced mirror (migration `36_service_sla_canonical.sql`), so the editor fields and the SLA records API always agree. `service_sla` gained `restoration_text` and `delivery_text`, exposed by the SLA records API.
 
+- Offering request fields (`requestable`, `approval_required`, request channel, lead time) inherit from the service: an empty offering field means "inherit", a value overrides it (migration `37_offering_request_inheritance.sql`, view `v_service_offering_effective`). Offering values equal to the service value were reset to inherit, so no effective value changed. The offerings API returns `effective_*` values; the editor uses one shared offering form (previously duplicated for add/edit) with "inherit / yes / no" choices and shows inherited values.
+
 ### Fixed
+- Saving any change to a live service re-ran the "transition to live" gate and was rejected when the service had no support model; the gate now runs only on the transition itself.
+- A requestable service whose request channel is defined only on its offerings was rejected on every save; offering channels now satisfy the rule.
 - The service editor no longer silently rewrites a relation whose type is not in the editable subset (for example `uses` or `part_of`); the current type stays selectable.
 - The graph `relation_type` filter accepted non-existent codes and rejected valid ones (`uses`, `part_of`, `provides`, …).
 - `v_servicepublishreadiness` counted only three of the five dependency relation types.

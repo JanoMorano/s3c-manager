@@ -180,7 +180,7 @@ function buildOfferings(offerings) {
     const primary = offerings.find((item) => item.is_default) ?? offerings[0] ?? null;
     return {
         count: offerings.length,
-        requestable_count: offerings.filter((item) => item.requestable).length,
+        requestable_count: offerings.filter((item) => item.effective_requestable ?? item.requestable).length,
         primary,
         items: offerings,
     };
@@ -210,7 +210,7 @@ function buildPricing(service, flavours, offerings) {
     const pricedFlavours = flavours.filter((item) => toNumber(item.price_value) != null);
     const hasServicePricingNote = hasText(service.pricing_note_raw) || hasText(service.service_cost_raw);
     const hasPrices = pricedFlavours.length > 0 || hasServicePricingNote;
-    const requestable = Boolean(service.requestable) || offerings.some((item) => item.requestable);
+    const requestable = Boolean(service.requestable) || offerings.some((item) => item.effective_requestable ?? item.requestable);
 
     return {
         has_prices: hasPrices,

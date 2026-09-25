@@ -87,3 +87,17 @@ describe('services phase 1 validation', () => {
         ]));
     });
 });
+
+describe('requestability with offering channels', () => {
+    const { validateUpdate } = require('../services/validation');
+
+    test('a requestable service without its own channel is valid when an offering defines one', () => {
+        expect(validateUpdate({ requestable: true }, {}, { offeringHasRequestChannel: true })).toEqual([]);
+    });
+
+    test('a requestable service without any channel is rejected', () => {
+        expect(validateUpdate({ requestable: true }, {}, {})).toEqual([
+            expect.objectContaining({ field: 'requestable' }),
+        ]);
+    });
+});

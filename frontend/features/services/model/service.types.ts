@@ -495,7 +495,8 @@ export interface ServiceOffering {
   title: string;
   description: string | null;
   is_default: boolean;
-  requestable: boolean;
+  /** Own value; null = inherited from the service (see effective_*). */
+  requestable: boolean | null;
   approval_required: boolean | null;
   request_channel_type: string | null;
   request_channel_url: string | null;
@@ -505,6 +506,11 @@ export interface ServiceOffering {
   display_order: number | null;
   created_at: string;
   updated_at: string;
+  effective_requestable?: boolean;
+  effective_approval_required?: boolean | null;
+  effective_request_channel_type?: string | null;
+  effective_request_channel_url?: string | null;
+  effective_lead_time_text?: string | null;
 }
 
 export interface ServiceSupportModel {

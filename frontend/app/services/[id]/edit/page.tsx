@@ -735,6 +735,15 @@ export default function ServiceEditorPage({ params }: Props) {
   const watchedRequestable  = watch('requestable');
   const watchedChannelType  = watch('request_channel_type');
   const watchedChannelUrl   = watch('request_channel_url');
+  const watchedApproval     = watch('approval_required');
+  const watchedLeadTime     = watch('fulfillment_lead_time_text');
+  const offeringInherited: OfferingInheritedValues = {
+    requestable: watchedRequestable ?? false,
+    approval_required: watchedApproval ?? null,
+    request_channel_type: watchedChannelType || null,
+    request_channel_url: watchedChannelUrl || null,
+    lead_time_text: watchedLeadTime || null,
+  };
   /* eslint-enable react-hooks/incompatible-library */
   const dirtyCount          = Object.keys(dirtyFields).length;
   const currentLifecycle    = svc ? normalizeLifecycleState(svc.lifecycle_state ?? svc.lifecycle_stage_code ?? svc.service_status) : null;
@@ -1246,62 +1255,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 {sortedOfferings.map((offering, offeringIndex) => (
                   editOfferingId === offering.id ? (
                     <div key={offering.id} className={styles.phase4Card}>
-                      <div className={styles.fieldRow}>
-                        <Field label="Offering Code">
-                          <input className={styles.input} value={offeringForm.offering_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, offering_code: e.target.value }))} />
-                        </Field>
-                        <Field label="Title">
-                          <input className={styles.input} value={offeringForm.title ?? ''} onChange={e => setOfferingForm(p => ({ ...p, title: e.target.value }))} />
-                        </Field>
-                        <Field label="Status">
-                          <select className={styles.input} value={offeringForm.status ?? ''} onChange={e => setOfferingForm(p => ({ ...p, status: e.target.value }))}>
-                            <option value="">— select —</option>
-                            {OFFERING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                          </select>
-                        </Field>
-                      </div>
-                      <Field label="Description">
-                        <textarea className={styles.textarea} rows={3} value={offeringForm.description ?? ''} onChange={e => setOfferingForm(p => ({ ...p, description: e.target.value || null }))} />
-                      </Field>
-                      <div className={styles.fieldRow}>
-                        <Field label="Request Channel Type">
-                          <input className={styles.input} value={offeringForm.request_channel_type ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_type: e.target.value || null }))} />
-                        </Field>
-                        <Field label="Request Channel URL">
-                          <input className={styles.input} value={offeringForm.request_channel_url ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_url: e.target.value || null }))} />
-                        </Field>
-                        <Field label="Lead Time">
-                          <input className={styles.input} value={offeringForm.lead_time_text ?? ''} onChange={e => setOfferingForm(p => ({ ...p, lead_time_text: e.target.value || null }))} />
-                        </Field>
-                      </div>
-                      <div className={styles.fieldRow}>
-                        <Field label="Support Tier">
-                          <input className={styles.input} value={offeringForm.support_tier_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, support_tier_code: e.target.value || null }))} />
-                        </Field>
-                        <Field label="Display Order">
-                          <input className={styles.input} type="number" value={offeringForm.display_order ?? ''} onChange={e => setOfferingForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
-                        </Field>
-                      </div>
-                      <div className={styles.toggleRow}>
-                        <label className={styles.domainCheck}>
-                          <input type="checkbox" checked={offeringForm.is_default ?? false} onChange={e => setOfferingForm(p => ({ ...p, is_default: e.target.checked }))} />
-                          <span>Default offering</span>
-                        </label>
-                        <label className={styles.domainCheck}>
-                          <input type="checkbox" checked={offeringForm.requestable ?? false} onChange={e => setOfferingForm(p => ({ ...p, requestable: e.target.checked }))} />
-                          <span>Requestable</span>
-                        </label>
-                        <label className={styles.domainCheck}>
-                          <input type="checkbox" checked={offeringForm.approval_required ?? false} onChange={e => setOfferingForm(p => ({ ...p, approval_required: e.target.checked }))} />
-                          <span>Approval required</span>
-                        </label>
-                      </div>
-                      {offeringForm.requestable && !offeringForm.request_channel_type && !offeringForm.request_channel_url && (
-                        <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
-                          <span className={styles.crossFieldAlertIcon}>⚠</span>
-                          Requestable offerings need a Request Channel Type or URL so consumers know how to order this service.
-                        </div>
-                      )}
+                      <OfferingFormFields form={offeringForm} setForm={setOfferingForm} inherited={offeringInherited} t={t} allowEmptyStatus />
                       <div className={styles.flavourEditActions}>
                         <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>Save</button>
                         <button type="button" className={styles.btnGhost} onClick={() => { setEditOfferingId(null); setOfferingForm({}); }}>Cancel</button>
@@ -1312,7 +1266,7 @@ export default function ServiceEditorPage({ params }: Props) {
                       <div className={styles.phase4Summary}>
                         <strong>{offering.title}</strong>
                         <span className={styles.phase4Meta}>
-                          {offering.offering_code} · {offering.status} · {offering.requestable ? 'requestable' : 'not requestable'}
+                          {offering.offering_code} · {offering.status} · {(offering.effective_requestable ?? offering.requestable) ? 'requestable' : 'not requestable'}{offering.requestable == null ? ` (${t('service_editor.offering.inherited_short')})` : ''}
                         </span>
                         {offering.description && <span className={styles.phase4Hint}>{offering.description}</span>}
                       </div>
@@ -1366,68 +1320,14 @@ export default function ServiceEditorPage({ params }: Props) {
 
             {showOfferingAdd && editOfferingId == null ? (
               <div className={styles.phase4Card}>
-                <div className={styles.fieldRow}>
-                  <Field label="Offering Code">
-                    <input className={styles.input} value={offeringForm.offering_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, offering_code: e.target.value }))} />
-                  </Field>
-                  <Field label="Title">
-                    <input className={styles.input} value={offeringForm.title ?? ''} onChange={e => setOfferingForm(p => ({ ...p, title: e.target.value }))} />
-                  </Field>
-                  <Field label="Status">
-                    <select className={styles.input} value={offeringForm.status ?? 'draft'} onChange={e => setOfferingForm(p => ({ ...p, status: e.target.value }))}>
-                      {OFFERING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                    </select>
-                  </Field>
-                </div>
-                <Field label="Description">
-                  <textarea className={styles.textarea} rows={3} value={offeringForm.description ?? ''} onChange={e => setOfferingForm(p => ({ ...p, description: e.target.value || null }))} />
-                </Field>
-                <div className={styles.fieldRow}>
-                  <Field label="Request Channel Type">
-                    <input className={styles.input} value={offeringForm.request_channel_type ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_type: e.target.value || null }))} />
-                  </Field>
-                  <Field label="Request Channel URL">
-                    <input className={styles.input} value={offeringForm.request_channel_url ?? ''} onChange={e => setOfferingForm(p => ({ ...p, request_channel_url: e.target.value || null }))} />
-                  </Field>
-                  <Field label="Lead Time">
-                    <input className={styles.input} value={offeringForm.lead_time_text ?? ''} onChange={e => setOfferingForm(p => ({ ...p, lead_time_text: e.target.value || null }))} />
-                  </Field>
-                </div>
-                <div className={styles.fieldRow}>
-                  <Field label="Support Tier">
-                    <input className={styles.input} value={offeringForm.support_tier_code ?? ''} onChange={e => setOfferingForm(p => ({ ...p, support_tier_code: e.target.value || null }))} />
-                  </Field>
-                  <Field label="Display Order">
-                    <input className={styles.input} type="number" value={offeringForm.display_order ?? ''} onChange={e => setOfferingForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
-                  </Field>
-                </div>
-                <div className={styles.toggleRow}>
-                  <label className={styles.domainCheck}>
-                    <input type="checkbox" checked={offeringForm.is_default ?? false} onChange={e => setOfferingForm(p => ({ ...p, is_default: e.target.checked }))} />
-                    <span>Default offering</span>
-                  </label>
-                  <label className={styles.domainCheck}>
-                    <input type="checkbox" checked={offeringForm.requestable ?? false} onChange={e => setOfferingForm(p => ({ ...p, requestable: e.target.checked }))} />
-                    <span>Requestable</span>
-                  </label>
-                  <label className={styles.domainCheck}>
-                    <input type="checkbox" checked={offeringForm.approval_required ?? false} onChange={e => setOfferingForm(p => ({ ...p, approval_required: e.target.checked }))} />
-                    <span>Approval required</span>
-                  </label>
-                </div>
-                {offeringForm.requestable && !offeringForm.request_channel_type && !offeringForm.request_channel_url && (
-                  <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
-                    <span className={styles.crossFieldAlertIcon}>⚠</span>
-                    Requestable offerings need a Request Channel Type or URL so consumers know how to order this service.
-                  </div>
-                )}
+                <OfferingFormFields form={offeringForm} setForm={setOfferingForm} inherited={offeringInherited} t={t} />
                 <div className={styles.flavourEditActions}>
                   <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>Add offering</button>
                   <button type="button" className={styles.btnGhost} onClick={() => { setShowOfferingAdd(false); setOfferingForm({}); }}>Cancel</button>
                 </div>
               </div>
             ) : (
-              <button type="button" className={styles.btnSecondary} onClick={() => { setShowOfferingAdd(true); setEditOfferingId(null); setOfferingForm({ status: 'draft', requestable: false, approval_required: false, is_default: offerings.length === 0, display_order: sortedOfferings.length + 1 }); }} style={{ marginTop: 'var(--space-3)' }}>
+              <button type="button" className={styles.btnSecondary} onClick={() => { setShowOfferingAdd(true); setEditOfferingId(null); setOfferingForm({ status: 'draft', requestable: null, approval_required: null, is_default: offerings.length === 0, display_order: sortedOfferings.length + 1 }); }} style={{ marginTop: 'var(--space-3)' }}>
                 + Add service offering
               </button>
             )}
@@ -2150,6 +2050,117 @@ function EditorSection({ id, title, children, hidden = false }: { id: string; ti
     <FormSection id={id} title={title}>
       {children}
     </FormSection>
+  );
+}
+
+interface OfferingInheritedValues {
+  requestable: boolean;
+  approval_required: boolean | null;
+  request_channel_type: string | null;
+  request_channel_url: string | null;
+  lead_time_text: string | null;
+}
+
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+function inheritBooleanValue(value: boolean | null | undefined): string {
+  if (value == null) return 'inherit';
+  return value ? 'yes' : 'no';
+}
+
+function parseInheritBoolean(value: string): boolean | null {
+  if (value === 'yes') return true;
+  if (value === 'no') return false;
+  return null;
+}
+
+/**
+ * Offering form shared by the add and edit flows. Request/access fields left
+ * empty inherit the service value (37_offering_request_inheritance.sql).
+ */
+function OfferingFormFields({
+  form,
+  setForm,
+  inherited,
+  t,
+  allowEmptyStatus = false,
+}: {
+  form: ServiceOfferingBody;
+  setForm: React.Dispatch<React.SetStateAction<ServiceOfferingBody>>;
+  inherited: OfferingInheritedValues;
+  t: Translate;
+  allowEmptyStatus?: boolean;
+}) {
+  const yesNo = (value: boolean | null) => (value == null ? '—' : value ? t('common.yes') : t('common.no'));
+  const inheritedHint = (value: string | null) => t('service_editor.offering.inherited_value', { value: value || '—' });
+  const effectiveRequestable = form.requestable ?? inherited.requestable;
+  const effectiveChannel = form.request_channel_type || form.request_channel_url || inherited.request_channel_type || inherited.request_channel_url;
+  return (
+    <>
+      <div className={styles.fieldRow}>
+        <Field label="Offering Code">
+          <input className={styles.input} value={form.offering_code ?? ''} onChange={e => setForm(p => ({ ...p, offering_code: e.target.value }))} />
+        </Field>
+        <Field label="Title">
+          <input className={styles.input} value={form.title ?? ''} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
+        </Field>
+        <Field label="Status">
+          <select className={styles.input} value={form.status ?? (allowEmptyStatus ? '' : 'draft')} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+            {allowEmptyStatus && <option value="">— select —</option>}
+            {OFFERING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Description">
+        <textarea className={styles.textarea} rows={3} value={form.description ?? ''} onChange={e => setForm(p => ({ ...p, description: e.target.value || null }))} />
+      </Field>
+      <p className={styles.hint}>{t('service_editor.offering.inheritance_hint')}</p>
+      <div className={styles.fieldRow}>
+        <Field label="Request Channel Type" hint={form.request_channel_type ? undefined : inheritedHint(inherited.request_channel_type)}>
+          <input className={styles.input} value={form.request_channel_type ?? ''} placeholder={inherited.request_channel_type ?? ''} onChange={e => setForm(p => ({ ...p, request_channel_type: e.target.value || null }))} />
+        </Field>
+        <Field label="Request Channel URL" hint={form.request_channel_url ? undefined : inheritedHint(inherited.request_channel_url)}>
+          <input className={styles.input} value={form.request_channel_url ?? ''} placeholder={inherited.request_channel_url ?? ''} onChange={e => setForm(p => ({ ...p, request_channel_url: e.target.value || null }))} />
+        </Field>
+        <Field label="Lead Time" hint={form.lead_time_text ? undefined : inheritedHint(inherited.lead_time_text)}>
+          <input className={styles.input} value={form.lead_time_text ?? ''} placeholder={inherited.lead_time_text ?? ''} onChange={e => setForm(p => ({ ...p, lead_time_text: e.target.value || null }))} />
+        </Field>
+      </div>
+      <div className={styles.fieldRow}>
+        <Field label="Requestable">
+          <select className={styles.input} value={inheritBooleanValue(form.requestable)} onChange={e => setForm(p => ({ ...p, requestable: parseInheritBoolean(e.target.value) }))}>
+            <option value="inherit">{t('service_editor.offering.inherit_option', { value: yesNo(inherited.requestable) })}</option>
+            <option value="yes">{t('common.yes')}</option>
+            <option value="no">{t('common.no')}</option>
+          </select>
+        </Field>
+        <Field label="Approval required">
+          <select className={styles.input} value={inheritBooleanValue(form.approval_required)} onChange={e => setForm(p => ({ ...p, approval_required: parseInheritBoolean(e.target.value) }))}>
+            <option value="inherit">{t('service_editor.offering.inherit_option', { value: yesNo(inherited.approval_required) })}</option>
+            <option value="yes">{t('common.yes')}</option>
+            <option value="no">{t('common.no')}</option>
+          </select>
+        </Field>
+        <Field label="Support Tier">
+          <input className={styles.input} value={form.support_tier_code ?? ''} onChange={e => setForm(p => ({ ...p, support_tier_code: e.target.value || null }))} />
+        </Field>
+        <Field label="Display Order">
+          <input className={styles.input} type="number" value={form.display_order ?? ''} onChange={e => setForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
+        </Field>
+      </div>
+      <div className={styles.toggleRow}>
+        <label className={styles.domainCheck}>
+          <input type="checkbox" checked={form.is_default ?? false} onChange={e => setForm(p => ({ ...p, is_default: e.target.checked }))} />
+          <span>Default offering</span>
+        </label>
+      </div>
+      {effectiveRequestable && !effectiveChannel && (
+        <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
+          <span className={styles.crossFieldAlertIcon}>⚠</span>
+          Requestable offerings need a Request Channel Type or URL so consumers know how to order this service.
+        </div>
+      )}
+    </>
   );
 }
 

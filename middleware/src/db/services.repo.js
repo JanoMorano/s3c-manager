@@ -390,7 +390,7 @@ async function findAllDirect({
                 FROM data.service_offering so_requestable
                 WHERE so_requestable.service_id = sc.id
                   AND so_requestable.status <> 'deleted'
-                  AND COALESCE(so_requestable.requestable, FALSE) = TRUE
+                  AND COALESCE(so_requestable.requestable, sc.requestable, FALSE) = TRUE
             )
         )`);
         filters.push(`NULLIF(BTRIM(COALESCE(sc.request_channel_type, '')), '') IS NULL`);
@@ -683,10 +683,10 @@ async function getCatalogQualitySummary() {
                     FROM data.service_offering so
                     WHERE so.service_id = svc.id
                       AND so.status <> 'deleted'
-                      AND COALESCE(so.requestable, FALSE) = TRUE
+                      AND COALESCE(so.requestable, svc.requestable, FALSE) = TRUE
                       AND (
-                          NULLIF(BTRIM(COALESCE(so.request_channel_type, '')), '') IS NOT NULL
-                          OR NULLIF(BTRIM(COALESCE(so.request_channel_url, '')), '') IS NOT NULL
+                          NULLIF(BTRIM(COALESCE(so.request_channel_type, svc.request_channel_type, '')), '') IS NOT NULL
+                          OR NULLIF(BTRIM(COALESCE(so.request_channel_url, svc.request_channel_url, '')), '') IS NOT NULL
                       )
                 ) AS has_offering_request_channel
             FROM active_services svc

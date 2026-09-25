@@ -134,6 +134,7 @@ run_psql "pg readiness rule explanations — why/how-to/evidence texts" /pgdb/sc
 run_psql "pg C3 board state — governance board lanes" /pgdb/schema/34_c3_board_state.sql
 run_psql "pg canonical service fields — lifecycle, review date, portfolio sync" /pgdb/schema/35_canonical_service_fields.sql
 run_psql "pg canonical service SLA — service_sla primary row, catalog mirror" /pgdb/schema/36_service_sla_canonical.sql
+run_psql "pg offering request inheritance — offering fields inherit from service" /pgdb/schema/37_offering_request_inheritance.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

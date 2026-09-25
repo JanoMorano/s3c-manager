@@ -913,5 +913,11 @@
   "graph.legend.mapping_partial": "C3 mapping: partially fulfils",
   "graph.legend.mapping_supporting": "C3 mapping: supports / enables",
   "graph.legend.offering": "Service offering",
-  "graph.legend.c3_structure": "C3 taxonomy links"
+  "graph.legend.c3_structure": "C3 taxonomy links",
+  "common.yes": "Yes",
+  "common.no": "No",
+  "service_editor.offering.inheritance_hint": "Empty fields inherit the service value (Request and access section). Fill a field to override it for this offering.",
+  "service_editor.offering.inherited_value": "Inherited from service: {{value}}",
+  "service_editor.offering.inherit_option": "Inherit from service ({{value}})",
+  "service_editor.offering.inherited_short": "inherited"
 }

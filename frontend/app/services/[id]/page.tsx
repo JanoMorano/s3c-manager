@@ -1204,7 +1204,7 @@ function OfferingsGrid({
                   </div>
                   <div className={styles.offeringBadges}>
                     <span className={styles.softBadge}>{offering.status}</span>
-                    {offering.requestable
+                    {(offering.effective_requestable ?? offering.requestable)
                       ? <span className={styles.softBadgePositive}>Requestable</span>
                       : <span className={styles.softBadge}>Not requestable</span>
                     }
@@ -1212,13 +1212,13 @@ function OfferingsGrid({
                 </div>
                 {offering.description && <p className={styles.prose}>{offering.description}</p>}
                 <div className={styles.offeringMeta}>
-                  <MiniFact label="Approval" value={formatBool(offering.approval_required)} />
-                  <MiniFact label="Lead time" value={offering.lead_time_text ?? '—'} />
+                  <MiniFact label="Approval" value={formatBool(offering.effective_approval_required ?? offering.approval_required)} />
+                  <MiniFact label="Lead time" value={offering.effective_lead_time_text ?? offering.lead_time_text ?? '—'} />
                   <MiniFact label="Support tier" value={offering.support_tier_code ?? '—'} />
-                  <MiniFact label="Channel" value={offering.request_channel_type ?? '—'} />
+                  <MiniFact label="Channel" value={offering.effective_request_channel_type ?? offering.request_channel_type ?? '—'} />
                 </div>
-                {safeHref(offering.request_channel_url) && (
-                  <a href={safeHref(offering.request_channel_url)!} target="_blank" rel="noreferrer" className={styles.offeringLink}>
+                {safeHref(offering.effective_request_channel_url ?? offering.request_channel_url) && (
+                  <a href={safeHref(offering.effective_request_channel_url ?? offering.request_channel_url)!} target="_blank" rel="noreferrer" className={styles.offeringLink}>
                     Open request path ↗
                   </a>
                 )}

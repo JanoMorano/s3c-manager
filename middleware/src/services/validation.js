@@ -60,10 +60,10 @@ function validateLifecycleTransition(from, to) {
 /**
  * Gate: service cannot go live unless minimum operational data is present.
  */
-function validateLifecycleReadiness(merged) {
+function validateLifecycleReadiness(merged, context = {}) {
     const errors = [];
     if (merged.lifecycle_state === 'live') {
-        if (merged.requestable === true && !hasRequestChannel(merged)) {
+        if (merged.requestable === true && !hasRequestChannel(merged) && !context.offeringHasRequestChannel) {
             errors.push({
                 field: 'lifecycle_state',
                 message: 'Přechod do stavu live není možný: služba je requestable, ale nemá nakonfigurovaný request channel.',
@@ -104,9 +104,14 @@ function hasRequestChannel(data) {
     );
 }
 
-function validateRequestability(data) {
+/**
+ * A requestable service needs a request channel. The service channel is the
+ * default that offerings inherit; an offering may define its own
+ * (37_offering_request_inheritance.sql), which also satisfies the rule.
+ */
+function validateRequestability(data, context = {}) {
     const errors = [];
-    if (data.requestable === true && !hasRequestChannel(data)) {
+    if (data.requestable === true && !hasRequestChannel(data) && !context.offeringHasRequestChannel) {
         errors.push({
             field: 'requestable',
             message: 'Requestable služba musí mít request_channel_type nebo request_channel_url',
@@ -157,7 +162,7 @@ function validateCreate(data) {
 /**
  * Validation for UPDATE (only provided fields)
  */
-function validateUpdate(data, existing = {}) {
+function validateUpdate(data, existing = {}, context = {}) {
     const errors = [];
     const merged = { ...existing, ...data };
 
@@ -170,13 +175,13 @@ function validateUpdate(data, existing = {}) {
     if (data.request_channel_url !== undefined && data.request_channel_url !== null && data.request_channel_url !== '' && !isValidUrl(data.request_channel_url))
         errors.push({ field: 'request_channel_url', message: 'Request channel URL musí být validní http/https URL' });
 
-    errors.push(...validateRequestability(merged));
+    errors.push(...validateRequestability(merged, context));
 
     // Phase 7: lifecycle transition + readiness gate
     if (data.lifecycle_state !== undefined) {
         errors.push(...validateLifecycleTransition(existing.lifecycle_state ?? null, data.lifecycle_state));
         if (!errors.some(e => e.field === 'lifecycle_state')) {
-            errors.push(...validateLifecycleReadiness(merged));
+            errors.push(...validateLifecycleReadiness(merged, context));
         }
     }
 

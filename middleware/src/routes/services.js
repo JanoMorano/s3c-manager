@@ -217,6 +217,8 @@ async function _validateOfferingOwnership(catalogId, offeringId) {
 async function _validateLiveReadiness(catalogId, existing, body) {
     const merged = { ...existing, ...body };
     if (merged.lifecycle_state !== 'live') return [];
+    // Gate only the transition to live; editing an already live service is not a transition.
+    if (existing?.lifecycle_state === 'live' && body.lifecycle_state === undefined) return [];
 
     const [offerings, supportModels] = await Promise.all([
         offeringsRepo.listByService(catalogId),
@@ -1544,7 +1546,11 @@ router.put('/:id', canEdit, async (req, res, next) => {
         if (!existing) return res.status(404).json({ error: 'Služba nenalezena' });
 
         const body   = _normalizeBody(req.body);
-        const errors = validateUpdate(body, existing);
+        const existingOfferings = await offeringsRepo.listByService(existing.id);
+        const errors = validateUpdate(body, existing, {
+            offeringHasRequestChannel: existingOfferings.some((offering) =>
+                offering.status !== 'deleted' && (offering.request_channel_type?.trim() || offering.request_channel_url?.trim())),
+        });
         if (!errors.length) {
             errors.push(...await _validateLiveReadiness(existing.id, existing, body));
         }

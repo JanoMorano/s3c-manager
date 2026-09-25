@@ -913,5 +913,11 @@
   "graph.legend.mapping_partial": "Mapování C3: částečně naplňuje",
   "graph.legend.mapping_supporting": "Mapování C3: podporuje / umožňuje",
   "graph.legend.offering": "Nabídka služby",
-  "graph.legend.c3_structure": "Vazby v C3 taxonomii"
+  "graph.legend.c3_structure": "Vazby v C3 taxonomii",
+  "common.yes": "Ano",
+  "common.no": "Ne",
+  "service_editor.offering.inheritance_hint": "Prázdná pole přebírají hodnotu ze služby (sekce Request a přístup). Vyplněním hodnotu pro tuto nabídku přepíšete.",
+  "service_editor.offering.inherited_value": "Zděděno ze služby: {{value}}",
+  "service_editor.offering.inherit_option": "Zdědit ze služby ({{value}})",
+  "service_editor.offering.inherited_short": "zděděno"
 }

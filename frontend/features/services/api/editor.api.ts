@@ -188,7 +188,8 @@ export interface ServiceOfferingBody {
   title?: string;
   description?: string | null;
   is_default?: boolean;
-  requestable?: boolean;
+  /** null = inherit from the service */
+  requestable?: boolean | null;
   approval_required?: boolean | null;
   request_channel_type?: string | null;
   request_channel_url?: string | null;
