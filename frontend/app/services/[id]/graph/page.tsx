@@ -11,6 +11,7 @@ import {
   Background,
   Controls,
   MiniMap,
+  Panel,
   useNodesState,
   useEdgesState,
   type Node,
@@ -24,7 +25,9 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
-import { applyLineStyleMode, resolveServiceGraphEdgeVisual, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { applyLineStyleMode, resolveServiceGraphEdgeVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { GraphLegend } from '@/features/graph/GraphLegend';
+import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import { useServiceGraph, useServices } from '@/features/services/hooks/useServices';
 import type { ServiceGraphV2Response, ServiceGraphV2Node, ServiceGraphV2Edge } from '@/features/services/model/service.types';
 import { StatusPill } from '@/features/services/components/StatusPill';
@@ -32,7 +35,7 @@ import { GraphWorkspace } from '@/app/components/layout-v2';
 import shellStyles from '../../../graph/overview.module.css';
 import localStyles from './graph.module.css';
 import { compareText } from '@/app/i18n/format';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -235,8 +238,8 @@ const nodeTypes: NodeTypes = {
   entityNode: EntityNodeCard as NodeTypes[string],
 };
 
-function formatEdgeLabel(edge: ServiceGraphV2Edge & { mapping_type_code?: string | null }) {
-  if (edge.edge_kind === 'service_relation') return edge.relation_type;
+function formatEdgeLabel(edge: ServiceGraphV2Edge & { mapping_type_code?: string | null }, t: (key: string) => string) {
+  if (edge.edge_kind === 'service_relation') return t(relationTypeLabelKey(edge.relation_type));
   if (edge.edge_kind === 'service_c3_mapping') return edge.mapping_type_code ?? edge.relation_type;
   return undefined;
 }
@@ -257,6 +260,7 @@ export default function GraphPage({ params }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
+  const t = useT();
   const [selectedNode, setSelectedNode] = useState<ServiceGraphV2Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<ServiceGraphV2Edge | null>(null);
   const [edgeType, setEdgeType] = useState<GraphEdgeType>('smoothstep');
@@ -273,6 +277,7 @@ export default function GraphPage({ params }: Props) {
   const graphData = data as ServiceGraphV2Response | undefined;
   const rootGraph = useMemo(() => buildRootServiceGraph(graphData), [graphData]);
   const graphNodeById = useMemo(() => new Map(rootGraph.nodes.map((node) => [node.id, node])), [rootGraph.nodes]);
+  const legendItems = useMemo(() => serviceGraphLegendItems(t, rootGraph.edges), [rootGraph.edges, t]);
 
   const rfNodes = useMemo(
     () => layoutNodes(rootGraph.nodes, selectedNode?.id ?? null, (node) => {
@@ -286,27 +291,27 @@ export default function GraphPage({ params }: Props) {
     return rootGraph.edges.map((edge) => {
       const typedEdge = edge as ServiceGraphV2Edge & { mapping_type_code?: string | null };
       const visual = resolveServiceGraphEdgeVisual(typedEdge);
-      const dash = applyLineStyleMode(visual, lineStyleMode).dash
-        ?? (edge.edge_kind.startsWith('tin_') || edge.edge_kind === 'service_flavour' ? '5 3' : undefined);
+      const dash = applyLineStyleMode(visual, lineStyleMode).dash;
 
       return {
         id: edge.id,
         source: edge.source,
         target: edge.target,
         type: edgeType,
-        label: formatEdgeLabel(typedEdge),
+        label: formatEdgeLabel(typedEdge, t),
         markerEnd: { type: MarkerType.ArrowClosed, color: visual.color },
         style: {
           stroke: visual.color,
-          strokeWidth: edge.edge_kind === 'service_relation' && edge.is_mandatory ? Math.max(visual.width ?? 1.8, 3) : (visual.width ?? 1.8),
+          strokeWidth: visual.width,
           strokeDasharray: dash,
+          opacity: visual.opacity,
         },
-        labelStyle: { fontSize: 10, fill: visual.color, fontWeight: 600 },
+        labelStyle: { fontSize: 10, fill: 'var(--color-text-secondary)', fontWeight: 600 },
         labelBgStyle: { fill: 'var(--color-bg-surface)', fillOpacity: 0.88 },
         data: { raw: edge },
       };
     });
-  }, [edgeType, lineStyleMode, rootGraph.edges]);
+  }, [edgeType, lineStyleMode, rootGraph.edges, t]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -524,6 +529,9 @@ export default function GraphPage({ params }: Props) {
               <Background gap={24} size={1} />
               <Controls />
               <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'} />
+              <Panel position="bottom-left">
+                <GraphLegend title={t('graph.legend.title')} items={legendItems} />
+              </Panel>
             </ReactFlow>
           </div>
         </div>
@@ -584,7 +592,11 @@ export default function GraphPage({ params }: Props) {
             {typedSelectedEdge ? (
               <>
                 <PanelRow label="Edge">{typedSelectedEdge.edge_kind}</PanelRow>
-                <PanelRow label="Typ">{typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}</PanelRow>
+                <PanelRow label="Typ">
+                  {typedSelectedEdge.edge_kind === 'service_relation'
+                    ? t(relationTypeLabelKey(typedSelectedEdge.relation_type))
+                    : typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}
+                </PanelRow>
                 {typedSelectedEdge.relation_label ? <PanelRow label="Label">{typedSelectedEdge.relation_label}</PanelRow> : null}
                 {typedSelectedEdge.pace_code ? <PanelRow label="PACE">{typedSelectedEdge.pace_code}</PanelRow> : null}
                 {typedSelectedEdge.impact_level ? <PanelRow label="Impact">{typedSelectedEdge.impact_level}</PanelRow> : null}

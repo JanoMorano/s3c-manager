@@ -896,5 +896,22 @@
   "relation_type.category.provision": "Provision",
   "relation_type.category.composition": "Composition",
   "relation_type.category.succession": "Succession",
-  "relation_type.category.association": "Association"
+  "relation_type.category.association": "Association",
+  "graph.legend.title": "Relation legend",
+  "graph.legend.mandatory": "Mandatory (thick line)",
+  "graph.legend.unverified": "Unverified (faded)",
+  "graph.legend.c3_application": "Application",
+  "graph.legend.c3_data_object": "Data object",
+  "graph.legend.c3_service": "C3 service",
+  "graph.legend.c3_tin": "Technology interaction",
+  "graph.legend.from_tin": "From technology interaction",
+  "graph.layout.title": "Layout",
+  "graph.layout.dependency": "By dependency",
+  "graph.layout.portfolio": "By portfolio",
+  "graph.highlight.depth": "Highlight depth",
+  "graph.legend.mapping_primary": "C3 mapping: primary / fully fulfils",
+  "graph.legend.mapping_partial": "C3 mapping: partially fulfils",
+  "graph.legend.mapping_supporting": "C3 mapping: supports / enables",
+  "graph.legend.offering": "Service offering",
+  "graph.legend.c3_structure": "C3 taxonomy links"
 }

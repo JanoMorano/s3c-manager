@@ -5,6 +5,7 @@ import {
   Background,
   Controls,
   MiniMap,
+  Panel,
   ReactFlow,
   MarkerType,
   Position,
@@ -20,9 +21,10 @@ import {
 import '@xyflow/react/dist/style.css';
 import type { C3RelationGraphEdge, C3RelationGraphNode } from '@/features/services/model/service.types';
 import styles from '../../../app/graph/overview.module.css';
-import { applyLineStyleMode, resolveC3EdgeVisual, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { applyLineStyleMode, c3RelationLegendItems, resolveC3EdgeVisual, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
+import { GraphLegend } from '@/features/graph/GraphLegend';
 import { compareText } from '@/app/i18n/format';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 
 const NODE_KIND_LABEL: Record<C3RelationGraphNode['node_kind'], string> = {
   c3_capability: 'Capability',
@@ -177,6 +179,8 @@ export function C3RelationFlowCanvas({
   lineStyleMode = 'auto',
 }: Props) {
   const locale = useLocale();
+  const t = useT();
+  const legendItems = useMemo(() => c3RelationLegendItems(t), [t]);
   const { rfNodes, rfEdges } = useMemo(
     () => buildLayout(graphNodes, graphEdges, onSelectNode, selectedNodeId, compactMode, edgeType, lineStyleMode, locale),
     [compactMode, edgeType, graphEdges, graphNodes, lineStyleMode, locale, onSelectNode, selectedNodeId],
@@ -215,6 +219,11 @@ export function C3RelationFlowCanvas({
       <Controls />
       {!compactMode && (
         <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'c3_capability') as C3RelationGraphNode['node_kind']] ?? 'var(--color-text-secondary)'} />
+      )}
+      {!compactMode && (
+        <Panel position="bottom-left">
+          <GraphLegend title={t('graph.legend.title')} items={legendItems} />
+        </Panel>
       )}
     </ReactFlow>
   );

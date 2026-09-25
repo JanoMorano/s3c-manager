@@ -107,6 +107,14 @@
   --text-label-md:  500 12px/1.30 var(--font-sans);
   --text-label-sm:  500 11px/1.30 var(--font-sans);
   --text-mono-sm:   400 11px/1.45 var(--font-mono);
+
+  /* Graph series — validated categorical slots (all pairs, CVD-safe). Only three
+     hues pass when every edge is visible at once, so further distinctions use
+     line style (see features/graph/graphVisuals.ts), never a fourth hue. */
+  --graph-series-1: #2a78d6;   /* blue */
+  --graph-series-2: #eb6834;   /* orange */
+  --graph-series-3: #1baf7a;   /* aqua — below 3:1, relieved by legend + text view */
+  --graph-neutral:  #71717a;
 }
 
 :root[data-theme="dark"] {
@@ -173,4 +181,9 @@
 
   --shadow-low:    0 1px 2px 0 rgba(0,0,0,.45);
   --shadow-medium: 0 8px 24px rgba(0,0,0,.35);
+
+  --graph-series-1: #3987e5;
+  --graph-series-2: #d95926;
+  --graph-series-3: #199e70;
+  --graph-neutral:  #a1a1aa;
 }

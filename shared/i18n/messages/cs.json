@@ -896,5 +896,22 @@
   "relation_type.category.provision": "Poskytování",
   "relation_type.category.composition": "Složení",
   "relation_type.category.succession": "Nahrazení",
-  "relation_type.category.association": "Souvislost"
+  "relation_type.category.association": "Souvislost",
+  "graph.legend.title": "Legenda vazeb",
+  "graph.legend.mandatory": "Povinná vazba (silná čára)",
+  "graph.legend.unverified": "Neověřená vazba (průhledná)",
+  "graph.legend.c3_application": "Aplikace",
+  "graph.legend.c3_data_object": "Datový objekt",
+  "graph.legend.c3_service": "C3 služba",
+  "graph.legend.c3_tin": "Technologická interakce",
+  "graph.legend.from_tin": "Vychází z technologické interakce",
+  "graph.layout.title": "Rozložení",
+  "graph.layout.dependency": "Podle závislostí",
+  "graph.layout.portfolio": "Podle portfolia",
+  "graph.highlight.depth": "Hloubka zvýraznění",
+  "graph.legend.mapping_primary": "Mapování C3: primární / plně naplňuje",
+  "graph.legend.mapping_partial": "Mapování C3: částečně naplňuje",
+  "graph.legend.mapping_supporting": "Mapování C3: podporuje / umožňuje",
+  "graph.legend.offering": "Nabídka služby",
+  "graph.legend.c3_structure": "Vazby v C3 taxonomii"
 }
