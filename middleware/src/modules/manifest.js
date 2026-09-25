@@ -184,6 +184,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '33_readiness_rule_explanations',
             '35_canonical_service_fields',
             '39_drop_legacy_service_mirrors',
+            '40_service_catalog_source',
         ],
     },
 ]);

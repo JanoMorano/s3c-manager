@@ -20,8 +20,8 @@ const SERVICE_STATE_SELECT = `
         sla.availability_pct AS sla_availability,
         sla.restoration_hours AS sla_restoration,
         sla.delivery_days AS sla_delivery,
-        sc.service_cost_raw,
-        sc.pricing_note_raw,
+        src.raw_fields->>'service_cost_raw' AS service_cost_raw,
+        src.raw_fields->>'pricing_note_raw' AS pricing_note_raw,
         COALESCE(owner.owner_count, 0) AS owner_count,
         COALESCE(offering.offering_count, 0) AS offering_count,
         COALESCE(sla_records.sla_record_count, 0) AS sla_record_count,
@@ -47,13 +47,14 @@ const SERVICE_STATE_SELECT = `
         CASE WHEN comp.completeness_status = 'complete' THEN TRUE ELSE FALSE END AS has_complete_primary_capability,
         CASE WHEN COALESCE(active_flavour.active_flavour_count, 0) > 0 THEN TRUE ELSE FALSE END AS has_active_flavour,
         CASE
-            WHEN COALESCE(sc.service_cost_raw, '') <> ''
-              OR COALESCE(sc.pricing_note_raw, '') <> ''
+            WHEN COALESCE(src.raw_fields->>'service_cost_raw', '') <> ''
+              OR COALESCE(src.raw_fields->>'pricing_note_raw', '') <> ''
               OR COALESCE(pricing.priced_flavour_count, 0) > 0
             THEN TRUE ELSE FALSE
         END AS has_price_note
     FROM data.service_catalog sc
     LEFT JOIN data.service_sla sla ON sla.id = data.fn_service_primary_sla_id(sc.id)
+    LEFT JOIN data.service_catalog_source src ON src.service_catalog_id = sc.id
     LEFT JOIN LATERAL (
         SELECT COUNT(*)::integer AS owner_count
         FROM data.service_role_assignment sra

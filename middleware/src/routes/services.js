@@ -474,7 +474,7 @@ router.get('/:id', async (req, res, next) => {
         const primaryOffering = offerings.find((item) => item.is_default) || offerings[0] || null;
 
         const businessView = {
-            business_summary: svc.business_summary ?? svc.summary ?? null,
+            business_summary: svc.summary ?? null,
             consumer_value: svc.consumer_value ?? null,
             requestable: svc.requestable,
             lifecycle_state: svc.lifecycle_state,

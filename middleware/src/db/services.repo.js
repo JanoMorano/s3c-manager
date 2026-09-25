@@ -6,9 +6,12 @@ const {
     SERVICE_STATUS_SQL,
     LIFECYCLE_STATE_SQL,
     PRIMARY_SLA_JOIN,
+    SOURCE_JOIN,
+    sourceRawSql,
     canonicalizeServiceInput,
     resolvePortfolioId,
     upsertPrimarySla,
+    upsertServiceSource,
 } = require('./service-fields');
 
 const SC_COLUMNS = `
@@ -31,24 +34,21 @@ const SC_COLUMNS = `
     COALESCE(gsg.name, sc.global_service_group_code) AS global_service_group_name,
     sc.service_line_code,
     COALESCE(sl.name, sc.service_line_code) AS service_line_name,
-    sc.value_proposition,
     sc.service_features,
-    sc.business_purpose,
-    sc.business_summary,
     sc.consumer_value,
     sc.unit_of_measure,
     sc.charging_basis,
     sc.rate_note,
     sc.ordering_note,
     sc.exclusions,
-    sc.service_area_raw AS service_area,
+    ${sourceRawSql('service_area_raw')} AS service_area,
     sc.security_classification_code AS security_classification,
     (
         SELECT string_agg(sao.domain_code, ',')
         FROM data.service_available_on sao
         WHERE sao.service_id = sc.id
     ) AS available_on,
-    sc.customer_type_json AS customer_type,
+    ${sourceRawSql('customer_type_json')} AS customer_type,
     sc.service_url AS source_url,
     sla.availability_pct AS sla_availability,
     sla.restoration_hours AS sla_restoration,
@@ -57,11 +57,11 @@ const SC_COLUMNS = `
     sla.delivery_text AS sla_delivery_text,
     sc.scope_text,
     sc.operational_notes_raw,
-    sc.support_locations_raw,
-    sc.request_process_raw,
-    sc.support_availability_raw,
-    sc.service_cost_raw,
-    sc.additional_information_raw,
+    ${sourceRawSql('support_locations_raw')} AS support_locations_raw,
+    ${sourceRawSql('request_process_raw')} AS request_process_raw,
+    ${sourceRawSql('support_availability_raw')} AS support_availability_raw,
+    ${sourceRawSql('service_cost_raw')} AS service_cost_raw,
+    ${sourceRawSql('additional_information_raw')} AS additional_information_raw,
     sc.target_audience_summary,
     sc.requestable,
     ${LIFECYCLE_STATE_SQL} AS lifecycle_state,
@@ -72,35 +72,35 @@ const SC_COLUMNS = `
     sc.request_channel_url,
     sc.approval_required,
     sc.fulfillment_lead_time_text,
-    sc.service_features_raw,
-    sc.ext_tools_raw,
-    sc.legacy_ssl_mapping_raw,
+    ${sourceRawSql('service_features_raw')} AS service_features_raw,
+    ${sourceRawSql('ext_tools_raw')} AS ext_tools_raw,
+    ${sourceRawSql('legacy_ssl_mapping_raw')} AS legacy_ssl_mapping_raw,
     sc.budget_activity_code,
-    sc.other_info_raw,
-    sc.pricing_note_raw,
+    ${sourceRawSql('other_info_raw')} AS other_info_raw,
+    ${sourceRawSql('pricing_note_raw')} AS pricing_note_raw,
     sc.review_owner_user_id,
     sc.graph_x,
     sc.graph_y,
-    sc.options_json AS options,
+    ${sourceRawSql('options_json')} AS options,
     sc.notes_json AS notes,
-    sc.training_refs_json AS training_refs,
+    ${sourceRawSql('training_refs_json')} AS training_refs,
     sc.retired_note,
-    sc.source_local_id,
-    sc.source_sp_id,
-    sc.source_etag,
-    sc.prerequisites_json,
-    sc.dependencies_json,
+    src.source_local_id,
+    src.source_sp_id,
+    src.source_etag,
+    ${sourceRawSql('prerequisites_json')} AS prerequisites_json,
+    ${sourceRawSql('dependencies_json')} AS dependencies_json,
     sc.organizational_element_code,
     sc.is_deleted,
     sc.is_stub,
-    sc.cp_service_type_raw,
-    sc.is_available_status_ambiguous,
+    ${sourceRawSql('cp_service_type_raw')} AS cp_service_type_raw,
+    COALESCE(src.is_available_status_ambiguous, FALSE) AS is_available_status_ambiguous,
     sc.created_at,
     sc.created_by,
     sc.updated_at,
     sc.updated_by,
-    sc.created_at_source,
-    sc.modified_at_source,
+    src.created_at_source,
+    src.modified_at_source,
     sc.completeness_score,
     (
         SELECT display_name
@@ -302,18 +302,19 @@ async function findAllDirect({
             OR sc.short_description       ILIKE ${searchPlaceholder}
             OR sc.description             ILIKE ${searchPlaceholder}
             OR sc.target_audience_summary ILIKE ${searchPlaceholder}
-            OR sc.business_summary        ILIKE ${searchPlaceholder}
             OR sc.consumer_value          ILIKE ${searchPlaceholder}
-            OR sc.value_proposition       ILIKE ${searchPlaceholder}
-            OR sc.business_purpose        ILIKE ${searchPlaceholder}
-            OR sc.service_area_raw        ILIKE ${searchPlaceholder}
             OR sc.service_line_code       ILIKE ${searchPlaceholder}
             OR EXISTS (
                 SELECT 1 FROM data.service_portfolio sp_s
                 WHERE sp_s.id = sc.portfolio_id AND sp_s.portfolio_code ILIKE ${searchPlaceholder}
             )
             OR sc.service_type_code       ILIKE ${searchPlaceholder}
-            OR COALESCE(sc.customer_type_json::text, '') ILIKE ${searchPlaceholder}
+            OR EXISTS (
+                SELECT 1 FROM data.service_catalog_source src_s
+                WHERE src_s.service_catalog_id = sc.id
+                  AND (src_s.raw_fields->>'service_area_raw' ILIKE ${searchPlaceholder}
+                       OR src_s.raw_fields->>'customer_type_json' ILIKE ${searchPlaceholder})
+            )
             OR EXISTS (
                 SELECT 1
                 FROM data.service_audience_policy sap_s
@@ -539,6 +540,7 @@ async function findAllDirect({
         LEFT JOIN data.ref_portfolio_group pg
             ON pg.code = sp.portfolio_code
         ${PRIMARY_SLA_JOIN}
+        ${SOURCE_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -583,6 +585,7 @@ async function findByServiceId(serviceId) {
         LEFT JOIN data.ref_portfolio_group pg
             ON pg.code = sp.portfolio_code
         ${PRIMARY_SLA_JOIN}
+        ${SOURCE_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -632,6 +635,7 @@ async function findAllForExport() {
         LEFT JOIN data.ref_portfolio_group pg
             ON pg.code = sp.portfolio_code
         ${PRIMARY_SLA_JOIN}
+        ${SOURCE_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -840,7 +844,7 @@ async function setRole(serviceId, roleCode, displayName, email = null, orgName =
 }
 
 async function create(input, performedBy) {
-    const { fields: data, portfolioCode, sla } = canonicalizeServiceInput(input);
+    const { fields: data, portfolioCode, sla, source, fallbacks } = canonicalizeServiceInput(input);
     // A new service without any lifecycle/status input starts as active (previous default).
     const createStage = Object.prototype.hasOwnProperty.call(data, 'lifecycle_stage_code')
         ? data.lifecycle_stage_code
@@ -849,116 +853,76 @@ async function create(input, performedBy) {
     const pool = getPool();
     const portfolioId = data.portfolio_id ?? await resolvePortfolioId(pool, portfolioCode);
 
+    const columns = {
+        service_id: data.service_id,
+        title: data.title,
+        portfolio_id: portfolioId,
+        service_type_code: data.service_type || data.service_type_code,
+        lifecycle_stage_code: createStage,
+        catalogue_version: data.catalogue_version || null,
+        global_service_group_code: data.global_service_group_code || null,
+        service_line_code: data.service_line_code || null,
+        organizational_element_code: data.organizational_element_code || null,
+        short_description: data.short_description || data.summary || fallbacks.short_description || null,
+        description: data.description || data.detailed_description || null,
+        service_features: data.service_features || null,
+        scope_text: data.scope_text || null,
+        operational_notes_raw: data.operational_notes_raw || null,
+        target_audience_summary: data.target_audience_summary || null,
+        requestable: data.requestable == null ? null : !!data.requestable,
+        criticality_code: data.criticality_code || null,
+        request_channel_type: data.request_channel_type || null,
+        request_channel_url: data.request_channel_url || null,
+        approval_required: data.approval_required == null ? null : !!data.approval_required,
+        fulfillment_lead_time_text: data.fulfillment_lead_time_text || null,
+        budget_activity_code: data.budget_activity_code || null,
+        review_owner_user_id: data.review_owner_user_id == null ? null : parseInteger(data.review_owner_user_id),
+        review_due_at: sanitizeDate(data.review_due_at),
+        unit_of_measure: data.unit_of_measure || null,
+        charging_basis: data.charging_basis || null,
+        rate_note: data.rate_note || null,
+        ordering_note: data.ordering_note || null,
+        exclusions: data.exclusions || null,
+        security_classification_code: data.security_classification || data.security_classification_code || null,
+        is_stub: createIsStub,
+        service_url: data.service_url || data.source_url || null,
+        graph_x: data.graph_x ?? null,
+        graph_y: data.graph_y ?? null,
+        notes_json: serializeJson(data.notes),
+        retired_note: data.retired_note || null,
+        consumer_value: data.consumer_value || fallbacks.consumer_value || null,
+        created_by: performedBy,
+        updated_by: performedBy,
+    };
+    const names = Object.keys(columns);
     const inserted = await pool.query(`
-        INSERT INTO data.service_catalog (
-            service_id, title, portfolio_id,
-            service_type_code, lifecycle_stage_code, catalogue_version,
-            global_service_group_code, service_line_code, organizational_element_code,
-            short_description, description,
-            value_proposition, service_features, business_summary,
-            business_purpose, scope_text,
-            operational_notes_raw, support_locations_raw, request_process_raw,
-            support_availability_raw, service_cost_raw, additional_information_raw,
-            target_audience_summary, requestable, criticality_code, request_channel_type,
-            request_channel_url, approval_required, fulfillment_lead_time_text,
-            service_features_raw, ext_tools_raw, legacy_ssl_mapping_raw,
-            budget_activity_code, other_info_raw, pricing_note_raw, review_owner_user_id, review_due_at,
-            unit_of_measure, charging_basis, rate_note, ordering_note,
-            exclusions, service_area_raw, security_classification_code,
-            cp_service_type_raw, is_available_status_ambiguous, is_stub,
-            customer_type_json, service_url,
-            graph_x, graph_y,
-            options_json, notes_json, training_refs_json, retired_note,
-            source_local_id, source_sp_id, source_etag,
-            prerequisites_json, dependencies_json,
-            created_at_source, modified_at_source,
-            consumer_value,
-            created_by, updated_by
-        ) VALUES (
-            $1, $2, $3, $4, $5, $6,
-            $7, $8, $9, $10, $11,
-            $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-            $22, $23, $24, $25, $26, $27, $28, $29, $30, $31,
-            $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,
-            $42, $43, $44, $45, $46, $47, $48, $49, $50, $51,
-            $52, $53, $54, $55, $56, $57, $58, $59, $60, $61,
-            $62, $63, $64, $65
-        )
+        INSERT INTO data.service_catalog (${names.join(', ')})
+        VALUES (${names.map((_, index) => `$${index + 1}`).join(', ')})
         RETURNING id
-    `, [
-        data.service_id,
-        data.title,
-        portfolioId,
-        data.service_type || data.service_type_code,
-        createStage,
-        data.catalogue_version || null,
-        data.global_service_group_code || null,
-        data.service_line_code || null,
-        data.organizational_element_code || null,
-        data.short_description || data.summary || null,
-        data.description || data.detailed_description || null,
-        data.value_proposition || null,
-        data.service_features || null,
-        data.business_summary || null,
-        data.business_purpose || null,
-        data.scope_text || null,
-        data.operational_notes_raw || null,
-        data.support_locations_raw || null,
-        data.request_process_raw || null,
-        data.support_availability_raw || null,
-        data.service_cost_raw || null,
-        data.additional_information_raw || null,
-        data.target_audience_summary || null,
-        data.requestable == null ? null : !!data.requestable,
-        data.criticality_code || null,
-        data.request_channel_type || null,
-        data.request_channel_url || null,
-        data.approval_required == null ? null : !!data.approval_required,
-        data.fulfillment_lead_time_text || null,
-        data.service_features_raw || null,
-        data.ext_tools_raw || null,
-        data.legacy_ssl_mapping_raw || null,
-        data.budget_activity_code || null,
-        data.other_info_raw || null,
-        data.pricing_note_raw || null,
-        data.review_owner_user_id == null ? null : parseInteger(data.review_owner_user_id),
-        sanitizeDate(data.review_due_at),
-        data.unit_of_measure || null,
-        data.charging_basis || null,
-        data.rate_note || null,
-        data.ordering_note || null,
-        data.exclusions || null,
-        data.service_area_raw || data.service_area || null,
-        data.security_classification || data.security_classification_code || null,
-        data.cp_service_type_raw || null,
-        data.is_available_status_ambiguous ?? false,
-        createIsStub,
-        serializeJson(data.customer_type),
-        data.service_url || data.source_url || null,
-        data.graph_x ?? null,
-        data.graph_y ?? null,
-        serializeJson(data.options),
-        serializeJson(data.notes),
-        serializeJson(data.training_refs),
-        data.retired_note || null,
-        data.source_local_id || data.localId || null,
-        data.source_sp_id ?? data.spId ?? null,
-        data.source_etag || data.etag || null,
-        serializeJson(data.prerequisites_json) || null,
-        serializeJson(data.dependencies_json) || null,
-        sanitizeDate(data.created_at_source),
-        sanitizeDate(data.modified_at_source),
-        data.consumer_value || null,
-        performedBy,
-        performedBy,
-    ]);
+    `, Object.values(columns));
 
-    await upsertPrimarySla(pool, inserted.rows[0].id, sla);
+    const catalogId = inserted.rows[0].id;
+    await upsertPrimarySla(pool, catalogId, sla);
+    await upsertServiceSource(pool, catalogId, normalizeSource(source));
     return data.service_id;
 }
 
+/** Normalizes import provenance input (see service-fields SOURCE_* lists). */
+function normalizeSource(source) {
+    if (!source) return null;
+    const normalized = {};
+    for (const [key, value] of Object.entries(source)) {
+        if (key === 'source_sp_id') normalized[key] = value == null || value === '' ? null : parseInteger(value);
+        else if (key === 'created_at_source' || key === 'modified_at_source') normalized[key] = sanitizeDate(value);
+        else if (key === 'is_available_status_ambiguous') normalized[key] = value == null ? false : !!value;
+        else if (key.endsWith('_json')) normalized[key] = serializeJson(value) || null;
+        else normalized[key] = value === '' ? null : value ?? null;
+    }
+    return normalized;
+}
+
 async function update(serviceId, input, performedBy) {
-    const { fields: data, portfolioCode, sla } = canonicalizeServiceInput(input);
+    const { fields: data, portfolioCode, sla, source, fallbacks } = canonicalizeServiceInput(input);
     const skipFields = new Set([
         'id', 'service_id', 'created_at', 'created_by', 'is_deleted',
         'completeness_score', 'prerequisites', 'dependencies',
@@ -970,43 +934,33 @@ async function update(serviceId, input, performedBy) {
     const colMap = {
         service_type: 'service_type_code',
         security_classification: 'security_classification_code',
-        customer_type: 'customer_type_json',
-        options: 'options_json',
         notes: 'notes_json',
-        training_refs: 'training_refs_json',
         source_url: 'service_url',
         summary: 'short_description',
         detailed_description: 'description',
-        service_area: 'service_area_raw',
     };
 
     const allowedFields = new Set([
         'title', 'service_type',
-        'catalogue_version', 'value_proposition', 'service_features', 'business_summary', 'summary',
+        'catalogue_version', 'service_features', 'summary',
         'short_description', 'detailed_description', 'description', 'unit_of_measure',
-        'charging_basis', 'rate_note', 'ordering_note', 'exclusions', 'service_area',
-        'service_area_raw', 'security_classification', 'customer_type', 'source_url',
+        'charging_basis', 'rate_note', 'ordering_note', 'exclusions',
+        'security_classification', 'source_url',
         'service_url', 'graph_x',
-        'graph_y', 'options', 'notes', 'training_refs', 'retired_note', 'cp_service_type_raw',
-        'is_available_status_ambiguous', 'source_local_id', 'source_sp_id', 'source_etag',
-        'prerequisites_json', 'dependencies_json', 'business_purpose', 'scope_text',
-        'operational_notes_raw', 'support_locations_raw', 'request_process_raw',
-        'support_availability_raw', 'service_cost_raw', 'additional_information_raw',
-        'service_features_raw', 'ext_tools_raw', 'legacy_ssl_mapping_raw',
-        'budget_activity_code', 'other_info_raw', 'pricing_note_raw',
+        'graph_y', 'notes', 'retired_note', 'scope_text',
+        'operational_notes_raw', 'budget_activity_code',
         'global_service_group_code', 'service_line_code', 'organizational_element_code',
-        'created_at_source', 'modified_at_source',
         'target_audience_summary', 'requestable', 'lifecycle_stage_code',
         'criticality_code', 'review_due_at', 'portfolio_id', 'request_channel_type',
         'request_channel_url', 'approval_required', 'fulfillment_lead_time_text',
         'review_owner_user_id', 'consumer_value',
     ]);
 
-    const jsonFields = new Set(['customer_type', 'options', 'notes', 'training_refs', 'prerequisites_json', 'dependencies_json']);
-    const integerFields = new Set(['source_sp_id', 'review_owner_user_id', 'portfolio_id']);
+    const jsonFields = new Set(['notes']);
+    const integerFields = new Set(['review_owner_user_id', 'portfolio_id']);
     const decimalFields = new Set();
-    const dateFields = new Set(['created_at_source', 'modified_at_source', 'review_due_at']);
-    const booleanFields = new Set(['is_available_status_ambiguous', 'requestable', 'approval_required']);
+    const dateFields = new Set(['review_due_at']);
+    const booleanFields = new Set(['requestable', 'approval_required']);
 
     const values = [performedBy];
     const setClauses = ['updated_at = CURRENT_TIMESTAMP', 'updated_by = $1'];
@@ -1037,7 +991,14 @@ async function update(serviceId, input, performedBy) {
         setClauses.push(`portfolio_id = (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $${values.length})`);
     }
 
-    if (setClauses.length === 2 && !sla) return null;
+    for (const [column, value] of Object.entries(fallbacks)) {
+        const inputKeys = column === 'short_description' ? ['short_description', 'summary'] : [column];
+        if (inputKeys.some((key) => Object.prototype.hasOwnProperty.call(data, key))) continue;
+        values.push(value);
+        setClauses.push(`${column} = COALESCE(NULLIF(btrim(${column}), ''), $${values.length})`);
+    }
+
+    if (setClauses.length === 2 && !sla && !source) return null;
 
     const pool = getPool();
     values.push(serviceId);
@@ -1049,7 +1010,10 @@ async function update(serviceId, input, performedBy) {
         RETURNING id
     `, values);
 
-    if (updated.rows[0]) await upsertPrimarySla(pool, updated.rows[0].id, sla);
+    if (updated.rows[0]) {
+        await upsertPrimarySla(pool, updated.rows[0].id, sla);
+        await upsertServiceSource(pool, updated.rows[0].id, normalizeSource(source));
+    }
     return findByServiceId(serviceId);
 }
 

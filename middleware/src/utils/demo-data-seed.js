@@ -19,7 +19,7 @@
 const logger = require('../utils/logger');
 const { normalizeLocale } = require('../../../shared/i18n/locales');
 const { toLifecycleStage } = require('./lifecycle');
-const { upsertPrimarySla } = require('../db/service-fields');
+const { upsertPrimarySla, upsertServiceSource } = require('../db/service-fields');
 
 // ── Demo UUIDs (stable, deterministic) ────────────────────────────────────────
 const DEMO_UUIDS = {
@@ -627,6 +627,15 @@ async function seedReferenceData(pool) {
 }
 
 // ── 1. SERVICE CATALOGUE — 3 demo services ───────────────────────────────────
+// Demo records describe value as value_proposition + business_purpose; the
+// catalogue keeps both in consumer_value (40_service_catalog_source.sql).
+function demoConsumerValue(svc) {
+    const parts = [svc.consumer_value, svc.value_proposition, svc.business_purpose]
+        .map((text) => (text == null ? '' : String(text).trim()))
+        .filter((text, index, all) => text && all.indexOf(text) === index);
+    return parts.length ? parts.join('\n\n') : null;
+}
+
 async function seedServices(pool, locale = 'cs') {
     const services = buildDemoServices(locale);
     for (const svc of services) {
@@ -637,11 +646,11 @@ async function seedServices(pool, locale = 'cs') {
             INSERT INTO data.service_catalog (
                 service_id, title, service_type_code, lifecycle_stage_code, catalogue_version,
                 portfolio_id, global_service_group_code, service_line_code, organizational_element_code,
-                short_description, description, business_purpose, scope_text,
-                value_proposition, service_features,
+                short_description, description, consumer_value, scope_text,
+                service_features,
                 service_url, security_classification_code,
                 unit_of_measure, charging_basis, rate_note, ordering_note,
-                exclusions, customer_type_json, operational_notes_raw, budget_activity_code,
+                exclusions, operational_notes_raw, budget_activity_code,
                 retired_note, notes_json,
                 requestable, review_due_at, criticality_code,
                 is_deleted, is_stub, created_by, updated_by
@@ -649,11 +658,11 @@ async function seedServices(pool, locale = 'cs') {
             VALUES (
                 $1, $2, $3, $4, $5,
                 (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $6), $7, $8, $9,
-                $10, $11, $12, $13, $14, $15,
-                $16, $17, $18, $19, $20, $21,
-                $22, $23, $24, $25,
-                $26, $27,
-                $28, $29, $30,
+                $10, $11, $12, $13, $14,
+                $15, $16, $17, $18, $19, $20,
+                $21, $22, $23,
+                $24, $25,
+                $26, $27, $28,
                 FALSE, FALSE, 'demo-seed', 'demo-seed'
             )
             ON CONFLICT (service_id) DO UPDATE SET
@@ -667,7 +676,7 @@ async function seedServices(pool, locale = 'cs') {
                 organizational_element_code   = EXCLUDED.organizational_element_code,
                 short_description             = EXCLUDED.short_description,
                 description                   = EXCLUDED.description,
-                business_purpose              = EXCLUDED.business_purpose,
+                consumer_value                = EXCLUDED.consumer_value,
                 scope_text                    = EXCLUDED.scope_text,
                 security_classification_code  = EXCLUDED.security_classification_code,
                 service_url                   = EXCLUDED.service_url,
@@ -676,7 +685,6 @@ async function seedServices(pool, locale = 'cs') {
                 rate_note                     = EXCLUDED.rate_note,
                 ordering_note                 = EXCLUDED.ordering_note,
                 exclusions                    = EXCLUDED.exclusions,
-                customer_type_json            = EXCLUDED.customer_type_json,
                 operational_notes_raw         = EXCLUDED.operational_notes_raw,
                 budget_activity_code          = EXCLUDED.budget_activity_code,
                 retired_note                  = EXCLUDED.retired_note,
@@ -690,11 +698,11 @@ async function seedServices(pool, locale = 'cs') {
         `, [
             svc.service_id, svc.title, svc.service_type_code, lifecycleStageCode, svc.catalogue_version,
             svc.portfolio_group_code, svc.global_service_group_code, svc.service_line_code, svc.organizational_element_code,
-            svc.short_description, svc.description, svc.business_purpose, svc.scope_text,
-            svc.value_proposition, svc.service_features,
+            svc.short_description, svc.description, demoConsumerValue(svc), svc.scope_text,
+            svc.service_features,
             svc.service_url, svc.security_classification_code,
             svc.unit_of_measure, svc.charging_basis, svc.rate_note ?? null, svc.ordering_note ?? null,
-            svc.exclusions ?? null, JSON.stringify(svc.customer_type ?? []), svc.operational_notes_raw, svc.budget_activity_code,
+            svc.exclusions ?? null, svc.operational_notes_raw, svc.budget_activity_code,
             svc.retired_note ?? null, svc.notes_json ?? null,
             svc.requestable ?? null, svc.review_due_at ?? svc.next_review_due_at ?? null, svc.criticality_code ?? null,
         ], `service_catalog:${svc.service_id}`);
@@ -706,6 +714,9 @@ async function seedServices(pool, locale = 'cs') {
                 delivery_days: svc.sla_delivery_days ?? null,
                 restoration_text: svc.sla_restoration_text ?? null,
                 delivery_text: svc.sla_delivery_text ?? null,
+            });
+            await upsertServiceSource(pool, catalogId, {
+                customer_type_json: JSON.stringify(svc.customer_type ?? []),
             });
         }
     }

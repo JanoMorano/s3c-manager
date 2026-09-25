@@ -380,8 +380,6 @@ export interface ServiceDetail {
   portfolio_group_name: string | null;       // COALESCE(pg.name, portfolio_group_code)
   service_type_name: string | null;          // COALESCE(st.name, service_type_code)
   service_status_name: string | null;        // COALESCE(ss.name, service_status_code)
-  value_proposition: string | null;
-  business_purpose: string | null;
   service_features: string | null;
   unit_of_measure: string | null;
   charging_basis: string | null;
@@ -465,7 +463,6 @@ export interface ServiceDetail {
   // JSON fields
   customer_type: unknown | null;
   options: unknown | null;
-  business_summary: string | null;
   consumer_value: string | null;
   requestable: boolean | null;
   lifecycle_state: string | null;

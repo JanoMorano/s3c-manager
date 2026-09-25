@@ -101,7 +101,7 @@ router.get('/', async (req, res, next) => {
                     sc.service_id AS source_key,
                     sc.service_id AS code,
                     sc.title,
-                    COALESCE(sc.short_description, sc.description, sc.value_proposition, sc.business_purpose) AS subtitle,
+                    COALESCE(sc.short_description, sc.description, sc.consumer_value) AS subtitle,
                     CONCAT('/services/', sc.service_id) AS href,
                     ARRAY['consumer','service_owner','capability_manager','admin']::text[] AS persona_visibility
                 FROM data.service_catalog sc
@@ -204,28 +204,25 @@ async function respondGlobalSearch(req, res, next) {
             'sc.title',
             'sc.short_description',
             'sc.description',
-            'sc.value_proposition',
             'sc.service_features',
-            'sc.business_summary',
-            'sc.business_purpose',
             'sc.target_audience_summary',
             'sc.consumer_value',
             'sc.scope_text',
             'sc.ordering_note',
             'sc.operational_notes_raw',
-            'sc.request_process_raw',
-            'sc.additional_information_raw',
-            'sc.service_area_raw',
+            "(src.raw_fields->>'request_process_raw')",
+            "(src.raw_fields->>'additional_information_raw')",
+            "(src.raw_fields->>'service_area_raw')",
             'sc.service_line_code',
             'sc.global_service_group_code',
             'sc.service_type_code',
             'sc.lifecycle_stage_code',
-            'sc.customer_type_json',
-            'sc.options_json',
+            "(src.raw_fields->>'customer_type_json')",
+            "(src.raw_fields->>'options_json')",
             'sc.notes_json',
-            'sc.training_refs_json',
-            'sc.prerequisites_json',
-            'sc.dependencies_json',
+            "(src.raw_fields->>'training_refs_json')",
+            "(src.raw_fields->>'prerequisites_json')",
+            "(src.raw_fields->>'dependencies_json')",
         ], tokenCount);
         const taxonomyPredicate = buildTokenPredicate([
             'ct.external_id',
@@ -329,11 +326,12 @@ async function respondGlobalSearch(req, res, next) {
                     'service_catalogue' AS source_key,
                     sc.service_id AS code,
                     sc.title,
-                    COALESCE(sc.short_description, sc.description, sc.value_proposition, sc.business_purpose) AS description,
+                    COALESCE(sc.short_description, sc.description, sc.consumer_value) AS description,
                     CONCAT(COALESCE(data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub), '—'), ' · ', COALESCE(sc.service_type_code, '—')) AS subtitle,
                     data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS status,
                     CONCAT('/services/', sc.service_id) AS href
                 FROM data.service_catalog sc
+                LEFT JOIN data.service_catalog_source src ON src.service_catalog_id = sc.id
                 WHERE sc.is_deleted = FALSE
                   AND (${servicePredicate})
                 ORDER BY

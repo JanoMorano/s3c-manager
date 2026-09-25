@@ -1,7 +1,6 @@
 'use strict';
 
 const { getPool } = require('./pool');
-const { toLifecycleStage } = require('../utils/lifecycle');
 const logger = require('../utils/logger');
 
 async function getServicePk(serviceId) {
@@ -60,118 +59,6 @@ async function logIssue({ batchId, rowId, serviceId, severity, issueCode, fieldN
         VALUES
             ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [batchId, rowId ?? null, serviceId ?? null, severity, issueCode, fieldName ?? null, rawValue ?? null, message ?? null]);
-}
-
-async function upsertService(svc) {
-    const updateResult = await getPool().query(`
-        UPDATE data.service_catalog
-        SET title = $2,
-            short_description = $3,
-            description = $4,
-            lifecycle_stage_code = $5,
-            service_type_code = $6,
-            portfolio_id = (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $7),
-            global_service_group_code = $8,
-            service_line_code = $9,
-            organizational_element_code = $10,
-            service_url = $11,
-            cp_service_type_raw = $12,
-            is_available_status_ambiguous = $13,
-            service_area_raw = $14,
-            business_purpose = $15,
-            service_features_raw = $16,
-            request_process_raw = $17,
-            support_locations_raw = $18,
-            operational_notes_raw = $19,
-            other_info_raw = $20,
-            ext_tools_raw = $21,
-            legacy_ssl_mapping_raw = $22,
-            budget_activity_code = $23,
-            pricing_note_raw = $24,
-            modified_at_source = $25,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE service_id = $1
-          AND is_stub = FALSE
-    `, [
-        svc.serviceId,
-        svc.title,
-        svc.shortDescription ?? null,
-        svc.description ?? null,
-        toLifecycleStage(svc.serviceStatusCode),
-        svc.serviceTypeCode ?? null,
-        svc.portfolioGroupCode ?? null,
-        svc.globalServiceGroupCode ?? null,
-        svc.serviceLineCode ?? null,
-        svc.organizationalElementCode ?? null,
-        svc.serviceUrl ?? null,
-        svc.cpServiceTypeRaw ?? null,
-        svc.isAvailableStatusAmbiguous ?? false,
-        svc.serviceAreaRaw ?? null,
-        svc.businessPurpose ?? null,
-        svc.serviceFeaturesRaw ?? null,
-        svc.requestProcessRaw ?? null,
-        svc.supportLocationsRaw ?? null,
-        svc.operationalNotesRaw ?? null,
-        svc.otherInfoRaw ?? null,
-        svc.extToolsRaw ?? null,
-        svc.legacySslMappingRaw ?? null,
-        svc.budgetActivityCode ?? null,
-        svc.pricingNoteRaw ?? null,
-        svc.modifiedAtSource ?? null,
-    ]);
-
-    if (updateResult.rowCount > 0) return;
-
-    await getPool().query(`
-        INSERT INTO data.service_catalog (
-            service_id, title, short_description, description,
-            lifecycle_stage_code, service_type_code,
-            portfolio_id, global_service_group_code,
-            service_line_code, organizational_element_code,
-            service_url, cp_service_type_raw,
-            is_available_status_ambiguous, service_area_raw, is_stub,
-            business_purpose, service_features_raw, request_process_raw,
-            support_locations_raw, operational_notes_raw, other_info_raw,
-            ext_tools_raw, legacy_ssl_mapping_raw, budget_activity_code,
-            pricing_note_raw, created_at_source, modified_at_source
-        ) VALUES (
-            $1, $2, $3, $4,
-            $5, $6, (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $7), $8,
-            $9, $10, $11, $12,
-            $13, $14, $15, $16, $17, $18,
-            $19, $20, $21, $22, $23, $24,
-            $25, $26, $27
-        )
-        ON CONFLICT (service_id) DO NOTHING
-    `, [
-        svc.serviceId,
-        svc.title,
-        svc.shortDescription ?? null,
-        svc.description ?? null,
-        toLifecycleStage(svc.serviceStatusCode),
-        svc.serviceTypeCode ?? null,
-        svc.portfolioGroupCode ?? null,
-        svc.globalServiceGroupCode ?? null,
-        svc.serviceLineCode ?? null,
-        svc.organizationalElementCode ?? null,
-        svc.serviceUrl ?? null,
-        svc.cpServiceTypeRaw ?? null,
-        svc.isAvailableStatusAmbiguous ?? false,
-        svc.serviceAreaRaw ?? null,
-        svc.isStub ?? false,
-        svc.businessPurpose ?? null,
-        svc.serviceFeaturesRaw ?? null,
-        svc.requestProcessRaw ?? null,
-        svc.supportLocationsRaw ?? null,
-        svc.operationalNotesRaw ?? null,
-        svc.otherInfoRaw ?? null,
-        svc.extToolsRaw ?? null,
-        svc.legacySslMappingRaw ?? null,
-        svc.budgetActivityCode ?? null,
-        svc.pricingNoteRaw ?? null,
-        svc.createdAtSource ?? null,
-        svc.modifiedAtSource ?? null,
-    ]);
 }
 
 async function upsertDomains(serviceId, domains) {
@@ -499,7 +386,6 @@ module.exports = {
     createRow,
     updateRowStatus,
     logIssue,
-    upsertService,
     upsertDomains,
     upsertRole,
     upsertRelation,

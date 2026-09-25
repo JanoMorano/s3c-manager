@@ -68,7 +68,7 @@ export default function ServiceDetailPage({ params }: Props) {
 
   const businessView = svc.business_view;
   const overview = service360Data?.overview ?? overviewData?.item ?? null;
-  const businessSummary = businessView?.business_summary ?? svc.business_summary ?? svc.summary;
+  const businessSummary = businessView?.business_summary ?? svc.summary;
   const consumerValue = businessView?.consumer_value ?? svc.consumer_value ?? null;
   const primaryOffering = businessView?.primary_offering ?? svc.primary_offering;
   const supportModels = businessView?.support_model ?? svc.support_model ?? [];
@@ -185,19 +185,17 @@ export default function ServiceDetailPage({ params }: Props) {
                 </Section>
               )}
 
-              {(consumerValue || svc.value_proposition || svc.business_purpose) && (
+              {consumerValue && (
                 <Section title="Business Value">
-                  {consumerValue && (
-                    <p className={styles.calloutQuote} style={{ borderLeftColor: 'var(--color-info)' }}>
-                      {consumerValue}
+                  {consumerValue.split(/\n\s*\n/).map((paragraph, index) => (
+                    <p
+                      key={index}
+                      className={index === 0 ? styles.calloutQuote : styles.prose}
+                      style={index === 0 ? { borderLeftColor: 'var(--color-info)' } : undefined}
+                    >
+                      {paragraph}
                     </p>
-                  )}
-                  {svc.value_proposition && svc.value_proposition !== consumerValue && <p className={styles.prose}>{svc.value_proposition}</p>}
-                  {svc.business_purpose && svc.business_purpose !== svc.value_proposition && (
-                    <p className={styles.calloutQuote}>
-                      <em>{svc.business_purpose}</em>
-                    </p>
-                  )}
+                  ))}
                 </Section>
               )}
 
@@ -502,7 +500,7 @@ function RelationshipStudioHero({
     .map((item) => item.to_title ?? item.to_service_id)
     .filter(Boolean)
     .join(', ') || 'No dependency list';
-  const managerSummary = consumerValue ?? businessSummary ?? service.value_proposition ?? service.business_purpose ?? service.summary ?? 'Service record is ready for business-facing enrichment.';
+  const managerSummary = consumerValue ?? businessSummary ?? service.summary ?? 'Service record is ready for business-facing enrichment.';
   const readinessLabel = blockers.length
     ? `${blockers.length} open blocker${blockers.length === 1 ? '' : 's'}`
     : warnings.length

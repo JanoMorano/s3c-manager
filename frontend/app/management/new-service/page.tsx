@@ -6,7 +6,7 @@
  *
  * Kroky:
  *   1  Identita           — Service ID, Title, Type, Lifecycle
- *   2  Popis a hodnota    — summary, business_summary, consumer_value, value_proposition
+ *   2  Popis a hodnota    — summary, consumer_value
  *   3  Přístup & Audience — requestable, request model, target audience
  *   4  Klasifikace        — portfolio, service_line, org_element, security
  *   5  Vlastnictví        — service_owner, vlastnik, manager
@@ -64,17 +64,9 @@ const HELP: Record<string, { short: string; long: string }> = {
     short: 'Krátký popis pro zobrazení v katalogu — 1–2 věty',
     long: 'Service Summary je první věc, kterou konzument v katalogu vidí. Piš z pohledu uživatele: co dostane a proč mu to pomůže. Doporučená délka: 1–2 věty, max 200 znaků. Vyhni se technickému žargonu.',
   },
-  business_summary: {
-    short: 'Popis přínosu pro business stakeholdery (Business View)',
-    long: 'Business Summary je určen pro Business View v katalogu. Vysvětluje službu v kontextu obchodních výstupů, nikoliv technických možností. Piš jako product manager pro business stakeholdera — co obchodně získají.',
-  },
   consumer_value: {
     short: 'Konkrétní hodnota nebo přínos, který konzument získá',
     long: 'Popište konkrétní výsledek nebo přínos pro konzumenta. Příklad: "Přístup k emailu a kalendáři z jakéhokoli zařízení, spolehlivý provoz s 99,9 % SLA a bezpečným šifrováním."',
-  },
-  value_proposition: {
-    short: 'Proč tuto službu místo alternativ — klíčové diferenciátory',
-    long: 'Value Proposition vysvětluje proč konzumenti mají zvolit právě tuto službu. Zahrň klíčové diferenciátory, úspory nebo schopnosti. Příklad: "Plně spravované řešení — žádná vlastní infrastruktura, garantované SLA, integrace s AD."',
   },
   requestable: {
     short: 'Může konzument tuto službu objednat z katalogu?',
@@ -159,10 +151,7 @@ const schema = z.object({
   service_status:               z.string().optional(),
   lifecycle_state:              z.string().optional(),
   summary:                      z.string().optional(),
-  business_summary:             z.string().optional(),
   consumer_value:               z.string().optional(),
-  value_proposition:            z.string().optional(),
-  business_purpose:             z.string().optional(),
   requestable:                  z.boolean().optional(),
   request_channel_type:         z.string().optional(),
   request_channel_url:          z.string().url('Musí být platná URL').optional().or(z.literal('')),
@@ -422,24 +411,6 @@ function Step2Description({ register }: StepFormProps) {
           rows={2}
           className={styles.textarea}
           placeholder="např. Přístup k emailu a kalendáři z jakéhokoli zařízení, spolehlivý provoz s 99,9 % SLA."
-        />
-      </WizardField>
-
-      <WizardField fieldKey="business_summary" label="Business summary (pro Business View)">
-        <textarea
-          {...register('business_summary')}
-          rows={2}
-          className={styles.textarea}
-          placeholder="např. Zajišťuje komunikaci zaměstnanců napříč organizací, kritický enabler produktivity."
-        />
-      </WizardField>
-
-      <WizardField fieldKey="value_proposition" label="Value proposition">
-        <textarea
-          {...register('value_proposition')}
-          rows={2}
-          className={styles.textarea}
-          placeholder="např. Plně spravované řešení bez vlastní infrastruktury, garantované SLA, integrace s AD."
         />
       </WizardField>
     </div>
@@ -919,7 +890,6 @@ function StepReview({ watch, c3Selected }: { watch: StepFormProps['watch']; c3Se
           <div className={styles.reviewSectionHead}>Popis</div>
           <RRow label="Stručný popis"        value={v.summary} />
           <RRow label="Hodnota konzumenta"   value={v.consumer_value} />
-          <RRow label="Business summary"     value={v.business_summary} />
         </div>
 
         <div className={styles.reviewSection}>
@@ -1089,9 +1059,7 @@ export default function NewServiceWizard() {
         service_status:              data.service_status || 'draft',
         lifecycle_state:             data.lifecycle_state || 'draft',
         summary:                     data.summary?.trim() || undefined,
-        business_summary:            data.business_summary?.trim() || undefined,
         consumer_value:              data.consumer_value?.trim() || undefined,
-        value_proposition:           data.value_proposition?.trim() || undefined,
         requestable:                 data.requestable ?? false,
         request_channel_type:        data.request_channel_type?.trim() || undefined,
         request_channel_url:         data.request_channel_url?.trim() || undefined,

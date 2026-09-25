@@ -102,7 +102,6 @@ describe('services phase 1 routes', () => {
             service_status: 'draft',
             service_type: 'CF',
             summary: 'Current summary',
-            business_summary: 'Business summary',
             requestable: true,
             lifecycle_state: 'draft',
             target_audience_summary: 'Internal staff',
@@ -144,7 +143,7 @@ describe('services phase 1 routes', () => {
         expect(response.body.audience_policies).toHaveLength(1);
         expect(response.body.operational_links).toHaveLength(1);
         expect(response.body.business_view).toEqual(expect.objectContaining({
-            business_summary: 'Business summary',
+            business_summary: 'Current summary',
             requestable: true,
             lifecycle_state: 'draft',
             primary_offering: expect.objectContaining({ offering_code: 'STD' }),

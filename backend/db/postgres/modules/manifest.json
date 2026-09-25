@@ -94,7 +94,8 @@
         "30_reduction_domain_model_simplification.sql",
         "33_readiness_rule_explanations.sql",
         "35_canonical_service_fields.sql",
-        "39_drop_legacy_service_mirrors.sql"
+        "39_drop_legacy_service_mirrors.sql",
+        "40_service_catalog_source.sql"
       ]
     }
   ]

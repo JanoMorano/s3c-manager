@@ -103,3 +103,63 @@ describe('legacy service mirror columns', () => {
         expect(offenders).toEqual([]);
     });
 });
+
+describe('service catalogue source table and merged description fields', () => {
+    const { canonicalizeServiceInput, SOURCE_COLUMNS, SOURCE_RAW_FIELDS } = require('../db/service-fields');
+    const sql = readRepoFile('backend/db/postgres/schema/40_service_catalog_source.sql');
+    const MOVED = [...SOURCE_COLUMNS, ...SOURCE_RAW_FIELDS, 'value_proposition', 'business_purpose', 'business_summary'];
+
+    test('the migration moves exactly the fields the middleware reads from the source table', () => {
+        SOURCE_RAW_FIELDS.forEach((field) => expect(sql).toContain(`'${field}'`));
+        SOURCE_COLUMNS.forEach((column) => expect(sql).toMatch(new RegExp(`^\\s+${column}\\s`, 'm')));
+    });
+
+    test('import provenance input is split off, including camelCase and API aliases', () => {
+        const { fields, source } = canonicalizeServiceInput({
+            title: 'T',
+            service_area: 'Area',
+            customer_type: ['internal'],
+            spId: 7,
+            source_etag: 'e1',
+            prerequisites_json: '[]',
+        });
+        expect(fields).toEqual({ title: 'T' });
+        expect(source).toEqual({
+            service_area_raw: 'Area',
+            customer_type_json: ['internal'],
+            source_sp_id: 7,
+            source_etag: 'e1',
+            prerequisites_json: '[]',
+        });
+    });
+
+    test('legacy description inputs become fill-only fallbacks', () => {
+        const { fields, fallbacks } = canonicalizeServiceInput({
+            value_proposition: 'Value',
+            business_purpose: ' Value ',
+            business_summary: 'Summary',
+        });
+        expect(fields).toEqual({});
+        expect(fallbacks).toEqual({ consumer_value: 'Value', short_description: 'Summary' });
+        expect(canonicalizeServiceInput({ value_proposition: null }).fallbacks).toEqual({});
+    });
+
+    test('moved columns are no longer read or written as service_catalog columns by the middleware', () => {
+        const srcRoot = path.join(repoRoot, 'middleware/src');
+        const files = [];
+        const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach((entry) => {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory() && entry.name !== '__tests__') walk(full);
+            else if (entry.isFile() && entry.name.endsWith('.js')) files.push(full);
+        });
+        walk(srcRoot);
+        const offenders = [];
+        files.forEach((file) => {
+            const source = fs.readFileSync(file, 'utf8');
+            MOVED.forEach((column) => {
+                if (new RegExp(`['"\`\\s(]sc\\.${column}\\b`).test(source)) offenders.push(`${path.relative(srcRoot, file)}: sc.${column}`);
+            });
+        });
+        expect(offenders).toEqual([]);
+    });
+});

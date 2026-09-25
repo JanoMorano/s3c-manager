@@ -8,6 +8,9 @@
  *   review_due_at                       — next review
  *   portfolio_id                        — portfolio
  *   primary service-level service_sla   — SLA
+ *   service_catalog_source (40_…sql)    — import provenance and raw import fields
+ *   consumer_value                      — also value_proposition / business_purpose
+ *   short_description                   — also business_summary
  *
  * The API still exposes the derived legacy fields (service_status,
  * lifecycle_state, portfolio_group, sla_*) for compatibility, and accepts them
@@ -22,6 +25,38 @@ const LIFECYCLE_STATE_SQL = 'data.fn_lifecycle_state_from_stage(sc.lifecycle_sta
 // Joins providing `sp` (portfolio) and `sla` (primary service-level SLA).
 const PORTFOLIO_JOIN = 'LEFT JOIN data.service_portfolio sp ON sp.id = sc.portfolio_id';
 const PRIMARY_SLA_JOIN = 'LEFT JOIN data.service_sla sla ON sla.id = data.fn_service_primary_sla_id(sc.id)';
+
+// Import provenance (40_service_catalog_source.sql): `src` is data.service_catalog_source.
+const SOURCE_JOIN = 'LEFT JOIN data.service_catalog_source src ON src.service_catalog_id = sc.id';
+const SOURCE_COLUMNS = Object.freeze([
+    'source_local_id', 'source_sp_id', 'source_etag',
+    'created_at_source', 'modified_at_source', 'is_available_status_ambiguous',
+]);
+// Keys of src.raw_fields (the former service_catalog column names).
+const SOURCE_RAW_FIELDS = Object.freeze([
+    'support_locations_raw', 'request_process_raw', 'support_availability_raw',
+    'service_cost_raw', 'additional_information_raw', 'cp_service_type_raw',
+    'service_features_raw', 'ext_tools_raw', 'legacy_ssl_mapping_raw',
+    'other_info_raw', 'pricing_note_raw', 'service_area_raw',
+    'customer_type_json', 'options_json', 'training_refs_json',
+    'prerequisites_json', 'dependencies_json',
+]);
+// API input aliases of source fields.
+const SOURCE_INPUT_ALIASES = Object.freeze({
+    service_area: 'service_area_raw',
+    customer_type: 'customer_type_json',
+    options: 'options_json',
+    training_refs: 'training_refs_json',
+    localId: 'source_local_id',
+    spId: 'source_sp_id',
+    etag: 'source_etag',
+});
+
+/** SQL expression reading a raw import field; `src` comes from SOURCE_JOIN. */
+function sourceRawSql(field) {
+    if (!SOURCE_RAW_FIELDS.includes(field)) throw new Error(`Unknown raw import field: ${field}`);
+    return `src.raw_fields->>'${field}'`;
+}
 
 const SLA_INPUT_KEYS = Object.freeze({
     sla_availability: 'availability_pct',
@@ -52,10 +87,14 @@ function textIfNonNumeric(value) {
 
 /**
  * Splits service input into canonical catalogue fields and an SLA patch.
- * Returns { fields, portfolioCode, sla } where
+ * Returns { fields, portfolioCode, sla, source, fallbacks } where
  *   fields        — input with legacy keys replaced by canonical ones,
  *   portfolioCode — portfolio code to resolve into portfolio_id (or undefined),
- *   sla           — patch for the primary service-level SLA row (or null).
+ *   sla           — patch for the primary service-level SLA row (or null),
+ *   source        — patch for the import provenance row (or null),
+ *   fallbacks     — values for catalogue columns that apply only when the
+ *                   column is empty (value_proposition/business_purpose →
+ *                   consumer_value, business_summary → short_description).
  */
 function canonicalizeServiceInput(data = {}) {
     const fields = { ...data };
@@ -103,7 +142,32 @@ function canonicalizeServiceInput(data = {}) {
         delete fields[key];
     }
 
-    return { fields, portfolioCode, sla };
+    // Description fields merged into consumer_value and short_description: the
+    // legacy inputs only fill an empty field (fallbacks), so a re-import never
+    // overwrites curated text.
+    const fallbacks = {};
+    const valueParts = ['value_proposition', 'business_purpose']
+        .map((key) => (data[key] == null ? '' : String(data[key]).trim()))
+        .filter((text, index, parts) => text && parts.indexOf(text) === index);
+    if (valueParts.length) fallbacks.consumer_value = valueParts.join('\n\n');
+    const businessSummary = data.business_summary == null ? '' : String(data.business_summary).trim();
+    if (businessSummary) fallbacks.short_description = businessSummary.slice(0, 1000);
+    ['value_proposition', 'business_purpose', 'business_summary'].forEach((key) => delete fields[key]);
+
+    // Import provenance.
+    let source = null;
+    const sourceKeys = [...SOURCE_COLUMNS, ...SOURCE_RAW_FIELDS];
+    for (const [key, value] of Object.entries(data)) {
+        const target = SOURCE_INPUT_ALIASES[key] ?? key;
+        if (!sourceKeys.includes(target)) continue;
+        delete fields[key];
+        // The canonical key wins over its alias.
+        if (target !== key && has(data, target)) continue;
+        source = source ?? {};
+        source[target] = value;
+    }
+
+    return { fields, portfolioCode, sla, source, fallbacks };
 }
 
 /** Resolves a portfolio code to service_portfolio.id (null when unknown or empty). */
@@ -135,12 +199,49 @@ async function upsertPrimarySla(pool, catalogId, sla) {
     );
 }
 
+function serializeRawValue(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'string') return value;
+    return JSON.stringify(value);
+}
+
+/**
+ * Updates the import provenance row of a service, creating it when needed.
+ * `source` holds already normalized values keyed by SOURCE_COLUMNS or
+ * SOURCE_RAW_FIELDS; raw fields set to null are removed from raw_fields.
+ */
+async function upsertServiceSource(pool, catalogId, source) {
+    if (!source || Object.keys(source).length === 0) return;
+    const columns = SOURCE_COLUMNS.filter((column) => Object.prototype.hasOwnProperty.call(source, column));
+    const raw = {};
+    SOURCE_RAW_FIELDS.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(source, field)) raw[field] = serializeRawValue(source[field]);
+    });
+    const values = columns.map((column) => (
+        column === 'is_available_status_ambiguous' ? !!source[column] : source[column] ?? null
+    ));
+    const rawParam = `$${columns.length + 2}::jsonb`;
+    await pool.query(`
+        INSERT INTO data.service_catalog_source (service_catalog_id, ${[...columns, 'raw_fields'].join(', ')})
+        VALUES ($1, ${[...columns.map((_, index) => `$${index + 2}`), `jsonb_strip_nulls(${rawParam})`].join(', ')})
+        ON CONFLICT (service_catalog_id) DO UPDATE SET
+            ${[...columns.map((column) => `${column} = EXCLUDED.${column}`),
+        `raw_fields = jsonb_strip_nulls(data.service_catalog_source.raw_fields || ${rawParam})`,
+        'updated_at = CURRENT_TIMESTAMP'].join(',\n            ')}
+    `, [catalogId, ...values, JSON.stringify(raw)]);
+}
+
 module.exports = {
     SERVICE_STATUS_SQL,
     LIFECYCLE_STATE_SQL,
     PORTFOLIO_JOIN,
     PRIMARY_SLA_JOIN,
+    SOURCE_JOIN,
+    SOURCE_COLUMNS,
+    SOURCE_RAW_FIELDS,
+    sourceRawSql,
     canonicalizeServiceInput,
     resolvePortfolioId,
     upsertPrimarySla,
+    upsertServiceSource,
 };

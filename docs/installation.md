@@ -366,6 +366,7 @@ SQL file order:
 37_offering_request_inheritance.sql — offering request/approval/channel/lead-time fields inherit from the service (NULL = inherit)
 38_c3_entity_link_view.sql — v_c3_entity_link, one read model over the seven C3 link tables
 39_drop_legacy_service_mirrors.sql — removes lifecycle_state, service_status_code, next_review_due_at, portfolio_group_code and catalogue sla_* columns
+40_service_catalog_source.sql — moves import provenance and raw import fields to service_catalog_source; merges value_proposition/business_purpose into consumer_value and business_summary into short_description
 ```
 
 ---
