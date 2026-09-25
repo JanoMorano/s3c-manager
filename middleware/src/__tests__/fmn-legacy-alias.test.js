@@ -53,7 +53,8 @@ describe('FMN Air C2 legacy coverage route', () => {
     });
 
     test('does not keep developer-local PDF paths or Air-C2 reference constants in taxonomy route', () => {
-        const source = fs.readFileSync(path.resolve(__dirname, '../routes/taxonomy.js'), 'utf8');
+        const dir = path.resolve(__dirname, '../routes/taxonomy');
+        const source = fs.readdirSync(dir).map((file) => fs.readFileSync(path.join(dir, file), 'utf8')).join('\n');
 
         expect(source).not.toContain('/Users/');
         expect(source).not.toContain('FMN_AIR_C2_PDF_REFERENCES');
