@@ -10,28 +10,34 @@ function readRepoFile(relativePath) {
     return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-function initScriptSlices() {
-    return [...readRepoFile('init/init-db-postgres.sh').matchAll(/\/pgdb\/schema\/([0-9A-Za-z_]+\.sql)/g)]
-        .map((match) => match[1]);
+// Same order as apply_schema_files in init/init-db-postgres.sh (find | sort).
+function schemaSlices() {
+    return fs.readdirSync(schemaDir).filter((name) => name.endsWith('.sql')).sort();
 }
 
-describe('PostgreSQL init wiring', () => {
-    test('every schema slice on disk is applied by init-db-postgres.sh', () => {
-        const applied = new Set(initScriptSlices());
-        const onDisk = fs.readdirSync(schemaDir).filter((name) => name.endsWith('.sql'));
+describe('PostgreSQL schema runner', () => {
+    const initScript = readRepoFile('init/init-db-postgres.sh');
 
-        expect(onDisk.filter((name) => !applied.has(name))).toEqual([]);
+    test('applies every schema file in file-name order and records it in the ledger', () => {
+        expect(initScript).toContain('SCHEMA_DIR="${SCHEMA_DIR:-/pgdb/schema}"');
+        expect(initScript).toMatch(/find "\$SCHEMA_DIR" -maxdepth 1 -name '\*\.sql' \| sort/);
+        expect(initScript).toContain('--single-transaction');
+        expect(initScript).toContain('platform.schema_file_ledger');
+        expect(initScript).toMatch(/^apply_schema_files$/m);
     });
 
-    test('schema slices are applied in numeric order', () => {
-        const slices = initScriptSlices();
-
-        expect(slices).toEqual([...slices].sort());
+    test('schema files have unique two-digit order prefixes', () => {
+        const prefixes = schemaSlices().map((name) => name.slice(0, 3));
+        prefixes.forEach((prefix) => expect(prefix).toMatch(/^\d{2}_$/));
+        expect(new Set(prefixes).size).toBe(prefixes.length);
     });
 
-    test('objects queried by service detail and C3 dashboard are created by init', () => {
-        const slices = initScriptSlices();
-        const sql = slices.map((name) => fs.readFileSync(path.join(schemaDir, name), 'utf8')).join('\n');
+    test('does not list schema files individually any more', () => {
+        expect(initScript).not.toMatch(/\/pgdb\/schema\/\d{2}_/);
+    });
+
+    test('objects queried by service detail and C3 dashboard are created by the schema', () => {
+        const sql = schemaSlices().map((name) => fs.readFileSync(path.join(schemaDir, name), 'utf8')).join('\n');
 
         expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS c3_board_state/);
         expect(sql).toMatch(/CREATE OR REPLACE VIEW v_c3_board_lane/);
@@ -39,7 +45,7 @@ describe('PostgreSQL init wiring', () => {
     });
 
     test('retired notification and service request objects are not recreated after cleanup', () => {
-        const slices = initScriptSlices();
+        const slices = schemaSlices();
         const cleanupIndex = slices.indexOf('29_reduction_low_risk_cleanup.sql');
         const later = slices.slice(cleanupIndex + 1)
             .map((name) => fs.readFileSync(path.join(schemaDir, name), 'utf8'))

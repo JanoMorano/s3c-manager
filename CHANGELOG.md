@@ -11,23 +11,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - Service relation types now have one source of truth, `shared/service-catalogue/relationTypes.json` (code, category, editable). Validation, the graph relation filter, readiness dependency counts, the service editor and the service detail read from it; a test keeps it aligned with the `ref_relation_type` seed. Relation types have Czech and English labels.
-
 - `lifecycle_stage_code`, `review_due_at` and `portfolio_id` are now the canonical service fields (migration `35_canonical_service_fields.sql`). The legacy `lifecycle_state`, `service_status_code`, `next_review_due_at` and `portfolio_group_code` columns are kept in sync by a trigger in both directions, so imports and the lifecycle workflow keep working while readers drop their `COALESCE` fallbacks. Lifecycle filters still accept legacy values such as `live`.
 - `v_owner_load` counts live services by `lifecycle_stage_code`, critical services by `criticality_code = 'mission_critical'` (previously service type `CF`/`CFS`) and overdue reviews by `review_due_at`.
-
 - Graph edges use one visual channel per meaning: colour = relation category (three CVD-validated hues plus neutral, `--graph-series-*` tokens with dark-mode steps), line style = secondary distinction, width = mandatory, opacity = unverified. Previously mandatory edges were all red (overriding the type colour) and unverified edges overrode the type dash. Colour collisions (`provided_by`/`c3_parent`/`capability_application`) and C3 mapping styles for non-existent mapping codes are gone.
 - The service overview graph defaults to a layered left-to-right layout by dependency (dagre); the portfolio grid remains as an option. Selecting a service highlights its upstream/downstream path (depth 1–5) and dims the rest.
 - Service graphs and the C3 relation canvas show a legend listing only the encodings present; relation types are shown with localized labels.
-
 - The service-level SLA has one source of truth: the primary `service_sla` row of a service (no offering). The `service_catalog` `sla_*` columns are a trigger-synced mirror (migration `36_service_sla_canonical.sql`), so the editor fields and the SLA records API always agree. `service_sla` gained `restoration_text` and `delivery_text`, exposed by the SLA records API.
-
 - Offering request fields (`requestable`, `approval_required`, request channel, lead time) inherit from the service: an empty offering field means "inherit", a value overrides it (migration `37_offering_request_inheritance.sql`, view `v_service_offering_effective`). Offering values equal to the service value were reset to inherit, so no effective value changed. The offerings API returns `effective_*` values; the editor uses one shared offering form (previously duplicated for add/edit) with "inherit / yes / no" choices and shows inherited values.
-
 - The seven C3 link tables have one read model, `v_c3_entity_link` (migration `38_c3_entity_link_view.sql`). The service graph, overview graph and C3 relation graph read it through `db/c3-entity-links.repo.js` instead of seven queries and seven mapping blocks each; their API output is unchanged (verified on demo data). `routes/graph.js` shrank from 905 to 497 lines.
-
 - The service editor groups its 14 sections into tabs — Identity and value, Offerings and SLA, Ownership and support, Relations and C3 mapping, Evidence (admin) — instead of one long page with inconsistent numbering (1–5, 6b, 7, 6, 7c…). Hidden tabs stay mounted, so unsaved values are kept; tab badges aggregate section warnings and a failed submit opens the tab with the first error. Section titles are localized.
+- Schema files are applied by a migration runner in `init/init-db-postgres.sh`: files in `backend/db/postgres/schema/` run in name order, each in one transaction, and are recorded with a checksum in `platform.schema_file_ledger`. Unchanged files are skipped on later starts, changed files are re-applied, `SCHEMA_REAPPLY_ALL=true` restores the old behaviour. New files no longer need to be listed in the init script.
+- Module manifests: `30_reduction_domain_model_simplification.sql` belongs to the Management module, which owns the `readiness_rule` table it writes.
 
 ### Fixed
+- Every container start re-ran all schema files, so data migration 30 reset the readiness rule configuration (enabled/blocking flags set by an administrator) on each restart.
 - The editor's publish gate and request-access warnings now accept a request channel defined on an offering, matching the backend rule.
 - Saving any change to a live service re-ran the "transition to live" gate and was rejected when the service had no support model; the gate now runs only on the transition itself.
 - A requestable service whose request channel is defined only on its offerings was rejected on every save; offering channels now satisfy the rule.

@@ -37,10 +37,10 @@ describe('governance SQL views', () => {
     });
 
     test('is wired into PostgreSQL init after governance views and locale cleanup', () => {
-        const initScript = readRepoFile('init/init-db-postgres.sh');
+        const slices = fs.readdirSync(path.join(repoRoot, 'backend/db/postgres/schema')).filter((name) => name.endsWith('.sql')).sort();
 
-        const governanceViewsIndex = initScript.indexOf('/pgdb/schema/22_governance_views.sql');
-        const finalCleanupIndex = initScript.indexOf('/pgdb/schema/32_final_reduction_sunset_cleanup.sql');
+        const governanceViewsIndex = slices.indexOf('22_governance_views.sql');
+        const finalCleanupIndex = slices.indexOf('32_final_reduction_sunset_cleanup.sql');
 
         expect(governanceViewsIndex).toBeGreaterThan(-1);
         expect(finalCleanupIndex).toBeGreaterThan(governanceViewsIndex);

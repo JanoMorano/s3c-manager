@@ -4,5 +4,6 @@
 \ir ../../schema/24_readiness_rules.sql
 \ir ../../schema/26_governance_workflow.sql
 \ir ../../schema/27_impact_analysis.sql
+\ir ../../schema/30_reduction_domain_model_simplification.sql
 \ir ../../schema/33_readiness_rule_explanations.sql
 \ir ../../schema/35_canonical_service_fields.sql

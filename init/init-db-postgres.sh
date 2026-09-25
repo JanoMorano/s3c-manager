@@ -48,6 +48,63 @@ run_psql() {
   echo "✅ $label OK"
 }
 
+SCHEMA_DIR="${SCHEMA_DIR:-/pgdb/schema}"
+SCHEMA_REAPPLY_ALL="${SCHEMA_REAPPLY_ALL:-false}"
+
+psql_query() {
+  # shellcheck disable=SC2086
+  psql $(build_psql_args) -v ON_ERROR_STOP=1 -q -A -t "$@"
+}
+
+# Schema migration runner.
+# Every file in $SCHEMA_DIR is applied in file-name order, in its own
+# transaction, and recorded in platform.schema_file_ledger with its sha256.
+# On the next start an unchanged file is skipped; a changed file is applied
+# again (schema files are written to be idempotent). This replaces
+# re-running every file on every start, which also reset data migrations
+# such as the readiness rule configuration.
+# SCHEMA_REAPPLY_ALL=true re-applies every file (previous behaviour).
+apply_schema_files() {
+  psql_query -c "CREATE SCHEMA IF NOT EXISTS platform;
+    CREATE TABLE IF NOT EXISTS platform.schema_file_ledger (
+      file_name   VARCHAR(200) PRIMARY KEY,
+      checksum    CHAR(64)     NOT NULL,
+      applied_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      apply_count INTEGER      NOT NULL DEFAULT 1
+    );" >/dev/null
+
+  applied=0
+  skipped=0
+  for file in $(find "$SCHEMA_DIR" -maxdepth 1 -name '*.sql' | sort); do
+    name="$(basename "$file")"
+    checksum="$(sha256sum "$file" | cut -d ' ' -f 1)"
+    recorded="$(psql_query -c "SELECT checksum FROM platform.schema_file_ledger WHERE file_name = '${name}'")"
+
+    if [ "$recorded" = "$checksum" ] && [ "$SCHEMA_REAPPLY_ALL" != "true" ]; then
+      skipped=$((skipped + 1))
+      continue
+    fi
+
+    if [ -z "$recorded" ]; then
+      echo "▶ schema ${name} (new)"
+    elif [ "$recorded" != "$checksum" ]; then
+      echo "▶ schema ${name} (changed)"
+    else
+      echo "▶ schema ${name} (reapply)"
+    fi
+    # shellcheck disable=SC2086
+    psql $(build_psql_args) -v ON_ERROR_STOP=1 --single-transaction -q -f "$file"
+    psql_query -c "INSERT INTO platform.schema_file_ledger (file_name, checksum)
+      VALUES ('${name}', '${checksum}')
+      ON CONFLICT (file_name) DO UPDATE SET
+        checksum = EXCLUDED.checksum,
+        applied_at = CURRENT_TIMESTAMP,
+        apply_count = platform.schema_file_ledger.apply_count + 1;" >/dev/null
+    applied=$((applied + 1))
+  done
+  echo "✅ schema files: ${applied} applied, ${skipped} unchanged"
+}
+
 run_psql_with_session_settings() {
   label="$1"
   file="$2"
@@ -97,45 +154,8 @@ if [ "$INIT_WITH_C3_CAPABILITY_MAP_SEED" = "true" ]; then
   require_seed_file "${SEED_ROOT}/capability-map-spiral7.json" "C3 capability map Spiral 7 seed"
 fi
 
-run_psql "pg bootstrap — schemas + extensions" /pgdb/schema/00_bootstrap.sql
-run_psql "pg platform — AppConfig, Users, RefreshTokens, AuditLog" /pgdb/schema/01_platform.sql
-run_psql "pg ref — reference lookups" /pgdb/schema/02_ref.sql
-run_psql "pg groups — AppGroup, AppGroupPermission, AppUserGroup" /pgdb/schema/03_groups.sql
 echo "▶ pg platform seed — skipped (first admin is created in the install wizard)"
-run_psql "pg core — ServiceCatalog" /pgdb/schema/04_core.sql
-run_psql "pg graph — ServiceRelation + ServiceRelationRaw" /pgdb/schema/05_graph.sql
-run_psql "pg pricing — ServiceFlavour + ServiceSla" /pgdb/schema/06_pricing.sql
-run_psql "pg domains — ServiceAvailableOn" /pgdb/schema/07_domains.sql
-run_psql "pg ownership — ServiceRoleAssignment + ServiceC3Mapping + ServiceRawField" /pgdb/schema/08_ownership.sql
-run_psql "pg import — ImportBatch + ImportRow + ImportIssue" /pgdb/schema/09_import.sql
-run_psql "pg indexes — performance indexes" /pgdb/schema/10_indexes.sql
-run_psql "pg C3 — taxonomy, entities, links, builder, completeness" /pgdb/schema/11_c3.sql
-run_psql "pg exports+retention — canonical routes, manifests, archive/export views" /pgdb/schema/12_exports_retention.sql
-run_psql "pg install system — state machine, migrations, modules, release metadata" /pgdb/schema/13_install_system.sql
-run_psql "pg spiral versioning — fmn_spiral columns, Spiral_7 seed" /pgdb/schema/14_spiral_versioning.sql
-run_psql "pg ITIL catalogue phase 1 — offerings, support, audience, operational links" /pgdb/schema/15_itil_catalogue_phase1.sql
-run_psql "pg consumer_value additive column" /pgdb/schema/16_consumer_value.sql
-run_psql "pg spiral membership — entity to spiral coverage" /pgdb/schema/17_spiral_membership.sql
-run_psql "pg user persona — user-driven UX preference" /pgdb/schema/18_user_persona.sql
-run_psql "pg capability abbreviations — Level-3 slugs" /pgdb/schema/19_capability_abbreviations.sql
-run_psql "pg capability coverage — generic helper views" /pgdb/schema/20_capability_coverage_views.sql
-run_psql "pg contract governance — vendors, contracts, findings" /pgdb/schema/21_contract_governance.sql
-run_psql "pg governance views — risk radar, owner load, overlap advisor" /pgdb/schema/22_governance_views.sql
-run_psql "pg service portfolio — portfolio and lifecycle foundation" /pgdb/schema/23_service_portfolio.sql
-run_psql "pg readiness rules — configurable readiness and exceptions" /pgdb/schema/24_readiness_rules.sql
-run_psql "pg capability governance — coverage cockpit views" /pgdb/schema/25_capability_governance.sql
-run_psql "pg governance workflow — reviews and decisions" /pgdb/schema/26_governance_workflow.sql
-run_psql "pg impact analysis — dependency and capability traversal views" /pgdb/schema/27_impact_analysis.sql
-run_psql "pg reduction cleanup — retired request/notification/preference objects" /pgdb/schema/29_reduction_low_risk_cleanup.sql
-run_psql "pg reduction cleanup — domain model simplification" /pgdb/schema/30_reduction_domain_model_simplification.sql
-run_psql "pg reduction cleanup — locale cut to cs/en" /pgdb/schema/31_locale_cs_en_only.sql
-run_psql "pg reduction cleanup — final sunset" /pgdb/schema/32_final_reduction_sunset_cleanup.sql
-run_psql "pg readiness rule explanations — why/how-to/evidence texts" /pgdb/schema/33_readiness_rule_explanations.sql
-run_psql "pg C3 board state — governance board lanes" /pgdb/schema/34_c3_board_state.sql
-run_psql "pg canonical service fields — lifecycle, review date, portfolio sync" /pgdb/schema/35_canonical_service_fields.sql
-run_psql "pg canonical service SLA — service_sla primary row, catalog mirror" /pgdb/schema/36_service_sla_canonical.sql
-run_psql "pg offering request inheritance — offering fields inherit from service" /pgdb/schema/37_offering_request_inheritance.sql
-run_psql "pg C3 entity link view — unified C3 link read model" /pgdb/schema/38_c3_entity_link_view.sql
+apply_schema_files
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

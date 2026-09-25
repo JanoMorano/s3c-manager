@@ -47,7 +47,6 @@
         "15_itil_catalogue_phase1.sql",
         "16_consumer_value.sql",
         "29_reduction_low_risk_cleanup.sql",
-        "30_reduction_domain_model_simplification.sql",
         "32_final_reduction_sunset_cleanup.sql",
         "36_service_sla_canonical.sql",
         "37_offering_request_inheritance.sql"
@@ -92,6 +91,7 @@
         "24_readiness_rules.sql",
         "26_governance_workflow.sql",
         "27_impact_analysis.sql",
+        "30_reduction_domain_model_simplification.sql",
         "33_readiness_rule_explanations.sql",
         "35_canonical_service_fields.sql"
       ]

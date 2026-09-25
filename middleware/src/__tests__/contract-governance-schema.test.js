@@ -38,10 +38,10 @@ describe('final reduction DB cleanup schema', () => {
     });
 
     test('is wired into PostgreSQL init after locale cleanup', () => {
-        const initScript = readRepoFile('init/init-db-postgres.sh');
+        const slices = fs.readdirSync(path.join(repoRoot, 'backend/db/postgres/schema')).filter((name) => name.endsWith('.sql')).sort();
 
-        const localeCleanupIndex = initScript.indexOf('/pgdb/schema/31_locale_cs_en_only.sql');
-        const finalCleanupIndex = initScript.indexOf('/pgdb/schema/32_final_reduction_sunset_cleanup.sql');
+        const localeCleanupIndex = slices.indexOf('31_locale_cs_en_only.sql');
+        const finalCleanupIndex = slices.indexOf('32_final_reduction_sunset_cleanup.sql');
 
         expect(localeCleanupIndex).toBeGreaterThan(-1);
         expect(finalCleanupIndex).toBeGreaterThan(localeCleanupIndex);
