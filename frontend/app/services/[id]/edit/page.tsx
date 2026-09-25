@@ -51,7 +51,7 @@ export default function ServiceEditorPage({ params }: Props) {
   const securityClassificationOptions = securityClassifications?.length
     ? securityClassifications
     : [
-        { code: 'OPEN',       name: 'Open',        sort_order: 0 },
+        { code: 'OPEN',       name: t('service_editor.text.open'),        sort_order: 0 },
         { code: 'STANDARD',   name: 'Standard',    sort_order: 0 },
         { code: 'ELEVATED',   name: 'Elevated',    sort_order: 0 },
         { code: 'RESTRICTED', name: 'Restricted',  sort_order: 0 },
@@ -218,15 +218,15 @@ export default function ServiceEditorPage({ params }: Props) {
 
   const publishBlockers = useMemo(() => {
     const blockers: string[] = [];
-    if (!watchedTitle?.trim()) blockers.push('Title is required before publish.');
-    if (!watchedServiceType?.trim()) blockers.push('Service Type is required before publish.');
-    if (offerings.length === 0) blockers.push('At least one service offering is required.');
-    if (offerings.length > 0 && !defaultOffering) blockers.push('Exactly one default offering must be selected.');
+    if (!watchedTitle?.trim()) blockers.push(t('service_editor.text.title_is_required_before_publish'));
+    if (!watchedServiceType?.trim()) blockers.push(t('service_editor.text.service_type_is_required_before_publish'));
+    if (offerings.length === 0) blockers.push(t('service_editor.text.at_least_one_service_offering_is_required'));
+    if (offerings.length > 0 && !defaultOffering) blockers.push(t('service_editor.text.exactly_one_default_offering_must_be_selected'));
     if (watchedRequestable && !hasRequestChannel) {
-      blockers.push('Requestable service needs a request channel type or URL.');
+      blockers.push(t('service_editor.text.requestable_service_needs_a_request_channel_type'));
     }
     if (watchedRequestable && supportModels.length === 0) {
-      blockers.push('Requestable service needs a support model.');
+      blockers.push(t('service_editor.text.requestable_service_needs_a_support_model'));
     }
     if (readiness && !readiness.is_publishable) {
       blockers.push(...readiness.blockers.map((blocker) => `Readiness: ${blocker}`));
@@ -263,10 +263,10 @@ export default function ServiceEditorPage({ params }: Props) {
       if (sectionErrors > 0) return { badge: sectionErrors, tone: 'bad' };
       if (sectionId === 'request-access' && requestWarning) return { badge: 'Fix', tone: 'warn' };
       if (sectionId === 'request-access' && offerings.length === 0) return { badge: 'Add', tone: 'orange' };
-      if (sectionId === 'request-access' && offerings.length > 0 && !defaultOffering) return { badge: 'Default', tone: 'warn' };
+      if (sectionId === 'request-access' && offerings.length > 0 && !defaultOffering) return { badge: t('service_editor.text.default'), tone: 'warn' };
       if (sectionId === 'ownership-support' && supportModels.length === 0) return { badge: 'Add', tone: 'orange' };
       if (sectionId === 'readiness-governance' && readiness && !readiness.is_publishable) {
-        return { badge: readiness.blockers.length || 'Gate', tone: 'warn' };
+        return { badge: readiness.blockers.length || t('service_editor.text.gate'), tone: 'warn' };
       }
       if (sectionId === 'readiness-governance' && c3Mappings.length > 0) return { badge: c3Mappings.length, tone: 'purple' };
       return null;
@@ -293,7 +293,7 @@ export default function ServiceEditorPage({ params }: Props) {
   const saveMessage = saveError
     ?? (phase4Saved && !saving ? phase4Saved : null)
     ?? (!saving && publishBlockers.length > 0 ? `${publishBlockers.length} publish blockers` : null)
-    ?? (isDirty ? `${dirtyCount} změněných polí` : 'Manuální ukládání podle návrhu v2');
+    ?? (isDirty ? `${dirtyCount} změněných polí` : t('service_editor.text.manual_saving_according_to_v2_design'));
 
   const onSubmit = async (data: FormData) => {
     setSaving(true); setSaveError(null); setSaveConflict(null); setSaved(false);
@@ -361,7 +361,7 @@ export default function ServiceEditorPage({ params }: Props) {
       await mutateReadiness();
       setSaved(true);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Save failed';
+      const message = e instanceof Error ? e.message : t('service_editor.text.save_failed');
       if (isConflictMessage(message)) {
         setSaveConflict(message);
       }
@@ -404,13 +404,13 @@ export default function ServiceEditorPage({ params }: Props) {
             { label: `Lifecycle: ${currentLifecycle ? t(lifecycleStageLabelKey(currentLifecycle)) : '—'}`, tone: currentLifecycle === 'active' ? 'ok' : 'info' },
             { label: `Completeness ${svc.completeness_score ?? '—'}%`, tone: (svc.completeness_score ?? 0) >= 80 ? 'ok' : 'warn' },
           ]}
-          primaryAction={{ label: 'Zpět na detail', href: `/services/${id}` }}
+          primaryAction={{ label: t('service_editor.text.back_to_detail'), href: `/services/${id}` }}
         />
       </div>
 
       <div className={styles.editorBody}>
         <EditorSubNav
-          title="Service editor"
+          title={t('service_editor.text.service_editor')}
           summary={t('service_editor.tab.summary')}
           sections={editorSections}
           activeId={activeTab}
@@ -421,7 +421,7 @@ export default function ServiceEditorPage({ params }: Props) {
         <div className={styles.formArea}>
           <div className={styles.editorSignals}>
             <div className={styles.signalCard}>
-              <span className={styles.signalLabel}>Op. readiness</span>
+              <span className={styles.signalLabel}>{t('service_editor.text.operational_readiness')}</span>
               <OperationalReadinessPanel
                 requestable={watchedRequestable}
                 channelType={watchedChannelType}
@@ -433,49 +433,49 @@ export default function ServiceEditorPage({ params }: Props) {
               />
             </div>
             <div className={styles.signalCard}>
-              <span className={styles.signalLabel}>Validation</span>
+              <span className={styles.signalLabel}>{t('service_editor.text.validation')}</span>
               {Object.entries(errors).length > 0
                 ? Object.entries(errors).slice(0, 3).map(([field, error]) => (
                     <div key={field} className={styles.validationError}>
                       {field}: {(error as { message?: string }).message}
                     </div>
                   ))
-                : <div className={styles.validOk}>No field errors</div>
+                : <div className={styles.validOk}>{t('service_editor.text.no_field_errors')}</div>
               }
             </div>
           </div>
           <div className={publishBlockers.length > 0 ? styles.publishGateWarn : styles.publishGateOk}>
             <div className={styles.publishGateTitle}>
-              <span>Save / Publish gate</span>
-              <strong>{publishBlockers.length > 0 ? `${publishBlockers.length} blockers` : 'Ready to publish'}</strong>
+              <span>{t('service_editor.text.save_publish_gate')}</span>
+              <strong>{publishBlockers.length > 0 ? `${publishBlockers.length} blockers` : t('service_editor.text.ready_to_publish')}</strong>
             </div>
             {publishBlockers.length > 0 ? (
               <ul className={styles.publishGateList}>
                 {publishBlockers.slice(0, 5).map((blocker) => <li key={blocker}>{blocker}</li>)}
               </ul>
             ) : (
-              <p>Draft can be saved or promoted to live from the sticky bar.</p>
+              <p>{t('service_editor.text.draft_can_be_saved_or_promoted_to_live_from_the')}</p>
             )}
           </div>
 
           {/* §1 Identita */}
           <EditorSection id="identity" title={t('service_editor.section.identity')}>
             <div className={styles.fieldRow}>
-              <Field label="Service ID">
-                <input className={styles.readOnlyInput} value={id} disabled readOnly aria-label="Service ID" />
+              <Field label={t('service_editor.text.service_id')}>
+                <input className={styles.readOnlyInput} value={id} disabled readOnly aria-label={t('service_editor.text.service_id')} />
               </Field>
-              <Field label="Title *" error={errors.title?.message}>
+              <Field label={t('service_editor.text.title')} error={errors.title?.message}>
                 <input {...register('title')} className={fieldClass(errors.title)} />
               </Field>
-              <Field label="Service Type *" error={errors.service_type?.message}>
+              <Field label={t('service_editor.text.service_type')} error={errors.service_type?.message}>
                 <select {...register('service_type')} className={fieldClass(errors.service_type)}>
-                  <option value="">— select —</option>
+                  <option value="">{t('service_editor.text.select')}</option>
                   {serviceTypes?.map(t => <option key={t.code} value={t.code}>{t.code} — {t.name}</option>)}
                 </select>
               </Field>
               <Field label={t('service_editor.lifecycle.label')}>
                 <select {...register('lifecycle_stage_code')} className={styles.input}>
-                  <option value="">— select —</option>
+                  <option value="">{t('service_editor.text.select')}</option>
                   {allowedLifecycleOptions.map((stage) => (
                     <option key={stage} value={stage}>
                       {t(lifecycleStageLabelKey(stage))}{stage === currentLifecycle ? ` (${t('service_editor.lifecycle.current')})` : ''}
@@ -492,21 +492,21 @@ export default function ServiceEditorPage({ params }: Props) {
               </Field>
             </div>
             <div className={styles.fieldRow}>
-              <Field label="Portfolio Group">
-                <select {...register('portfolio_group_code')} className={styles.input} aria-label="Portfolio Group">
-                  <option value="">— select —</option>
+              <Field label={t('service_editor.text.portfolio_group')}>
+                <select {...register('portfolio_group_code')} className={styles.input} aria-label={t('service_editor.text.portfolio_group')}>
+                  <option value="">{t('service_editor.text.select')}</option>
                   {portfolioGroups?.map(pg => <option key={pg.code} value={pg.code}>{pg.name}</option>)}
                 </select>
               </Field>
-              <Field label="Service Line">
-                <select {...register('service_line_code')} className={styles.input} aria-label="Service Line">
-                  <option value="">— select —</option>
+              <Field label={t('service_editor.text.service_line')}>
+                <select {...register('service_line_code')} className={styles.input} aria-label={t('service_editor.text.service_line')}>
+                  <option value="">{t('service_editor.text.select')}</option>
                   {serviceLines?.map(sl => <option key={sl.code} value={sl.code}>{sl.name}</option>)}
                 </select>
               </Field>
-              <Field label="Security Classification">
-                <select {...register('security_classification')} className={styles.input} aria-label="Security Classification">
-                  <option value="">— select —</option>
+              <Field label={t('service_editor.text.security_classification')}>
+                <select {...register('security_classification')} className={styles.input} aria-label={t('service_editor.text.security_classification')}>
+                  <option value="">{t('service_editor.text.select')}</option>
                   {securityClassificationOptions.map((classification) => (
                     <option key={classification.code} value={classification.code}>
                       {classification.code} — {classification.name}
@@ -520,67 +520,67 @@ export default function ServiceEditorPage({ params }: Props) {
           {/* §2 Hodnota a rozsah */}
           <EditorSection id="value-scope" title={t('service_editor.section.value_scope')}>
             <span id="description" className={styles.anchorAlias} aria-hidden="true" />
-            <Field label="Short Description (summary)">
+            <Field label={t('service_editor.text.short_description_summary')}>
               <textarea {...register('summary')} rows={2} className={styles.textarea} />
             </Field>
-            <Field label="Consumer Value" hint="What value does this service deliver to its consumers?">
+            <Field label={t('service_editor.text.consumer_value')} hint={t('service_editor.text.what_value_does_this_service_deliver_to_its_cons')}>
               <textarea
                 {...register('consumer_value')}
                 rows={2}
                 className={styles.textarea}
-                placeholder="e.g. Enables teams to self-serve X without waiting for Y..."
+                placeholder={t('service_editor.text.e_g_enables_teams_to_self_serve_x_without_waitin')}
               />
             </Field>
-            <Field label="Scope">
-              <textarea {...register('scope_text')} rows={3} className={styles.textarea} placeholder="Describe the scope of this service…" />
+            <Field label={t('service_editor.text.scope')}>
+              <textarea {...register('scope_text')} rows={3} className={styles.textarea} placeholder={t('service_editor.text.describe_the_scope_of_this_service')} />
             </Field>
-            <Field label="Exclusions">
-              <textarea {...register('exclusions')} rows={3} className={styles.textarea} placeholder="What is explicitly not covered by this service..." />
+            <Field label={t('service_editor.text.exclusions')}>
+              <textarea {...register('exclusions')} rows={3} className={styles.textarea} placeholder={t('service_editor.text.what_is_explicitly_not_covered_by_this_service')} />
             </Field>
           </EditorSection>
 
           <EditorSection id="request-access" title={t('service_editor.section.request_access')}>
             <span id="catalogue-access" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
-              <Field label="Request Channel Type">
-                <input {...register('request_channel_type')} className={styles.input} placeholder="portal, form, email, marketplace…" />
+              <Field label={t('service_editor.text.request_channel_type')}>
+                <input {...register('request_channel_type')} className={styles.input} placeholder={t('service_editor.text.portal_form_email_marketplace')} />
               </Field>
-              <Field label="Request Channel URL" error={errors.request_channel_url?.message}>
+              <Field label={t('service_editor.text.request_channel_url')} error={errors.request_channel_url?.message}>
                 <input {...register('request_channel_url')} className={fieldClass(errors.request_channel_url)} placeholder="https://…" />
               </Field>
             </div>
             <div className={styles.fieldRow}>
-              <Field label="Target Audience Summary">
-                <input {...register('target_audience_summary')} className={styles.input} placeholder="Internal staff, project teams, suppliers…" />
+              <Field label={t('service_editor.text.target_audience_summary')}>
+                <input {...register('target_audience_summary')} className={styles.input} placeholder={t('service_editor.text.internal_staff_project_teams_suppliers')} />
               </Field>
-              <Field label="Fulfillment Lead Time">
-                <input {...register('fulfillment_lead_time_text')} className={styles.input} placeholder="e.g. 3 business days" />
+              <Field label={t('service_editor.text.fulfillment_lead_time')}>
+                <input {...register('fulfillment_lead_time_text')} className={styles.input} placeholder={t('service_editor.text.e_g_3_business_days')} />
               </Field>
             </div>
             <div className={styles.toggleRow}>
               <label className={styles.domainCheck}>
                 <input type="checkbox" {...register('requestable')} />
-                <span>Requestable</span>
+                <span>{t('service_editor.text.requestable')}</span>
               </label>
               <label className={styles.domainCheck}>
                 <input type="checkbox" {...register('approval_required')} />
-                <span>Approval required</span>
+                <span>{t('service_editor.text.approval_required')}</span>
               </label>
             </div>
             {watchedRequestable && !hasRequestChannel && (
               <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
                 <span className={styles.crossFieldAlertIcon}>⚠</span>
-                This service is marked <strong>Requestable</strong> but has no Request Channel Type or URL. Consumers won&apos;t know how to order it.
+                {t('service_editor.text.this_service_is_marked')}{' '}<strong>{t('service_editor.text.requestable')}</strong> {t('service_editor.text.but_has_no_request_channel_type_or_url_consumers')}
               </div>
             )}
             {watchedRequestable && supportModels.length === 0 && (
               <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
                 <span className={styles.crossFieldAlertIcon}>⚠</span>
-                This service is requestable but has no <strong>Support Model</strong>. Consumers won&apos;t know who to contact for help. Add one in the Ownership and support tab.
+                {t('service_editor.text.this_service_is_requestable_but_has_no')}{' '}<strong>{t('service_editor.text.support_model')}</strong>. Consumers won&apos;t know who to contact for help. Add one in the Ownership and support tab.
               </div>
             )}
             <p className={styles.hint}>
-              These fields power the business-facing Overview and Request &amp; Support views.
+              {t('service_editor.text.these_fields_power_the_business_facing_overview')}
             </p>
           </EditorSection>
 
@@ -588,12 +588,12 @@ export default function ServiceEditorPage({ params }: Props) {
           <EditorSection id="ownership-support" title={t('service_editor.section.ownership')}>
             <span id="ownership" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
-              <Field label="Service Owner">
-                <input {...register('service_owner')} className={styles.input} placeholder="Display name" />
+              <Field label={t('service_editor.text.service_owner')}>
+                <input {...register('service_owner')} className={styles.input} placeholder={t('service_editor.text.display_name')} />
               </Field>
               <div className={styles.field}>
                 <UserPicker
-                  label="Owner Email"
+                  label={t('service_editor.text.owner_email')}
                   scope="owners"
                   value={watch('service_owner_email') ?? ''}
                   onChange={(value) => setValue('service_owner_email', value, { shouldDirty: true, shouldValidate: true })}
@@ -601,31 +601,31 @@ export default function ServiceEditorPage({ params }: Props) {
                 />
                 {errors.service_owner_email?.message && <span className={styles.fieldError}>{errors.service_owner_email.message}</span>}
               </div>
-              <Field label="Service Delivery Manager" hint="Vyplňte jen tehdy, pokud pro službu existuje delivery proces.">
-                <input {...register('manager')} className={styles.input} placeholder="Display name" />
+              <Field label={t('service_editor.text.service_delivery_manager')} hint={t('service_editor.text.fill_in_only_if_a_delivery_process_exists_for_th')}>
+                <input {...register('manager')} className={styles.input} placeholder={t('service_editor.text.display_name')} />
               </Field>
             </div>
-            <p className={styles.hint}>Role history remains audited. Legacy owner organization fields stay preserved for import/history but are no longer edited in the core form.</p>
+            <p className={styles.hint}>{t('service_editor.text.role_history_remains_audited_legacy_owner_organi')}</p>
           </EditorSection>
 
           {/* §5 Dostupnost a vazby */}
           <EditorSection id="availability-relations" title={t('service_editor.section.sla_availability')}>
             <span id="availability" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.hint}>
-              SLA evidence is included in the <a href="/api/v1/export/bundle">full export bundle</a>.
+              {t('service_editor.text.sla_evidence_is_included_in')}{' '}<a href="/api/v1/export/bundle">{t('service_editor.text.full_export_bundle')}</a>.
             </div>
             <div className={styles.fieldRow}>
-              <Field label="SLA Availability (%)" error={errors.sla_availability?.message}>
+              <Field label={t('service_editor.text.sla_availability')} error={errors.sla_availability?.message}>
                 <input type="number" min={0} max={100} step={0.01} {...register('sla_availability')} className={fieldClass(errors.sla_availability)} />
               </Field>
-              <Field label="SLA Restoration (hours)" error={errors.sla_restoration?.message}>
+              <Field label={t('service_editor.text.sla_restoration_hours')} error={errors.sla_restoration?.message}>
                 <input type="number" min={0} {...register('sla_restoration')} className={fieldClass(errors.sla_restoration)} />
               </Field>
-              <Field label="SLA Delivery (days)" error={errors.sla_delivery?.message}>
+              <Field label={t('service_editor.text.sla_delivery_days')} error={errors.sla_delivery?.message}>
                 <input type="number" min={0} {...register('sla_delivery')} className={fieldClass(errors.sla_delivery)} />
               </Field>
             </div>
-            <Field label="Available On (domains)">
+            <Field label={t('service_editor.text.available_on_domains')}>
               <div className={styles.domainGrid}>
                 {domainOptions.map(d => (
                   <label key={d} className={styles.domainCheck}>
@@ -648,12 +648,12 @@ export default function ServiceEditorPage({ params }: Props) {
             {/* ── Legacy variant SLA overrides ─────────────────────────────── */}
             {canViewAdvancedEvidence && (
             <details className={styles.advancedDetails}>
-              <summary className={styles.advancedSummary}>Deprecated legacy variant SLA overrides</summary>
+              <summary className={styles.advancedSummary}>{t('service_editor.text.deprecated_legacy_variant_sla_overrides')}</summary>
               <div className={styles.advancedDetailsBody}>
               <div className={styles.slaSubsection}>
-              <div className={styles.slaSubtitle}>Legacy variant SLA overrides are read-only</div>
+              <div className={styles.slaSubtitle}>{t('service_editor.text.legacy_variant_sla_overrides_are_read_only')}</div>
               <p className={styles.hint}>
-                New SLA evidence is maintained at service level above or through per-offering support model records.
+                {t('service_editor.text.new_sla_evidence_is_maintained_at_service_level')}
               </p>
               {slaData && slaData.sla_records.filter(r => r.flavour_code != null).length > 0 && (
                 <div className={styles.slaRecordList}>
@@ -668,7 +668,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 </div>
               )}
               {slaData && slaData.sla_records.filter(r => r.flavour_code != null).length === 0 && (
-                <p className={styles.hint}>No legacy variant SLA overrides exist for this service.</p>
+                <p className={styles.hint}>{t('service_editor.text.no_legacy_variant_sla_overrides_exist_for_this_s')}</p>
               )}
               </div>
               </div>
@@ -679,7 +679,7 @@ export default function ServiceEditorPage({ params }: Props) {
           {/* §6 Legacy variant evidence — read-only */}
           <EditorSection id="flavours" title={t('service_editor.section.legacy_flavours')} hidden={!canViewAdvancedEvidence}>
             <div className={styles.hint}>
-              Legacy variant data is retained for history and export evidence. Create and maintain current service variants in Service Offerings below.
+              {t('service_editor.text.legacy_variant_data_is_retained_for_history_and')}
             </div>
             {flavourError && <div className={styles.errorBanner}>{flavourError}</div>}
             {flavours.length > 0 ? (
@@ -693,13 +693,13 @@ export default function ServiceEditorPage({ params }: Props) {
                     </span>
                     <span className={styles.flavourMeta}>{f.billing_period_code ?? '—'}</span>
                     <span className={styles.flavourMeta}>{f.lifecycle_cost != null ? `€${f.lifecycle_cost.toLocaleString()}` : '—'}</span>
-                    {f.is_orderable && <span className={styles.relBadgeGreen}>legacy orderable</span>}
+                    {f.is_orderable && <span className={styles.relBadgeGreen}>{t('service_editor.text.legacy_orderable')}</span>}
                     <span className={styles.flavourMeta}>{f.flavour_status_code ?? '—'}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className={styles.hint}>No legacy variant evidence is defined. Use Service Offerings for new variants.</p>
+              <p className={styles.hint}>{t('service_editor.text.no_legacy_variant_evidence_is_defined_use_servic')}</p>
             )}
           </EditorSection>
 
@@ -715,7 +715,7 @@ export default function ServiceEditorPage({ params }: Props) {
           {/* §6 Readiness a governance */}
           <EditorSection id="readiness-governance" title={t('service_editor.section.c3_governance')}>
             <C3MappingPanel t={t} c3={c3Editor} c3ItemMap={c3ItemMap} readiness={readiness} />
-            <Field label="Retired / End-of-life Note">
+            <Field label={t('service_editor.text.retired_end_of_life_note')}>
               <textarea {...register('retired_note')} rows={3} className={styles.textarea} />
             </Field>
           </EditorSection>
@@ -735,68 +735,67 @@ export default function ServiceEditorPage({ params }: Props) {
           {/* §7 Advanced evidence */}
           <EditorSection id="advanced-evidence" title={t('service_editor.section.advanced_evidence')} hidden={!canViewAdvancedEvidence}>
             <p className={styles.hint}>
-              Admin/import evidence only. These fields preserve legacy import context and should not be needed for routine catalogue maintenance.
+              {t('service_editor.text.admin_import_evidence_only_these_fields_preserve')}
             </p>
             <div className={styles.fieldRow}>
-              <Field label="Service URL" error={errors.source_url?.message}>
+              <Field label={t('service_editor.text.service_url')} error={errors.source_url?.message}>
                 <input {...register('source_url')} className={fieldClass(errors.source_url)} placeholder="https://…" />
               </Field>
             </div>
             <div className={styles.fieldRow}>
-              <Field label="Unit of Measure">
+              <Field label={t('service_editor.text.unit_of_measure')}>
                 <input {...register('unit_of_measure')} className={styles.input} />
               </Field>
-              <Field label="Charging Basis">
+              <Field label={t('service_editor.text.charging_basis')}>
                 <input {...register('charging_basis')} className={styles.input} />
               </Field>
-              <Field label="Rate Note">
+              <Field label={t('service_editor.text.rate_note')}>
                 <input {...register('rate_note')} className={styles.input} />
               </Field>
             </div>
-            <Field label="Ordering Note">
+            <Field label={t('service_editor.text.ordering_note')}>
               <textarea {...register('ordering_note')} rows={2} className={styles.textarea} />
             </Field>
             {/* Item 7: Operational Notes */}
-            <Field label="Operational Notes">
-              <textarea {...register('operational_notes_raw')} rows={3} className={styles.textarea} placeholder="Internal operational notes, escalation paths, etc." />
+            <Field label={t('service_editor.text.operational_notes')}>
+              <textarea {...register('operational_notes_raw')} rows={3} className={styles.textarea} placeholder={t('service_editor.text.internal_operational_notes_escalation_paths_etc')} />
             </Field>
             {/* Legacy SLA text fields kept as import evidence */}
             <div className={styles.fieldRow}>
-              <Field label="SLA Restoration Text">
-                <textarea {...register('sla_restoration_text')} rows={2} className={styles.textarea} placeholder="Free-text restoration SLA description" />
+              <Field label={t('service_editor.text.sla_restoration_text')}>
+                <textarea {...register('sla_restoration_text')} rows={2} className={styles.textarea} placeholder={t('service_editor.text.free_text_restoration_sla_description')} />
               </Field>
-              <Field label="SLA Delivery Text">
-                <textarea {...register('sla_delivery_text')} rows={2} className={styles.textarea} placeholder="Free-text delivery SLA description" />
+              <Field label={t('service_editor.text.sla_delivery_text')}>
+                <textarea {...register('sla_delivery_text')} rows={2} className={styles.textarea} placeholder={t('service_editor.text.free_text_delivery_sla_description')} />
               </Field>
             </div>
-            <Field label="Customer Type">
+            <Field label={t('service_editor.text.customer_type')}>
               <input
                 {...register('customer_type')}
                 className={styles.input}
-                placeholder="e.g. Internal, External, Partner (comma-separated)"
+                placeholder={t('service_editor.text.e_g_internal_external_partner_comma_separated')}
               />
-              <span className={styles.hint}>Customer segments this service targets. Comma-separated values, e.g. &quot;Internal, External&quot;.</span>
+              <span className={styles.hint}>{t('service_editor.text.customer_segments_this_service_targets_comma_sep')}</span>
             </Field>
             {/* Item 13: notes_json editable */}
-            <Field label="Notes (JSON)">
+            <Field label={t('service_editor.text.notes_json')}>
               <CodeEditor
                 name="notes_json"
-                label="Notes JSON"
+                label={t('service_editor.text.notes_json_2')}
                 language="json"
                 value={watch('notes_json') ?? ''}
                 onValueChange={(value) => setValue('notes_json', value, { shouldDirty: true, shouldValidate: true })}
                 rows={4}
                 placeholder={'{\n  "key": "value"\n}'}
               />
-              <span className={styles.hint}>Free-form JSON notes (read from import).</span>
+              <span className={styles.hint}>{t('service_editor.text.free_form_json_notes_read_from_import')}</span>
             </Field>
           </EditorSection>
 
           {/* §10 Raw fields — audit trail */}
           <EditorSection id="raw-fields" title={t('service_editor.section.raw_fields')} hidden={!canViewAdvancedEvidence}>
             <p className={styles.hint}>
-              Zdrojové texty z importu slouží jako auditní evidence původního vstupu.
-              Tato data jsou read-only — upravují se přes import.
+              {t('service_editor.text.source_texts_from_import_serve_as_audit_evidence')}
             </p>
             <button
               type="button"
@@ -804,11 +803,11 @@ export default function ServiceEditorPage({ params }: Props) {
               onClick={() => setRawFieldsOpen(o => !o)}
               style={{ marginBottom: 12 }}
             >
-              {rawFieldsOpen ? '▲ Skrýt zdrojovou evidenci' : '▼ Zobrazit zdrojovou evidenci'}
+              {rawFieldsOpen ? t('service_editor.text.hide_source_evidence') : t('service_editor.text.show_source_evidence')}
             </button>
             {rawFieldsOpen && (
               rawFields.length === 0
-                ? <p className={styles.hint}>Žádná zdrojová evidence — služba nebyla importována se zdrojovými texty.</p>
+                ? <p className={styles.hint}>{t('service_editor.text.no_source_evidence_the_service_was_not_imported')}</p>
                 : <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {rawFields.map(rf => (
                       <div key={rf.id} style={{
@@ -857,7 +856,7 @@ export default function ServiceEditorPage({ params }: Props) {
         onSave={() => void handleSubmit(onSubmit)()}
         onPublish={handlePublish}
         onDiscard={() => {
-          if (isDirty && !confirm('Máte neuložené změny. Opravdu odejít?')) return;
+          if (isDirty && !confirm(t('service_editor.text.you_have_unsaved_changes_leave_anyway'))) return;
           router.push(`/services/${id}`);
         }}
       />

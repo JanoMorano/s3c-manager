@@ -4,6 +4,7 @@ import type { ServiceOfferingBody } from '@/features/services/api/editor.api';
 import styles from '../editor.module.css';
 import { OFFERING_STATUSES } from './schema';
 import { ActiveEditorTabContext, ADVANCED_DETAIL_SECTION_IDS, PRIMARY_EDITOR_SECTION_IDS, editorTabOfSection } from './editorTabs';
+import { useT } from '@/app/i18n/useI18n';
 
 // ── Operational Readiness panel ──────────────────────────────────────────────
 export function OperationalReadinessPanel({
@@ -23,11 +24,12 @@ export function OperationalReadinessPanel({
   offeringsCount: number;
   defaultOfferingTitle: string | null;
 }) {
+  const t = useT();
   const checks: { label: string; ok: boolean }[] = [
-    { label: 'Offerings defined',  ok: offeringsCount > 0 },
-    { label: 'Default offering',    ok: offeringsCount === 0 || !!defaultOfferingTitle },
-    { label: 'Support model',      ok: supportModelCount > 0 },
-    { label: 'Request channel',    ok: !requestable || !!(channelType?.trim() || channelUrl?.trim()) || offeringHasChannel },
+    { label: t('service_editor.text.offerings_defined'),  ok: offeringsCount > 0 },
+    { label: t('service_editor.text.default_offering'),    ok: offeringsCount === 0 || !!defaultOfferingTitle },
+    { label: t('service_editor.text.support_model_2'),      ok: supportModelCount > 0 },
+    { label: t('service_editor.text.request_channel'),    ok: !requestable || !!(channelType?.trim() || channelUrl?.trim()) || offeringHasChannel },
   ];
   const allOk = checks.every(c => c.ok);
 
@@ -43,7 +45,7 @@ export function OperationalReadinessPanel({
           </span>
         </div>
       ))}
-      {allOk && <div style={{ font: 'var(--text-body-sm)', color: 'var(--color-success)', marginTop: 4 }}>All checks pass</div>}
+      {allOk && <div style={{ font: 'var(--text-body-sm)', color: 'var(--color-success)', marginTop: 4 }}>{t('service_editor.text.all_checks_pass')}</div>}
     </div>
   );
 }
@@ -126,66 +128,66 @@ export function OfferingFormFields({
   return (
     <>
       <div className={styles.fieldRow}>
-        <Field label="Offering Code">
+        <Field label={t('service_editor.text.offering_code')}>
           <input className={styles.input} value={form.offering_code ?? ''} onChange={e => setForm(p => ({ ...p, offering_code: e.target.value }))} />
         </Field>
-        <Field label="Title">
+        <Field label={t('service_editor.text.title_2')}>
           <input className={styles.input} value={form.title ?? ''} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
         </Field>
-        <Field label="Status">
+        <Field label={t('service_editor.text.status')}>
           <select className={styles.input} value={form.status ?? (allowEmptyStatus ? '' : 'draft')} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
-            {allowEmptyStatus && <option value="">— select —</option>}
+            {allowEmptyStatus && <option value="">{t('service_editor.text.select')}</option>}
             {OFFERING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
           </select>
         </Field>
       </div>
-      <Field label="Description">
+      <Field label={t('service_editor.text.description')}>
         <textarea className={styles.textarea} rows={3} value={form.description ?? ''} onChange={e => setForm(p => ({ ...p, description: e.target.value || null }))} />
       </Field>
       <p className={styles.hint}>{t('service_editor.offering.inheritance_hint')}</p>
       <div className={styles.fieldRow}>
-        <Field label="Request Channel Type" hint={form.request_channel_type ? undefined : inheritedHint(inherited.request_channel_type)}>
+        <Field label={t('service_editor.text.request_channel_type')} hint={form.request_channel_type ? undefined : inheritedHint(inherited.request_channel_type)}>
           <input className={styles.input} value={form.request_channel_type ?? ''} placeholder={inherited.request_channel_type ?? ''} onChange={e => setForm(p => ({ ...p, request_channel_type: e.target.value || null }))} />
         </Field>
-        <Field label="Request Channel URL" hint={form.request_channel_url ? undefined : inheritedHint(inherited.request_channel_url)}>
+        <Field label={t('service_editor.text.request_channel_url')} hint={form.request_channel_url ? undefined : inheritedHint(inherited.request_channel_url)}>
           <input className={styles.input} value={form.request_channel_url ?? ''} placeholder={inherited.request_channel_url ?? ''} onChange={e => setForm(p => ({ ...p, request_channel_url: e.target.value || null }))} />
         </Field>
-        <Field label="Lead Time" hint={form.lead_time_text ? undefined : inheritedHint(inherited.lead_time_text)}>
+        <Field label={t('service_editor.text.lead_time')} hint={form.lead_time_text ? undefined : inheritedHint(inherited.lead_time_text)}>
           <input className={styles.input} value={form.lead_time_text ?? ''} placeholder={inherited.lead_time_text ?? ''} onChange={e => setForm(p => ({ ...p, lead_time_text: e.target.value || null }))} />
         </Field>
       </div>
       <div className={styles.fieldRow}>
-        <Field label="Requestable">
+        <Field label={t('service_editor.text.requestable')}>
           <select className={styles.input} value={inheritBooleanValue(form.requestable)} onChange={e => setForm(p => ({ ...p, requestable: parseInheritBoolean(e.target.value) }))}>
             <option value="inherit">{t('service_editor.offering.inherit_option', { value: yesNo(inherited.requestable) })}</option>
             <option value="yes">{t('common.yes')}</option>
             <option value="no">{t('common.no')}</option>
           </select>
         </Field>
-        <Field label="Approval required">
+        <Field label={t('service_editor.text.approval_required')}>
           <select className={styles.input} value={inheritBooleanValue(form.approval_required)} onChange={e => setForm(p => ({ ...p, approval_required: parseInheritBoolean(e.target.value) }))}>
             <option value="inherit">{t('service_editor.offering.inherit_option', { value: yesNo(inherited.approval_required) })}</option>
             <option value="yes">{t('common.yes')}</option>
             <option value="no">{t('common.no')}</option>
           </select>
         </Field>
-        <Field label="Support Tier">
+        <Field label={t('service_editor.text.support_tier')}>
           <input className={styles.input} value={form.support_tier_code ?? ''} onChange={e => setForm(p => ({ ...p, support_tier_code: e.target.value || null }))} />
         </Field>
-        <Field label="Display Order">
+        <Field label={t('service_editor.text.display_order')}>
           <input className={styles.input} type="number" value={form.display_order ?? ''} onChange={e => setForm(p => ({ ...p, display_order: e.target.value ? Number(e.target.value) : null }))} />
         </Field>
       </div>
       <div className={styles.toggleRow}>
         <label className={styles.domainCheck}>
           <input type="checkbox" checked={form.is_default ?? false} onChange={e => setForm(p => ({ ...p, is_default: e.target.checked }))} />
-          <span>Default offering</span>
+          <span>{t('service_editor.text.default_offering')}</span>
         </label>
       </div>
       {effectiveRequestable && !effectiveChannel && (
         <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
           <span className={styles.crossFieldAlertIcon}>⚠</span>
-          Requestable offerings need a Request Channel Type or URL so consumers know how to order this service.
+          {t('service_editor.text.requestable_offerings_need_a_request_channel_typ')}
         </div>
       )}
     </>

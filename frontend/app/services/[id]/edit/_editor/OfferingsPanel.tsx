@@ -34,7 +34,7 @@ export function OfferingsPanel({ t, model, inherited }: {
       {offerings.length > 0 && !defaultOffering && (
         <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
           <span className={styles.crossFieldAlertIcon}>!</span>
-          Select one default offering before publish. The default is shown first in catalogue and Service 360.
+          {t('service_editor.text.select_one_default_offering_before_publish_the_d')}
         </div>
       )}
       {offerings.length > 0 ? (
@@ -44,8 +44,8 @@ export function OfferingsPanel({ t, model, inherited }: {
               <div key={offering.id} className={styles.phase4Card}>
                 <OfferingFormFields form={offeringForm} setForm={setOfferingForm} inherited={inherited} t={t} allowEmptyStatus />
                 <div className={styles.flavourEditActions}>
-                  <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>Save</button>
-                  <button type="button" className={styles.btnGhost} onClick={() => { setEditOfferingId(null); setOfferingForm({}); }}>Cancel</button>
+                  <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>{t('service_editor.text.save')}</button>
+                  <button type="button" className={styles.btnGhost} onClick={() => { setEditOfferingId(null); setOfferingForm({}); }}>{t('service_editor.text.cancel')}</button>
                 </div>
               </div>
             ) : (
@@ -53,7 +53,7 @@ export function OfferingsPanel({ t, model, inherited }: {
                 <div className={styles.phase4Summary}>
                   <strong>{offering.title}</strong>
                   <span className={styles.phase4Meta}>
-                    {offering.offering_code} · {offering.status} · {(offering.effective_requestable ?? offering.requestable) ? 'requestable' : 'not requestable'}{offering.requestable == null ? ` (${t('service_editor.offering.inherited_short')})` : ''}
+                    {offering.offering_code} · {offering.status} · {(offering.effective_requestable ?? offering.requestable) ? 'requestable' : t('service_editor.text.not_requestable')}{offering.requestable == null ? ` (${t('service_editor.offering.inherited_short')})` : ''}
                   </span>
                   {offering.description && <span className={styles.phase4Hint}>{offering.description}</span>}
                 </div>
@@ -65,7 +65,7 @@ export function OfferingsPanel({ t, model, inherited }: {
                     onClick={() => handleOfferingReorder(offering.id, -1)}
                     disabled={offeringBusy || offeringIndex === 0}
                   >
-                    Up
+                    {t('service_editor.text.up')}
                   </button>
                   <button
                     type="button"
@@ -73,11 +73,11 @@ export function OfferingsPanel({ t, model, inherited }: {
                     onClick={() => handleOfferingReorder(offering.id, 1)}
                     disabled={offeringBusy || offeringIndex === sortedOfferings.length - 1}
                   >
-                    Down
+                    {t('service_editor.text.down')}
                   </button>
                   {!offering.is_default && (
                     <button type="button" className={styles.btnSmall} onClick={() => handleOfferingMakeDefault(offering)} disabled={offeringBusy}>
-                      Make default
+                      {t('service_editor.text.make_default')}
                     </button>
                   )}
                 </div>
@@ -97,8 +97,8 @@ export function OfferingsPanel({ t, model, inherited }: {
                     status: offering.status,
                     display_order: offering.display_order,
                   });
-                }}>Edit</button>
-                <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleOfferingDelete(offering.id)} disabled={offeringBusy}>Delete</button>
+                }}>{t('service_editor.text.edit')}</button>
+                <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleOfferingDelete(offering.id)} disabled={offeringBusy}>{t('service_editor.text.delete')}</button>
               </div>
             )
           ))}
@@ -109,13 +109,13 @@ export function OfferingsPanel({ t, model, inherited }: {
         <div className={styles.phase4Card}>
           <OfferingFormFields form={offeringForm} setForm={setOfferingForm} inherited={inherited} t={t} />
           <div className={styles.flavourEditActions}>
-            <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>Add offering</button>
-            <button type="button" className={styles.btnGhost} onClick={() => { setShowOfferingAdd(false); setOfferingForm({}); }}>Cancel</button>
+            <button type="button" className={styles.btnPrimary} onClick={handleOfferingSave} disabled={offeringBusy}>{t('service_editor.text.add_offering')}</button>
+            <button type="button" className={styles.btnGhost} onClick={() => { setShowOfferingAdd(false); setOfferingForm({}); }}>{t('service_editor.text.cancel')}</button>
           </div>
         </div>
       ) : (
         <button type="button" className={styles.btnSecondary} onClick={() => { setShowOfferingAdd(true); setEditOfferingId(null); setOfferingForm({ status: 'draft', requestable: null, approval_required: null, is_default: offerings.length === 0, display_order: sortedOfferings.length + 1 }); }} style={{ marginTop: 'var(--space-3)' }}>
-          + Add service offering
+          {t('service_editor.text.add_service_offering')}
         </button>
       )}
     </>

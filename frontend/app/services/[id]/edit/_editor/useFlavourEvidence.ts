@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { fetchServiceFlavours, type FlavourRecord } from '@/features/services/api/editor.api';
 import { authHeaders } from '@/features/services/api/services.api';
+import { useT } from '@/app/i18n/useI18n';
 
 interface RawField {
   id: number;
@@ -16,6 +17,7 @@ const NO_FLAVOURS: FlavourRecord[] = [];
 /** Import evidence of the service editor: raw import fields (loaded when opened) and legacy flavours. */
 export function useFlavourEvidence({ id }: { id: string }) {
   // ── Import source evidence — audit trail ─────────────────────────────────
+  const t = useT();
   const [rawFields, setRawFields] = useState<RawField[]>([]);
   const [rawFieldsOpen, setRawFieldsOpen] = useState(false);
   useEffect(() => {
@@ -33,7 +35,7 @@ export function useFlavourEvidence({ id }: { id: string }) {
     { revalidateOnFocus: false, shouldRetryOnError: false },
   );
   const flavourError = error
-    ? (error instanceof Error ? error.message : 'Legacy variant evidence could not be loaded')
+    ? (error instanceof Error ? error.message : t('service_editor.text.legacy_variant_evidence_could_not_be_loaded'))
     : null;
 
   return {

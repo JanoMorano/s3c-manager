@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { createRelation, deleteRelation, updateRelation, type RelationPatch } from '@/features/services/api/editor.api';
+import { useT } from '@/app/i18n/useI18n';
 
 /** Service relations of the service editor: add, inline edit and delete. */
 export function useRelationEditor({ id, mutate, mutateReadiness }: { id: string; mutate: () => Promise<unknown>; mutateReadiness: () => Promise<unknown> }) {
   // ── Relations state ──────────────────────────────────────────────────────
+  const t = useT();
   const [relBusy,       setRelBusy]       = useState(false);
   const [relError,      setRelError]      = useState<string | null>(null);
   const [showRelAdd,    setShowRelAdd]    = useState(false);
@@ -13,7 +15,7 @@ export function useRelationEditor({ id, mutate, mutateReadiness }: { id: string;
   const [editRelForm,   setEditRelForm]   = useState<RelationPatch>({});
 
   const handleRelAdd = async () => {
-    if (!relForm.to_service_id.trim()) { setRelError('Target service ID is required'); return; }
+    if (!relForm.to_service_id.trim()) { setRelError(t('service_editor.text.target_service_id_is_required')); return; }
     setRelBusy(true); setRelError(null);
     try {
       await createRelation({ from_service_id: id, to_service_id: relForm.to_service_id.trim(), relation_type: relForm.relation_type, relation_label: relForm.relation_label || undefined });
@@ -21,7 +23,7 @@ export function useRelationEditor({ id, mutate, mutateReadiness }: { id: string;
       setShowRelAdd(false);
       await mutate();
       await mutateReadiness();
-    } catch (e: unknown) { setRelError(e instanceof Error ? e.message : 'Failed to add'); }
+    } catch (e: unknown) { setRelError(e instanceof Error ? e.message : t('service_editor.text.failed_to_add')); }
     finally { setRelBusy(false); }
   };
 
@@ -45,15 +47,15 @@ export function useRelationEditor({ id, mutate, mutateReadiness }: { id: string;
       setEditRelId(null); setEditRelForm({});
       await mutate();
       await mutateReadiness();
-    } catch (e: unknown) { setRelError(e instanceof Error ? e.message : 'Save failed'); }
+    } catch (e: unknown) { setRelError(e instanceof Error ? e.message : t('service_editor.text.save_failed')); }
     finally { setRelBusy(false); }
   };
 
   const handleRelDelete = async (relId: number) => {
-    if (!confirm('Delete this relationship?')) return;
+    if (!confirm(t('service_editor.text.delete_this_relationship'))) return;
     setRelBusy(true); setRelError(null);
     try { await deleteRelation(relId); await mutate(); await mutateReadiness(); }
-    catch (e: unknown) { setRelError(e instanceof Error ? e.message : 'Delete failed'); }
+    catch (e: unknown) { setRelError(e instanceof Error ? e.message : t('service_editor.text.delete_failed')); }
     finally { setRelBusy(false); }
   };
 

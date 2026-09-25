@@ -286,53 +286,53 @@ export default function GraphPage({ params }: Props) {
     setSelectedEdge(null);
   }, []);
 
-  if (isLoading) return <div className={shellStyles.state}>Načítám service graph…</div>;
-  if (error || !graphData) return <div className={shellStyles.stateError}>Service graph není dostupný.</div>;
+  if (isLoading) return <div className={shellStyles.state}>{t('service_graph.text.loading_service_graph')}</div>;
+  if (error || !graphData) return <div className={shellStyles.stateError}>{t('service_graph.text.service_graph_is_not_available')}</div>;
 
   const selectedNodeHref = selectedNode ? resolveNodeHref(selectedNode) : null;
   const typedSelectedEdge = selectedEdge as (ServiceGraphV2Edge & { mapping_type_code?: string | null }) | null;
 
   return (
     <GraphWorkspace
-      title="Service graph"
-      purpose="Vazby služby, offeringů, C3 prvků a readiness kontext v jedné pracovní ploše."
+      title={t('service_graph.text.service_graph')}
+      purpose={t('service_graph.text.service_offering_c3_element_and_readiness_contex')}
       canvasOnly={canvasOnly}
       detailOpen={detailOpen}
       showWorkspaceActions={false}
       toolbar={(
         <>
-        <FilterGroup label="Pohledy">
-          <Link href="/services/list" className={shellStyles.panelLink}>Seznam Služeb</Link>
+        <FilterGroup label={t('service_graph.text.pohledy')}>
+          <Link href="/services/list" className={shellStyles.panelLink}>{t('service_graph.text.service_list')}</Link>
           <button
             type="button"
             className={`${shellStyles.viewModeButton} ${viewMode === 'graph-only' ? shellStyles.viewModeButtonActive : ''}`}
             onClick={() => selectViewMode('graph-only')}
           >
-            Pouze graf
+            {t('service_graph.text.graph_only')}
           </button>
           <button
             type="button"
             className={`${shellStyles.viewModeButton} ${viewMode === 'text' ? shellStyles.viewModeButtonActive : ''}`}
             onClick={() => selectViewMode('text')}
           >
-            Vazby textově
+            {t('service_graph.text.text_relationships')}
           </button>
           <button
             type="button"
             className={`${shellStyles.viewModeButton} ${viewMode === 'detail' ? shellStyles.viewModeButtonActive : ''}`}
             onClick={() => selectViewMode('detail')}
           >
-            Detail
+            {t('service_graph.text.detail')}
           </button>
         </FilterGroup>
 
-        <FilterGroup label="Souhrn">
-          <div className={shellStyles.meta}>Service: {graphData.root_service_id}</div>
-          <div className={shellStyles.meta}>Bloky: {rootGraph.nodes.length}</div>
-          <div className={shellStyles.meta}>Vazby: {rootGraph.edges.length}</div>
+        <FilterGroup label={t('service_graph.text.souhrn')}>
+          <div className={shellStyles.meta}>{t('service_graph.text.service')}{' '}{graphData.root_service_id}</div>
+          <div className={shellStyles.meta}>{t('service_graph.text.blocks')}{' '}{rootGraph.nodes.length}</div>
+          <div className={shellStyles.meta}>{t('service_graph.text.relations')}{' '}{rootGraph.edges.length}</div>
         </FilterGroup>
 
-        <FilterGroup label="Uzly">
+        <FilterGroup label={t('service_graph.text.uzly')}>
           {NODE_KIND_ORDER.map((kind) => (
             <div key={kind} className={shellStyles.meta}>
               {NODE_KIND_LABEL[kind]}: {nodeCounts.get(kind) ?? 0}
@@ -340,7 +340,7 @@ export default function GraphPage({ params }: Props) {
           ))}
         </FilterGroup>
 
-        <FilterGroup label="Vazby">
+        <FilterGroup label={t('service_graph.text.relations_2')}>
           {Array.from(edgeCounts.entries()).sort((a, b) => compareText(locale, a[0], b[0])).map(([kind, count]) => (
             <div key={kind} className={shellStyles.meta}>
               {kind.replace(/_/g, ' ')}: {count}
@@ -348,31 +348,31 @@ export default function GraphPage({ params }: Props) {
           ))}
         </FilterGroup>
 
-        <FilterGroup label="Typ spojnic">
+        <FilterGroup label={t('service_graph.text.typ_spojnic')}>
           <div className={shellStyles.typeList}>
             <button
               type="button"
               className={`${shellStyles.typeBtn} ${edgeType === 'smoothstep' ? shellStyles.typeBtnOn : ''}`}
               onClick={() => setEdgeType('smoothstep')}
             >
-              Pravoúhlé
+              {t('service_graph.text.orthogonal')}
             </button>
             <button
               type="button"
               className={`${shellStyles.typeBtn} ${edgeType === 'straight' ? shellStyles.typeBtnOn : ''}`}
               onClick={() => setEdgeType('straight')}
             >
-              Přímé
+              {t('service_graph.text.direct')}
             </button>
           </div>
         </FilterGroup>
 
-        <FilterGroup label="Styl čar">
+        <FilterGroup label={t('service_graph.text.line_style')}>
           <div className={shellStyles.typeList}>
             {[
-              { value: 'auto', label: 'Dle vazby' },
-              { value: 'solid', label: 'Plné' },
-              { value: 'dashed', label: 'Čárkované' },
+              { value: 'auto', label: t('service_graph.text.by_relation') },
+              { value: 'solid', label: t('service_graph.text.full') },
+              { value: 'dashed', label: t('service_graph.text.dashed') },
             ].map((option) => (
               <button
                 key={option.value}
@@ -387,21 +387,21 @@ export default function GraphPage({ params }: Props) {
         </FilterGroup>
 
         {graphData.readiness && (
-          <FilterGroup label="Readiness">
-            <div className={shellStyles.meta}>Blockers: {graphData.readiness.blockers.length}</div>
-            <div className={shellStyles.meta}>Warnings: {graphData.readiness.warnings.length}</div>
-            <div className={shellStyles.meta}>Primary C3: {graphData.readiness.primary_c3_code ?? '—'}</div>
-            <div className={shellStyles.meta}>Legacy variants: {graphData.readiness.active_flavour_count}</div>
+          <FilterGroup label={t('service_graph.text.readiness')}>
+            <div className={shellStyles.meta}>{t('service_graph.text.blockers')}{' '}{graphData.readiness.blockers.length}</div>
+            <div className={shellStyles.meta}>{t('service_graph.text.warnings')}{' '}{graphData.readiness.warnings.length}</div>
+            <div className={shellStyles.meta}>{t('service_graph.text.primary_c3')}{' '}{graphData.readiness.primary_c3_code ?? '—'}</div>
+            <div className={shellStyles.meta}>{t('service_graph.text.legacy_variants')}{' '}{graphData.readiness.active_flavour_count}</div>
           </FilterGroup>
         )}
 
-        <FilterGroup label="Export">
+        <FilterGroup label={t('service_graph.text.export')}>
           <button
             type="button"
             className={shellStyles.saveButtonInline}
             onClick={() => exportGraphToPdf(graphCanvasRef.current, `Service Graph ${graphData.root_service_id}`)}
           >
-            Export do PDF
+            {t('service_graph.text.export_do_pdf')}
           </button>
         </FilterGroup>
         </>
@@ -409,9 +409,9 @@ export default function GraphPage({ params }: Props) {
       canvas={(
         <main className={`${shellStyles.main} ${canvasOnly ? shellStyles.mainGraphOnly : ''}`}>
         <div className={shellStyles.header}>
-          <div className={shellStyles.title}>Service Graph</div>
+          <div className={shellStyles.title}>{t('service_graph.text.service_graph_2')}</div>
           <div className={shellStyles.meta}>
-            {graphData.root_service_id} · {rootGraph.nodes.length} bloků · {rootGraph.edges.length} vazeb
+            {graphData.root_service_id} · {rootGraph.nodes.length} {t('service_graph.text.blocks_2')}{' '}{rootGraph.edges.length} vazeb
           </div>
           <select
             className={shellStyles.selectInput}
@@ -432,7 +432,7 @@ export default function GraphPage({ params }: Props) {
           </select>
           {graphData.readiness && (
             <span className={graphData.readiness.is_publishable ? localStyles.readinessOk : localStyles.readinessBlocked}>
-              {graphData.readiness.is_publishable ? 'Publish ready' : 'Publish blocked'}
+              {graphData.readiness.is_publishable ? t('service_graph.text.publish_ready') : t('service_graph.text.publish_blocked')}
             </span>
           )}
         </div>
@@ -459,9 +459,9 @@ export default function GraphPage({ params }: Props) {
             aria-labelledby="service-detail-graph-text-alt"
           >
             <div className={shellStyles.graphTextHeader}>
-              <h2 id="service-detail-graph-text-alt">Textová alternativa vazeb</h2>
+              <h2 id="service-detail-graph-text-alt">{t('service_graph.text.text_alternative_for_relations')}</h2>
               <div className={shellStyles.graphTextHeaderActions}>
-                <span>{rootGraph.edges.length} vazeb, zobrazeno {Math.min(textRelationRows.length, 200)}</span>
+                <span>{rootGraph.edges.length} {t('service_graph.text.vazeb_zobrazeno')}{' '}{Math.min(textRelationRows.length, 200)}</span>
               </div>
             </div>
             {textRelationRows.length > 0 ? (
@@ -470,14 +470,14 @@ export default function GraphPage({ params }: Props) {
                   <li key={relation.id}>
                     <strong>{relation.source?.label ?? relation.source?.code ?? relation.source?.id ?? relation.id}</strong>
                     <span>{relation.label}</span>
-                    <strong>{relation.target?.label ?? relation.target?.code ?? relation.target?.id ?? 'Neznámý cíl'}</strong>
+                    <strong>{relation.target?.label ?? relation.target?.code ?? relation.target?.id ?? t('service_graph.text.unknown_target')}</strong>
                     <small>{relation.kind}</small>
                   </li>
                 ))}
               </ul>
             ) : null}
             {textRelationRows.length === 0 ? (
-              <p id="service-detail-graph-text-alt-content" className={shellStyles.meta}>Pro tuto službu nejsou evidované žádné vazby grafu.</p>
+              <p id="service-detail-graph-text-alt-content" className={shellStyles.meta}>{t('service_graph.text.no_graph_relations_are_recorded_for_this_service')}</p>
             ) : null}
           </section>
         ) : null}
@@ -486,22 +486,22 @@ export default function GraphPage({ params }: Props) {
       detailPanelContent={(
         <>
           <div className={shellStyles.panelHeader}>
-            <div className={shellStyles.panelTitle}>Detail</div>
+            <div className={shellStyles.panelTitle}>{t('service_graph.text.detail')}</div>
           </div>
           <div className={shellStyles.panelBody}>
             {selectedNode ? (
               <>
-                <PanelRow label="Typ">{NODE_KIND_LABEL[selectedNode.node_kind]}</PanelRow>
-                <PanelRow label="Kód">{selectedNode.code ?? '—'}</PanelRow>
-                <PanelRow label="Název">{selectedNode.label}</PanelRow>
-                {selectedNode.status && <PanelRow label="Status">{selectedNode.status}</PanelRow>}
-                {selectedNode.service_type && <PanelRow label="Service type">{selectedNode.service_type}</PanelRow>}
-                {selectedNode.portfolio_group && <PanelRow label="Portfolio">{selectedNode.portfolio_group}</PanelRow>}
-                {selectedNode.item_type && <PanelRow label="Item type">{selectedNode.item_type}</PanelRow>}
-                {selectedNode.completeness_status && <PanelRow label="Completeness">{selectedNode.completeness_status}</PanelRow>}
+                <PanelRow label={t('service_graph.text.typ')}>{NODE_KIND_LABEL[selectedNode.node_kind]}</PanelRow>
+                <PanelRow label={t('service_graph.text.code')}>{selectedNode.code ?? '—'}</PanelRow>
+                <PanelRow label={t('service_graph.text.name')}>{selectedNode.label}</PanelRow>
+                {selectedNode.status && <PanelRow label={t('service_graph.text.status')}>{selectedNode.status}</PanelRow>}
+                {selectedNode.service_type && <PanelRow label={t('service_graph.text.service_type')}>{selectedNode.service_type}</PanelRow>}
+                {selectedNode.portfolio_group && <PanelRow label={t('service_graph.text.portfolio')}>{selectedNode.portfolio_group}</PanelRow>}
+                {selectedNode.item_type && <PanelRow label={t('service_graph.text.item_type')}>{selectedNode.item_type}</PanelRow>}
+                {selectedNode.completeness_status && <PanelRow label={t('service_graph.text.completeness')}>{selectedNode.completeness_status}</PanelRow>}
                 {selectedNodeHref ? (
                   <Link href={selectedNodeHref} className={shellStyles.panelLink}>
-                    Otevřít detail →
+                    {t('service_graph.text.open_detail')}
                   </Link>
                 ) : null}
               </>
@@ -509,36 +509,36 @@ export default function GraphPage({ params }: Props) {
 
             {typedSelectedEdge ? (
               <>
-                <PanelRow label="Edge">{typedSelectedEdge.edge_kind}</PanelRow>
-                <PanelRow label="Typ">
+                <PanelRow label={t('service_graph.text.edge')}>{typedSelectedEdge.edge_kind}</PanelRow>
+                <PanelRow label={t('service_graph.text.typ')}>
                   {typedSelectedEdge.edge_kind === 'service_relation'
                     ? t(relationTypeLabelKey(typedSelectedEdge.relation_type))
                     : typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}
                 </PanelRow>
-                {typedSelectedEdge.relation_label ? <PanelRow label="Label">{typedSelectedEdge.relation_label}</PanelRow> : null}
+                {typedSelectedEdge.relation_label ? <PanelRow label={t('service_graph.text.label')}>{typedSelectedEdge.relation_label}</PanelRow> : null}
                 {typedSelectedEdge.pace_code ? <PanelRow label="PACE">{typedSelectedEdge.pace_code}</PanelRow> : null}
-                {typedSelectedEdge.impact_level ? <PanelRow label="Impact">{typedSelectedEdge.impact_level}</PanelRow> : null}
-                {typedSelectedEdge.is_primary != null ? <PanelRow label="Primary">{typedSelectedEdge.is_primary ? 'Ano' : 'Ne'}</PanelRow> : null}
-                {typedSelectedEdge.is_mandatory != null ? <PanelRow label="Mandatory">{typedSelectedEdge.is_mandatory ? 'Ano' : 'Ne'}</PanelRow> : null}
-                {typedSelectedEdge.relation_note ? <PanelRow label="Poznámka">{typedSelectedEdge.relation_note}</PanelRow> : null}
+                {typedSelectedEdge.impact_level ? <PanelRow label={t('service_graph.text.impact')}>{typedSelectedEdge.impact_level}</PanelRow> : null}
+                {typedSelectedEdge.is_primary != null ? <PanelRow label={t('service_graph.text.primary')}>{typedSelectedEdge.is_primary ? t('service_graph.text.ano') : t('service_graph.text.ne')}</PanelRow> : null}
+                {typedSelectedEdge.is_mandatory != null ? <PanelRow label={t('service_graph.text.mandatory')}>{typedSelectedEdge.is_mandatory ? t('service_graph.text.ano') : t('service_graph.text.ne')}</PanelRow> : null}
+                {typedSelectedEdge.relation_note ? <PanelRow label={t('service_graph.text.note')}>{typedSelectedEdge.relation_note}</PanelRow> : null}
               </>
             ) : null}
 
             {!selectedNode && !typedSelectedEdge && graphData.readiness ? (
               <>
                 <div className={shellStyles.meta}>
-                  Klikni na uzel nebo hranu. Dvojklik na uzel otevře detail služby nebo C3 entity.
+                  {t('service_graph.text.click_a_node_or_edge_double_clicking_a_node_open')}
                 </div>
-                <PanelRow label="Primary C3">
+                <PanelRow label={t('service_graph.text.primary_c3_2')}>
                   {graphData.readiness.primary_c3_code ?? '—'} {graphData.readiness.primary_c3_title ?? ''}
                 </PanelRow>
-                <PanelRow label="Capability">
+                <PanelRow label={t('service_graph.text.capability')}>
                   {graphData.readiness.primary_c3_completeness_status ?? '—'}
                 </PanelRow>
-                <PanelRow label="Legacy variants">{graphData.readiness.active_flavour_count}</PanelRow>
+                <PanelRow label={t('service_graph.text.legacy_variants_2')}>{graphData.readiness.active_flavour_count}</PanelRow>
                 {graphData.readiness.blockers.length > 0 ? (
                   <div className={localStyles.edgePanelBlock}>
-                    <strong>Blockers</strong>
+                    <strong>{t('service_graph.text.blockers_2')}</strong>
                     <ul className={localStyles.edgePanelList}>
                       {graphData.readiness.blockers.map((item) => <li key={item}>{item}</li>)}
                     </ul>
@@ -546,7 +546,7 @@ export default function GraphPage({ params }: Props) {
                 ) : null}
                 {graphData.readiness.warnings.length > 0 ? (
                   <div className={localStyles.edgePanelBlock}>
-                    <strong>Warnings</strong>
+                    <strong>{t('service_graph.text.warnings_2')}</strong>
                     <ul className={localStyles.edgePanelList}>
                       {graphData.readiness.warnings.map((item) => <li key={item}>{item}</li>)}
                     </ul>

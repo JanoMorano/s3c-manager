@@ -8,10 +8,12 @@ import {
 } from '@/features/services/api/editor.api';
 import type { ServiceOffering, ServiceOperationalLink } from '@/features/services/model/service.types';
 import { useDraftList, useEditorList } from './editorData';
+import { useT } from '@/app/i18n/useI18n';
 
 /** Offerings, support model, audience policies and operational links of the service editor. */
 export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: string; mutate: () => Promise<unknown>; setPhase4Saved: (message: string | null) => void }) {
   // ── Offerings state ──────────────────────────────────────────────────────
+  const t = useT();
   const { items: offerings, reload: loadOfferings } = useEditorList<ServiceOffering>(
     `editor:offerings:${id}`, () => fetchServiceOfferingsEditor(id),
   );
@@ -88,9 +90,9 @@ export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: stri
       setShowOfferingAdd(false);
       await loadOfferings();
       await mutate();
-      setPhase4Saved('Offerings saved');
+      setPhase4Saved(t('service_editor.text.offerings_saved'));
     } catch (e: unknown) {
-      setOfferingError(e instanceof Error ? e.message : 'Offering save failed');
+      setOfferingError(e instanceof Error ? e.message : t('service_editor.text.offering_save_failed'));
     } finally {
       setOfferingBusy(false);
     }
@@ -106,7 +108,7 @@ export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: stri
       await mutate();
       setPhase4Saved(`${offering.title} is now the default offering`);
     } catch (e: unknown) {
-      setOfferingError(e instanceof Error ? e.message : 'Default offering update failed');
+      setOfferingError(e instanceof Error ? e.message : t('service_editor.text.default_offering_update_failed'));
     } finally {
       setOfferingBusy(false);
     }
@@ -130,24 +132,24 @@ export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: stri
       );
       await loadOfferings();
       await mutate();
-      setPhase4Saved('Offering order saved');
+      setPhase4Saved(t('service_editor.text.offering_order_saved'));
     } catch (e: unknown) {
-      setOfferingError(e instanceof Error ? e.message : 'Offering reorder failed');
+      setOfferingError(e instanceof Error ? e.message : t('service_editor.text.offering_reorder_failed'));
     } finally {
       setOfferingBusy(false);
     }
   };
 
   const handleOfferingDelete = async (offeringId: number) => {
-    if (!confirm('Delete this service offering?')) return;
+    if (!confirm(t('service_editor.text.delete_this_service_offering'))) return;
     setOfferingBusy(true); setOfferingError(null); setPhase4Saved(null);
     try {
       await deleteOffering(id, offeringId);
       await loadOfferings();
       await mutate();
-      setPhase4Saved('Offering deleted');
+      setPhase4Saved(t('service_editor.text.offering_deleted'));
     } catch (e: unknown) {
-      setOfferingError(e instanceof Error ? e.message : 'Offering delete failed');
+      setOfferingError(e instanceof Error ? e.message : t('service_editor.text.offering_delete_failed'));
     } finally {
       setOfferingBusy(false);
     }
@@ -167,10 +169,10 @@ export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: stri
         item.review_cadence
       );
       await supportModelList.replace(await replaceSupportModel(id, filtered));
-      setPhase4Saved('Support model saved');
+      setPhase4Saved(t('service_editor.text.support_model_saved'));
       await mutate();
     } catch (e: unknown) {
-      setSupportError(e instanceof Error ? e.message : 'Support model save failed');
+      setSupportError(e instanceof Error ? e.message : t('service_editor.text.support_model_save_failed'));
     } finally {
       setSupportBusy(false);
     }
@@ -188,10 +190,10 @@ export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: stri
         item.notes
       );
       await audienceList.replace(await replaceAudiencePolicies(id, filtered));
-      setPhase4Saved('Audience policies saved');
+      setPhase4Saved(t('service_editor.text.audience_policies_saved'));
       await mutate();
     } catch (e: unknown) {
-      setAudienceError(e instanceof Error ? e.message : 'Audience save failed');
+      setAudienceError(e instanceof Error ? e.message : t('service_editor.text.audience_save_failed'));
     } finally {
       setAudienceBusy(false);
     }
@@ -209,23 +211,23 @@ export function useServiceModelEditor({ id, mutate, setPhase4Saved }: { id: stri
       setLinkForm({});
       setShowLinkAdd(false);
       await loadOperationalLinks();
-      setPhase4Saved('Operational links saved');
+      setPhase4Saved(t('service_editor.text.operational_links_saved'));
     } catch (e: unknown) {
-      setLinkError(e instanceof Error ? e.message : 'Operational link save failed');
+      setLinkError(e instanceof Error ? e.message : t('service_editor.text.operational_link_save_failed'));
     } finally {
       setLinkBusy(false);
     }
   };
 
   const handleLinkDelete = async (linkId: number) => {
-    if (!confirm('Delete this operational link?')) return;
+    if (!confirm(t('service_editor.text.delete_this_operational_link'))) return;
     setLinkBusy(true); setLinkError(null); setPhase4Saved(null);
     try {
       await deleteOperationalLink(id, linkId);
       await loadOperationalLinks();
-      setPhase4Saved('Operational link deleted');
+      setPhase4Saved(t('service_editor.text.operational_link_deleted'));
     } catch (e: unknown) {
-      setLinkError(e instanceof Error ? e.message : 'Operational link delete failed');
+      setLinkError(e instanceof Error ? e.message : t('service_editor.text.operational_link_delete_failed'));
     } finally {
       setLinkBusy(false);
     }

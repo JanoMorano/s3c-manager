@@ -4,11 +4,13 @@ import styles from '../editor.module.css';
 import { OPERATIONAL_LINK_TYPES } from './schema';
 import { Field } from './EditorFields';
 import type { useServiceModelEditor } from './useServiceModelEditor';
+import { useT } from '@/app/i18n/useI18n';
 
 /** Operational links (knowledge, incidents, monitoring, …) of the service. */
 export function OperationalLinksPanel({ model }: {
   model: ReturnType<typeof useServiceModelEditor>;
 }) {
+  const t = useT();
   const {
     offerings,
     operationalLinks,
@@ -32,26 +34,26 @@ export function OperationalLinksPanel({ model }: {
             editLinkId === link.id ? (
               <div key={link.id} className={styles.phase4Card}>
                 <div className={styles.fieldRow}>
-                  <Field label="Offering">
+                  <Field label={t('service_editor.text.offering')}>
                     <select className={styles.input} value={linkForm.offering_id ?? ''} onChange={e => setLinkForm((current) => ({ ...current, offering_id: e.target.value ? Number(e.target.value) : null }))}>
-                      <option value="">— service level —</option>
+                      <option value="">{t('service_editor.text.service_level')}</option>
                       {offerings.map((offering) => (
                         <option key={offering.id} value={offering.id}>{offering.title} ({offering.offering_code})</option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="Link Type">
+                  <Field label={t('service_editor.text.link_type')}>
                     <select className={styles.input} value={linkForm.link_type ?? ''} onChange={e => setLinkForm((current) => ({ ...current, link_type: e.target.value || null }))}>
-                      <option value="">— select type —</option>
+                      <option value="">{t('service_editor.text.select_type')}</option>
                       {OPERATIONAL_LINK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </Field>
-                  <Field label="Sort Order">
+                  <Field label={t('service_editor.text.sort_order')}>
                     <input className={styles.input} type="number" value={linkForm.sort_order ?? ''} onChange={e => setLinkForm((current) => ({ ...current, sort_order: e.target.value ? Number(e.target.value) : null }))} />
                   </Field>
                 </div>
                 <div className={styles.fieldRow}>
-                  <Field label="Title">
+                  <Field label={t('service_editor.text.title_2')}>
                     <input className={styles.input} value={linkForm.title ?? ''} onChange={e => setLinkForm((current) => ({ ...current, title: e.target.value }))} />
                   </Field>
                   <Field label="URL">
@@ -59,8 +61,8 @@ export function OperationalLinksPanel({ model }: {
                   </Field>
                 </div>
                 <div className={styles.flavourEditActions}>
-                  <button type="button" className={styles.btnPrimary} onClick={handleLinkSave} disabled={linkBusy}>Save</button>
-                  <button type="button" className={styles.btnGhost} onClick={() => { setEditLinkId(null); setLinkForm({}); }}>Cancel</button>
+                  <button type="button" className={styles.btnPrimary} onClick={handleLinkSave} disabled={linkBusy}>{t('service_editor.text.save')}</button>
+                  <button type="button" className={styles.btnGhost} onClick={() => { setEditLinkId(null); setLinkForm({}); }}>{t('service_editor.text.cancel')}</button>
                 </div>
               </div>
             ) : (
@@ -81,8 +83,8 @@ export function OperationalLinksPanel({ model }: {
                     url: link.url,
                     sort_order: link.sort_order,
                   });
-                }}>Edit</button>
-                <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleLinkDelete(link.id)} disabled={linkBusy}>Delete</button>
+                }}>{t('service_editor.text.edit')}</button>
+                <button type="button" className={`${styles.btnSmall} ${styles.btnDanger}`} onClick={() => handleLinkDelete(link.id)} disabled={linkBusy}>{t('service_editor.text.delete')}</button>
               </div>
             )
           ))}
@@ -92,23 +94,23 @@ export function OperationalLinksPanel({ model }: {
       {showLinkAdd && editLinkId == null ? (
         <div className={styles.phase4Card}>
           <div className={styles.fieldRow}>
-            <Field label="Offering">
+            <Field label={t('service_editor.text.offering')}>
               <select className={styles.input} value={linkForm.offering_id ?? ''} onChange={e => setLinkForm((current) => ({ ...current, offering_id: e.target.value ? Number(e.target.value) : null }))}>
-                <option value="">— service level —</option>
+                <option value="">{t('service_editor.text.service_level')}</option>
                 {offerings.map((offering) => (
                   <option key={offering.id} value={offering.id}>{offering.title} ({offering.offering_code})</option>
                 ))}
               </select>
             </Field>
-            <Field label="Link Type">
+            <Field label={t('service_editor.text.link_type')}>
               <input className={styles.input} value={linkForm.link_type ?? ''} onChange={e => setLinkForm((current) => ({ ...current, link_type: e.target.value || null }))} />
             </Field>
-            <Field label="Sort Order">
+            <Field label={t('service_editor.text.sort_order')}>
               <input className={styles.input} type="number" value={linkForm.sort_order ?? ''} onChange={e => setLinkForm((current) => ({ ...current, sort_order: e.target.value ? Number(e.target.value) : null }))} />
             </Field>
           </div>
           <div className={styles.fieldRow}>
-            <Field label="Title">
+            <Field label={t('service_editor.text.title_2')}>
               <input className={styles.input} value={linkForm.title ?? ''} onChange={e => setLinkForm((current) => ({ ...current, title: e.target.value }))} />
             </Field>
             <Field label="URL">
@@ -116,13 +118,13 @@ export function OperationalLinksPanel({ model }: {
             </Field>
           </div>
           <div className={styles.flavourEditActions}>
-            <button type="button" className={styles.btnPrimary} onClick={handleLinkSave} disabled={linkBusy}>Add link</button>
-            <button type="button" className={styles.btnGhost} onClick={() => { setShowLinkAdd(false); setLinkForm({}); }}>Cancel</button>
+            <button type="button" className={styles.btnPrimary} onClick={handleLinkSave} disabled={linkBusy}>{t('service_editor.text.add_link')}</button>
+            <button type="button" className={styles.btnGhost} onClick={() => { setShowLinkAdd(false); setLinkForm({}); }}>{t('service_editor.text.cancel')}</button>
           </div>
         </div>
       ) : (
         <button type="button" className={styles.btnSecondary} onClick={() => { setShowLinkAdd(true); setEditLinkId(null); setLinkForm({}); }}>
-          + Add operational link
+          {t('service_editor.text.add_operational_link')}
         </button>
       )}
     </>
