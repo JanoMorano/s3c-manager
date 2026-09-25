@@ -14,20 +14,20 @@
 #   Either JWT_SECRET or JWT_SECRET_FILE
 #
 # Optional:
-#   SC_APP_TAG          — Docker image tag to deploy  (default: 1.2.2-amd64)
+#   SC_APP_TAG          — Docker image tag to deploy  (default: 1.3.0-amd64)
 #   APP_PORT            — host port for the web UI    (default: 8080)
 # ══════════════════════════════════════════════════════════════════════════════
 
 services:
   app:
-    image: sc-app:${SC_APP_TAG:-1.2.2-amd64}
+    image: sc-app:${SC_APP_TAG:-1.3.0-amd64}
     container_name: sc-app
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:3000"
     environment:
       NODE_ENV: production
-      APP_VERSION: ${APP_VERSION:-1.2.2}
+      APP_VERSION: ${APP_VERSION:-1.3.0}
       DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -83,7 +83,7 @@ services:
       retries: 3
       start_period: 60s
     labels:
-      com.service-catalogue.version: "${SC_APP_TAG:-1.2.2-amd64}"
+      com.service-catalogue.version: "${SC_APP_TAG:-1.3.0-amd64}"
       com.service-catalogue.component: "app"
 
   postgres:
