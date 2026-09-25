@@ -31,6 +31,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Module manifests: `30_reduction_domain_model_simplification.sql` belongs to the Management module, which owns the `readiness_rule` table it writes.
 
 ### Fixed
+- Tinted backgrounds of warning and error badges, alerts and buttons in 14 places (C3 admin, import, install, service detail, history, status pills, capability links) were invalid CSS such as `var(--color-bg-surface)3f3`, left by an earlier colour-token replacement, so browsers dropped them. They are now `color-mix()` tints of the danger/warning tokens and work in dark mode.
 - Frontend CI was red on `main`: `react/no-unescaped-entities` errors in the global search (`NavGlobalSearch`, `SearchPageClient`) and 32 UI strings missing from `shared/i18n/generated-ui-texts.json`. The quotes are typographic now and the catalogue is regenerated with Czech translations for the new strings (stale entries removed).
 - Every container start re-ran all schema files, so data migration 30 reset the readiness rule configuration (enabled/blocking flags set by an administrator) on each restart.
 - The editor's publish gate and request-access warnings now accept a request channel defined on an offering, matching the backend rule.

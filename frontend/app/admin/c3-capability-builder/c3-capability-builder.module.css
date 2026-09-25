@@ -148,7 +148,7 @@
 .error {
   padding: 12px 14px;
   border-radius: 10px;
-  background: var(--color-bg-surface)2f2;
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-surface));
   color: var(--color-danger);
   font: var(--text-body-sm);
 }
