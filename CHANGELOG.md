@@ -25,7 +25,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The seven C3 link tables have one read model, `v_c3_entity_link` (migration `38_c3_entity_link_view.sql`). The service graph, overview graph and C3 relation graph read it through `db/c3-entity-links.repo.js` instead of seven queries and seven mapping blocks each; their API output is unchanged (verified on demo data). `routes/graph.js` shrank from 905 to 497 lines.
 
+- The service editor groups its 14 sections into tabs — Identity and value, Offerings and SLA, Ownership and support, Relations and C3 mapping, Evidence (admin) — instead of one long page with inconsistent numbering (1–5, 6b, 7, 6, 7c…). Hidden tabs stay mounted, so unsaved values are kept; tab badges aggregate section warnings and a failed submit opens the tab with the first error. Section titles are localized.
+
 ### Fixed
+- The editor's publish gate and request-access warnings now accept a request channel defined on an offering, matching the backend rule.
 - Saving any change to a live service re-ran the "transition to live" gate and was rejected when the service had no support model; the gate now runs only on the transition itself.
 - A requestable service whose request channel is defined only on its offerings was rejected on every save; offering channels now satisfy the rule.
 - The service editor no longer silently rewrites a relation whose type is not in the editable subset (for example `uses` or `part_of`); the current type stays selectable.

@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { use, useEffect, useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
+import { createContext, use, useContext, useEffect, useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/app/components/AppLink';
 import PageHeader from '@/app/components/PageHeader';
@@ -196,13 +196,11 @@ export default function ServiceEditorPage({ params }: Props) {
   const [saveConflict, setSaveConflict] = useState<string | null>(null);
   const [saved,     setSaved]     = useState(false);
   const [phase4Saved, setPhase4Saved] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState(EDITOR_SECTION_IDS[0]);
+  const [activeTab, setActiveTab] = useState(EDITOR_TABS[0].id);
   const [currentRole, setCurrentRole] = useState(() => getAuthSnapshot()?.role ?? null);
   const canViewAdvancedEvidence = currentRole === 'admin';
-  const visibleEditorSectionIds = useMemo(
-    () => canViewAdvancedEvidence
-      ? EDITOR_SECTION_IDS
-      : EDITOR_SECTION_IDS.filter((sectionId) => sectionId !== 'advanced-evidence'),
+  const visibleEditorTabs = useMemo(
+    () => EDITOR_TABS.filter((tab) => !tab.adminOnly || canViewAdvancedEvidence),
     [canViewAdvancedEvidence],
   );
 
@@ -737,6 +735,9 @@ export default function ServiceEditorPage({ params }: Props) {
   const watchedChannelUrl   = watch('request_channel_url');
   const watchedApproval     = watch('approval_required');
   const watchedLeadTime     = watch('fulfillment_lead_time_text');
+  // The service channel is the default; an offering may define its own (inheritance model).
+  const hasRequestChannel = !!(watchedChannelType?.trim() || watchedChannelUrl?.trim())
+    || offerings.some((offering) => offering.status !== 'deleted' && !!(offering.request_channel_type?.trim() || offering.request_channel_url?.trim()));
   const offeringInherited: OfferingInheritedValues = {
     requestable: watchedRequestable ?? false,
     approval_required: watchedApproval ?? null,
@@ -758,7 +759,7 @@ export default function ServiceEditorPage({ params }: Props) {
     if (!watchedServiceType?.trim()) blockers.push('Service Type is required before publish.');
     if (offerings.length === 0) blockers.push('At least one service offering is required.');
     if (offerings.length > 0 && !defaultOffering) blockers.push('Exactly one default offering must be selected.');
-    if (watchedRequestable && !(watchedChannelType?.trim() || watchedChannelUrl?.trim())) {
+    if (watchedRequestable && !hasRequestChannel) {
       blockers.push('Requestable service needs a request channel type or URL.');
     }
     if (watchedRequestable && supportModels.length === 0) {
@@ -770,55 +771,51 @@ export default function ServiceEditorPage({ params }: Props) {
     return Array.from(new Set(blockers));
   }, [
     defaultOffering,
+    hasRequestChannel,
     offerings.length,
     readiness,
     supportModels.length,
-    watchedChannelType,
-    watchedChannelUrl,
     watchedRequestable,
     watchedServiceType,
     watchedTitle,
   ]);
 
-  const handleSectionSelect = useCallback((sectionId: string) => {
-    setActiveSection(sectionId);
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleTabSelect = useCallback((tabId: string) => {
+    setActiveTab(tabId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // On submit with field errors, open the first tab that contains one.
+  const handleInvalidSubmit = useCallback((fieldErrors: Record<string, unknown>) => {
+    const errorKeys = Object.keys(fieldErrors);
+    const sectionId = Object.keys(SECTION_FIELD_MAP).find((section) => SECTION_FIELD_MAP[section].some((field) => errorKeys.includes(field)));
+    if (sectionId) setActiveTab(editorTabOfSection(sectionId));
   }, []);
 
   const editorSections: EditorSubNavSection[] = useMemo(() => {
     const errorKeys = new Set(Object.keys(errors));
-    const requestWarning = !!watchedRequestable && !(watchedChannelType?.trim() || watchedChannelUrl?.trim());
-    return visibleEditorSectionIds.map((sectionId) => {
+    const requestWarning = !!watchedRequestable && !hasRequestChannel;
+    const sectionBadge = (sectionId: string): Pick<EditorSubNavSection, 'badge' | 'tone'> | null => {
       const sectionErrors = (SECTION_FIELD_MAP[sectionId] ?? []).filter((field) => errorKeys.has(field)).length;
-      if (sectionErrors > 0) {
-        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: sectionErrors, tone: 'bad' };
-      }
-      if (sectionId === 'request-access' && requestWarning) {
-        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Fix', tone: 'warn' };
-      }
-      if (sectionId === 'request-access' && offerings.length === 0) {
-        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Add', tone: 'orange' };
-      }
-      if (sectionId === 'request-access' && offerings.length > 0 && !defaultOffering) {
-        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Default', tone: 'warn' };
-      }
-      if (sectionId === 'ownership-support' && supportModels.length === 0) {
-        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: 'Add', tone: 'orange' };
-      }
+      if (sectionErrors > 0) return { badge: sectionErrors, tone: 'bad' };
+      if (sectionId === 'request-access' && requestWarning) return { badge: 'Fix', tone: 'warn' };
+      if (sectionId === 'request-access' && offerings.length === 0) return { badge: 'Add', tone: 'orange' };
+      if (sectionId === 'request-access' && offerings.length > 0 && !defaultOffering) return { badge: 'Default', tone: 'warn' };
+      if (sectionId === 'ownership-support' && supportModels.length === 0) return { badge: 'Add', tone: 'orange' };
       if (sectionId === 'readiness-governance' && readiness && !readiness.is_publishable) {
-        return {
-          id: sectionId,
-          label: SECTION_LABELS[sectionId] ?? sectionId,
-          badge: readiness.blockers.length || 'Gate',
-          tone: 'warn',
-        };
+        return { badge: readiness.blockers.length || 'Gate', tone: 'warn' };
       }
-      if (sectionId === 'readiness-governance' && c3Mappings.length > 0) {
-        return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId, badge: c3Mappings.length, tone: 'purple' };
-      }
-      return { id: sectionId, label: SECTION_LABELS[sectionId] ?? sectionId };
+      if (sectionId === 'readiness-governance' && c3Mappings.length > 0) return { badge: c3Mappings.length, tone: 'purple' };
+      return null;
+    };
+    return visibleEditorTabs.map((tab, index) => {
+      const badges = tab.sections.map(sectionBadge).filter((badge): badge is NonNullable<typeof badge> => badge !== null);
+      const errorCount = badges.filter((badge) => badge.tone === 'bad').reduce((sum, badge) => sum + Number(badge.badge), 0);
+      const label = `${index + 1}. ${t(`service_editor.tab.${tab.id}`)}`;
+      if (errorCount > 0) return { id: tab.id, label, badge: errorCount, tone: 'bad' };
+      return { id: tab.id, label, ...(badges[0] ?? {}) };
     });
-  }, [c3Mappings.length, defaultOffering, errors, offerings.length, readiness, supportModels.length, visibleEditorSectionIds, watchedChannelType, watchedChannelUrl, watchedRequestable]);
+  }, [c3Mappings.length, defaultOffering, errors, hasRequestChannel, offerings.length, readiness, supportModels.length, t, visibleEditorTabs, watchedRequestable]);
 
   const saveState: SaveState = saving
     ? 'saving'
@@ -923,7 +920,7 @@ export default function ServiceEditorPage({ params }: Props) {
             : publishBlockers[0].includes('request')
               ? 'request-access'
               : 'identity';
-      handleSectionSelect(targetSection);
+      handleTabSelect(editorTabOfSection(targetSection));
       return;
     }
     setValue('lifecycle_state', 'live', { shouldDirty: true, shouldValidate: true });
@@ -933,11 +930,12 @@ export default function ServiceEditorPage({ params }: Props) {
   if (!svc) return <div className={styles.state}>{t('common.loading')}</div>;
 
   return (
-    <form className={styles.shell} onSubmit={handleSubmit(onSubmit)}>
+    <ActiveEditorTabContext.Provider value={activeTab}>
+    <form className={styles.shell} onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}>
       <div className={styles.stickyHeader}>
         <PageHeader
           title={`Editor služby — ${svc.title}`}
-          purpose="Udržujte jen sedm pracovních oblastí, které rozhodují o katalogu, žádosti, vlastnictví, supportu, readiness a governance."
+          purpose={t('service_editor.tab.purpose')}
           chips={[
             { label: `ID ${id}`, tone: 'neutral' },
             { label: `Lifecycle: ${currentLifecycle ?? '—'}`, tone: currentLifecycle === 'live' ? 'ok' : 'info' },
@@ -950,10 +948,10 @@ export default function ServiceEditorPage({ params }: Props) {
       <div className={styles.editorBody}>
         <EditorSubNav
           title="Service editor"
-          summary="7 pracovních sekcí podle redukční Etapy 4."
+          summary={t('service_editor.tab.summary')}
           sections={editorSections}
-          activeId={activeSection}
-          onSelect={handleSectionSelect}
+          activeId={activeTab}
+          onSelect={handleTabSelect}
         />
 
         {/* ── Form sections ─────────────────────────────────────────── */}
@@ -965,6 +963,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 requestable={watchedRequestable}
                 channelType={watchedChannelType}
                 channelUrl={watchedChannelUrl}
+                offeringHasChannel={hasRequestChannel}
                 supportModelCount={supportModels.length}
                 offeringsCount={offerings.length}
                 defaultOfferingTitle={defaultOffering?.title ?? null}
@@ -997,7 +996,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </div>
 
           {/* §1 Identita */}
-          <EditorSection id="identity" title="1. Identita">
+          <EditorSection id="identity" title={t('service_editor.section.identity')}>
             <div className={styles.fieldRow}>
               <Field label="Service ID">
                 <input className={styles.readOnlyInput} value={id} disabled readOnly aria-label="Service ID" />
@@ -1057,7 +1056,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §2 Hodnota a rozsah */}
-          <EditorSection id="value-scope" title="2. Hodnota a rozsah">
+          <EditorSection id="value-scope" title={t('service_editor.section.value_scope')}>
             <span id="description" className={styles.anchorAlias} aria-hidden="true" />
             <Field label="Short Description (summary)">
               <textarea {...register('summary')} rows={2} className={styles.textarea} />
@@ -1078,7 +1077,7 @@ export default function ServiceEditorPage({ params }: Props) {
             </Field>
           </EditorSection>
 
-          <EditorSection id="request-access" title="3. Request a přístup">
+          <EditorSection id="request-access" title={t('service_editor.section.request_access')}>
             <span id="catalogue-access" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
               <Field label="Request Channel Type">
@@ -1106,7 +1105,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 <span>Approval required</span>
               </label>
             </div>
-            {watchedRequestable && !watchedChannelType && !watchedChannelUrl && (
+            {watchedRequestable && !hasRequestChannel && (
               <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
                 <span className={styles.crossFieldAlertIcon}>⚠</span>
                 This service is marked <strong>Requestable</strong> but has no Request Channel Type or URL. Consumers won&apos;t know how to order it.
@@ -1115,7 +1114,7 @@ export default function ServiceEditorPage({ params }: Props) {
             {watchedRequestable && supportModels.length === 0 && (
               <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
                 <span className={styles.crossFieldAlertIcon}>⚠</span>
-                This service is requestable but has no <strong>Support Model</strong>. Consumers won&apos;t know who to contact for help. Add one in section 7c below.
+                This service is requestable but has no <strong>Support Model</strong>. Consumers won&apos;t know who to contact for help. Add one in the Ownership and support tab.
               </div>
             )}
             <p className={styles.hint}>
@@ -1124,7 +1123,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §4 Vlastnictví a support */}
-          <EditorSection id="ownership-support" title="4. Vlastnictví a support">
+          <EditorSection id="ownership-support" title={t('service_editor.section.ownership')}>
             <span id="ownership" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
               <Field label="Service Owner">
@@ -1148,7 +1147,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §5 Dostupnost a vazby */}
-          <EditorSection id="availability-relations" title="5. Dostupnost a vazby">
+          <EditorSection id="availability-relations" title={t('service_editor.section.sla_availability')}>
             <span id="availability" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.hint}>
               SLA evidence is included in the <a href="/api/v1/export/bundle">full export bundle</a>.
@@ -1216,7 +1215,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §6 Legacy variant evidence — read-only */}
-          <EditorSection id="flavours" title="Legacy variant evidence" hidden={!canViewAdvancedEvidence}>
+          <EditorSection id="flavours" title={t('service_editor.section.legacy_flavours')} hidden={!canViewAdvancedEvidence}>
             <div className={styles.hint}>
               Legacy variant data is retained for history and export evidence. Create and maintain current service variants in Service Offerings below.
             </div>
@@ -1242,7 +1241,7 @@ export default function ServiceEditorPage({ params }: Props) {
             )}
           </EditorSection>
 
-          <EditorSection id="offerings" title="6b. Service Offerings">
+          <EditorSection id="offerings" title={t('service_editor.section.offerings')}>
             {offeringError && <div className={styles.errorBanner}>{offeringError}</div>}
             {offerings.length > 0 && !defaultOffering && (
               <div className={`${styles.crossFieldAlert} ${styles.crossFieldAlertWarn}`}>
@@ -1334,7 +1333,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §7 Relationships — managed add/delete */}
-          <EditorSection id="relationships" title="7. Relationships">
+          <EditorSection id="relationships" title={t('service_editor.section.relationships')}>
             {relError && <div className={styles.errorBanner}>{relError}</div>}
 
             {svc.relations && svc.relations.length > 0 ? (
@@ -1460,7 +1459,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §6 Readiness a governance */}
-          <EditorSection id="readiness-governance" title="6. Readiness a governance">
+          <EditorSection id="readiness-governance" title={t('service_editor.section.c3_governance')}>
             <div id="c3mapping" className={styles.inlineEditorBody}>
             {c3Error && <div className={styles.errorBanner}>{c3Error}</div>}
             {readiness && (
@@ -1611,7 +1610,7 @@ export default function ServiceEditorPage({ params }: Props) {
             </Field>
           </EditorSection>
 
-          <EditorSection id="support-model" title="7c. Support Model">
+          <EditorSection id="support-model" title={t('service_editor.section.support_model')}>
             {supportError && <div className={styles.errorBanner}>{supportError}</div>}
             <p className={styles.hint}>
               Structured support metadata used by the business-facing service detail.
@@ -1684,7 +1683,7 @@ export default function ServiceEditorPage({ params }: Props) {
             </div>
           </EditorSection>
 
-          <EditorSection id="audience" title="7d. Audience Policies">
+          <EditorSection id="audience" title={t('service_editor.section.audience')}>
             {audienceError && <div className={styles.errorBanner}>{audienceError}</div>}
             <p className={styles.hint}>
               Audience segmentation used for requestability and catalogue targeting.
@@ -1737,7 +1736,7 @@ export default function ServiceEditorPage({ params }: Props) {
             </div>
           </EditorSection>
 
-          <EditorSection id="operational-links" title="7e. Operational Links">
+          <EditorSection id="operational-links" title={t('service_editor.section.operational_links')}>
             {linkError && <div className={styles.errorBanner}>{linkError}</div>}
             {operationalLinks.length > 0 ? (
               <div className={styles.phase4Stack}>
@@ -1841,7 +1840,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §7 Advanced evidence */}
-          <EditorSection id="advanced-evidence" title="7. Advanced evidence" hidden={!canViewAdvancedEvidence}>
+          <EditorSection id="advanced-evidence" title={t('service_editor.section.advanced_evidence')} hidden={!canViewAdvancedEvidence}>
             <p className={styles.hint}>
               Admin/import evidence only. These fields preserve legacy import context and should not be needed for routine catalogue maintenance.
             </p>
@@ -1901,7 +1900,7 @@ export default function ServiceEditorPage({ params }: Props) {
           </EditorSection>
 
           {/* §10 Raw fields — audit trail */}
-          <EditorSection id="raw-fields" title="Import source evidence" hidden={!canViewAdvancedEvidence}>
+          <EditorSection id="raw-fields" title={t('service_editor.section.raw_fields')} hidden={!canViewAdvancedEvidence}>
             <p className={styles.hint}>
               Zdrojové texty z importu slouží jako auditní evidence původního vstupu.
               Tato data jsou read-only — upravují se přes import.
@@ -1980,6 +1979,7 @@ export default function ServiceEditorPage({ params }: Props) {
         />
       )}
     </form>
+    </ActiveEditorTabContext.Provider>
   );
 }
 
@@ -1988,6 +1988,7 @@ function OperationalReadinessPanel({
   requestable,
   channelType,
   channelUrl,
+  offeringHasChannel,
   supportModelCount,
   offeringsCount,
   defaultOfferingTitle,
@@ -1995,6 +1996,7 @@ function OperationalReadinessPanel({
   requestable: boolean | undefined;
   channelType: string | undefined;
   channelUrl: string | undefined;
+  offeringHasChannel: boolean;
   supportModelCount: number;
   offeringsCount: number;
   defaultOfferingTitle: string | null;
@@ -2003,7 +2005,7 @@ function OperationalReadinessPanel({
     { label: 'Offerings defined',  ok: offeringsCount > 0 },
     { label: 'Default offering',    ok: offeringsCount === 0 || !!defaultOfferingTitle },
     { label: 'Support model',      ok: supportModelCount > 0 },
-    { label: 'Request channel',    ok: !requestable || !!(channelType?.trim() || channelUrl?.trim()) },
+    { label: 'Request channel',    ok: !requestable || !!(channelType?.trim() || channelUrl?.trim()) || offeringHasChannel },
   ];
   const allOk = checks.every(c => c.ok);
 
@@ -2026,7 +2028,11 @@ function OperationalReadinessPanel({
 
 // ── Local helpers ─────────────────────────────────────────────────────────────
 function EditorSection({ id, title, children, hidden = false }: { id: string; title: string; children: React.ReactNode; hidden?: boolean }) {
+  const activeTab = useContext(ActiveEditorTabContext);
   if (hidden) return null;
+  if (editorTabOfSection(id) !== activeTab) {
+    return <div hidden>{children}</div>;
+  }
 
   if (ADVANCED_DETAIL_SECTION_IDS.has(id)) {
     return (
@@ -2183,17 +2189,25 @@ function isConflictMessage(message: string) {
   return /\b412\b/.test(message) || /precondition|conflict|etag/i.test(message);
 }
 
-const SECTION_LABELS: Record<string, string> = {
-  identity: 'Identita',
-  'value-scope': 'Hodnota a rozsah',
-  'request-access': 'Request a přístup',
-  'ownership-support': 'Vlastnictví a support',
-  'availability-relations': 'Dostupnost a vazby',
-  'readiness-governance': 'Readiness a governance',
-  'advanced-evidence': 'Advanced evidence',
-};
+/**
+ * Editor tabs. Each tab shows its sections; the other tabs stay mounted but
+ * hidden so unsaved form values and validation are kept.
+ */
+const EDITOR_TABS: { id: string; sections: string[]; adminOnly?: boolean }[] = [
+  { id: 'identity', sections: ['identity', 'value-scope'] },
+  { id: 'offerings-sla', sections: ['request-access', 'offerings', 'availability-relations', 'audience', 'flavours'] },
+  { id: 'ownership-support', sections: ['ownership-support', 'support-model', 'operational-links'] },
+  { id: 'relations-c3', sections: ['relationships', 'readiness-governance'] },
+  { id: 'evidence', sections: ['advanced-evidence', 'raw-fields'], adminOnly: true },
+];
 
-const EDITOR_SECTION_IDS = [
+function editorTabOfSection(sectionId: string): string {
+  return EDITOR_TABS.find((tab) => tab.sections.includes(sectionId))?.id ?? EDITOR_TABS[0].id;
+}
+
+const ActiveEditorTabContext = createContext<string>(EDITOR_TABS[0].id);
+
+const PRIMARY_EDITOR_SECTION_IDS = new Set([
   'identity',
   'value-scope',
   'request-access',
@@ -2201,9 +2215,7 @@ const EDITOR_SECTION_IDS = [
   'availability-relations',
   'readiness-governance',
   'advanced-evidence',
-];
-
-const PRIMARY_EDITOR_SECTION_IDS = new Set(EDITOR_SECTION_IDS);
+]);
 const ADVANCED_DETAIL_SECTION_IDS = new Set(['flavours', 'raw-fields']);
 
 const SECTION_FIELD_MAP: Record<string, string[]> = {
