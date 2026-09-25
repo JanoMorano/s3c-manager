@@ -4,4 +4,4 @@
 \ir ../../schema/24_readiness_rules.sql
 \ir ../../schema/26_governance_workflow.sql
 \ir ../../schema/27_impact_analysis.sql
-\ir ../../schema/28_enterprise_governance_contracts.sql
+\ir ../../schema/33_readiness_rule_explanations.sql

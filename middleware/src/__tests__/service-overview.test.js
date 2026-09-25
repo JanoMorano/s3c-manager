@@ -27,6 +27,11 @@ jest.mock('../db/audit.repo', () => ({
 jest.mock('../services/readiness', () => ({
     getServiceReadiness: jest.fn(),
 }));
+jest.mock('../utils/logger', () => ({
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+}));
 jest.mock('../db/pool', () => ({
     getPool: jest.fn(() => ({ query: jest.fn() })),
 }));

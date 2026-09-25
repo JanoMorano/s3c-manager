@@ -10,6 +10,7 @@ const relationsRepo = require('./relations.repo');
 const auditRepo = require('./audit.repo');
 const { getPool } = require('./pool');
 const { getServiceReadiness } = require('../services/readiness');
+const logger = require('../utils/logger');
 
 function toNumber(value) {
     if (value == null || value === '') return null;
@@ -25,7 +26,8 @@ async function safeRead(read, fallback) {
     try {
         const result = await read();
         return result ?? fallback;
-    } catch {
+    } catch (err) {
+        logger.error(`service overview: section read failed: ${err.message}`);
         return fallback;
     }
 }

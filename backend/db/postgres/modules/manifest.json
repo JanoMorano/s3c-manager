@@ -66,7 +66,8 @@
         "17_spiral_membership.sql",
         "19_capability_abbreviations.sql",
         "20_capability_coverage_views.sql",
-        "25_capability_governance.sql"
+        "25_capability_governance.sql",
+        "34_c3_board_state.sql"
       ]
     },
     {
@@ -88,7 +89,7 @@
         "24_readiness_rules.sql",
         "26_governance_workflow.sql",
         "27_impact_analysis.sql",
-        "28_enterprise_governance_contracts.sql"
+        "33_readiness_rule_explanations.sql"
       ]
     }
   ]

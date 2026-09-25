@@ -130,6 +130,8 @@ run_psql "pg reduction cleanup — retired request/notification/preference objec
 run_psql "pg reduction cleanup — domain model simplification" /pgdb/schema/30_reduction_domain_model_simplification.sql
 run_psql "pg reduction cleanup — locale cut to cs/en" /pgdb/schema/31_locale_cs_en_only.sql
 run_psql "pg reduction cleanup — final sunset" /pgdb/schema/32_final_reduction_sunset_cleanup.sql
+run_psql "pg readiness rule explanations — why/how-to/evidence texts" /pgdb/schema/33_readiness_rule_explanations.sql
+run_psql "pg C3 board state — governance board lanes" /pgdb/schema/34_c3_board_state.sql
 
 if [ "$INIT_WITH_C3_ENTITY_SEEDS" = "true" ]; then
   run_psql "pg C3 entities seed — baseline snapshot" /pgdb/data/c3/c3_entities.sql

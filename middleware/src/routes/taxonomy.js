@@ -32,6 +32,7 @@ const {
     isActiveServiceStatus,
 } = require('../services/readiness');
 const config = require('../config');
+const logger = require('../utils/logger');
 const { tReq } = require('../utils/i18n');
 const { _private: capabilityCoverageEngine } = require('./capabilities');
 
@@ -1691,7 +1692,8 @@ router.get('/c3/dashboard', requireAuth, async (req, res, next) => {
                     ELSE 99
                 END
             `);
-        } catch {
+        } catch (boardLaneErr) {
+            logger.error(`C3 dashboard: board lanes unavailable: ${boardLaneErr.message}`);
             boardLaneResult = [];
         }
 

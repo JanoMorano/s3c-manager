@@ -9,7 +9,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Fixed
+- Fresh installs never applied `28_enterprise_governance_contracts.sql`, so `c3_board_state`, `v_c3_board_lane` and readiness rule explanation columns were missing. Service detail then silently showed no C3 mappings. The live parts are now split into `33_readiness_rule_explanations.sql` (Management) and `34_c3_board_state.sql` (C3 Taxonomy), wired into `init-db-postgres.sh` and the module entrypoints; the retired notification/request parts are dropped with `28`.
+- Service detail reads the C3 board state from `v_c3_board_lane`, so C3 items added after migration also get a derived board state.
+- Swallowed DB errors in service detail, service overview and the C3 dashboard board lanes are now logged.
 
 ## [1.2.2] — 2026-05-15
 

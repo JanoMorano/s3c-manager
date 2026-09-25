@@ -142,6 +142,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '19_capability_abbreviations',
             '20_capability_coverage_views',
             '25_capability_governance',
+            '34_c3_board_state',
         ],
     },
     {
@@ -177,7 +178,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '24_readiness_rules',
             '26_governance_workflow',
             '27_impact_analysis',
-            '28_enterprise_governance_contracts',
+            '33_readiness_rule_explanations',
         ],
     },
 ]);

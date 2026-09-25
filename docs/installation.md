@@ -358,7 +358,9 @@ SQL file order:
 25_capability_governance.sql — coverage, gap, and overlap views
 26_governance_workflow.sql — reviews and decision log
 27_impact_analysis.sql — recursive service/capability impact analysis
-28_enterprise_governance_contracts.sql — notifications, preferences, request log, C3 board state
+29_reduction_low_risk_cleanup.sql … 32_final_reduction_sunset_cleanup.sql — v1.2 reduction cleanup
+33_readiness_rule_explanations.sql — readiness rule why/how-to/evidence texts
+34_c3_board_state.sql — C3 governance board state and board lanes
 ```
 
 ---

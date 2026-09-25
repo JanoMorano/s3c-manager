@@ -397,7 +397,7 @@ router.get('/:id/360', async (req, res, next) => {
                     ct.external_id AS c3_external_id,
                     ct.item_type AS c3_item_type,
                     ct.item_status AS c3_item_status,
-                    bs.board_state AS c3_board_state,
+                    bl.board_state AS c3_board_state,
                     rmt.name AS mapping_type_name,
                     rpc.name AS pace_name
                 FROM data.service_c3_mapping scm
@@ -406,15 +406,18 @@ router.get('/:id/360', async (req, res, next) => {
                  AND sc.is_deleted = FALSE
                 LEFT JOIN data.c3_taxonomy ct
                   ON ct.uuid = scm.c3_uuid
-                LEFT JOIN data.c3_board_state bs
-                  ON bs.c3_uuid = scm.c3_uuid
+                LEFT JOIN data.v_c3_board_lane bl
+                  ON bl.uuid = scm.c3_uuid
                 LEFT JOIN data.ref_c3_mapping_type rmt
                   ON rmt.code = scm.mapping_type_code
                 LEFT JOIN data.ref_pace_category rpc
                   ON rpc.code = scm.pace_code
                 WHERE sc.service_id = $1
                 ORDER BY scm.is_primary DESC, ct.title ASC
-            `, [serviceId]).then((result) => result.rows).catch(() => []) : Promise.resolve([]),
+            `, [serviceId]).then((result) => result.rows).catch((c3Err) => {
+                logger.error(`service detail: C3 mappings unavailable for ${serviceId}: ${c3Err.message}`);
+                return [];
+            }) : Promise.resolve([]),
         ]);
 
         res.json({
