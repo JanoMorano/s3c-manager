@@ -362,6 +362,7 @@ SQL file order:
 33_readiness_rule_explanations.sql — readiness rule why/how-to/evidence texts
 34_c3_board_state.sql — C3 governance board state and board lanes
 35_canonical_service_fields.sql — canonical lifecycle stage, review date and portfolio (legacy columns kept in sync)
+36_service_sla_canonical.sql — service-level SLA canonical in service_sla (catalog sla_* columns kept in sync)
 ```
 
 ---

@@ -48,7 +48,8 @@
         "16_consumer_value.sql",
         "29_reduction_low_risk_cleanup.sql",
         "30_reduction_domain_model_simplification.sql",
-        "32_final_reduction_sunset_cleanup.sql"
+        "32_final_reduction_sunset_cleanup.sql",
+        "36_service_sla_canonical.sql"
       ]
     },
     {

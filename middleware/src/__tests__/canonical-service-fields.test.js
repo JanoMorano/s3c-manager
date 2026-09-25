@@ -55,3 +55,20 @@ describe('canonical service fields', () => {
         });
     });
 });
+
+describe('canonical service-level SLA', () => {
+    const sql = readRepoFile('backend/db/postgres/schema/36_service_sla_canonical.sql');
+
+    test('syncs service_catalog sla_* columns with the primary service-level service_sla row both ways', () => {
+        expect(sql).toContain('CREATE TRIGGER trg_service_catalog_sync_sla');
+        expect(sql).toContain('CREATE TRIGGER trg_service_sla_sync_catalog');
+        expect(sql).toContain('WHERE service_id = p_service_id AND flavour_id IS NULL');
+        // Recursion guard: each side ignores writes made by the other trigger.
+        expect(sql.match(/pg_trigger_depth\(\) > 1/g)).toHaveLength(2);
+    });
+
+    test('keeps the SLA text fields on service_sla', () => {
+        expect(sql).toContain('ADD COLUMN IF NOT EXISTS restoration_text TEXT NULL');
+        expect(sql).toContain('ADD COLUMN IF NOT EXISTS delivery_text TEXT NULL');
+    });
+});

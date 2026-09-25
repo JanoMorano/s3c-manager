@@ -67,6 +67,8 @@ async function getSlaRecords(serviceId) {
             sl.availability_pct,
             sl.restoration_hours,
             sl.delivery_days,
+            sl.restoration_text,
+            sl.delivery_text,
             sl.priority_model_raw,
             sl.sla_note_raw,
             sl.source_field,

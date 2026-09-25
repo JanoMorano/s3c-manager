@@ -673,6 +673,8 @@ export interface SlaRecord {
   availability_pct: number | null;
   restoration_hours: number | null;
   delivery_days: number | null;
+  restoration_text?: string | null;
+  delivery_text?: string | null;
   priority_model_raw: string | null;
   sla_note_raw: string | null;
   source_field: string | null;

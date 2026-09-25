@@ -19,6 +19,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The service overview graph defaults to a layered left-to-right layout by dependency (dagre); the portfolio grid remains as an option. Selecting a service highlights its upstream/downstream path (depth 1–5) and dims the rest.
 - Service graphs and the C3 relation canvas show a legend listing only the encodings present; relation types are shown with localized labels.
 
+- The service-level SLA has one source of truth: the primary `service_sla` row of a service (no offering). The `service_catalog` `sla_*` columns are a trigger-synced mirror (migration `36_service_sla_canonical.sql`), so the editor fields and the SLA records API always agree. `service_sla` gained `restoration_text` and `delivery_text`, exposed by the SLA records API.
+
 ### Fixed
 - The service editor no longer silently rewrites a relation whose type is not in the editable subset (for example `uses` or `part_of`); the current type stays selectable.
 - The graph `relation_type` filter accepted non-existent codes and rejected valid ones (`uses`, `part_of`, `provides`, …).

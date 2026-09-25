@@ -1765,6 +1765,8 @@ router.get('/:id/sla', async (req, res, next) => {
                     sl.availability_pct,
                     sl.restoration_hours,
                     sl.delivery_days,
+                    sl.restoration_text,
+                    sl.delivery_text,
                     sl.priority_model_raw,
                     sl.sla_note_raw,
                     sl.source_field,
@@ -1827,10 +1829,12 @@ router.post('/:id/sla', canEdit, async (req, res, next) => {
         const ins = await pool.query(`
                 INSERT INTO data.service_sla
                     (service_id, flavour_id, support_window_code, availability_pct,
-                     restoration_hours, delivery_days, priority_model_raw, sla_note_raw)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                     restoration_hours, delivery_days, restoration_text, delivery_text,
+                     priority_model_raw, sla_note_raw)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING id
-            `, [svcBigId, flavourBigId, b.support_window_code ?? null, avail, restH, delD, b.priority_model_raw ?? null, b.sla_note_raw ?? null]);
+            `, [svcBigId, flavourBigId, b.support_window_code ?? null, avail, restH, delD,
+                b.restoration_text ?? null, b.delivery_text ?? null, b.priority_model_raw ?? null, b.sla_note_raw ?? null]);
         const newId = ins.rows[0]?.id;
 
         await audit.log({ tableName: 'ServiceSla', recordId: null, recordLabel: serviceId, action: 'INSERT', newValues: b, performedBy: req.user.username, clientIp: req.ip });
@@ -1838,6 +1842,7 @@ router.post('/:id/sla', canEdit, async (req, res, next) => {
         const row = await pool.query(`
                 SELECT sl.id, sl.support_window_code, sl.availability_pct,
                        sl.restoration_hours, sl.delivery_days,
+                       sl.restoration_text, sl.delivery_text,
                        sl.priority_model_raw, sl.sla_note_raw, sl.source_field,
                        sl.created_at, sl.updated_at,
                        sf.flavour_code, sf.title AS flavour_title

@@ -105,6 +105,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '29_reduction_low_risk_cleanup',
             '30_reduction_domain_model_simplification',
             '32_final_reduction_sunset_cleanup',
+            '36_service_sla_canonical',
         ],
     },
     {
