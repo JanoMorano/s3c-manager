@@ -9,31 +9,21 @@ import Link from '@/app/components/AppLink';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Background,
-  Controls,
-  Handle,
   MarkerType,
-  MiniMap,
-  Panel,
-  Position,
-  ReactFlow,
   useEdgesState,
   useNodesState,
   type Edge,
   type EdgeMouseHandler,
   type Node,
   type NodeMouseHandler,
-  type NodeTypes,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import { GraphWorkspace } from '@/app/components/layout-v2';
-import { StatusPill } from '@/features/services/components/StatusPill';
 import { useGraphOverview, usePortfolioGroups } from '@/features/services/hooks/useServices';
 import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_SERVICE_STATUS, lifecycleStageLabelKey } from '@/features/services/lifecycle';
 import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
-import { GraphLayoutControls } from '@/features/graph/GraphLayoutControls';
 import { applyLineStyleMode, resolveServiceRelationVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
-import { GraphLegend } from '@/features/graph/GraphLegend';
+import { GraphCanvas, isLargeGraph } from '@/features/graph/GraphCanvas';
+import { GRAPH_NODE_TYPE } from '@/features/graph/GraphNodeCard';
 import { layoutByDependency } from '@/features/graph/autoLayout';
 import { computeGraphHighlight, DIMMED_EDGE_OPACITY, DIMMED_NODE_OPACITY, type GraphHighlight } from '@/features/graph/graphHighlight';
 import { relationTypeLabelKey } from '@/features/services/relationTypes';
@@ -42,10 +32,7 @@ import { compareText } from '@/app/i18n/format';
 import { useLocale, useT } from '@/app/i18n/useI18n';
 import shellStyles from '../../graph/overview.module.css';
 
-type ServiceGraphNodeData = GraphOverviewNode & Record<string, unknown> & {
-  selected?: boolean;
-  onSelect?: () => void;
-};
+type ServiceGraphNodeData = GraphOverviewNode & Record<string, unknown>;
 type ServiceGraphEdgeData = GraphOverviewEdge & Record<string, unknown>;
 type ServicesGraphViewMode = 'detail' | 'graph-only' | 'text';
 type ServicesGraphLayoutMode = 'dependency' | 'portfolio';
@@ -85,16 +72,24 @@ function toFlowNode(
   portfolio?: string,
 ): Node<ServiceGraphNodeData> {
   const dimmed = highlight !== null && !highlight.nodeIds.has(node.id);
+  const portfolioGroup = node.portfolio_group ?? portfolio ?? null;
   return {
     id: node.id,
-    type: 'serviceNode',
+    type: GRAPH_NODE_TYPE,
     position,
     style: dimmed ? { opacity: DIMMED_NODE_OPACITY } : undefined,
     data: {
       ...node,
-      portfolio_group: node.portfolio_group ?? portfolio ?? null,
-      selected: selectedNodeId === node.id,
-      onSelect: () => onSelectNode(node),
+      portfolio_group: portfolioGroup,
+      card: {
+        variant: 'service',
+        code: node.service_id ?? node.code ?? node.id,
+        title: node.title,
+        status: node.service_status ?? node.status ?? 'draft',
+        meta: [portfolioGroup ?? 'No portfolio'],
+        selected: selectedNodeId === node.id,
+        onSelect: () => onSelectNode(node),
+      },
     },
   };
 }
@@ -185,30 +180,6 @@ function layoutEdges(
     };
   });
 }
-
-function ServiceNodeCard({ data }: { data: ServiceGraphNodeData }) {
-  return (
-    <button
-      type="button"
-      className={`${shellStyles.node} ${data.selected ? shellStyles.nodeSelected : ''}`}
-      onClick={data.onSelect}
-      title={data.title}
-      aria-label={`Select service ${data.title}`}
-      aria-pressed={data.selected ? 'true' : 'false'}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className={shellStyles.nodeId}>{data.service_id ?? data.code ?? data.id}</div>
-      <div className={shellStyles.nodeTitle}>{data.title}</div>
-      <div className={shellStyles.nodeStatus}>
-        <StatusPill status={data.service_status ?? data.status ?? 'draft'} size="sm" />
-      </div>
-      <div className={shellStyles.meta}>{data.portfolio_group ?? 'No portfolio'}</div>
-      <Handle type="source" position={Position.Right} />
-    </button>
-  );
-}
-
-const nodeTypes: NodeTypes = { serviceNode: ServiceNodeCard };
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -325,8 +296,7 @@ export default function ServicesGraphPage() {
 
   const mandatoryCount = relations.filter((edge) => edge.is_mandatory).length;
   const unverifiedCount = relations.filter((edge) => edge.is_verified === false).length;
-  const performanceMode = nodes.length > 250 || edges.length > 500;
-  const showMiniMap = nodes.length <= 350;
+  const performanceMode = isLargeGraph(nodes.length, edges.length);
   const serviceByNodeId = useMemo(() => new Map(services.map((node) => [node.id, node])), [services]);
   const textRelationRows = useMemo(() => relations.map((relation) => ({
     id: relation.id,
@@ -520,37 +490,20 @@ export default function ServicesGraphPage() {
           </div>
           <div className={shellStyles.canvasWrap}>
             <div className={shellStyles.canvas} role="region" aria-label="Interactive service relationship graph">
-              <ReactFlow
+              <GraphCanvas
                 nodes={nodes}
                 edges={edges}
-                nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
                 onNodeDoubleClick={onNodeDoubleClick}
-                onNodeDragStop={layout.onNodeDragStop}
                 onEdgeClick={onEdgeClick}
                 onPaneClick={() => { setSelectedNode(null); setSelectedEdge(null); }}
-                nodesConnectable={false}
-                onlyRenderVisibleElements={performanceMode}
-                fitView
-                fitViewOptions={{ padding: 0.18 }}
-              >
-                <Background gap={24} size={1} />
-                <Controls />
-                {showMiniMap && <MiniMap nodeColor={nodeColor} />}
-                <Panel position="bottom-left">
-                  <GraphLegend title={t('graph.legend.title')} items={legendItems} />
-                </Panel>
-                <Panel position="top-right">
-                  <GraphLayoutControls
-                    canSave={layout.canSave}
-                    hasCustomLayout={layout.hasCustomLayout}
-                    saveError={layout.saveError}
-                    onReset={layout.resetLayout}
-                  />
-                </Panel>
-              </ReactFlow>
+                fitViewPadding={0.18}
+                minimapNodeColor={nodeColor}
+                legend={{ title: t('graph.legend.title'), items: legendItems }}
+                layout={layout}
+              />
             </div>
           </div>
           {!canvasOnly && showTextAlternative ? (

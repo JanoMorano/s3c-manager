@@ -7,32 +7,22 @@ import Link from '@/app/components/AppLink';
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
-  Panel,
   useNodesState,
   useEdgesState,
   type Node,
   type Edge,
-  type NodeTypes,
   type NodeMouseHandler,
   type EdgeMouseHandler,
   MarkerType,
-  Position,
-  Handle,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
 import { applyLineStyleMode, resolveServiceGraphEdgeVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
-import { GraphLegend } from '@/features/graph/GraphLegend';
+import { GraphCanvas } from '@/features/graph/GraphCanvas';
+import { GRAPH_NODE_TYPE, type GraphNodeCardData } from '@/features/graph/GraphNodeCard';
 import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
-import { GraphLayoutControls } from '@/features/graph/GraphLayoutControls';
 import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import { useServiceGraph, useServices } from '@/features/services/hooks/useServices';
 import type { ServiceGraphV2Response, ServiceGraphV2Node, ServiceGraphV2Edge } from '@/features/services/model/service.types';
-import { StatusPill } from '@/features/services/components/StatusPill';
 import { GraphWorkspace } from '@/app/components/layout-v2';
 import shellStyles from '../../../graph/overview.module.css';
 import localStyles from './graph.module.css';
@@ -43,10 +33,6 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-type GraphNodeCardData = ServiceGraphV2Node & {
-  selected?: boolean;
-  onSelect?: () => void;
-};
 type ServiceGraphViewMode = 'detail' | 'graph-only' | 'text';
 
 const COLUMN_X: Record<ServiceGraphV2Node['node_kind'], number> = {
@@ -144,101 +130,37 @@ function layoutNodes(
 
     return rows.map((item, index) => ({
       id: item.id,
-      type: item.node_kind === 'service'
-        ? 'serviceNode'
-        : item.node_kind === 'flavour'
-          ? 'flavourNode'
-          : item.node_kind === 'c3_capability'
-            ? 'capabilityNode'
-            : 'entityNode',
+      type: GRAPH_NODE_TYPE,
       position: {
         x,
         y: index * 110,
       },
       data: {
         ...item,
-        selected: selectedNodeId === item.id,
-        onSelect: () => onSelectNode(item),
+        card: nodeCard(item, selectedNodeId === item.id, () => onSelectNode(item)),
       },
     }));
   });
 }
 
-function ServiceNodeCard({ data }: { data: GraphNodeCardData }) {
-  return (
-    <div
-      className={`${localStyles.node} ${data.is_root ? localStyles.nodeRoot : ''} ${data.selected ? localStyles.nodeSelected : ''}`}
-      onClick={data.onSelect}
-      title={data.label}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className={localStyles.nodeId}>{data.code}</div>
-      <div className={localStyles.nodeTitle}>{data.label}</div>
-      <div className={localStyles.nodeStatus}>
-        <StatusPill status={data.status ?? 'draft'} size="sm" />
-      </div>
-      {data.portfolio_group && <div className={localStyles.nodePortfolio}>{data.portfolio_group}</div>}
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
+function nodeCard(item: ServiceGraphV2Node, selected: boolean, onSelect: () => void): GraphNodeCardData {
+  const common = { title: item.label, selected, onSelect };
+  switch (item.node_kind) {
+    case 'service':
+      return { ...common, variant: 'service', code: item.code, status: item.status ?? 'draft', meta: [item.portfolio_group], isRoot: Boolean(item.is_root) };
+    case 'flavour':
+      return { ...common, variant: 'flavour', meta: [item.price_label], hasSource: false };
+    case 'c3_capability':
+      return {
+        ...common,
+        variant: 'capability',
+        code: item.code,
+        meta: [item.item_type, item.completeness_status ? `Completeness: ${item.completeness_status}` : null],
+      };
+    default:
+      return { ...common, variant: 'entity', kindLabel: item.node_kind.replace('c3_', '').replace(/_/g, ' '), code: item.code, status: item.status };
+  }
 }
-
-function FlavourNodeCard({ data }: { data: GraphNodeCardData }) {
-  return (
-    <div
-      className={`${localStyles.flavourNode} ${data.selected ? localStyles.nodeSelected : ''}`}
-      onClick={data.onSelect}
-      title={data.label}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className={localStyles.flavourTitle}>{data.label}</div>
-      {data.price_label && <div className={localStyles.flavourPrice}>{data.price_label}</div>}
-    </div>
-  );
-}
-
-function CapabilityNodeCard({ data }: { data: GraphNodeCardData }) {
-  return (
-    <div
-      className={`${localStyles.capabilityNode} ${data.selected ? localStyles.nodeSelected : ''}`}
-      onClick={data.onSelect}
-      title={data.label}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className={localStyles.capabilityCode}>{data.code}</div>
-      <div className={localStyles.capabilityTitle}>{data.label}</div>
-      {data.item_type && <div className={localStyles.capabilityMeta}>{data.item_type}</div>}
-      {data.completeness_status && (
-        <div className={localStyles.capabilityMeta}>Completeness: {data.completeness_status}</div>
-      )}
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-function EntityNodeCard({ data }: { data: GraphNodeCardData }) {
-  return (
-    <div
-      className={`${localStyles.entityNode} ${data.selected ? localStyles.nodeSelected : ''}`}
-      onClick={data.onSelect}
-      title={data.label}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className={localStyles.entityKind}>{data.node_kind.replace('c3_', '').replace(/_/g, ' ')}</div>
-      <div className={localStyles.entityCode}>{data.code}</div>
-      <div className={localStyles.entityTitle}>{data.label}</div>
-      {data.status && <div className={localStyles.entityStatus}>{data.status}</div>}
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-const nodeTypes: NodeTypes = {
-  serviceNode: ServiceNodeCard as NodeTypes[string],
-  flavourNode: FlavourNodeCard as NodeTypes[string],
-  capabilityNode: CapabilityNodeCard as NodeTypes[string],
-  entityNode: EntityNodeCard as NodeTypes[string],
-};
 
 function formatEdgeLabel(edge: ServiceGraphV2Edge & { mapping_type_code?: string | null }, t: (key: string) => string) {
   if (edge.edge_kind === 'service_relation') return t(relationTypeLabelKey(edge.relation_type));
@@ -517,34 +439,18 @@ export default function GraphPage({ params }: Props) {
 
         <div className={shellStyles.canvasWrap}>
           <div className={shellStyles.canvas} ref={graphCanvasRef}>
-            <ReactFlow
+            <GraphCanvas
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onNodeClick={onNodeClick}
               onNodeDoubleClick={onNodeDoubleClick}
-              onNodeDragStop={layout.onNodeDragStop}
               onEdgeClick={onEdgeClick}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{ padding: 0.15 }}
-            >
-              <Background gap={24} size={1} />
-              <Controls />
-              <MiniMap nodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'} />
-              <Panel position="bottom-left">
-                <GraphLegend title={t('graph.legend.title')} items={legendItems} />
-              </Panel>
-              <Panel position="top-right">
-                <GraphLayoutControls
-                  canSave={layout.canSave}
-                  hasCustomLayout={layout.hasCustomLayout}
-                  saveError={layout.saveError}
-                  onReset={layout.resetLayout}
-                />
-              </Panel>
-            </ReactFlow>
+              minimapNodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'}
+              legend={{ title: t('graph.legend.title'), items: legendItems }}
+              layout={layout}
+            />
           </div>
         </div>
         {!canvasOnly && showTextAlternative ? (

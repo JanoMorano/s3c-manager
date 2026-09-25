@@ -1,16 +1,4 @@
-.shell {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  height: calc(100vh - 48px);
-  background: var(--color-bg-workspace);
-}
 
-.rail {
-  background: var(--color-bg-surface);
-  border-right: 1px solid var(--color-border-default);
-  overflow-y: auto;
-  padding: var(--space-4) 0;
-}
 
 .railSection {
   padding: var(--space-3) var(--space-4);
@@ -67,36 +55,6 @@
 
 .title { font: var(--text-title-md); color: var(--color-text-primary); }
 .meta { font: var(--text-body-sm); color: var(--color-text-muted); }
-
-.graphTabs {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 3px;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-canvas);
-}
-
-.graphTab {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-pill);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  font: var(--text-label-sm);
-}
-
-.graphTab:hover {
-  color: var(--color-text-primary);
-}
-
-.graphTabActive {
-  background: var(--color-action-primary);
-  color: var(--color-bg-surface);
-}
 
 .performanceBadge {
   font: var(--text-label-sm);
@@ -163,20 +121,6 @@
   gap: var(--space-2);
 }
 
-.graphTextToggle {
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-canvas);
-  color: var(--color-text-primary);
-  padding: var(--space-2) var(--space-3);
-  font: var(--text-label-sm);
-  cursor: pointer;
-}
-
-.graphTextToggle:hover {
-  background: var(--color-bg-subtle);
-}
-
 .graphRelationList {
   display: grid;
   gap: 6px;
@@ -211,101 +155,6 @@
   color: var(--color-text-muted);
 }
 
-.flowSurface {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-}
-
-.swimlaneNode {
-  position: relative;
-  border: 2px dashed;
-  border-radius: var(--radius-lg);
-  pointer-events: none;
-  box-sizing: border-box;
-}
-
-.swimlaneNodeLabel {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  font: var(--text-label-sm);
-  font-weight: 800;
-  background: rgba(255,255,255,.85);
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.node {
-  background: var(--color-bg-surface);
-  border: 2px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  min-width: 170px;
-  max-width: 220px;
-  box-shadow: var(--shadow-low);
-  cursor: pointer;
-}
-
-.nodeSelected { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
-.nodeId { font: var(--text-mono-sm); margin-bottom: 2px; }
-.nodeTitle { font: var(--text-label-md); color: var(--color-text-primary); margin-bottom: var(--space-1); }
-.nodeStatus { display: flex; justify-content: flex-start; }
-
-.c3Node {
-  width: 110px;
-  height: 110px;
-  border-radius: 999px;
-  border: 2px solid var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-  color: var(--color-success);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 10px;
-  cursor: pointer;
-  box-shadow: var(--shadow-low);
-}
-
-.c3NodeSelected { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 20%, transparent); }
-.c3Type { font: var(--text-label-sm); font-weight: 800; margin-bottom: 4px; }
-.c3Title { font: var(--text-body-sm); line-height: 1.2; }
-
-.flavourNode {
-  min-width: 110px;
-  padding: 4px 8px;
-  border: 1px solid var(--color-warning);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-surface));
-  text-align: center;
-}
-
-.flavourNodeTitle {
-  max-width: 120px;
-  overflow: hidden;
-  color: var(--color-warning);
-  font: var(--text-label-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.flavourNodePrice {
-  color: var(--color-text-secondary);
-  font: var(--text-body-sm);
-}
-
-.panel {
-  width: 300px;
-  flex-shrink: 0;
-  background: var(--color-bg-surface);
-  border-left: 1px solid var(--color-border-default);
-  display: flex;
-  flex-direction: column;
-}
-
 .panelHeader {
   display: flex;
   align-items: center;
@@ -315,7 +164,7 @@
 }
 
 .panelTitle { font: var(--text-title-sm); color: var(--color-text-primary); }
-.panelClose { background: none; border: none; cursor: pointer; color: var(--color-text-muted); }
+
 .panelBody { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); }
 
 .panelRow {
@@ -368,31 +217,6 @@
 .state { color: var(--color-text-muted); }
 .stateError { color: var(--color-danger); }
 
-.domainFilterGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.domainFilterChip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  padding: 4px 8px;
-  border: 1px solid var(--color-border-default);
-  border-radius: 999px;
-  background: var(--color-bg-canvas);
-  color: var(--color-text-secondary);
-  font: var(--text-label-sm);
-  cursor: pointer;
-}
-
-.domainFilterChipActive {
-  color: var(--color-bg-surface);
-  font-weight: 700;
-}
-
 .typeList {
   display: flex;
   flex-wrap: wrap;
@@ -415,14 +239,6 @@
   font-weight: 700;
 }
 
-.switchRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: var(--text-body-sm);
-  color: var(--color-text-primary);
-}
-
 .saveButtonInline {
   display: inline-flex;
   justify-content: center;
@@ -438,13 +254,8 @@
 }
 
 .saveButtonInline:disabled { opacity: .6; cursor: default; }
-.saveMsg { font: var(--text-body-sm); color: var(--color-text-muted); }
-.performanceNote { font: var(--text-body-sm); color: var(--color-warning); }
 
 @media (max-width: 1180px) {
-  .shell { grid-template-columns: 1fr; }
-  .rail { border-right: none; border-bottom: 1px solid var(--color-border-default); }
   .canvasWrap { flex-direction: column; }
-  .panel { width: 100%; border-left: none; border-top: 1px solid var(--color-border-default); }
   .graphRelationList li { grid-template-columns: 1fr; }
 }

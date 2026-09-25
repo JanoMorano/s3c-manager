@@ -853,39 +853,6 @@ export interface ServiceGraphV2Response {
   edges: ServiceGraphV2Edge[];
 }
 
-export interface C3RelationGraphNode {
-  [key: string]: unknown;
-  id: string;
-  node_kind: 'c3_capability' | 'c3_application' | 'c3_tin' | 'c3_data_object' | 'c3_service';
-  label: string;
-  code: string | null;
-  status: string | null;
-  item_type?: string | null;
-  completeness_status?: string | null;
-  c3_uuid?: string | null;
-  entity_uuid?: string | null;
-}
-
-export interface C3RelationGraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  edge_kind:
-    | 'capability_application'
-    | 'capability_tin'
-    | 'capability_data_object'
-    | 'capability_c3_service'
-    | 'tin_application'
-    | 'tin_data_object'
-    | 'tin_c3_service';
-  relation_type: string;
-}
-
-export interface C3RelationGraphResponse {
-  nodes: C3RelationGraphNode[];
-  edges: C3RelationGraphEdge[];
-}
-
 export interface GraphOverviewNode {
   id: string;
   node_kind:

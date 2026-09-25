@@ -1,5 +1,5 @@
 import type { Edge } from '@xyflow/react';
-import type { C3RelationGraphEdge, GraphOverviewEdge, ServiceGraphV2Edge } from '@/features/services/model/service.types';
+import type { GraphOverviewEdge, ServiceGraphV2Edge } from '@/features/services/model/service.types';
 import { getRelationTypeCategory, RELATION_TYPE_CATEGORIES, type RelationTypeCategory } from '@/features/services/relationTypes';
 
 export type GraphEdgeType = 'smoothstep' | 'straight';
@@ -85,26 +85,6 @@ export function resolveServiceGraphEdgeVisual(edge: ServiceGraphV2Edge | GraphOv
   return resolveNeutralC3StructureVisual(edge.edge_kind);
 }
 
-/**
- * C3 relation canvas: colour = target entity kind (application / data object / C3 service),
- * dash = source (capability solid, technology interaction dashed). Capability → TIN is neutral.
- */
-export const C3_TARGET_KIND_COLOR = {
-  application: SERIES_1,
-  data_object: SERIES_2,
-  c3_service: SERIES_3,
-  tin: NEUTRAL,
-} as const;
-
-export function resolveC3EdgeVisual(edge: C3RelationGraphEdge): EdgeVisual {
-  const [source, ...targetParts] = edge.edge_kind.split('_');
-  const target = targetParts.join('_') as keyof typeof C3_TARGET_KIND_COLOR;
-  const color = C3_TARGET_KIND_COLOR[target];
-  if (!color) return DEFAULT_EDGE_VISUAL;
-  const fromTin = source === 'tin';
-  return { color, type: 'smoothstep', dash: fromTin ? DASH_SHORT : undefined, width: fromTin ? 1.6 : 2.2 };
-}
-
 export function applyLineStyleMode(
   visual: EdgeVisual,
   lineStyleMode: GraphLineStyleMode,
@@ -171,14 +151,4 @@ export function serviceGraphLegendItems(t: Translate, edges: LegendEdge[]): Grap
     items.push({ key: 'c3_structure', label: t('graph.legend.c3_structure'), color: NEUTRAL, width: 1.6 });
   }
   return items;
-}
-
-export function c3RelationLegendItems(t: Translate): GraphLegendItem[] {
-  return [
-    { key: 'application', label: t('graph.legend.c3_application'), color: C3_TARGET_KIND_COLOR.application, width: 2 },
-    { key: 'data_object', label: t('graph.legend.c3_data_object'), color: C3_TARGET_KIND_COLOR.data_object, width: 2 },
-    { key: 'c3_service', label: t('graph.legend.c3_service'), color: C3_TARGET_KIND_COLOR.c3_service, width: 2 },
-    { key: 'tin', label: t('graph.legend.c3_tin'), color: C3_TARGET_KIND_COLOR.tin, width: 2 },
-    { key: 'from_tin', label: t('graph.legend.from_tin'), color: 'var(--color-text-secondary)', dash: DASH_SHORT, width: 2 },
-  ];
 }

@@ -10,7 +10,6 @@ const LABELS: Record<string, string> = {
   [C3_ROUTES.dashboard]: 'Capability coverage',
   [C3_ROUTES.capabilityMap]: 'C3 Capability Map — Spiral 7',
   [C3_ROUTES.capabilityMapSpiral6]: 'C3 Capability Map — Spiral 6',
-  [C3_ROUTES.graph]: 'Capability map',
   [C3_ROUTES.technologyInteractions]: 'C3 Technology Interactions',
   [C3_ROUTES.services]: 'C3 Services',
   [C3_ROUTES.dataObjects]: 'C3 Data Objects',
