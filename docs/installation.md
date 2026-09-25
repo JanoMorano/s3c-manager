@@ -368,6 +368,7 @@ SQL file order:
 39_drop_legacy_service_mirrors.sql — removes lifecycle_state, service_status_code, next_review_due_at, portfolio_group_code and catalogue sla_* columns
 40_service_catalog_source.sql — moves import provenance and raw import fields to service_catalog_source; merges value_proposition/business_purpose into consumer_value and business_summary into short_description
 41_graph_node_layout.sql — per-view graph node positions (graph_node_layout); replaces service_catalog.graph_x/graph_y
+42_c3_entity_link_table.sql — merges the seven C3 link tables into c3_entity_link (old names kept as updatable views)
 ```
 
 ---

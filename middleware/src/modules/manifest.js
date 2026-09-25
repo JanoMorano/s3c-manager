@@ -145,6 +145,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '25_capability_governance',
             '34_c3_board_state',
             '38_c3_entity_link_view',
+            '42_c3_entity_link_table',
         ],
     },
     {

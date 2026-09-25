@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Read access to data.v_c3_entity_link (38_c3_entity_link_view.sql): one row
+ * Read access to data.v_c3_entity_link (read model over data.c3_entity_link,
+ * 42_c3_entity_link_table.sql): one row
  * per link from a C3 capability or technology interaction (TIN) to an entity.
  * Graph readers use it instead of querying the seven link tables separately.
  */
