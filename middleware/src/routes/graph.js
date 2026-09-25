@@ -25,6 +25,7 @@ const { getPool } = require('../db/pool');
 const { logGraphLayoutChange } = require('../db/audit.repo');
 const relationsRepo = require('../db/relations.repo');
 const { parseCsvFilter, parseTextFilter } = require('../utils/query-filters');
+const { RELATION_TYPE_CODES } = require('../../../shared/service-catalogue/relationTypes');
 
 router.use(requireAuth);
 
@@ -38,8 +39,8 @@ async function buildOverviewPayload(query, options = {}) {
     const serviceTypes = parseCsvFilter(query.type, { maxItems: 10 });
     const domains = parseCsvFilter(query.domain, { maxItems: 12 });
     const relationTypes = parseCsvFilter(query.relation_type, {
-        maxItems: 10,
-        allowed: ['depends_on', 'prerequisite', 'underlying', 'replaces', 'related_to', 'provided_by', 'supports', 'consumes', 'implements', 'exposes_data', 'uses_application', 'c3_parent'],
+        maxItems: RELATION_TYPE_CODES.length,
+        allowed: RELATION_TYPE_CODES,
     });
 
     const serviceNodesResult = await pool.query(`

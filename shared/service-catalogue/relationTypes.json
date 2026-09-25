@@ -1,25 +1,19 @@
 {
-  "editable": [
-    "prerequisite",
-    "underlying",
-    "replaces",
-    "depends_on",
-    "related_to",
-    "provided_by"
-  ],
-  "accepted": [
-    "depends_on",
-    "prerequisite",
-    "underlying",
-    "requires_account",
-    "uses",
-    "provides",
-    "replaces",
-    "integrates_with",
-    "related_to",
-    "part_of",
-    "replaced_by",
-    "provided_by",
-    "child_of"
+  "$comment": "Single source of truth for service-to-service relation types. Codes must match the ref_relation_type seed in backend/db/postgres/schema/02_ref.sql (enforced by middleware/src/__tests__/relation-types.test.js). editable=true types are offered when creating a relation; the others are accepted from imports and kept when editing. category drives dependency analysis and graph styling.",
+  "categories": ["dependency", "provision", "composition", "succession", "association"],
+  "types": [
+    { "code": "depends_on",       "category": "dependency",  "editable": true },
+    { "code": "prerequisite",     "category": "dependency",  "editable": true },
+    { "code": "underlying",       "category": "dependency",  "editable": true },
+    { "code": "requires_account", "category": "dependency",  "editable": false },
+    { "code": "uses",             "category": "dependency",  "editable": false },
+    { "code": "provides",         "category": "provision",   "editable": false },
+    { "code": "provided_by",      "category": "provision",   "editable": true },
+    { "code": "part_of",          "category": "composition", "editable": false },
+    { "code": "child_of",         "category": "composition", "editable": false },
+    { "code": "replaces",         "category": "succession",  "editable": true },
+    { "code": "replaced_by",      "category": "succession",  "editable": false },
+    { "code": "integrates_with",  "category": "association", "editable": false },
+    { "code": "related_to",       "category": "association", "editable": true }
   ]
 }

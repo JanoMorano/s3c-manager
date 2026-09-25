@@ -2,7 +2,7 @@
 /**
  * ServiceCatalog validation — canonical schema v2.1.
  */
-const { accepted: VALID_REL_TYPES } = require('../../../shared/service-catalogue/relationTypes.json');
+const { RELATION_TYPE_CODES: VALID_REL_TYPES } = require('../../../shared/service-catalogue/relationTypes');
 
 // Must match ref_ServiceType.code in the DB
 const VALID_TYPES = ['CF', 'CFS', 'ES', 'SS', 'MS', 'AS'];

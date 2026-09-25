@@ -1,6 +1,10 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const { DEPENDENCY_RELATION_TYPE_CODES } = require('../../../shared/service-catalogue/relationTypes');
+
+// Static codes from the shared relation type definition, not user input.
+const DEPENDENCY_RELATION_TYPES_SQL = DEPENDENCY_RELATION_TYPE_CODES.map((code) => `'${code}'`).join(', ');
 
 const SERVICE_STATE_SELECT = `
     SELECT
@@ -85,7 +89,7 @@ const SERVICE_STATE_SELECT = `
     LEFT JOIN LATERAL (
         SELECT
             COUNT(sr.id)::integer AS relation_count,
-            SUM(CASE WHEN sr.relation_type_code IN ('depends_on', 'prerequisite', 'underlying', 'requires_account', 'uses') THEN 1 ELSE 0 END)::integer AS dependency_relation_count
+            SUM(CASE WHEN sr.relation_type_code IN (${DEPENDENCY_RELATION_TYPES_SQL}) THEN 1 ELSE 0 END)::integer AS dependency_relation_count
         FROM data.service_relation sr
         WHERE sr.is_deleted = FALSE
           AND (sr.from_service_id = sc.id OR sr.to_service_id = sc.id)

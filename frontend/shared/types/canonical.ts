@@ -8,7 +8,8 @@ export type ServiceStatus    = 'active' | 'planned' | 'retired' | 'deprecated' |
 export type ServiceType      = 'CF' | 'CFS' | 'ES' | 'SS' | 'MS' | 'AS';
 export type AvailabilityLevel = 'high' | 'medium' | 'low';
 export type Domain = 'NEXUS' | 'VERTEX' | 'ORBIT' | 'PULSE' | 'RELAY' | 'CLOUD' | 'GRID' | 'PRISM' | 'HELIX' | 'ZENITH' | 'APEX' | 'VORTEX' | 'MATRIX';
-export type RelationType = 'prerequisite' | 'underlying' | 'replaces' | 'depends_on' | 'related_to' | 'provided_by' | 'child_of' | 'parent_of';
+/** Relation type codes are defined in shared/service-catalogue/relationTypes.json (see features/services/relationTypes.ts). */
+export type RelationType = string;
 
 export interface PersonRef {
   id?: string;

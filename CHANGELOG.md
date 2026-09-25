@@ -9,7 +9,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Service relation types now have one source of truth, `shared/service-catalogue/relationTypes.json` (code, category, editable). Validation, the graph relation filter, readiness dependency counts, the service editor and the service detail read from it; a test keeps it aligned with the `ref_relation_type` seed. Relation types have Czech and English labels.
+
 ### Fixed
+- The service editor no longer silently rewrites a relation whose type is not in the editable subset (for example `uses` or `part_of`); the current type stays selectable.
+- The graph `relation_type` filter accepted non-existent codes and rejected valid ones (`uses`, `part_of`, `provides`, …).
+- `v_servicepublishreadiness` counted only three of the five dependency relation types.
 - Fresh installs never applied `28_enterprise_governance_contracts.sql`, so `c3_board_state`, `v_c3_board_lane` and readiness rule explanation columns were missing. Service detail then silently showed no C3 mappings. The live parts are now split into `33_readiness_rule_explanations.sql` (Management) and `34_c3_board_state.sql` (C3 Taxonomy), wired into `init-db-postgres.sh` and the module entrypoints; the retired notification/request parts are dropped with `28`.
 - Service detail reads the C3 board state from `v_c3_board_lane`, so C3 items added after migration also get a derived board state.
 - Swallowed DB errors in service detail, service overview and the C3 dashboard board lanes are now logged.

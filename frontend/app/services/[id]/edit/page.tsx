@@ -36,7 +36,7 @@ import type {
 } from '@/features/services/model/service.types';
 import { useT } from '@/app/i18n/useI18n';
 import styles from './editor.module.css';
-import relationTypes from '../../../../../shared/service-catalogue/relationTypes.json';
+import { relationTypeLabelKey, relationTypeOptions } from '@/features/services/relationTypes';
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -116,7 +116,6 @@ const LIFECYCLE_TRANSITION_MAP: Record<string, string[]> = {
   deprecated: ['live', 'retired'],
   retired:    ['deprecated'],
 };
-const RELATION_TYPES    = relationTypes.editable;
 const OFFERING_STATUSES = ['draft', 'active', 'retired'];
 
 interface Props { params: Promise<{ id: string }> }
@@ -1449,7 +1448,7 @@ export default function ServiceEditorPage({ params }: Props) {
                           <Field label="Relation Type">
                             <select className={styles.input} value={editRelForm.relation_type ?? r.relation_type}
                               onChange={e => setEditRelForm(p => ({ ...p, relation_type: e.target.value }))}>
-                              {RELATION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                              {relationTypeOptions(r.relation_type).map(code => <option key={code} value={code}>{t(relationTypeLabelKey(code))}</option>)}
                             </select>
                           </Field>
                           <Field label="Impact Mode">
@@ -1504,7 +1503,7 @@ export default function ServiceEditorPage({ params }: Props) {
                     ) : (
                       /* ── Read row ─────────────────────────────────────── */
                       <div className={styles.relMgmtRow}>
-                        <span className={styles.relTypeChip}>{r.relation_type}</span>
+                        <span className={styles.relTypeChip}>{t(relationTypeLabelKey(r.relation_type))}</span>
                         <a href={`/services/${r.to_service_id}`} className={styles.link}>
                           {r.to_title ? `${r.to_title} (${r.to_service_id})` : r.to_service_id}
                         </a>
@@ -1539,7 +1538,7 @@ export default function ServiceEditorPage({ params }: Props) {
                 </Field>
                 <Field label="Relation Type">
                   <select className={styles.input} value={relForm.relation_type} onChange={e => setRelForm(p => ({ ...p, relation_type: e.target.value }))}>
-                    {RELATION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {relationTypeOptions().map(code => <option key={code} value={code}>{t(relationTypeLabelKey(code))}</option>)}
                   </select>
                 </Field>
                 <Field label="Label (optional)">

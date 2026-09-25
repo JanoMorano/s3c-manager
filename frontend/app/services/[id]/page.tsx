@@ -30,6 +30,8 @@ import type {
   ServiceRelation,
 } from '@/features/services/model/service.types';
 import { safeHref } from '@/shared/utils/safeHref';
+import { useT } from '@/app/i18n/useI18n';
+import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import styles from './detail.module.css';
 
 interface Props { params: Promise<{ id: string }> }
@@ -1547,9 +1549,10 @@ function DependenciesPanel({
 }
 
 function RelationRow({ relation }: { relation: ServiceRelation }) {
+  const t = useT();
   return (
     <div className={styles.relationRow}>
-      <span className={styles.relType}>{relation.relation_type}</span>
+      <span className={styles.relType}>{t(relationTypeLabelKey(relation.relation_type))}</span>
       <Link href={`/services/${relation.to_service_id}`} className={styles.relLink}>
         {relation.to_title ?? relation.to_service_id}
       </Link>
