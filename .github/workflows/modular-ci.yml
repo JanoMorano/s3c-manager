@@ -56,4 +56,5 @@ jobs:
       - run: npm run lint:modules
       - run: npm run lint
       - run: npm run lint:i18n
+      - run: npm test
       - run: npm run build

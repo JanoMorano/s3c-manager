@@ -35,6 +35,29 @@ for file in $(find "$SCHEMA_DIR" -maxdepth 1 -name '*.sql' | sort); do
   printf '%s %s\n' "$(sha256sum "$file" | cut -d ' ' -f 1)" "$name" >> "$manifest"
 done
 
+# Build-time timestamps (created_at, applied_at, …) would make every rebuild
+# differ; pin them to a fixed instant so the dump depends only on the files.
+# Triggers are disabled for the session so updated_at triggers do not fire.
+psql -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null
+SET session_replication_role = replica;
+DO $$
+DECLARE col RECORD;
+BEGIN
+    FOR col IN
+        SELECT c.table_schema, c.table_name, c.column_name
+        FROM information_schema.columns c
+        JOIN information_schema.tables t
+          ON t.table_schema = c.table_schema AND t.table_name = c.table_name AND t.table_type = 'BASE TABLE'
+        WHERE c.table_schema IN ('platform', 'data')
+          AND c.data_type IN ('timestamp with time zone', 'timestamp without time zone')
+    LOOP
+        -- Only values written during this build; fixed dates from seeds stay.
+        EXECUTE format('UPDATE %I.%I SET %I = %L WHERE %I >= now() - interval ''1 day''',
+            col.table_schema, col.table_name, col.column_name, '2000-01-01 00:00:00+00', col.column_name);
+    END LOOP;
+END $$;
+SQL
+
 {
   echo "-- ============================================================================="
   echo "-- S3C Manager — PostgreSQL schema baseline (generated, do not edit)"

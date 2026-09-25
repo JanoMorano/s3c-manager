@@ -11,6 +11,7 @@
     "lint:i18n": "node scripts/i18n-audit.mjs --check",
     "i18n:translate-cs": "node scripts/translate-generated-cs.mjs",
     "lint:styles": "node scripts/lint-styles.mjs",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.7"
   }
 }

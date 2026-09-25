@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Search, Star, Trash2 } from 'lucide-react';
 import { fetchGlobalSearch } from '@/features/search/search.api';
 import type { GlobalSearchGroup, GlobalSearchResponse } from '@/features/search/search.types';
@@ -11,19 +11,60 @@ import styles from './search.module.css';
 const RECENT_KEY = 's3c.globalSearch.recent';
 const SAVED_KEY = 's3c.globalSearch.saved';
 
-function readStoredList(key: string) {
-  if (typeof window === 'undefined') return [];
+// Recent and saved searches live in localStorage, read through a small
+// external store so server and first client render agree (empty lists).
+const NO_ITEMS: string[] = [];
+const storedListCache = new Map<string, { raw: string | null; value: string[] }>();
+const storedListListeners = new Set<() => void>();
+
+function readStoredList(key: string): string[] {
+  if (typeof window === 'undefined') return NO_ITEMS;
+  let raw: string | null = null;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) ?? '[]');
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+    raw = window.localStorage.getItem(key);
   } catch {
-    return [];
+    return NO_ITEMS;
   }
+  const cached = storedListCache.get(key);
+  if (cached && cached.raw === raw) return cached.value;
+  let value = NO_ITEMS;
+  try {
+    const parsed = JSON.parse(raw ?? '[]');
+    value = Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : NO_ITEMS;
+  } catch {
+    value = NO_ITEMS;
+  }
+  storedListCache.set(key, { raw, value });
+  return value;
 }
 
 function writeStoredList(key: string, values: string[]) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(values));
+  try {
+    window.localStorage.setItem(key, JSON.stringify(values));
+  } catch {
+    // Storage unavailable: the list just is not remembered.
+  }
+  storedListListeners.forEach((listener) => listener());
+}
+
+function subscribeStoredLists(listener: () => void) {
+  storedListListeners.add(listener);
+  window.addEventListener('storage', listener);
+  return () => {
+    storedListListeners.delete(listener);
+    window.removeEventListener('storage', listener);
+  };
+}
+
+function useStoredList(key: string): string[] {
+  return useSyncExternalStore(subscribeStoredLists, () => readStoredList(key), () => NO_ITEMS);
+}
+
+interface QueryResult {
+  query: string;
+  payload: GlobalSearchResponse | null;
+  error: string | null;
 }
 
 function groupHeading(group: GlobalSearchGroup) {
@@ -37,74 +78,61 @@ export default function SearchPageClient() {
   const searchParams = useSearchParams();
   const urlQuery = searchParams?.get('query') ?? '';
   const [input, setInput] = useState(urlQuery);
-  const [results, setResults] = useState<GlobalSearchResponse | null>(null);
-  const [suggestions, setSuggestions] = useState<GlobalSearchResponse | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [suggestionsBusy, setSuggestionsBusy] = useState(false);
+  const [searchResult, setSearchResult] = useState<QueryResult | null>(null);
+  const [suggestionResult, setSuggestionResult] = useState<QueryResult | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recent, setRecent] = useState<string[]>([]);
-  const [saved, setSaved] = useState<string[]>([]);
+  const recent = useStoredList(RECENT_KEY);
+  const saved = useStoredList(SAVED_KEY);
 
-  useEffect(() => {
-    setRecent(readStoredList(RECENT_KEY));
-    setSaved(readStoredList(SAVED_KEY));
-  }, []);
-
-  useEffect(() => {
+  // Follow the URL query into the input (e.g. back/forward navigation).
+  const [inputUrlQuery, setInputUrlQuery] = useState(urlQuery);
+  if (inputUrlQuery !== urlQuery) {
+    setInputUrlQuery(urlQuery);
     setInput(urlQuery);
-  }, [urlQuery]);
+  }
+
+  // Results belong to the query they were loaded for; busy until they match.
+  const activeQuery = urlQuery.trim();
+  const currentSearch = searchResult?.query === activeQuery ? searchResult : null;
+  const results = currentSearch?.payload ?? null;
+  const error = currentSearch?.error ?? null;
+  const busy = activeQuery.length >= 2 && !currentSearch;
 
   useEffect(() => {
     const query = urlQuery.trim();
-    if (query.length < 2) {
-      setResults(null);
-      setError(null);
-      setBusy(false);
-      return;
-    }
+    if (query.length < 2) return;
 
     const controller = new AbortController();
-    setBusy(true);
-    setError(null);
-
     fetchGlobalSearch(query, { endpoint: 'global', limit: 12, signal: controller.signal })
       .then((payload) => {
-        setResults(payload);
-        setRecent((current) => {
-          const nextRecent = [query, ...current.filter((item) => item.toLowerCase() !== query.toLowerCase())].slice(0, 8);
-          writeStoredList(RECENT_KEY, nextRecent);
-          return nextRecent;
-        });
+        setSearchResult({ query, payload, error: null });
+        const nextRecent = [query, ...readStoredList(RECENT_KEY).filter((item) => item.toLowerCase() !== query.toLowerCase())].slice(0, 8);
+        writeStoredList(RECENT_KEY, nextRecent);
       })
       .catch((err: unknown) => {
-        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Search failed');
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setBusy(false);
+        if (!controller.signal.aborted) {
+          setSearchResult({ query, payload: null, error: err instanceof Error ? err.message : 'Search failed' });
+        }
       });
 
     return () => controller.abort();
   }, [urlQuery]);
 
+  const suggestionQuery = input.trim();
+  const currentSuggestions = suggestionResult?.query === suggestionQuery ? suggestionResult : null;
+  const suggestions = currentSuggestions?.payload ?? null;
+  const suggestionsBusy = suggestionQuery.length >= 2 && suggestionQuery !== activeQuery && !currentSuggestions;
+
   useEffect(() => {
     const query = input.trim();
-    if (query.length < 2 || query === urlQuery.trim()) {
-      setSuggestions(null);
-      setSuggestionsBusy(false);
-      return;
-    }
+    if (query.length < 2 || query === urlQuery.trim()) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      setSuggestionsBusy(true);
       fetchGlobalSearch(query, { endpoint: 'suggest', limit: 5, signal: controller.signal })
-        .then((payload) => setSuggestions(payload))
+        .then((payload) => setSuggestionResult({ query, payload, error: null }))
         .catch(() => {
-          if (!controller.signal.aborted) setSuggestions(null);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setSuggestionsBusy(false);
+          if (!controller.signal.aborted) setSuggestionResult({ query, payload: null, error: null });
         });
     }, 220);
 
@@ -146,19 +174,14 @@ export default function SearchPageClient() {
   function saveSearch() {
     const query = urlQuery.trim();
     if (!query || savedCurrent) return;
-    const nextSaved = [query, ...saved].slice(0, 12);
-    setSaved(nextSaved);
-    writeStoredList(SAVED_KEY, nextSaved);
+    writeStoredList(SAVED_KEY, [query, ...saved].slice(0, 12));
   }
 
   function deleteSaved(query: string) {
-    const nextSaved = saved.filter((item) => item !== query);
-    setSaved(nextSaved);
-    writeStoredList(SAVED_KEY, nextSaved);
+    writeStoredList(SAVED_KEY, saved.filter((item) => item !== query));
   }
 
   function clearRecent() {
-    setRecent([]);
     writeStoredList(RECENT_KEY, []);
   }
 

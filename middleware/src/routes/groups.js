@@ -23,6 +23,12 @@ const repo = require('../db/groups.repo');
 
 router.use(requireAuth, canAdmin);
 
+// Group ids are integers; anything else is a bad request, not a database error.
+router.param('id', (req, res, next, id) => {
+    if (!/^[1-9]\d{0,17}$/.test(id)) return res.status(400).json({ error: 'Group id must be a positive integer' });
+    return next();
+});
+
 // ─── Groups ─────────────────────────────────────────────────────────────────
 
 router.get('/groups', async (req, res, next) => {

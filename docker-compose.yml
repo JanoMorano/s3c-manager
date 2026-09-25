@@ -32,7 +32,7 @@ services:
     environment:
       NODE_ENV: production
       APP_VERSION: ${APP_VERSION:-1.2.2}
-      SCHEMA_VERSION: ${SCHEMA_VERSION:-2.2.1}
+      SCHEMA_VERSION: ${SCHEMA_VERSION:-}
       DATABASE_URL: ${DATABASE_URL:-}
       DB_HOST: ${DB_HOST:-postgres}
       DB_PORT: ${DB_PORT:-5432}

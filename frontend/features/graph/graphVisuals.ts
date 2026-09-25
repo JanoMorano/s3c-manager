@@ -33,12 +33,6 @@ export const EDGE_WIDTH_DEFAULT = 1.6;
 export const EDGE_WIDTH_MANDATORY = 2.8;
 export const EDGE_OPACITY_UNVERIFIED = 0.45;
 
-const DEFAULT_EDGE_VISUAL: EdgeVisual = {
-  color: NEUTRAL,
-  type: 'smoothstep',
-  width: EDGE_WIDTH_DEFAULT,
-};
-
 export const RELATION_CATEGORY_VISUAL: Record<RelationTypeCategory, Pick<EdgeVisual, 'color' | 'dash'>> = {
   dependency: { color: SERIES_2 },
   provision: { color: SERIES_1 },

@@ -110,7 +110,7 @@ function walkFiles(dir, out = []) {
       walkFiles(full, out);
       continue;
     }
-    if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+    if (/\.(ts|tsx)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(full);
   }
   return out;
 }

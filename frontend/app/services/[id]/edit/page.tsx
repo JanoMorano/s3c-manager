@@ -238,6 +238,7 @@ export default function ServiceEditorPage({ params }: Props) {
     offerings.length,
     readiness,
     supportModels.length,
+    t,
     watchedRequestable,
     watchedServiceType,
     watchedTitle,

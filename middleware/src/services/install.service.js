@@ -24,7 +24,7 @@ const {
 const { serializeRegisteredModule } = require('../modules/module-serialization');
 
 const INSTALL_APP_VERSION  = process.env.APP_VERSION  || '1.2.2';
-const INSTALL_SCHEMA_VERSION = process.env.SCHEMA_VERSION || '2.2.1';
+const INSTALL_SCHEMA_VERSION = process.env.SCHEMA_VERSION || require('../config/schema-version').SCHEMA_VERSION;
 const BCRYPT_ROUNDS = 12;
 
 // ---------------------------------------------------------------------------
