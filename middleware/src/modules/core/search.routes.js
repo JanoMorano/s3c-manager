@@ -217,10 +217,9 @@ async function respondGlobalSearch(req, res, next) {
             'sc.additional_information_raw',
             'sc.service_area_raw',
             'sc.service_line_code',
-            'sc.portfolio_group_code',
             'sc.global_service_group_code',
             'sc.service_type_code',
-            'sc.service_status_code',
+            'sc.lifecycle_stage_code',
             'sc.customer_type_json',
             'sc.options_json',
             'sc.notes_json',
@@ -331,8 +330,8 @@ async function respondGlobalSearch(req, res, next) {
                     sc.service_id AS code,
                     sc.title,
                     COALESCE(sc.short_description, sc.description, sc.value_proposition, sc.business_purpose) AS description,
-                    CONCAT(COALESCE(sc.service_status_code, '—'), ' · ', COALESCE(sc.service_type_code, '—')) AS subtitle,
-                    sc.service_status_code AS status,
+                    CONCAT(COALESCE(data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub), '—'), ' · ', COALESCE(sc.service_type_code, '—')) AS subtitle,
+                    data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS status,
                     CONCAT('/services/', sc.service_id) AS href
                 FROM data.service_catalog sc
                 WHERE sc.is_deleted = FALSE

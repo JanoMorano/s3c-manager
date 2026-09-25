@@ -6,6 +6,7 @@ const { requireAuth } = require('../middleware/auth');
 const { isModuleApiEnabled } = require('../middleware/module-gates');
 const { MODULE_CODES } = require('../modules/manifest');
 const config = require('../config');
+const { SERVICE_STATUS_SQL, PORTFOLIO_JOIN, PRIMARY_SLA_JOIN } = require('../db/service-fields');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -23,10 +24,10 @@ async function loadDashboardStats() {
         getPool().query(`
             SELECT
                 COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE) AS total_services,
-                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'active') AS active_services,
-                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'draft') AS draft_services,
-                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'deprecated') AS deprecated_services,
-                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND service_status_code = 'retired') AS retired_services,
+                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND lifecycle_stage_code = 'active') AS active_services,
+                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND lifecycle_stage_code = 'draft') AS draft_services,
+                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND lifecycle_stage_code = 'retiring') AS deprecated_services,
+                COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND lifecycle_stage_code = 'retired') AS retired_services,
                 COUNT(*) FILTER (WHERE is_deleted = FALSE AND is_stub = FALSE AND requestable = TRUE) AS requestable_services,
                 (SELECT COUNT(*) FROM data.service_relation WHERE is_deleted = FALSE) AS total_relations,
                 (SELECT COUNT(*) FROM data.service_flavour WHERE is_deleted = FALSE) AS total_flavours
@@ -40,11 +41,12 @@ async function loadDashboardStats() {
             ORDER BY service_type_code
         `),
         getPool().query(`
-            SELECT portfolio_group_code AS portfolio_group, COUNT(*) AS count
-            FROM data.service_catalog
-            WHERE is_deleted = FALSE AND is_stub = FALSE
-            GROUP BY portfolio_group_code
-            ORDER BY portfolio_group_code
+            SELECT sp.portfolio_code AS portfolio_group, COUNT(*) AS count
+            FROM data.service_catalog sc
+            LEFT JOIN data.service_portfolio sp ON sp.id = sc.portfolio_id
+            WHERE sc.is_deleted = FALSE AND sc.is_stub = FALSE
+            GROUP BY sp.portfolio_code
+            ORDER BY sp.portfolio_code
         `),
         getPool().query(`
             SELECT sao.domain_code,
@@ -106,12 +108,12 @@ async function loadDashboardStats() {
             : Promise.resolve({ rows: [] }),
         getPool().query(`
             SELECT
-                COALESCE(lifecycle_state, 'unset') AS lifecycle_state,
+                COALESCE(data.fn_lifecycle_state_from_stage(lifecycle_stage_code), 'unset') AS lifecycle_state,
                 COUNT(*)::integer AS count
             FROM data.service_catalog
             WHERE is_deleted = FALSE AND is_stub = FALSE
-            GROUP BY lifecycle_state
-            ORDER BY lifecycle_state
+            GROUP BY 1
+            ORDER BY 1
         `),
     ]);
 
@@ -136,11 +138,11 @@ async function loadCompletenessRows() {
         SELECT
             sc.id, sc.service_id, sc.title,
             sc.service_type_code  AS service_type,
-            sc.service_status_code AS service_status,
-            sc.portfolio_group_code AS portfolio_group,
+            ${SERVICE_STATUS_SQL} AS service_status,
+            sp.portfolio_code AS portfolio_group,
             sc.short_description    AS summary,
             sc.completeness_score,
-            sc.sla_availability,
+            sla.availability_pct AS sla_availability,
             sc.updated_at,
             CASE WHEN scm.c3_uuid IS NOT NULL THEN TRUE ELSE FALSE END AS has_c3_mapping,
             (SELECT COUNT(*) FROM data.service_flavour sf
@@ -148,6 +150,8 @@ async function loadCompletenessRows() {
                AND sf.is_deleted = FALSE
                AND LOWER(COALESCE(sf.flavour_status_code,'')) IN ('available','active')) AS flavour_count
         FROM data.service_catalog sc
+        ${PORTFOLIO_JOIN}
+        ${PRIMARY_SLA_JOIN}
         LEFT JOIN data.service_c3_mapping scm
             ON scm.service_id = sc.id AND scm.is_primary = TRUE
         WHERE sc.is_deleted = FALSE AND sc.is_stub = FALSE
@@ -158,7 +162,7 @@ async function loadCompletenessRows() {
 
 async function loadMissingOwners() {
     const result = await getPool().query(`
-        SELECT sc.service_id, sc.title, sc.service_status_code AS service_status, sc.updated_at
+        SELECT sc.service_id, sc.title, ${SERVICE_STATUS_SQL} AS service_status, sc.updated_at
         FROM data.service_catalog sc
         WHERE sc.is_deleted = FALSE
           AND sc.is_stub = FALSE
@@ -301,11 +305,11 @@ router.get('/completeness', async (req, res, next) => {
             SELECT
                 sc.id, sc.service_id, sc.title,
                 sc.service_type_code  AS service_type,
-                sc.service_status_code AS service_status,
-                sc.portfolio_group_code AS portfolio_group,
+                ${SERVICE_STATUS_SQL} AS service_status,
+                sp.portfolio_code AS portfolio_group,
                 sc.short_description    AS summary,
                 sc.completeness_score,
-                sc.sla_availability,
+                sla.availability_pct AS sla_availability,
                 sc.updated_at,
                 CASE WHEN scm.c3_uuid IS NOT NULL THEN TRUE ELSE FALSE END AS has_c3_mapping,
                 (SELECT COUNT(*) FROM data.service_flavour sf
@@ -313,6 +317,8 @@ router.get('/completeness', async (req, res, next) => {
                    AND sf.is_deleted = FALSE
                    AND LOWER(COALESCE(sf.flavour_status_code,'')) IN ('available','active')) AS flavour_count
             FROM data.service_catalog sc
+            ${PORTFOLIO_JOIN}
+            ${PRIMARY_SLA_JOIN}
             LEFT JOIN data.service_c3_mapping scm
                 ON scm.service_id = sc.id AND scm.is_primary = TRUE
             WHERE sc.is_deleted = FALSE AND sc.is_stub = FALSE

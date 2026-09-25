@@ -940,5 +940,13 @@
   "service_editor.section.audience": "Audience policies",
   "service_editor.section.operational_links": "Operational links",
   "service_editor.section.advanced_evidence": "Advanced evidence",
-  "service_editor.section.raw_fields": "Import source evidence"
+  "service_editor.section.raw_fields": "Import source evidence",
+  "lifecycle_stage.draft": "Draft",
+  "lifecycle_stage.design": "Design",
+  "lifecycle_stage.active": "Active",
+  "lifecycle_stage.retiring": "Retiring",
+  "lifecycle_stage.retired": "Retired",
+  "service_editor.lifecycle.label": "Lifecycle stage",
+  "service_editor.lifecycle.current": "current",
+  "service_editor.lifecycle.allowed_next": "Allowed next: {{stages}}"
 }

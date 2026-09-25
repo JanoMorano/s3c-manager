@@ -321,14 +321,14 @@ function portfolioServiceScopeCte() {
                 sc.service_id,
                 sc.title,
                 sc.service_type_code AS service_type,
-                sc.service_status_code AS service_status,
+                data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status,
                 sc.lifecycle_stage_code,
-                sc.lifecycle_state,
+                data.fn_lifecycle_state_from_stage(sc.lifecycle_stage_code) AS lifecycle_state,
                 sc.criticality_code,
                 sc.completeness_score,
                 sc.review_due_at,
                 sc.requestable,
-                sc.portfolio_group_code AS portfolio_group,
+                (SELECT sp_group.portfolio_code FROM data.service_portfolio sp_group WHERE sp_group.id = sc.portfolio_id) AS portfolio_group,
                 (
                     SELECT COUNT(DISTINCT scm_count.c3_uuid)::integer
                     FROM data.service_c3_mapping scm_count
@@ -519,7 +519,7 @@ async function listCapabilities() {
                         sc_service.service_id,
                         sc_service.title,
                         sc_service.service_type_code AS service_type,
-                        sc_service.service_status_code AS service_status,
+                        data.fn_service_status_code(sc_service.lifecycle_stage_code, sc_service.is_stub) AS service_status,
                         sc_service.lifecycle_stage_code,
                         sc_service.criticality_code,
                         sc_service.completeness_score,
@@ -608,7 +608,7 @@ async function getByCode(code) {
             sc.service_id,
             sc.title,
             sc.service_type_code AS service_type,
-            sc.service_status_code AS service_status,
+            data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status,
             sc.lifecycle_stage_code,
             sc.criticality_code,
             sc.completeness_score,
@@ -664,13 +664,11 @@ async function getByCode(code) {
             sc.service_id,
             sc.title,
             sc.service_type_code,
-            sc.service_status_code,
+            sc.is_stub,
             sc.lifecycle_stage_code,
-            sc.lifecycle_state,
             sc.criticality_code,
             sc.completeness_score,
             sc.review_due_at,
-            sc.next_review_due_at,
             sc.requestable
         ORDER BY sc.title, sc.service_id
     `, [portfolioCode]);

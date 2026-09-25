@@ -183,6 +183,7 @@ const MODULE_DEFINITIONS = Object.freeze([
             '30_reduction_domain_model_simplification',
             '33_readiness_rule_explanations',
             '35_canonical_service_fields',
+            '39_drop_legacy_service_mirrors',
         ],
     },
 ]);

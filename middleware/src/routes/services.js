@@ -5,6 +5,7 @@ const flRepo  = require('../db/flavours.repo');
 const relRepo = require('../db/relations.repo');
 const offeringsRepo = require('../db/offerings.repo');
 const { listC3EntityLinks, linkTargetNode, linkEdge } = require('../db/c3-entity-links.repo');
+const { SERVICE_STATUS_SQL, PORTFOLIO_JOIN, PRIMARY_SLA_JOIN, canonicalizeServiceInput } = require('../db/service-fields');
 const supportModelRepo = require('../db/support-model.repo');
 const audienceRepo = require('../db/audience.repo');
 const operationalLinksRepo = require('../db/operational-links.repo');
@@ -22,6 +23,7 @@ const {
     validateAudiencePolicy,
     validateOperationalLink,
     validateLifecycleOperationalReadiness,
+    targetLifecycleStage,
 } = require('../services/validation');
 const {
     getServiceReadiness,
@@ -217,9 +219,10 @@ async function _validateOfferingOwnership(catalogId, offeringId) {
 
 async function _validateLiveReadiness(catalogId, existing, body) {
     const merged = { ...existing, ...body };
-    if (merged.lifecycle_state !== 'live') return [];
-    // Gate only the transition to live; editing an already live service is not a transition.
-    if (existing?.lifecycle_state === 'live' && body.lifecycle_state === undefined) return [];
+    const field = body.lifecycle_stage_code !== undefined || body.lifecycle_state === undefined ? 'lifecycle_stage_code' : 'lifecycle_state';
+    // Gate only the transition to active; editing an already active service is not a transition.
+    if (targetLifecycleStage(existing, body) !== 'active') return [];
+    if (targetLifecycleStage(existing, {}) === 'active') return [];
 
     const [offerings, supportModels] = await Promise.all([
         offeringsRepo.listByService(catalogId),
@@ -229,7 +232,7 @@ async function _validateLiveReadiness(catalogId, existing, body) {
     return validateLifecycleOperationalReadiness(merged, {
         offeringCount: offerings.length,
         supportModelCount: supportModels.length,
-    });
+    }, field);
 }
 
 // ─── GET /services ────────────────────────────────────────────────────────────
@@ -1065,10 +1068,12 @@ router.get('/:id/graph', async (req, res, next) => {
         const serviceNodesResult = await pool.query(`
             SELECT sc.service_id, sc.title,
                    sc.service_type_code   AS service_type,
-                   sc.service_status_code AS service_status,
-                   sc.portfolio_group_code AS portfolio_group,
-                   sc.sla_availability, sc.graph_x, sc.graph_y
+                   ${SERVICE_STATUS_SQL} AS service_status,
+                   sp.portfolio_code AS portfolio_group,
+                   sla.availability_pct AS sla_availability, sc.graph_x, sc.graph_y
             FROM data.service_catalog sc
+            ${PORTFOLIO_JOIN}
+            ${PRIMARY_SLA_JOIN}
             WHERE sc.service_id = ANY($1::varchar[])
               AND sc.is_deleted = FALSE
         `, [nodeIds]);
@@ -1336,8 +1341,9 @@ router.put('/:id', canEdit, async (req, res, next) => {
         }
         if (errors.length) return res.status(422).json({ errors });
 
-        const requestedStatus = body.service_status ?? body.service_status_code ?? null;
-        const isActivating = requestedStatus === 'active' && existing.service_status !== 'active';
+        // Entering the active stage (via lifecycle_stage_code, lifecycle_state or service_status) publishes the service.
+        const requestedStage = canonicalizeServiceInput(body).fields.lifecycle_stage_code;
+        const isActivating = requestedStage === 'active' && existing.lifecycle_stage_code !== 'active';
         if (isActivating) {
             const readiness = await getServiceReadiness(serviceId);
             if (!readiness?.is_publishable) {
@@ -1679,9 +1685,10 @@ router.get('/:id/impact', async (req, res, next) => {
         const rootCheck = await pool.query(`
                 SELECT sc.service_id, sc.title,
                        sc.service_type_code   AS service_type,
-                       sc.service_status_code AS service_status,
-                       sc.portfolio_group_code AS portfolio_group
+                       ${SERVICE_STATUS_SQL} AS service_status,
+                       sp.portfolio_code AS portfolio_group
                 FROM data.service_catalog sc
+                ${PORTFOLIO_JOIN}
                 WHERE sc.service_id = $1 AND sc.is_deleted = FALSE
             `, [serviceId]);
         if (!rootCheck.rows.length) {
@@ -1727,10 +1734,12 @@ router.get('/:id/impact', async (req, res, next) => {
             const nodesResult = await pool.query(`
                 SELECT sc.service_id, sc.title,
                        sc.service_type_code    AS service_type,
-                       sc.service_status_code  AS service_status,
-                       sc.portfolio_group_code AS portfolio_group,
-                       sc.sla_availability
+                       ${SERVICE_STATUS_SQL}  AS service_status,
+                       sp.portfolio_code AS portfolio_group,
+                       sla.availability_pct AS sla_availability
                 FROM data.service_catalog sc
+                ${PORTFOLIO_JOIN}
+                ${PRIMARY_SLA_JOIN}
                 WHERE sc.service_id = ANY($1::varchar[])
                   AND sc.is_deleted = FALSE
             `, [impactedIds]);

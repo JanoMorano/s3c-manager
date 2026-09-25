@@ -48,6 +48,7 @@ jest.mock('../db/operational-links.repo', () => ({
     remove: jest.fn(),
 }));
 jest.mock('../services/validation', () => ({
+    targetLifecycleStage: jest.requireActual('../services/validation').targetLifecycleStage,
     validateCreate: jest.fn(() => []),
     validateUpdate: jest.fn(() => []),
     validateOffering: jest.fn(() => []),

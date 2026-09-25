@@ -112,133 +112,6 @@ $$;
 
 
 --
--- Name: fn_service_catalog_sync_canonical(); Type: FUNCTION; Schema: data; Owner: -
---
-
-CREATE FUNCTION data.fn_service_catalog_sync_canonical() RETURNS trigger
-    LANGUAGE plpgsql
-    SET search_path TO 'data', 'public'
-    AS $$
-DECLARE
-    stage_changed  BOOLEAN;
-    state_changed  BOOLEAN;
-    status_changed BOOLEAN;
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        stage_changed  := NEW.lifecycle_stage_code IS NOT NULL;
-        state_changed  := NEW.lifecycle_state IS NOT NULL;
-        status_changed := NEW.service_status_code IS NOT NULL;
-    ELSE
-        stage_changed  := NEW.lifecycle_stage_code IS DISTINCT FROM OLD.lifecycle_stage_code;
-        state_changed  := NEW.lifecycle_state IS DISTINCT FROM OLD.lifecycle_state;
-        status_changed := NEW.service_status_code IS DISTINCT FROM OLD.service_status_code;
-    END IF;
-
-    -- Lifecycle: canonical stage wins, then the lifecycle workflow, then catalogue status.
-    IF NOT stage_changed THEN
-        IF state_changed AND fn_lifecycle_stage_from_state(NEW.lifecycle_state) IS NOT NULL THEN
-            NEW.lifecycle_stage_code := fn_lifecycle_stage_from_state(NEW.lifecycle_state);
-            stage_changed := TRUE;
-        ELSIF status_changed AND fn_lifecycle_stage_from_state(NEW.service_status_code) IS NOT NULL THEN
-            NEW.lifecycle_stage_code := fn_lifecycle_stage_from_state(NEW.service_status_code);
-            stage_changed := TRUE;
-        END IF;
-    END IF;
-
-    IF stage_changed AND NEW.lifecycle_stage_code IS NOT NULL THEN
-        IF NOT state_changed OR fn_lifecycle_stage_from_state(NEW.lifecycle_state) IS DISTINCT FROM NEW.lifecycle_stage_code THEN
-            NEW.lifecycle_state := fn_lifecycle_state_from_stage(NEW.lifecycle_stage_code);
-        END IF;
-        -- Stubs keep their external_reference status.
-        IF COALESCE(NEW.service_status_code, '') <> 'external_reference'
-           AND (NOT status_changed OR fn_lifecycle_stage_from_state(NEW.service_status_code) IS DISTINCT FROM NEW.lifecycle_stage_code) THEN
-            NEW.service_status_code := fn_service_status_from_stage(NEW.lifecycle_stage_code);
-        END IF;
-    END IF;
-
-    -- Review date.
-    IF TG_OP = 'INSERT' THEN
-        NEW.review_due_at := COALESCE(NEW.review_due_at, NEW.next_review_due_at);
-    ELSIF NEW.review_due_at IS DISTINCT FROM OLD.review_due_at THEN
-        NULL;
-    ELSIF NEW.next_review_due_at IS DISTINCT FROM OLD.next_review_due_at THEN
-        NEW.review_due_at := NEW.next_review_due_at;
-    END IF;
-    NEW.next_review_due_at := NEW.review_due_at;
-
-    -- Portfolio.
-    IF (TG_OP = 'INSERT' AND NEW.portfolio_id IS NOT NULL)
-       OR (TG_OP = 'UPDATE' AND NEW.portfolio_id IS DISTINCT FROM OLD.portfolio_id) THEN
-        NEW.portfolio_group_code := (
-            SELECT sp.portfolio_code
-            FROM service_portfolio sp
-            JOIN ref_portfolio_group rpg ON rpg.code = sp.portfolio_code
-            WHERE sp.id = NEW.portfolio_id
-        );
-    ELSIF (TG_OP = 'INSERT' AND NEW.portfolio_group_code IS NOT NULL)
-       OR (TG_OP = 'UPDATE' AND NEW.portfolio_group_code IS DISTINCT FROM OLD.portfolio_group_code) THEN
-        NEW.portfolio_id := (
-            SELECT sp.id FROM service_portfolio sp WHERE sp.portfolio_code = NEW.portfolio_group_code
-        );
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-
---
--- Name: fn_service_catalog_sync_sla(); Type: FUNCTION; Schema: data; Owner: -
---
-
-CREATE FUNCTION data.fn_service_catalog_sync_sla() RETURNS trigger
-    LANGUAGE plpgsql
-    SET search_path TO 'data', 'public'
-    AS $$
-DECLARE
-    primary_id BIGINT;
-BEGIN
-    -- Changes coming from the service_sla trigger must not bounce back.
-    IF pg_trigger_depth() > 1 THEN
-        RETURN NEW;
-    END IF;
-
-    IF TG_OP = 'UPDATE'
-       AND NEW.sla_availability      IS NOT DISTINCT FROM OLD.sla_availability
-       AND NEW.sla_restoration_hours IS NOT DISTINCT FROM OLD.sla_restoration_hours
-       AND NEW.sla_delivery_days     IS NOT DISTINCT FROM OLD.sla_delivery_days
-       AND NEW.sla_restoration_text  IS NOT DISTINCT FROM OLD.sla_restoration_text
-       AND NEW.sla_delivery_text     IS NOT DISTINCT FROM OLD.sla_delivery_text THEN
-        RETURN NEW;
-    END IF;
-
-    primary_id := fn_service_primary_sla_id(NEW.id);
-
-    IF primary_id IS NOT NULL THEN
-        UPDATE service_sla
-        SET availability_pct  = NEW.sla_availability,
-            restoration_hours = NEW.sla_restoration_hours,
-            delivery_days     = NEW.sla_delivery_days,
-            restoration_text  = NEW.sla_restoration_text,
-            delivery_text     = NEW.sla_delivery_text,
-            updated_at        = CURRENT_TIMESTAMP
-        WHERE id = primary_id;
-    ELSIF COALESCE(NEW.sla_availability::text, NEW.sla_restoration_hours::text, NEW.sla_delivery_days::text,
-                   NEW.sla_restoration_text, NEW.sla_delivery_text) IS NOT NULL THEN
-        INSERT INTO service_sla
-            (service_id, flavour_id, availability_pct, restoration_hours, delivery_days,
-             restoration_text, delivery_text, source_field)
-        VALUES
-            (NEW.id, NULL, NEW.sla_availability, NEW.sla_restoration_hours, NEW.sla_delivery_days,
-             NEW.sla_restoration_text, NEW.sla_delivery_text, 'service_catalog');
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-
---
 -- Name: fn_service_primary_sla_id(bigint); Type: FUNCTION; Schema: data; Owner: -
 --
 
@@ -251,47 +124,15 @@ $$;
 
 
 --
--- Name: fn_service_sla_sync_catalog(); Type: FUNCTION; Schema: data; Owner: -
+-- Name: fn_service_status_code(text, boolean); Type: FUNCTION; Schema: data; Owner: -
 --
 
-CREATE FUNCTION data.fn_service_sla_sync_catalog() RETURNS trigger
-    LANGUAGE plpgsql
+CREATE FUNCTION data.fn_service_status_code(p_stage text, p_is_stub boolean) RETURNS character varying
+    LANGUAGE sql IMMUTABLE
     SET search_path TO 'data', 'public'
     AS $$
-DECLARE
-    target_service BIGINT;
-    primary_row    service_sla%ROWTYPE;
-BEGIN
-    IF pg_trigger_depth() > 1 THEN
-        RETURN NULL;
-    END IF;
-
-    target_service := CASE WHEN TG_OP = 'DELETE' THEN OLD.service_id ELSE NEW.service_id END;
-    IF TG_OP <> 'DELETE' AND NEW.flavour_id IS NOT NULL
-       AND (TG_OP = 'INSERT' OR OLD.flavour_id IS NOT NULL) THEN
-        RETURN NULL;
-    END IF;
-    IF TG_OP = 'DELETE' AND OLD.flavour_id IS NOT NULL THEN
-        RETURN NULL;
-    END IF;
-
-    SELECT * INTO primary_row FROM service_sla WHERE id = fn_service_primary_sla_id(target_service);
-
-    UPDATE service_catalog
-    SET sla_availability      = primary_row.availability_pct,
-        sla_restoration_hours = primary_row.restoration_hours,
-        sla_delivery_days     = primary_row.delivery_days,
-        sla_restoration_text  = primary_row.restoration_text,
-        sla_delivery_text     = primary_row.delivery_text
-    WHERE id = target_service
-      AND (sla_availability      IS DISTINCT FROM primary_row.availability_pct
-        OR sla_restoration_hours IS DISTINCT FROM primary_row.restoration_hours
-        OR sla_delivery_days     IS DISTINCT FROM primary_row.delivery_days
-        OR sla_restoration_text  IS DISTINCT FROM primary_row.restoration_text
-        OR sla_delivery_text     IS DISTINCT FROM primary_row.delivery_text);
-
-    RETURN NULL;
-END;
+    SELECT CASE WHEN p_is_stub THEN 'external_reference'::varchar(50)
+                ELSE fn_service_status_from_stage(p_stage)::varchar(50) END
 $$;
 
 
@@ -2113,9 +1954,7 @@ CREATE TABLE data.service_catalog (
     short_description character varying(1000),
     description text,
     service_type_code character varying(50),
-    service_status_code character varying(50),
     catalogue_version character varying(50),
-    portfolio_group_code character varying(100),
     global_service_group_code character varying(150),
     service_line_code character varying(150),
     organizational_element_code character varying(150),
@@ -2130,11 +1969,6 @@ CREATE TABLE data.service_catalog (
     rate_note text,
     ordering_note text,
     exclusions text,
-    sla_availability numeric(5,2),
-    sla_restoration_hours integer,
-    sla_delivery_days integer,
-    sla_restoration_text text,
-    sla_delivery_text text,
     graph_x double precision,
     graph_y double precision,
     operational_notes_raw text,
@@ -2173,14 +2007,12 @@ CREATE TABLE data.service_catalog (
     updated_by character varying(255),
     business_summary text,
     requestable boolean,
-    lifecycle_state character varying(50),
     target_audience_summary text,
     request_channel_type character varying(100),
     request_channel_url character varying(2000),
     approval_required boolean,
     fulfillment_lead_time_text text,
     review_owner_user_id integer,
-    next_review_due_at timestamp with time zone,
     consumer_value text,
     portfolio_id bigint,
     lifecycle_stage_code character varying(50),
@@ -2675,7 +2507,7 @@ CREATE VIEW data.v_c3_board_lane AS
             WHEN (EXISTS ( SELECT 1
                FROM (data.service_c3_mapping scm
                  JOIN data.service_catalog sc ON ((sc.id = scm.service_id)))
-              WHERE (((scm.c3_uuid)::text = (c.uuid)::text) AND (sc.is_deleted = false) AND (lower((COALESCE(sc.lifecycle_stage_code, sc.service_status_code, sc.lifecycle_state, ''::character varying))::text) = ANY (ARRAY['active'::text, 'published'::text, 'live'::text]))))) THEN 'used'::text
+              WHERE (((scm.c3_uuid)::text = (c.uuid)::text) AND (sc.is_deleted = false) AND ((sc.lifecycle_stage_code)::text = 'active'::text)))) THEN 'used'::text
             WHEN (EXISTS ( SELECT 1
                FROM data.service_c3_mapping scm
               WHERE ((scm.c3_uuid)::text = (c.uuid)::text))) THEN 'mapped'::text
@@ -3660,7 +3492,7 @@ CREATE VIEW data.v_servicepublishreadiness AS
  SELECT sc.id AS service_pk,
     sc.service_id,
     sc.title,
-    sc.service_status_code AS service_status,
+    data.fn_service_status_code((sc.lifecycle_stage_code)::text, sc.is_stub) AS service_status,
     pm.primary_mapping_count,
     pm.primary_c3_uuid,
     cap.title AS primary_c3_title,
@@ -3708,9 +3540,9 @@ CREATE VIEW data.v_capability_governance_mapping AS
     sc.id AS service_pk,
     sc.service_id,
     sc.title AS service_title,
-    sc.service_status_code AS service_status,
+    data.fn_service_status_code((sc.lifecycle_stage_code)::text, sc.is_stub) AS service_status,
     sc.lifecycle_stage_code,
-    sc.lifecycle_state,
+    data.fn_lifecycle_state_from_stage((sc.lifecycle_stage_code)::text) AS lifecycle_state,
     scm.c3_uuid AS capability_uuid,
     ct.external_id AS capability_code,
     ct.title AS capability_title,
@@ -3942,22 +3774,24 @@ CREATE VIEW data.v_framework_completeness AS
 --
 
 CREATE VIEW data.v_graphoverviewnodes AS
- SELECT id AS service_pk,
-    concat('svc:', service_id) AS id,
+ SELECT sc.id AS service_pk,
+    concat('svc:', sc.service_id) AS id,
     'service'::text AS node_kind,
-    title,
-    service_id,
-    service_type_code AS service_type,
-    service_status_code AS service_status,
-    portfolio_group_code AS portfolio_group,
+    sc.title,
+    sc.service_id,
+    sc.service_type_code AS service_type,
+    data.fn_service_status_code((sc.lifecycle_stage_code)::text, sc.is_stub) AS service_status,
+    sp.portfolio_code AS portfolio_group,
     ( SELECT string_agg((sao.domain_code)::text, ','::text) AS string_agg
            FROM data.service_available_on sao
           WHERE (sao.service_id = sc.id)) AS available_on,
-    sla_availability,
-    graph_x,
-    graph_y
-   FROM data.service_catalog sc
-  WHERE (is_deleted = false);
+    sla.availability_pct AS sla_availability,
+    sc.graph_x,
+    sc.graph_y
+   FROM ((data.service_catalog sc
+     LEFT JOIN data.service_portfolio sp ON ((sp.id = sc.portfolio_id)))
+     LEFT JOIN data.service_sla sla ON ((sla.id = data.fn_service_primary_sla_id(sc.id))))
+  WHERE (sc.is_deleted = false);
 
 
 --
@@ -4112,7 +3946,7 @@ CREATE VIEW data.v_impact_node AS
     (sc.service_id)::text AS node_key,
     (sc.id)::text AS node_uuid,
     (sc.title)::text AS title,
-    (sc.service_status_code)::text AS status,
+    (data.fn_service_status_code((sc.lifecycle_stage_code)::text, sc.is_stub))::text AS status,
     concat('/services/', sc.service_id) AS url,
     (sc.lifecycle_stage_code)::text AS lifecycle_stage,
     (sc.criticality_code)::text AS criticality,
@@ -4572,7 +4406,7 @@ CREATE VIEW data.v_stubcompletionqueue AS
  SELECT id,
     service_id,
     title,
-    service_status_code,
+    data.fn_service_status_code((lifecycle_stage_code)::text, is_stub) AS service_status_code,
     is_stub,
     notes_json,
     created_at,
@@ -4594,7 +4428,7 @@ CREATE VIEW data.v_stubcompletionqueue AS
                      JOIN data.service_catalog f ON ((f.id = sr.from_service_id)))
                   WHERE ((sr.is_deleted = false) AND (sr.to_service_id = sc.id))) refs) AS related_service_ids
    FROM data.service_catalog sc
-  WHERE ((is_deleted = false) AND (is_stub = true) AND ((service_status_code)::text = 'external_reference'::text));
+  WHERE ((is_deleted = false) AND (is_stub = true));
 
 
 --
@@ -5209,11 +5043,11 @@ ALTER TABLE ONLY data.ref_portfolio_group_alias ALTER COLUMN id SET DEFAULT next
 --
 
 COPY data.audit_retention_policy (policy_key, target_table, retention_days, archive_after_days, is_active, updated_at) FROM stdin;
-taxonomy_mapping_audit	data.taxonomy_mapping_audit	365	90	t	2026-09-25 18:02:18.70248+00
-graph_layout_audit	data.graph_layout_audit	365	90	t	2026-09-25 18:02:18.70248+00
-import_batch	data.import_batch	365	90	t	2026-09-25 18:02:18.70248+00
-import_row	data.import_row	180	60	t	2026-09-25 18:02:18.70248+00
-import_issue	data.import_issue	365	90	t	2026-09-25 18:02:18.70248+00
+taxonomy_mapping_audit	data.taxonomy_mapping_audit	365	90	t	2026-09-25 18:23:20.934101+00
+graph_layout_audit	data.graph_layout_audit	365	90	t	2026-09-25 18:23:20.934101+00
+import_batch	data.import_batch	365	90	t	2026-09-25 18:23:20.934101+00
+import_row	data.import_row	180	60	t	2026-09-25 18:23:20.934101+00
+import_issue	data.import_issue	365	90	t	2026-09-25 18:23:20.934101+00
 \.
 
 
@@ -5470,14 +5304,14 @@ COPY data.readiness_exception (id, service_id, rule_key, reason, expires_at, app
 --
 
 COPY data.readiness_rule (rule_key, title, description, severity, enabled, blocking, applies_to_lifecycle_stage, created_at, updated_at, title_text, why_text, howto_text, evidence_hint) FROM stdin;
-service_has_owner	Service has owner	A service needs an active owner assignment before it can be governed or published.	P0	t	t	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has owner	A service needs an active owner assignment before it can be governed or published.	Assign an accountable service owner in the ownership section.	service_role_assignment.role_code=service_owner
-service_has_offering	Service has offering or pricing evidence	A service needs at least one structured offering, active legacy flavour, pricing note, or pricing evidence.	P0	t	t	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has offering or pricing evidence	A service needs at least one structured offering, active legacy flavour, pricing note, or pricing evidence.	Create at least one active offering or available flavour.	service_offering or active service_flavour
-service_has_lifecycle_stage	Service has lifecycle state	A canonical lifecycle state is required for readiness and review queues.	P1	t	t	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has lifecycle state	A canonical lifecycle state is required for readiness and review queues.	Set the service lifecycle stage and review whether the workflow state is correct.	service_catalog.lifecycle_stage_code
-service_has_primary_capability_mapping	Service has primary capability mapping	A primary C3 or capability mapping is required for capability coverage governance.	P1	t	t	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has primary capability mapping	A primary C3 or capability mapping is required for capability coverage governance.	Map exactly one primary C3 capability to the service.	service_c3_mapping.is_primary=true
-service_has_sla	Service has SLA	Availability, restoration, delivery target, or SLA record is required.	P1	t	t	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has SLA	Availability, restoration, delivery target, or SLA record is required.	Add SLA commitments or an explicit support model exception.	service_catalog SLA fields or service_sla records
-service_has_dependency_classification	Service has dependency classification	Dependencies should be classified so change and readiness impact can be assessed.	P2	f	f	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has dependency classification	Dependencies should be classified so change and readiness impact can be assessed.	Classify dependencies and mark mandatory or operationally critical relationships.	service_relation dependency kinds
-service_has_review_date	Service has review date	Review due date keeps ownership and readiness decisions current.	P2	f	f	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Service has review date	Review due date keeps ownership and readiness decisions current.	Set the next review date or governance owner.	review_due_at or next_review_due_at
-requestable_service_has_pricing	Requestable service has pricing	Requestable services should have pricing, cost note, or an explicit exception.	P2	f	f	\N	2026-09-25 18:02:19.230076+00	2026-09-25 18:02:19.404227+00	Requestable service has pricing	Requestable services should have pricing, cost note, or an explicit exception.	Add a price, rate note or approved pricing exception.	service_flavour.price_value or pricing note
+service_has_owner	Service has owner	A service needs an active owner assignment before it can be governed or published.	P0	t	t	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has owner	A service needs an active owner assignment before it can be governed or published.	Assign an accountable service owner in the ownership section.	service_role_assignment.role_code=service_owner
+service_has_offering	Service has offering or pricing evidence	A service needs at least one structured offering, active legacy flavour, pricing note, or pricing evidence.	P0	t	t	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has offering or pricing evidence	A service needs at least one structured offering, active legacy flavour, pricing note, or pricing evidence.	Create at least one active offering or available flavour.	service_offering or active service_flavour
+service_has_lifecycle_stage	Service has lifecycle state	A canonical lifecycle state is required for readiness and review queues.	P1	t	t	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has lifecycle state	A canonical lifecycle state is required for readiness and review queues.	Set the service lifecycle stage and review whether the workflow state is correct.	service_catalog.lifecycle_stage_code
+service_has_primary_capability_mapping	Service has primary capability mapping	A primary C3 or capability mapping is required for capability coverage governance.	P1	t	t	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has primary capability mapping	A primary C3 or capability mapping is required for capability coverage governance.	Map exactly one primary C3 capability to the service.	service_c3_mapping.is_primary=true
+service_has_sla	Service has SLA	Availability, restoration, delivery target, or SLA record is required.	P1	t	t	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has SLA	Availability, restoration, delivery target, or SLA record is required.	Add SLA commitments or an explicit support model exception.	service_catalog SLA fields or service_sla records
+service_has_dependency_classification	Service has dependency classification	Dependencies should be classified so change and readiness impact can be assessed.	P2	f	f	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has dependency classification	Dependencies should be classified so change and readiness impact can be assessed.	Classify dependencies and mark mandatory or operationally critical relationships.	service_relation dependency kinds
+service_has_review_date	Service has review date	Review due date keeps ownership and readiness decisions current.	P2	f	f	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Service has review date	Review due date keeps ownership and readiness decisions current.	Set the next review date or governance owner.	review_due_at or next_review_due_at
+requestable_service_has_pricing	Requestable service has pricing	Requestable services should have pricing, cost note, or an explicit exception.	P2	f	f	\N	2026-09-25 18:23:21.468862+00	2026-09-25 18:23:21.665783+00	Requestable service has pricing	Requestable services should have pricing, cost note, or an explicit exception.	Add a price, rate note or approved pricing exception.	service_flavour.price_value or pricing note
 \.
 
 
@@ -5586,29 +5420,29 @@ Training Services	Training Services	20	t
 --
 
 COPY data.ref_portfolio_group_alias (id, alias_key, portfolio_group_code, source_kind, is_active, created_at, updated_at) FROM stdin;
-1	application service	Application Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-2	application services	Application Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-3	infrastructure service	Infrastructure Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-4	infrastructure services	Infrastructure Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-5	platform service	Platform Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-6	platform services	Platform Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-7	platform service s	Platform Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-8	security service	Security Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-9	security services	Security Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-10	network service	Network Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-11	network services	Network Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-12	workplace service	Workplace Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-13	workplace services	Workplace Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-14	subject matter expertise service	Subject Matter Expertise Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-15	subject matter expertise services	Subject Matter Expertise Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-16	training service	Training Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-17	training services	Training Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-18	logistic service	Logistic Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-19	logistic services	Logistic Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-20	other service	Other Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-21	other services	Other Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-22	digital workplace service	Digital Workplace Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
-23	digital workplace services	Digital Workplace Services	seed	t	2026-09-25 18:02:18.206522+00	2026-09-25 18:02:18.206522+00
+1	application service	Application Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+2	application services	Application Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+3	infrastructure service	Infrastructure Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+4	infrastructure services	Infrastructure Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+5	platform service	Platform Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+6	platform services	Platform Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+7	platform service s	Platform Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+8	security service	Security Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+9	security services	Security Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+10	network service	Network Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+11	network services	Network Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+12	workplace service	Workplace Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+13	workplace services	Workplace Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+14	subject matter expertise service	Subject Matter Expertise Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+15	subject matter expertise services	Subject Matter Expertise Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+16	training service	Training Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+17	training services	Training Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+18	logistic service	Logistic Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+19	logistic services	Logistic Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+20	other service	Other Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+21	other services	Other Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+22	digital workplace service	Digital Workplace Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
+23	digital workplace services	Digital Workplace Services	seed	t	2026-09-25 18:23:20.435845+00	2026-09-25 18:23:20.435845+00
 \.
 
 
@@ -5730,10 +5564,10 @@ AS	Advisory Service	\N
 --
 
 COPY data.ref_spiral_baseline (id, spiral_code, spiral_label, is_active, notes, activated_at, activated_by, created_at) FROM stdin;
-2	Spiral_4	Spiral 4	f	Historical FMN spiral baseline; inactive until explicitly enabled.	\N	\N	2026-09-25 18:02:18.841802+00
-3	Spiral_5	Spiral 5	f	FMN Spiral 5 baseline used by Air C2 PDF parity work.	\N	\N	2026-09-25 18:02:18.841802+00
-1	Spiral_6	Spiral 6 (current baseline)	t	Current active baseline for existing C3 seed data.	2026-09-25 18:02:18.587234+00	\N	2026-09-25 18:02:18.587234+00
-4	Spiral_7	Spiral 7	f	Future/imported FMN spiral baseline.	\N	\N	2026-09-25 18:02:18.841802+00
+2	Spiral_4	Spiral 4	f	Historical FMN spiral baseline; inactive until explicitly enabled.	\N	\N	2026-09-25 18:23:21.056941+00
+3	Spiral_5	Spiral 5	f	FMN Spiral 5 baseline used by Air C2 PDF parity work.	\N	\N	2026-09-25 18:23:21.056941+00
+1	Spiral_6	Spiral 6 (current baseline)	t	Current active baseline for existing C3 seed data.	2026-09-25 18:23:20.81404+00	\N	2026-09-25 18:23:20.81404+00
+4	Spiral_7	Spiral 7	f	Future/imported FMN spiral baseline.	\N	\N	2026-09-25 18:23:21.056941+00
 \.
 
 
@@ -5792,7 +5626,7 @@ COPY data.service_c3_mapping (id, service_id, c3_uuid, c3_parent_uuid, c3_level,
 -- Data for Name: service_catalog; Type: TABLE DATA; Schema: data; Owner: -
 --
 
-COPY data.service_catalog (id, service_id, title, short_description, description, service_type_code, service_status_code, catalogue_version, portfolio_group_code, global_service_group_code, service_line_code, organizational_element_code, service_url, security_classification_code, value_proposition, service_features, business_purpose, scope_text, unit_of_measure, charging_basis, rate_note, ordering_note, exclusions, sla_availability, sla_restoration_hours, sla_delivery_days, sla_restoration_text, sla_delivery_text, graph_x, graph_y, operational_notes_raw, support_locations_raw, request_process_raw, support_availability_raw, service_cost_raw, additional_information_raw, retired_note, cp_service_type_raw, service_features_raw, ext_tools_raw, legacy_ssl_mapping_raw, budget_activity_code, other_info_raw, pricing_note_raw, is_available_status_ambiguous, service_area_raw, is_stub, customer_type_json, options_json, notes_json, training_refs_json, prerequisites_json, dependencies_json, source_local_id, source_sp_id, source_etag, created_at_source, modified_at_source, is_deleted, completeness_score, created_at, updated_at, created_by, updated_by, business_summary, requestable, lifecycle_state, target_audience_summary, request_channel_type, request_channel_url, approval_required, fulfillment_lead_time_text, review_owner_user_id, next_review_due_at, consumer_value, portfolio_id, lifecycle_stage_code, review_due_at, criticality_code) FROM stdin;
+COPY data.service_catalog (id, service_id, title, short_description, description, service_type_code, catalogue_version, global_service_group_code, service_line_code, organizational_element_code, service_url, security_classification_code, value_proposition, service_features, business_purpose, scope_text, unit_of_measure, charging_basis, rate_note, ordering_note, exclusions, graph_x, graph_y, operational_notes_raw, support_locations_raw, request_process_raw, support_availability_raw, service_cost_raw, additional_information_raw, retired_note, cp_service_type_raw, service_features_raw, ext_tools_raw, legacy_ssl_mapping_raw, budget_activity_code, other_info_raw, pricing_note_raw, is_available_status_ambiguous, service_area_raw, is_stub, customer_type_json, options_json, notes_json, training_refs_json, prerequisites_json, dependencies_json, source_local_id, source_sp_id, source_etag, created_at_source, modified_at_source, is_deleted, completeness_score, created_at, updated_at, created_by, updated_by, business_summary, requestable, target_audience_summary, request_channel_type, request_channel_url, approval_required, fulfillment_lead_time_text, review_owner_user_id, consumer_value, portfolio_id, lifecycle_stage_code, review_due_at, criticality_code) FROM stdin;
 \.
 
 
@@ -5825,17 +5659,17 @@ COPY data.service_operational_link (id, service_id, offering_id, link_type, titl
 --
 
 COPY data.service_portfolio (id, portfolio_code, title, description, status_code, owner_group_id, created_at, updated_at) FROM stdin;
-1	Workplace Services	Workplace Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-2	Application Services	Application Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-3	Infrastructure Services	Infrastructure Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-4	Platform Services	Platform Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-5	Security Services	Security Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-6	Network Services	Network Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-7	Logistic Services	Logistic Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-8	Other Services	Other Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-9	Digital Workplace Services	Digital Workplace Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-10	Subject Matter Expertise Services	Subject Matter Expertise Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
-11	Training Services	Training Services	\N	active	\N	2026-09-25 18:02:19.188516+00	2026-09-25 18:02:19.188516+00
+1	Workplace Services	Workplace Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+2	Application Services	Application Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+3	Infrastructure Services	Infrastructure Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+4	Platform Services	Platform Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+5	Security Services	Security Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+6	Network Services	Network Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+7	Logistic Services	Logistic Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+8	Other Services	Other Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+9	Digital Workplace Services	Digital Workplace Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+10	Subject Matter Expertise Services	Subject Matter Expertise Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
+11	Training Services	Training Services	\N	active	\N	2026-09-25 18:23:21.422829+00	2026-09-25 18:23:21.422829+00
 \.
 
 
@@ -5908,25 +5742,25 @@ COPY data.taxonomy_mapping_audit_archive (archived_at, retention_job_audit_id, i
 --
 
 COPY platform.app_config (id, config_key, config_value, config_type, description, is_sensitive, updated_at, updated_by) FROM stdin;
-1	catalog.model.version	v2.1-graph-pricing-sla-taxonomy	string	Canonical model version	f	2026-09-25 18:02:18.155448+00	\N
-2	import.parser.version	1	number	Current CSV import parser version	f	2026-09-25 18:02:18.155448+00	\N
-3	import.store_raw_fields	true	boolean	Store raw source fields for audit and re-parse	f	2026-09-25 18:02:18.155448+00	\N
-4	graph.default_relation_confidence	1.0	number	Default confidence for explicit relations	f	2026-09-25 18:02:18.155448+00	\N
-5	app.version	1.2	string	Application version	f	2026-09-25 18:02:18.155448+00	\N
-6	app.default_lang	cs	string	Default UI language (cs / en)	f	2026-09-25 18:02:18.155448+00	\N
-7	app.default_theme	dark	string	Default UI theme (dark / light)	f	2026-09-25 18:02:18.155448+00	\N
-8	auth.jwt_expiry_minutes	60	number	Access token lifetime in minutes	f	2026-09-25 18:02:18.155448+00	\N
-9	auth.refresh_expiry_days	7	number	Refresh token lifetime in days	f	2026-09-25 18:02:18.155448+00	\N
-10	auth.sso.enabled	false	boolean	Enable trusted-header SSO login.	f	2026-09-25 18:02:18.155448+00	\N
-11	auth.sso.header	x-remote-user	string	Trusted header carrying the authenticated AD identity.	f	2026-09-25 18:02:18.155448+00	\N
-12	auth.sso.display_name_header	x-remote-name	string	Trusted header carrying the display name.	f	2026-09-25 18:02:18.155448+00	\N
-13	auth.sso.email_header	x-remote-email	string	Trusted header carrying the email address.	f	2026-09-25 18:02:18.155448+00	\N
-14	auth.sso.given_name_header	x-remote-given-name	string	Trusted header carrying the given name.	f	2026-09-25 18:02:18.155448+00	\N
-15	auth.sso.surname_header	x-remote-surname	string	Trusted header carrying the surname.	f	2026-09-25 18:02:18.155448+00	\N
-16	auth.sso.department_header	x-remote-department	string	Trusted header carrying the department.	f	2026-09-25 18:02:18.155448+00	\N
-17	c3.sync_enabled	false	boolean	Enable automatic C3 Taxonomy synchronization	f	2026-09-25 18:02:18.155448+00	\N
-18	c3.sync_interval_hours	24	number	C3 synchronization interval in hours	f	2026-09-25 18:02:18.155448+00	\N
-19	cache.dashboard_ttl_sec	300	number	Dashboard statistics cache TTL in seconds	f	2026-09-25 18:02:18.155448+00	\N
+1	catalog.model.version	v2.1-graph-pricing-sla-taxonomy	string	Canonical model version	f	2026-09-25 18:23:20.38605+00	\N
+2	import.parser.version	1	number	Current CSV import parser version	f	2026-09-25 18:23:20.38605+00	\N
+3	import.store_raw_fields	true	boolean	Store raw source fields for audit and re-parse	f	2026-09-25 18:23:20.38605+00	\N
+4	graph.default_relation_confidence	1.0	number	Default confidence for explicit relations	f	2026-09-25 18:23:20.38605+00	\N
+5	app.version	1.2	string	Application version	f	2026-09-25 18:23:20.38605+00	\N
+6	app.default_lang	cs	string	Default UI language (cs / en)	f	2026-09-25 18:23:20.38605+00	\N
+7	app.default_theme	dark	string	Default UI theme (dark / light)	f	2026-09-25 18:23:20.38605+00	\N
+8	auth.jwt_expiry_minutes	60	number	Access token lifetime in minutes	f	2026-09-25 18:23:20.38605+00	\N
+9	auth.refresh_expiry_days	7	number	Refresh token lifetime in days	f	2026-09-25 18:23:20.38605+00	\N
+10	auth.sso.enabled	false	boolean	Enable trusted-header SSO login.	f	2026-09-25 18:23:20.38605+00	\N
+11	auth.sso.header	x-remote-user	string	Trusted header carrying the authenticated AD identity.	f	2026-09-25 18:23:20.38605+00	\N
+12	auth.sso.display_name_header	x-remote-name	string	Trusted header carrying the display name.	f	2026-09-25 18:23:20.38605+00	\N
+13	auth.sso.email_header	x-remote-email	string	Trusted header carrying the email address.	f	2026-09-25 18:23:20.38605+00	\N
+14	auth.sso.given_name_header	x-remote-given-name	string	Trusted header carrying the given name.	f	2026-09-25 18:23:20.38605+00	\N
+15	auth.sso.surname_header	x-remote-surname	string	Trusted header carrying the surname.	f	2026-09-25 18:23:20.38605+00	\N
+16	auth.sso.department_header	x-remote-department	string	Trusted header carrying the department.	f	2026-09-25 18:23:20.38605+00	\N
+17	c3.sync_enabled	false	boolean	Enable automatic C3 Taxonomy synchronization	f	2026-09-25 18:23:20.38605+00	\N
+18	c3.sync_interval_hours	24	number	C3 synchronization interval in hours	f	2026-09-25 18:23:20.38605+00	\N
+19	cache.dashboard_ttl_sec	300	number	Dashboard statistics cache TTL in seconds	f	2026-09-25 18:23:20.38605+00	\N
 \.
 
 
@@ -5935,7 +5769,7 @@ COPY platform.app_config (id, config_key, config_value, config_type, description
 --
 
 COPY platform.app_group (id, group_code, group_name, description, is_active, created_at, updated_at) FROM stdin;
-1	administrators	Administrators	Full access to all columns and ref data	t	2026-09-25 18:02:18.262729+00	2026-09-25 18:02:18.262729+00
+1	administrators	Administrators	Full access to all columns and ref data	t	2026-09-25 18:23:20.494266+00	2026-09-25 18:23:20.494266+00
 \.
 
 
@@ -5968,27 +5802,27 @@ COPY platform.audit_log (id, table_name, record_id, record_label, action, old_va
 --
 
 COPY platform.canonical_route_metadata (id, route_key, feature_area, canonical_path, legacy_paths_json, route_kind, export_endpoint, is_active, created_at, updated_at) FROM stdin;
-1	c3.list	c3	/c3/list	["/admin/c3"]	page	/api/v1/export/taxonomy	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-2	c3.dashboard	c3	/c3/dashboard	["/admin/c3/dashboard"]	page	/api/v1/export/taxonomy	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-3	c3.capability_map	c3	/c3/capability-map	["/c3-dashboard"]	page	/api/v1/export/capability-map-hierarchy	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-4	c3.detail	c3	/c3/{uuid}	["/admin/c3/{uuid}"]	page	/api/v1/export/capability-map-hierarchy	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-5	c3.graph	c3	/c3/graph	["/admin/c3/graph"]	page	/api/v1/export/c3-relationships	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-6	services.list	service	/services/list	["/"]	page	\N	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-7	services.dashboard	service	/services/dashboard	\N	page	\N	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-8	services.graph	service	/services/graph	\N	page	/api/v1/export/graph-overview	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-9	pricing.ui	pricing	/services/{id}/edit#flavours	\N	page	/api/v1/export/pricing	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-10	sla.ui	sla	/services/{id}/edit#sla	\N	page	/api/v1/export/sla	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-11	export.taxonomy	export	/api/v1/export/taxonomy	\N	api	/api/v1/export/taxonomy	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-12	export.graph	export	/api/v1/export/graph-overview	\N	api	/api/v1/export/graph-overview	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-13	export.pricing	export	/api/v1/export/pricing	\N	api	/api/v1/export/pricing	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-14	export.sla	export	/api/v1/export/sla	\N	api	/api/v1/export/sla	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-15	export.bundle	export	/api/v1/export/bundle	\N	api	/api/v1/export/bundle	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-16	export.manifest	export	/api/v1/export/manifest	\N	api	/api/v1/export/manifest	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-17	export.c3_relationships	export	/api/v1/export/c3-relationships	\N	api	/api/v1/export/c3-relationships	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-18	export.capability_map	export	/api/v1/export/capability-map-hierarchy	\N	api	/api/v1/export/capability-map-hierarchy	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-19	import.review	import	/import	\N	page	/api/v1/export/bundle	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-20	import.admin_review	import	/admin/import	\N	page	/api/v1/export/bundle	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
-21	import.upload	import	/import/upload	\N	page	/api/v1/export/bundle	t	2026-09-25 18:02:18.70248+00	2026-09-25 18:02:18.70248+00
+1	c3.list	c3	/c3/list	["/admin/c3"]	page	/api/v1/export/taxonomy	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+2	c3.dashboard	c3	/c3/dashboard	["/admin/c3/dashboard"]	page	/api/v1/export/taxonomy	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+3	c3.capability_map	c3	/c3/capability-map	["/c3-dashboard"]	page	/api/v1/export/capability-map-hierarchy	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+4	c3.detail	c3	/c3/{uuid}	["/admin/c3/{uuid}"]	page	/api/v1/export/capability-map-hierarchy	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+5	c3.graph	c3	/c3/graph	["/admin/c3/graph"]	page	/api/v1/export/c3-relationships	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+6	services.list	service	/services/list	["/"]	page	\N	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+7	services.dashboard	service	/services/dashboard	\N	page	\N	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+8	services.graph	service	/services/graph	\N	page	/api/v1/export/graph-overview	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+9	pricing.ui	pricing	/services/{id}/edit#flavours	\N	page	/api/v1/export/pricing	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+10	sla.ui	sla	/services/{id}/edit#sla	\N	page	/api/v1/export/sla	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+11	export.taxonomy	export	/api/v1/export/taxonomy	\N	api	/api/v1/export/taxonomy	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+12	export.graph	export	/api/v1/export/graph-overview	\N	api	/api/v1/export/graph-overview	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+13	export.pricing	export	/api/v1/export/pricing	\N	api	/api/v1/export/pricing	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+14	export.sla	export	/api/v1/export/sla	\N	api	/api/v1/export/sla	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+15	export.bundle	export	/api/v1/export/bundle	\N	api	/api/v1/export/bundle	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+16	export.manifest	export	/api/v1/export/manifest	\N	api	/api/v1/export/manifest	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+17	export.c3_relationships	export	/api/v1/export/c3-relationships	\N	api	/api/v1/export/c3-relationships	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+18	export.capability_map	export	/api/v1/export/capability-map-hierarchy	\N	api	/api/v1/export/capability-map-hierarchy	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+19	import.review	import	/import	\N	page	/api/v1/export/bundle	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+20	import.admin_review	import	/admin/import	\N	page	/api/v1/export/bundle	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
+21	import.upload	import	/import/upload	\N	page	/api/v1/export/bundle	t	2026-09-25 18:23:20.934101+00	2026-09-25 18:23:20.934101+00
 \.
 
 
@@ -6005,7 +5839,7 @@ COPY platform.export_bundle_audit (id, bundle_key, contract_version, schema_vers
 --
 
 COPY platform.export_bundle_metadata (bundle_key, contract_version, schema_version, retention_days, archive_after_days, notes, updated_at) FROM stdin;
-service_catalog_bundle	2026-03-30.c3-v3	canonical-23	365	90	Service graph + pricing + SLA + taxonomy + import/audit exports	2026-09-25 18:02:18.70248+00
+service_catalog_bundle	2026-03-30.c3-v3	canonical-23	365	90	Service graph + pricing + SLA + taxonomy + import/audit exports	2026-09-25 18:23:20.934101+00
 \.
 
 
@@ -6022,11 +5856,11 @@ COPY platform.module_installation_history (id, module_code, action, status, app_
 --
 
 COPY platform.module_registry (id, module_code, module_label, is_mandatory, enabled, schema_installed, reference_seed_installed, business_data_present, ui_visible, api_enabled, version, install_order, config_json, activated_at, activated_by, updated_at) FROM stdin;
-1	DATABASE_LAYER	Database Layer	t	f	f	f	f	f	f	1.0.0	0	\N	\N	\N	2026-09-25 18:02:18.786817+00
-2	PLATFORM_CORE	Platform Core	t	f	f	f	f	f	f	1.0.0	1	\N	\N	\N	2026-09-25 18:02:18.786817+00
-3	SERVICE_CATALOGUE_CORE	Service Catalogue	t	f	f	f	f	f	f	1.0.0	2	\N	\N	\N	2026-09-25 18:02:18.786817+00
-4	C3_TAXONOMY	C3 Capability Taxonomy	f	f	f	f	f	f	f	1.0.0	3	\N	\N	\N	2026-09-25 18:02:18.786817+00
-5	MANAGEMENT	Management Cockpit	t	f	f	f	f	f	f	1.0.0	4	\N	\N	\N	2026-09-25 18:02:18.786817+00
+1	DATABASE_LAYER	Database Layer	t	f	f	f	f	f	f	1.0.0	0	\N	\N	\N	2026-09-25 18:23:21.01064+00
+2	PLATFORM_CORE	Platform Core	t	f	f	f	f	f	f	1.0.0	1	\N	\N	\N	2026-09-25 18:23:21.01064+00
+3	SERVICE_CATALOGUE_CORE	Service Catalogue	t	f	f	f	f	f	f	1.0.0	2	\N	\N	\N	2026-09-25 18:23:21.01064+00
+4	C3_TAXONOMY	C3 Capability Taxonomy	f	f	f	f	f	f	f	1.0.0	3	\N	\N	\N	2026-09-25 18:23:21.01064+00
+5	MANAGEMENT	Management Cockpit	t	f	f	f	f	f	f	1.0.0	4	\N	\N	\N	2026-09-25 18:23:21.01064+00
 \.
 
 
@@ -6043,7 +5877,7 @@ COPY platform.refresh_tokens (id, user_id, token_hash, expires_at, revoked_at, c
 --
 
 COPY platform.release_metadata (id, release_version, schema_version, release_notes, released_at, applied_at, applied_by, is_current, release_hash, metadata_json) FROM stdin;
-1	1.0.0	1.0.0	Initial release — Service Catalogue v2.1	\N	2026-09-25 18:02:18.786817+00	init	t	\N	\N
+1	1.0.0	1.0.0	Initial release — Service Catalogue v2.1	\N	2026-09-25 18:23:21.01064+00	init	t	\N	\N
 \.
 
 
@@ -6052,44 +5886,45 @@ COPY platform.release_metadata (id, release_version, schema_version, release_not
 --
 
 COPY platform.schema_migrations (id, migration_key, migration_label, schema_version, app_version, applied_at, applied_by, checksum, duration_ms, rollback_sql, notes) FROM stdin;
-1	00_bootstrap	Bootstrap — schemas + extensions	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-2	01_platform	Platform — AppConfig, Users, RefreshTokens, AuditLog	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-3	02_ref	Reference data — lookup tables	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-4	03_groups	Groups — AppGroup, AppGroupPermission	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-5	04_core	Core — ServiceCatalog main table	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-6	05_graph	Graph — ServiceRelation, ServiceRelationRaw	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-7	06_pricing	Pricing — ServiceFlavour, ServiceSla	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-8	07_domains	Domains — ServiceAvailableOn M:N	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-9	08_ownership	Ownership — ServiceRoleAssignment, ServiceC3Mapping	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-10	09_import	Import — ImportBatch, ImportRow, ImportIssue	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-11	10_indexes	Indexes — performance indexes	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-12	11_c3	C3 — taxonomy, entities, links, builder	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-13	12_exports_retention	Exports + retention — views, archive	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-14	13_install_system	Install system — state machine, migrations, modules	1.0.0	\N	2026-09-25 18:02:18.786817+00	init	\N	\N	\N	\N
-15	14_spiral_versioning	FMN Spiral versioning — fmn_spiral columns on C3 entity tables, Spiral_4/5/7 seed	2.1.0	\N	2026-09-25 18:02:18.841802+00	\N	\N	\N	\N	fmn_spiral VARCHAR(20) added to c3_taxonomy, c3_application, c3_data_object, c3_service, c3_technology_interaction, c3_capability_builder; Spiral_4/5/7 seeded into ref_spiral_baseline
-16	15_itil_catalogue_phase1	ITIL-ready catalogue Phase 1 — service offerings, support model, audience policy, operational links	2.2.0	\N	2026-09-25 18:02:18.879534+00	\N	\N	\N	\N	Adds additive service-level metadata to data.service_catalog plus data.service_offering, data.service_support_model, data.service_audience_policy, and data.service_operational_link
-17	16_consumer_value	Consumer value additive column	2.2.1	\N	2026-09-25 18:02:18.931763+00	\N	\N	\N	\N	Adds additive consumer_value field to data.service_catalog
-18	17_spiral_membership	C3 entity multi-spiral membership	2.1.3	\N	2026-09-25 18:02:18.963105+00	\N	\N	\N	\N	Adds c3_entity_spiral_membership, backfills existing C3 entities, seeds Spiral_4/5, and exposes v_c3_entity_membership_matrix.
-19	18_user_persona	Persona preference for user-driven UX lenses	2.2.0	\N	2026-09-25 18:02:18.996646+00	\N	\N	\N	\N	Adds preferred_persona to platform.users for Consumer, Service Owner, Capability Manager, and Administrator journeys
-20	19_capability_abbreviations	Capability abbreviations for stable Level-3 slugs	2.2.0	\N	2026-09-25 18:02:19.027379+00	\N	\N	\N	\N	Populates C3 capability abbreviations for L1/L2/L3 URL slugs
-21	20_capability_coverage_views	Generic capability coverage helper views	2.2.0	\N	2026-09-25 18:02:19.058044+00	\N	\N	\N	\N	Adds SQL views for capability requirements, coverage, completeness, evidence, and overlap API support
-22	21_contract_governance	Contract governance foundation	2.3.0	\N	2026-09-25 18:02:19.092827+00	\N	\N	\N	\N	Adds vendor, contract, contract-to-service/capability links, and governance finding dismissal audit tables
-23	22_governance_views	Governance radar and advisor views	2.3.0	\N	2026-09-25 18:02:19.143087+00	\N	\N	\N	\N	Adds service risk radar, owner load, contract overlap, renewal risk, and gap/duplication advisor views
-24	23_service_portfolio	Service portfolio and governance metadata foundation	2.3.0	\N	2026-09-25 18:02:19.188516+00	\N	\N	\N	\N	Adds service portfolios, lifecycle stage reference values, criticality reference values, and service-level portfolio/review metadata
-25	24_readiness_rules	Configurable readiness rules	2.4.0	\N	2026-09-25 18:02:19.230076+00	\N	\N	\N	\N	Adds readiness rules and auditable service-level exceptions
-26	25_capability_governance	Capability governance coverage cockpit	2.5.0	\N	2026-09-25 18:02:19.265825+00	\N	\N	\N	\N	Adds normalized capability mapping roles and coverage/gap/overlap governance views
-27	26_governance_workflow	Governance workflow reviews and decisions	2.6.0	\N	2026-09-25 18:02:19.301707+00	\N	\N	\N	\N	Adds governance reviews, decision log, statuses, and service-linked workflow history
-28	27_impact_analysis	Impact analysis helper views and relation kinds	1.2.0	\N	2026-09-25 18:02:19.336729+00	\N	\N	\N	\N	Adds normalized impact nodes and edges for service/capability traversal.
-29	29_reduction_low_risk_cleanup	Reduction low-risk cleanup	2.9.0	\N	2026-09-25 18:02:19.372885+00	\N	\N	\N	\N	Drops retired notification/request/preference objects, preferred_persona, and orphan archive export views.
-30	30_reduction_domain_model_simplification	Reduction stage 10 domain model simplification	3.0.0	\N	2026-09-25 18:02:19.404227+00	\N	\N	\N	\N	Keeps historical lifecycle/status and decision data; reduces active readiness rules to five core user-fixable rules
-31	31_locale_cs_en_only	Reduce supported UI locales to Czech and English	2.2.0-reduction	\N	2026-09-25 18:02:19.431179+00	\N	\N	\N	\N	Migrates sk/de/legacy locale preferences to the canonical cs/en product decision and enforces the new allowed set.
-32	32_final_reduction_sunset_cleanup	Final v1.2 reduction sunset cleanup	2.8.0	\N	2026-09-25 18:02:19.4583+00	\N	\N	\N	\N	Removes retired risk/advisor/procurement DB objects and keeps owner load as a service/readiness/C3 view
-33	33_readiness_rule_explanations	Readiness rule explanations	3.1.0	\N	2026-09-25 18:02:19.507117+00	\N	\N	\N	\N	Adds why/how-to/evidence explanation texts to readiness rules (split from 28).
-34	34_c3_board_state	C3 governance board state	3.1.0	\N	2026-09-25 18:02:19.535263+00	\N	\N	\N	\N	Adds c3_board_state and v_c3_board_lane (split from 28).
-35	35_canonical_service_fields	Canonical service lifecycle, review date and portfolio	3.2.0	\N	2026-09-25 18:02:19.572422+00	\N	\N	\N	\N	Makes lifecycle_stage_code, review_due_at and portfolio_id canonical; legacy mirrors kept in sync by trigger; v_owner_load reads canonical fields.
-36	36_service_sla_canonical	Canonical service-level SLA in service_sla	3.3.0	\N	2026-09-25 18:02:19.609652+00	\N	\N	\N	\N	Primary service-level service_sla row is canonical; service_catalog sla_* columns are a trigger-synced mirror.
-37	37_offering_request_inheritance	Offering request fields inherit from the service	3.4.0	\N	2026-09-25 18:02:19.645027+00	\N	\N	\N	\N	Offering requestable/approval/channel/lead time: NULL inherits the service value; v_service_offering_effective resolves effective values.
-38	38_c3_entity_link_view	Unified C3 entity link read model	3.5.0	\N	2026-09-25 18:02:19.675085+00	\N	\N	\N	\N	Adds v_c3_entity_link over the seven C3 capability/technology-interaction link tables.
+1	00_bootstrap	Bootstrap — schemas + extensions	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+2	01_platform	Platform — AppConfig, Users, RefreshTokens, AuditLog	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+3	02_ref	Reference data — lookup tables	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+4	03_groups	Groups — AppGroup, AppGroupPermission	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+5	04_core	Core — ServiceCatalog main table	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+6	05_graph	Graph — ServiceRelation, ServiceRelationRaw	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+7	06_pricing	Pricing — ServiceFlavour, ServiceSla	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+8	07_domains	Domains — ServiceAvailableOn M:N	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+9	08_ownership	Ownership — ServiceRoleAssignment, ServiceC3Mapping	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+10	09_import	Import — ImportBatch, ImportRow, ImportIssue	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+11	10_indexes	Indexes — performance indexes	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+12	11_c3	C3 — taxonomy, entities, links, builder	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+13	12_exports_retention	Exports + retention — views, archive	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+14	13_install_system	Install system — state machine, migrations, modules	1.0.0	\N	2026-09-25 18:23:21.01064+00	init	\N	\N	\N	\N
+15	14_spiral_versioning	FMN Spiral versioning — fmn_spiral columns on C3 entity tables, Spiral_4/5/7 seed	2.1.0	\N	2026-09-25 18:23:21.056941+00	\N	\N	\N	\N	fmn_spiral VARCHAR(20) added to c3_taxonomy, c3_application, c3_data_object, c3_service, c3_technology_interaction, c3_capability_builder; Spiral_4/5/7 seeded into ref_spiral_baseline
+16	15_itil_catalogue_phase1	ITIL-ready catalogue Phase 1 — service offerings, support model, audience policy, operational links	2.2.0	\N	2026-09-25 18:23:21.098+00	\N	\N	\N	\N	Adds additive service-level metadata to data.service_catalog plus data.service_offering, data.service_support_model, data.service_audience_policy, and data.service_operational_link
+17	16_consumer_value	Consumer value additive column	2.2.1	\N	2026-09-25 18:23:21.160339+00	\N	\N	\N	\N	Adds additive consumer_value field to data.service_catalog
+18	17_spiral_membership	C3 entity multi-spiral membership	2.1.3	\N	2026-09-25 18:23:21.191972+00	\N	\N	\N	\N	Adds c3_entity_spiral_membership, backfills existing C3 entities, seeds Spiral_4/5, and exposes v_c3_entity_membership_matrix.
+19	18_user_persona	Persona preference for user-driven UX lenses	2.2.0	\N	2026-09-25 18:23:21.227607+00	\N	\N	\N	\N	Adds preferred_persona to platform.users for Consumer, Service Owner, Capability Manager, and Administrator journeys
+20	19_capability_abbreviations	Capability abbreviations for stable Level-3 slugs	2.2.0	\N	2026-09-25 18:23:21.261504+00	\N	\N	\N	\N	Populates C3 capability abbreviations for L1/L2/L3 URL slugs
+21	20_capability_coverage_views	Generic capability coverage helper views	2.2.0	\N	2026-09-25 18:23:21.292964+00	\N	\N	\N	\N	Adds SQL views for capability requirements, coverage, completeness, evidence, and overlap API support
+22	21_contract_governance	Contract governance foundation	2.3.0	\N	2026-09-25 18:23:21.325351+00	\N	\N	\N	\N	Adds vendor, contract, contract-to-service/capability links, and governance finding dismissal audit tables
+23	22_governance_views	Governance radar and advisor views	2.3.0	\N	2026-09-25 18:23:21.377415+00	\N	\N	\N	\N	Adds service risk radar, owner load, contract overlap, renewal risk, and gap/duplication advisor views
+24	23_service_portfolio	Service portfolio and governance metadata foundation	2.3.0	\N	2026-09-25 18:23:21.422829+00	\N	\N	\N	\N	Adds service portfolios, lifecycle stage reference values, criticality reference values, and service-level portfolio/review metadata
+25	24_readiness_rules	Configurable readiness rules	2.4.0	\N	2026-09-25 18:23:21.468862+00	\N	\N	\N	\N	Adds readiness rules and auditable service-level exceptions
+26	25_capability_governance	Capability governance coverage cockpit	2.5.0	\N	2026-09-25 18:23:21.50852+00	\N	\N	\N	\N	Adds normalized capability mapping roles and coverage/gap/overlap governance views
+27	26_governance_workflow	Governance workflow reviews and decisions	2.6.0	\N	2026-09-25 18:23:21.54785+00	\N	\N	\N	\N	Adds governance reviews, decision log, statuses, and service-linked workflow history
+28	27_impact_analysis	Impact analysis helper views and relation kinds	1.2.0	\N	2026-09-25 18:23:21.58471+00	\N	\N	\N	\N	Adds normalized impact nodes and edges for service/capability traversal.
+29	29_reduction_low_risk_cleanup	Reduction low-risk cleanup	2.9.0	\N	2026-09-25 18:23:21.623865+00	\N	\N	\N	\N	Drops retired notification/request/preference objects, preferred_persona, and orphan archive export views.
+30	30_reduction_domain_model_simplification	Reduction stage 10 domain model simplification	3.0.0	\N	2026-09-25 18:23:21.665783+00	\N	\N	\N	\N	Keeps historical lifecycle/status and decision data; reduces active readiness rules to five core user-fixable rules
+31	31_locale_cs_en_only	Reduce supported UI locales to Czech and English	2.2.0-reduction	\N	2026-09-25 18:23:21.698512+00	\N	\N	\N	\N	Migrates sk/de/legacy locale preferences to the canonical cs/en product decision and enforces the new allowed set.
+32	32_final_reduction_sunset_cleanup	Final v1.2 reduction sunset cleanup	2.8.0	\N	2026-09-25 18:23:21.729401+00	\N	\N	\N	\N	Removes retired risk/advisor/procurement DB objects and keeps owner load as a service/readiness/C3 view
+33	33_readiness_rule_explanations	Readiness rule explanations	3.1.0	\N	2026-09-25 18:23:21.772655+00	\N	\N	\N	\N	Adds why/how-to/evidence explanation texts to readiness rules (split from 28).
+34	34_c3_board_state	C3 governance board state	3.1.0	\N	2026-09-25 18:23:21.803039+00	\N	\N	\N	\N	Adds c3_board_state and v_c3_board_lane (split from 28).
+35	35_canonical_service_fields	Canonical service lifecycle, review date and portfolio	3.2.0	\N	2026-09-25 18:23:21.838491+00	\N	\N	\N	\N	Makes lifecycle_stage_code, review_due_at and portfolio_id canonical; legacy mirrors kept in sync by trigger; v_owner_load reads canonical fields.
+36	36_service_sla_canonical	Canonical service-level SLA in service_sla	3.3.0	\N	2026-09-25 18:23:21.87346+00	\N	\N	\N	\N	Primary service-level service_sla row is canonical; service_catalog sla_* columns are a trigger-synced mirror.
+37	37_offering_request_inheritance	Offering request fields inherit from the service	3.4.0	\N	2026-09-25 18:23:21.907115+00	\N	\N	\N	\N	Offering requestable/approval/channel/lead time: NULL inherits the service value; v_service_offering_effective resolves effective values.
+38	38_c3_entity_link_view	Unified C3 entity link read model	3.5.0	\N	2026-09-25 18:23:21.938768+00	\N	\N	\N	\N	Adds v_c3_entity_link over the seven C3 capability/technology-interaction link tables.
+39	39_drop_legacy_service_mirrors	Drop legacy service mirror columns	3.6.0	\N	2026-09-25 18:23:21.967872+00	\N	\N	\N	\N	Removes lifecycle_state, service_status_code, next_review_due_at, portfolio_group_code and catalogue sla_* columns; views read canonical fields.
 \.
 
 
@@ -6098,7 +5933,7 @@ COPY platform.schema_migrations (id, migration_key, migration_label, schema_vers
 --
 
 COPY platform.system_installation (id, install_status, install_mode, install_lock, lock_token, lock_acquired_at, locked_by, started_at, completed_at, failed_at, failure_reason, performed_by, install_summary, created_at, updated_at) FROM stdin;
-1	NOT_INSTALLED	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-09-25 18:02:18.786817+00	2026-09-25 18:02:18.786817+00
+1	NOT_INSTALLED	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-09-25 18:23:21.01064+00	2026-09-25 18:23:21.01064+00
 \.
 
 
@@ -6478,7 +6313,7 @@ SELECT pg_catalog.setval('platform.release_metadata_id_seq', 1, true);
 -- Name: schema_migrations_id_seq; Type: SEQUENCE SET; Schema: platform; Owner: -
 --
 
-SELECT pg_catalog.setval('platform.schema_migrations_id_seq', 38, true);
+SELECT pg_catalog.setval('platform.schema_migrations_id_seq', 39, true);
 
 
 --
@@ -7746,13 +7581,6 @@ CREATE INDEX ix_service_c3_mapping_service ON data.service_c3_mapping USING btre
 
 
 --
--- Name: ix_service_catalog_ambiguous_status; Type: INDEX; Schema: data; Owner: -
---
-
-CREATE INDEX ix_service_catalog_ambiguous_status ON data.service_catalog USING btree (is_available_status_ambiguous) INCLUDE (service_id, title, service_status_code) WHERE (is_available_status_ambiguous = true);
-
-
---
 -- Name: ix_service_catalog_criticality; Type: INDEX; Schema: data; Owner: -
 --
 
@@ -7760,31 +7588,10 @@ CREATE INDEX ix_service_catalog_criticality ON data.service_catalog USING btree 
 
 
 --
--- Name: ix_service_catalog_is_deleted; Type: INDEX; Schema: data; Owner: -
---
-
-CREATE INDEX ix_service_catalog_is_deleted ON data.service_catalog USING btree (is_deleted) INCLUDE (service_id, title, service_status_code);
-
-
---
--- Name: ix_service_catalog_is_stub; Type: INDEX; Schema: data; Owner: -
---
-
-CREATE INDEX ix_service_catalog_is_stub ON data.service_catalog USING btree (is_stub) INCLUDE (service_id, title, service_status_code) WHERE (is_stub = true);
-
-
---
 -- Name: ix_service_catalog_lifecycle_stage; Type: INDEX; Schema: data; Owner: -
 --
 
 CREATE INDEX ix_service_catalog_lifecycle_stage ON data.service_catalog USING btree (lifecycle_stage_code) WHERE (lifecycle_stage_code IS NOT NULL);
-
-
---
--- Name: ix_service_catalog_lifecycle_state; Type: INDEX; Schema: data; Owner: -
---
-
-CREATE INDEX ix_service_catalog_lifecycle_state ON data.service_catalog USING btree (lifecycle_state) WHERE (lifecycle_state IS NOT NULL);
 
 
 --
@@ -7816,17 +7623,10 @@ CREATE INDEX ix_service_catalog_review_owner ON data.service_catalog USING btree
 
 
 --
--- Name: ix_service_catalog_status_type; Type: INDEX; Schema: data; Owner: -
+-- Name: ix_service_catalog_stage_type; Type: INDEX; Schema: data; Owner: -
 --
 
-CREATE INDEX ix_service_catalog_status_type ON data.service_catalog USING btree (service_status_code, service_type_code) INCLUDE (service_id, title, portfolio_group_code, is_deleted);
-
-
---
--- Name: ix_service_catalog_taxonomy; Type: INDEX; Schema: data; Owner: -
---
-
-CREATE INDEX ix_service_catalog_taxonomy ON data.service_catalog USING btree (portfolio_group_code, global_service_group_code, service_line_code, organizational_element_code) INCLUDE (service_id, title, service_status_code, service_type_code, is_deleted);
+CREATE INDEX ix_service_catalog_stage_type ON data.service_catalog USING btree (lifecycle_stage_code, service_type_code) INCLUDE (service_id, title, portfolio_id, is_deleted);
 
 
 --
@@ -8170,27 +7970,6 @@ CREATE UNIQUE INDEX ux_users_external_principal ON platform.users USING btree (e
 --
 
 CREATE TRIGGER trg_ref_portfolio_group_sync_portfolio AFTER INSERT OR UPDATE OF name ON data.ref_portfolio_group FOR EACH ROW EXECUTE FUNCTION data.fn_ref_portfolio_group_sync_portfolio();
-
-
---
--- Name: service_catalog trg_service_catalog_sync_canonical; Type: TRIGGER; Schema: data; Owner: -
---
-
-CREATE TRIGGER trg_service_catalog_sync_canonical BEFORE INSERT OR UPDATE ON data.service_catalog FOR EACH ROW EXECUTE FUNCTION data.fn_service_catalog_sync_canonical();
-
-
---
--- Name: service_catalog trg_service_catalog_sync_sla; Type: TRIGGER; Schema: data; Owner: -
---
-
-CREATE TRIGGER trg_service_catalog_sync_sla AFTER INSERT OR UPDATE ON data.service_catalog FOR EACH ROW EXECUTE FUNCTION data.fn_service_catalog_sync_sla();
-
-
---
--- Name: service_sla trg_service_sla_sync_catalog; Type: TRIGGER; Schema: data; Owner: -
---
-
-CREATE TRIGGER trg_service_sla_sync_catalog AFTER INSERT OR DELETE OR UPDATE ON data.service_sla FOR EACH ROW EXECUTE FUNCTION data.fn_service_sla_sync_catalog();
 
 
 --
@@ -8552,14 +8331,6 @@ ALTER TABLE ONLY data.service_catalog
 
 
 --
--- Name: service_catalog service_catalog_portfolio_group_code_fkey; Type: FK CONSTRAINT; Schema: data; Owner: -
---
-
-ALTER TABLE ONLY data.service_catalog
-    ADD CONSTRAINT service_catalog_portfolio_group_code_fkey FOREIGN KEY (portfolio_group_code) REFERENCES data.ref_portfolio_group(code);
-
-
---
 -- Name: service_catalog service_catalog_portfolio_id_fkey; Type: FK CONSTRAINT; Schema: data; Owner: -
 --
 
@@ -8589,14 +8360,6 @@ ALTER TABLE ONLY data.service_catalog
 
 ALTER TABLE ONLY data.service_catalog
     ADD CONSTRAINT service_catalog_service_line_code_fkey FOREIGN KEY (service_line_code) REFERENCES data.ref_service_line(code);
-
-
---
--- Name: service_catalog service_catalog_service_status_code_fkey; Type: FK CONSTRAINT; Schema: data; Owner: -
---
-
-ALTER TABLE ONLY data.service_catalog
-    ADD CONSTRAINT service_catalog_service_status_code_fkey FOREIGN KEY (service_status_code) REFERENCES data.ref_service_status(code);
 
 
 --

@@ -24,8 +24,9 @@ layers for the `app + postgres` runtime.
    replays the chain instead.
 2. **Every start**: each `schema/*.sql` file is compared with the ledger by
    sha256. New or changed files are applied (one transaction each) and
-   recorded; unchanged files are skipped. `SCHEMA_REAPPLY_ALL=true` re-applies
-   all files. A failing file stops start-up and is not recorded.
+   recorded; unchanged files are skipped. A failing file stops start-up and is
+   not recorded. Replaying the whole history on an existing database is not
+   supported (later migrations drop columns earlier files reference).
 3. The optional C3 seeds run afterwards.
 
 ## Changing the schema

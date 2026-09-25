@@ -72,3 +72,34 @@ describe('canonical service-level SLA', () => {
         expect(sql).toContain('ADD COLUMN IF NOT EXISTS delivery_text TEXT NULL');
     });
 });
+
+describe('legacy service mirror columns', () => {
+    const LEGACY = ['lifecycle_state', 'service_status_code', 'next_review_due_at', 'portfolio_group_code',
+        'sla_availability', 'sla_restoration_hours', 'sla_delivery_days', 'sla_restoration_text', 'sla_delivery_text'];
+    const sql = readRepoFile('backend/db/postgres/schema/39_drop_legacy_service_mirrors.sql');
+
+    test('are dropped and the recreated views read canonical columns only', () => {
+        LEGACY.forEach((column) => expect(sql).toContain(`DROP COLUMN IF EXISTS ${column}`));
+        const views = sql.slice(sql.indexOf('-- ── Recreated views'));
+        LEGACY.forEach((column) => expect(views).not.toMatch(new RegExp(`\\bsc\\.${column}\\b`)));
+    });
+
+    test('are no longer read or written as service_catalog columns by the middleware', () => {
+        const srcRoot = path.join(repoRoot, 'middleware/src');
+        const files = [];
+        const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach((entry) => {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory() && entry.name !== '__tests__') walk(full);
+            else if (entry.isFile() && entry.name.endsWith('.js')) files.push(full);
+        });
+        walk(srcRoot);
+        const offenders = [];
+        files.forEach((file) => {
+            const source = fs.readFileSync(file, 'utf8');
+            LEGACY.forEach((column) => {
+                if (new RegExp(`\\bsc(_\\w+)?\\.${column}\\b`).test(source)) offenders.push(`${path.relative(srcRoot, file)}: sc.${column}`);
+            });
+        });
+        expect(offenders).toEqual([]);
+    });
+});

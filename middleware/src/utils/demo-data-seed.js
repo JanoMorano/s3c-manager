@@ -18,6 +18,8 @@
 
 const logger = require('../utils/logger');
 const { normalizeLocale } = require('../../../shared/i18n/locales');
+const { toLifecycleStage } = require('./lifecycle');
+const { upsertPrimarySla } = require('../db/service-fields');
 
 // ── Demo UUIDs (stable, deterministic) ────────────────────────────────────────
 const DEMO_UUIDS = {
@@ -628,38 +630,38 @@ async function seedReferenceData(pool) {
 async function seedServices(pool, locale = 'cs') {
     const services = buildDemoServices(locale);
     for (const svc of services) {
-        await safeQuery(pool, `
+        const lifecycleStageCode = svc.lifecycle_stage_code
+            ?? toLifecycleStage(svc.lifecycle_state)
+            ?? toLifecycleStage(svc.service_status_code);
+        const inserted = await safeQuery(pool, `
             INSERT INTO data.service_catalog (
-                service_id, title, service_type_code, service_status_code, catalogue_version,
-                portfolio_group_code, global_service_group_code, service_line_code, organizational_element_code,
+                service_id, title, service_type_code, lifecycle_stage_code, catalogue_version,
+                portfolio_id, global_service_group_code, service_line_code, organizational_element_code,
                 short_description, description, business_purpose, scope_text,
                 value_proposition, service_features,
-                sla_availability, sla_restoration_hours, sla_delivery_days,
-                sla_restoration_text, sla_delivery_text,
                 service_url, security_classification_code,
                 unit_of_measure, charging_basis, rate_note, ordering_note,
                 exclusions, customer_type_json, operational_notes_raw, budget_activity_code,
                 retired_note, notes_json,
-                requestable, lifecycle_state, next_review_due_at, review_due_at,
-                lifecycle_stage_code, criticality_code,
+                requestable, review_due_at, criticality_code,
                 is_deleted, is_stub, created_by, updated_by
             )
             VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9,
+                $1, $2, $3, $4, $5,
+                (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $6), $7, $8, $9,
                 $10, $11, $12, $13, $14, $15,
-                $16, $17, $18, $19, $20,
-                $21, $22, $23, $24, $25, $26,
-                $27, $28, $29, $30,
-                $31, $32,
-                $33, $34, $35, $36, $37, $38,
+                $16, $17, $18, $19, $20, $21,
+                $22, $23, $24, $25,
+                $26, $27,
+                $28, $29, $30,
                 FALSE, FALSE, 'demo-seed', 'demo-seed'
             )
             ON CONFLICT (service_id) DO UPDATE SET
                 is_deleted                    = FALSE,
                 title                         = EXCLUDED.title,
                 service_type_code             = EXCLUDED.service_type_code,
-                service_status_code           = EXCLUDED.service_status_code,
-                portfolio_group_code          = EXCLUDED.portfolio_group_code,
+                lifecycle_stage_code          = EXCLUDED.lifecycle_stage_code,
+                portfolio_id                  = EXCLUDED.portfolio_id,
                 global_service_group_code     = EXCLUDED.global_service_group_code,
                 service_line_code             = EXCLUDED.service_line_code,
                 organizational_element_code   = EXCLUDED.organizational_element_code,
@@ -668,11 +670,6 @@ async function seedServices(pool, locale = 'cs') {
                 business_purpose              = EXCLUDED.business_purpose,
                 scope_text                    = EXCLUDED.scope_text,
                 security_classification_code  = EXCLUDED.security_classification_code,
-                sla_availability              = EXCLUDED.sla_availability,
-                sla_restoration_hours         = EXCLUDED.sla_restoration_hours,
-                sla_delivery_days             = EXCLUDED.sla_delivery_days,
-                sla_restoration_text          = EXCLUDED.sla_restoration_text,
-                sla_delivery_text             = EXCLUDED.sla_delivery_text,
                 service_url                   = EXCLUDED.service_url,
                 unit_of_measure               = EXCLUDED.unit_of_measure,
                 charging_basis                = EXCLUDED.charging_basis,
@@ -685,42 +682,34 @@ async function seedServices(pool, locale = 'cs') {
                 retired_note                  = EXCLUDED.retired_note,
                 notes_json                    = EXCLUDED.notes_json,
                 requestable                   = EXCLUDED.requestable,
-                lifecycle_state               = EXCLUDED.lifecycle_state,
-                next_review_due_at            = EXCLUDED.next_review_due_at,
                 review_due_at                 = EXCLUDED.review_due_at,
-                lifecycle_stage_code          = EXCLUDED.lifecycle_stage_code,
                 criticality_code              = EXCLUDED.criticality_code,
                 updated_by                    = 'demo-seed',
                 updated_at                    = CURRENT_TIMESTAMP
+            RETURNING id
         `, [
-            svc.service_id, svc.title, svc.service_type_code, svc.service_status_code, svc.catalogue_version,
+            svc.service_id, svc.title, svc.service_type_code, lifecycleStageCode, svc.catalogue_version,
             svc.portfolio_group_code, svc.global_service_group_code, svc.service_line_code, svc.organizational_element_code,
             svc.short_description, svc.description, svc.business_purpose, svc.scope_text,
             svc.value_proposition, svc.service_features,
-            svc.sla_availability, svc.sla_restoration_hours, svc.sla_delivery_days,
-            svc.sla_restoration_text, svc.sla_delivery_text,
             svc.service_url, svc.security_classification_code,
             svc.unit_of_measure, svc.charging_basis, svc.rate_note ?? null, svc.ordering_note ?? null,
             svc.exclusions ?? null, JSON.stringify(svc.customer_type ?? []), svc.operational_notes_raw, svc.budget_activity_code,
             svc.retired_note ?? null, svc.notes_json ?? null,
-            svc.requestable ?? null, svc.lifecycle_state ?? null, svc.next_review_due_at ?? null, svc.review_due_at ?? null,
-            svc.lifecycle_stage_code ?? null, svc.criticality_code ?? null,
+            svc.requestable ?? null, svc.review_due_at ?? svc.next_review_due_at ?? null, svc.criticality_code ?? null,
         ], `service_catalog:${svc.service_id}`);
+        const catalogId = inserted?.rows?.[0]?.id;
+        if (catalogId) {
+            await upsertPrimarySla(pool, catalogId, {
+                availability_pct: svc.sla_availability ?? null,
+                restoration_hours: svc.sla_restoration_hours ?? null,
+                delivery_days: svc.sla_delivery_days ?? null,
+                restoration_text: svc.sla_restoration_text ?? null,
+                delivery_text: svc.sla_delivery_text ?? null,
+            });
+        }
     }
     logger.info('demo-seed: services OK');
-}
-
-async function seedPortfolioAssignments(pool) {
-    await safeQuery(pool, `
-        UPDATE data.service_catalog sc
-        SET portfolio_id = sp.id,
-            updated_at = CURRENT_TIMESTAMP
-        FROM data.service_portfolio sp
-        WHERE sc.service_id LIKE 'DEMO-%'
-          AND sc.portfolio_group_code = sp.portfolio_code
-          AND sc.is_deleted = FALSE
-    `, [], 'service_catalog:demo-portfolio-assignment');
-    logger.info('demo-seed: portfolio assignments OK');
 }
 
 function buildDemoOfferings() {
@@ -1481,8 +1470,7 @@ async function seedDemoData(pool, options = {}) {
         const locale = resolveDemoSeedLocale(options?.locale);
         await seedReferenceData(pool);
         await seedServices(pool, locale);
-        await seedPortfolioAssignments(pool);
-        await seedOfferings(pool);
+            await seedOfferings(pool);
         await seedDomainAvailability(pool);
         await seedRoleAssignments(pool);
         await seedFlavours(pool);

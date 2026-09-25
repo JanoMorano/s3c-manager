@@ -478,7 +478,6 @@ export interface ServiceDetail {
   fulfillment_lead_time_text: string | null;
   review_owner_user_id: number | null;
   review_due_at: string | null;
-  next_review_due_at: string | null;
   offerings: ServiceOffering[];
   primary_offering: ServiceOffering | null;
   support_model: ServiceSupportModel[];
@@ -1027,7 +1026,7 @@ export interface DashboardOwnedService {
   service_status: string | null;
   lifecycle_stage_code: string | null;
   completeness_score: number | null;
-  next_review_due_at: string | null;
+  review_due_at: string | null;
   updated_at: string | null;
 }
 

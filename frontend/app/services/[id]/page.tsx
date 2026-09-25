@@ -260,11 +260,11 @@ export default function ServiceDetailPage({ params }: Props) {
                 />
               </Section>
 
-              {(operationalLinks.length > 0 || svc.next_review_due_at || svc.review_owner_user_id) && (
+              {(operationalLinks.length > 0 || svc.review_due_at || svc.review_owner_user_id) && (
                 <Section title="Operations">
                   <OperationsPanel
                     links={operationalLinks}
-                    nextReviewDueAt={svc.next_review_due_at ?? null}
+                    reviewDueAt={svc.review_due_at ?? null}
                     reviewOwnerId={svc.review_owner_user_id ?? null}
                     serviceId={id}
                   />
@@ -294,7 +294,7 @@ export default function ServiceDetailPage({ params }: Props) {
                   <MetadataItem label="Owner" value={svc.service_owner} kind="person" />
                   <MetadataItem label="Area owner" value={svc.vlastnik} kind="person" />
                   <MetadataItem label="Review owner" value={svc.review_owner_user_id != null ? String(svc.review_owner_user_id) : null} />
-                  <MetadataItem label="Next review" value={svc.next_review_due_at ?? svc.review_due_at} kind="date" />
+                  <MetadataItem label="Next review" value={svc.review_due_at} kind="date" />
                   <MetadataItem label="Portfolio" value={svc.portfolio_group_name ?? svc.portfolio_group} />
                   <MetadataItem label="Updated" value={svc.updated_at} kind="date" />
                 </MetadataGrid>
@@ -397,7 +397,7 @@ export default function ServiceDetailPage({ params }: Props) {
                 <div className={styles.railItems}>
                   <MetadataItem label="Lifecycle"      value={businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status} />
                   <MetadataItem label="Completeness"   value={svc.completeness_score != null ? `${svc.completeness_score}%` : null} />
-                  <MetadataItem label="Next review"    value={svc.next_review_due_at ?? svc.review_due_at} kind="date" />
+                  <MetadataItem label="Next review"    value={svc.review_due_at} kind="date" />
                   <MetadataItem label="Version"        value={svc.catalogue_version} />
                   <MetadataItem label="Updated"        value={svc.updated_at}   kind="date" />
                   <MetadataItem label="Updated by"     value={svc.updated_by} />
@@ -493,7 +493,7 @@ function RelationshipStudioHero({
   const owner = overview?.owners.primary?.display_name ?? service.service_owner ?? service.vlastnik ?? 'Owner missing';
   const resolverGroup = supportModels[0]?.resolver_group ?? 'Resolver group missing';
   const steward = overview?.owners.steward?.display_name ?? service.manager ?? 'Steward missing';
-  const reviewCadence = supportModels[0]?.review_cadence ?? (service.next_review_due_at ? `Review ${formatDate(service.next_review_due_at)}` : 'Review cadence missing');
+  const reviewCadence = supportModels[0]?.review_cadence ?? (service.review_due_at ? `Review ${formatDate(service.review_due_at)}` : 'Review cadence missing');
   const downstreamCount = overview?.dependencies.outgoing_count ?? service.relation_count ?? 0;
   const upstreamCount = overview?.dependencies.incoming_count ?? 0;
   const criticalChains = overview?.dependencies.mandatory_count ?? service.relations?.filter((item) => item.is_mandatory).length ?? 0;
@@ -687,7 +687,7 @@ function RelationshipStudioHero({
             <DomainDotGroup domains={service.available_on} />
           </SummaryItem>
           <SummaryItem label="Review due">
-            {service.next_review_due_at ? formatDate(service.next_review_due_at) : 'N/A'}
+            {service.review_due_at ? formatDate(service.review_due_at) : 'N/A'}
           </SummaryItem>
         </div>
       </div>
@@ -1353,12 +1353,12 @@ const LINK_TYPE_LABEL: Record<string, string> = {
 
 function OperationsPanel({
   links,
-  nextReviewDueAt,
+  reviewDueAt,
   reviewOwnerId,
   serviceId,
 }: {
   links: ServiceOperationalLink[];
-  nextReviewDueAt: string | null;
+  reviewDueAt: string | null;
   reviewOwnerId: number | string | null;
   serviceId: string;
 }) {
@@ -1374,7 +1374,7 @@ function OperationsPanel({
   ];
 
   // Review overdue check
-  const reviewDate = nextReviewDueAt ? new Date(nextReviewDueAt) : null;
+  const reviewDate = reviewDueAt ? new Date(reviewDueAt) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const reviewOverdue  = reviewDate ? reviewDate < today : false;
@@ -1385,14 +1385,14 @@ function OperationsPanel({
   return (
     <div className={styles.operationsPanel}>
       {/* Service review card */}
-      {(nextReviewDueAt || reviewOwnerId) && (
+      {(reviewDueAt || reviewOwnerId) && (
         <div className={`${styles.reviewCard} ${reviewOverdue ? styles.reviewCardOverdue : reviewSoon ? styles.reviewCardSoon : ''}`}>
           <div className={styles.reviewCardLabel}>Service Review</div>
           <div className={styles.reviewMeta}>
-            {nextReviewDueAt && (
+            {reviewDueAt && (
               <span className={reviewOverdue ? styles.reviewOverdue : reviewSoon ? styles.reviewSoon : ''}>
                 {reviewOverdue ? '⚠ Overdue · ' : reviewSoon ? '⏰ Due soon · ' : ''}
-                Next review: {formatDate(nextReviewDueAt)}
+                Next review: {formatDate(reviewDueAt)}
               </span>
             )}
             {reviewOwnerId && <span>Review owner ID: {reviewOwnerId}</span>}

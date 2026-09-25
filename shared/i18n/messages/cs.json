@@ -940,5 +940,13 @@
   "service_editor.section.audience": "Cílové skupiny",
   "service_editor.section.operational_links": "Provozní odkazy",
   "service_editor.section.advanced_evidence": "Pokročilá evidence",
-  "service_editor.section.raw_fields": "Zdrojová data importu"
+  "service_editor.section.raw_fields": "Zdrojová data importu",
+  "lifecycle_stage.draft": "Koncept",
+  "lifecycle_stage.design": "Návrh",
+  "lifecycle_stage.active": "Aktivní",
+  "lifecycle_stage.retiring": "Vyřazování",
+  "lifecycle_stage.retired": "Vyřazená",
+  "service_editor.lifecycle.label": "Fáze životního cyklu",
+  "service_editor.lifecycle.current": "aktuální",
+  "service_editor.lifecycle.allowed_next": "Povolený další krok: {{stages}}"
 }

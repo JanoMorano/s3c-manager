@@ -1,6 +1,7 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const { toLifecycleStage } = require('../utils/lifecycle');
 const logger = require('../utils/logger');
 
 async function getServicePk(serviceId) {
@@ -67,9 +68,9 @@ async function upsertService(svc) {
         SET title = $2,
             short_description = $3,
             description = $4,
-            service_status_code = $5,
+            lifecycle_stage_code = $5,
             service_type_code = $6,
-            portfolio_group_code = $7,
+            portfolio_id = (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $7),
             global_service_group_code = $8,
             service_line_code = $9,
             organizational_element_code = $10,
@@ -96,7 +97,7 @@ async function upsertService(svc) {
         svc.title,
         svc.shortDescription ?? null,
         svc.description ?? null,
-        svc.serviceStatusCode ?? null,
+        toLifecycleStage(svc.serviceStatusCode),
         svc.serviceTypeCode ?? null,
         svc.portfolioGroupCode ?? null,
         svc.globalServiceGroupCode ?? null,
@@ -124,8 +125,8 @@ async function upsertService(svc) {
     await getPool().query(`
         INSERT INTO data.service_catalog (
             service_id, title, short_description, description,
-            service_status_code, service_type_code,
-            portfolio_group_code, global_service_group_code,
+            lifecycle_stage_code, service_type_code,
+            portfolio_id, global_service_group_code,
             service_line_code, organizational_element_code,
             service_url, cp_service_type_raw,
             is_available_status_ambiguous, service_area_raw, is_stub,
@@ -135,7 +136,7 @@ async function upsertService(svc) {
             pricing_note_raw, created_at_source, modified_at_source
         ) VALUES (
             $1, $2, $3, $4,
-            $5, $6, $7, $8,
+            $5, $6, (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $7), $8,
             $9, $10, $11, $12,
             $13, $14, $15, $16, $17, $18,
             $19, $20, $21, $22, $23, $24,
@@ -147,7 +148,7 @@ async function upsertService(svc) {
         svc.title,
         svc.shortDescription ?? null,
         svc.description ?? null,
-        svc.serviceStatusCode ?? null,
+        toLifecycleStage(svc.serviceStatusCode),
         svc.serviceTypeCode ?? null,
         svc.portfolioGroupCode ?? null,
         svc.globalServiceGroupCode ?? null,

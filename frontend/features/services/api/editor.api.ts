@@ -45,7 +45,7 @@ export interface ServiceUpdateBody {
   customer_type?: string | null;
   business_summary?: string | null;
   requestable?: boolean | null;
-  lifecycle_state?: string | null;
+  lifecycle_stage_code?: string | null;
   target_audience_summary?: string | null;
   request_channel_type?: string | null;
   request_channel_url?: string | null;

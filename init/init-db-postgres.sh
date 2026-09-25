@@ -50,7 +50,6 @@ run_psql() {
 
 SCHEMA_DIR="${SCHEMA_DIR:-/pgdb/schema}"
 SCHEMA_BASELINE_DIR="${SCHEMA_BASELINE_DIR:-/pgdb/baseline}"
-SCHEMA_REAPPLY_ALL="${SCHEMA_REAPPLY_ALL:-false}"
 SCHEMA_USE_BASELINE="${SCHEMA_USE_BASELINE:-true}"
 
 psql_query() {
@@ -65,7 +64,8 @@ psql_query() {
 # again (schema files are written to be idempotent). This replaces
 # re-running every file on every start, which also reset data migrations
 # such as the readiness rule configuration.
-# SCHEMA_REAPPLY_ALL=true re-applies every file (previous behaviour).
+# Replaying the whole history on an existing database is not supported:
+# later migrations drop columns that earlier files still reference.
 #
 # On an empty database the baseline ($SCHEMA_BASELINE_DIR/baseline.sql, built
 # by scripts/build-schema-baseline.sh) is restored first and the schema files
@@ -113,17 +113,15 @@ apply_schema_files() {
     checksum="$(sha256sum "$file" | cut -d ' ' -f 1)"
     recorded="$(psql_query -c "SELECT checksum FROM platform.schema_file_ledger WHERE file_name = '${name}'")"
 
-    if [ "$recorded" = "$checksum" ] && [ "$SCHEMA_REAPPLY_ALL" != "true" ]; then
+    if [ "$recorded" = "$checksum" ]; then
       skipped=$((skipped + 1))
       continue
     fi
 
     if [ -z "$recorded" ]; then
       echo "▶ schema ${name} (new)"
-    elif [ "$recorded" != "$checksum" ]; then
-      echo "▶ schema ${name} (changed)"
     else
-      echo "▶ schema ${name} (reapply)"
+      echo "▶ schema ${name} (changed)"
     fi
     # shellcheck disable=SC2086
     psql $(build_psql_args) -v ON_ERROR_STOP=1 --single-transaction -q -f "$file"

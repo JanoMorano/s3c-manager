@@ -172,7 +172,7 @@ function buildLifecycle(service) {
         service_status_name: service.service_status_name ?? null,
         criticality_code: service.criticality_code ?? null,
         requestable: service.requestable ?? null,
-        review_due_at: service.review_due_at ?? service.next_review_due_at ?? null,
+        review_due_at: service.review_due_at ?? null,
     };
 }
 

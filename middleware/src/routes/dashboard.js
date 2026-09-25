@@ -204,10 +204,10 @@ router.get('/inbox', async (req, res, next) => {
                 SELECT DISTINCT
                     sc.service_id,
                     sc.title,
-                    sc.service_status_code AS service_status,
+                    data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status,
                     sc.lifecycle_stage_code,
                     sc.completeness_score,
-                    sc.next_review_due_at,
+                    sc.review_due_at,
                     sc.updated_at
                 FROM data.service_catalog sc
                 JOIN data.service_role_assignment sra

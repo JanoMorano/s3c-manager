@@ -107,8 +107,8 @@ async function listOwnerAssignments(filters = {}) {
             sc.id AS service_pk,
             sc.service_id,
             sc.title AS service_title,
-            sc.service_status_code,
-            sc.lifecycle_state,
+            data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status_code,
+            data.fn_lifecycle_state_from_stage(sc.lifecycle_stage_code) AS lifecycle_state,
             sra.valid_from,
             sra.valid_to
         FROM data.service_role_assignment sra

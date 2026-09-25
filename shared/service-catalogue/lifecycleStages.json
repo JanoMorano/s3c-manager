@@ -1,0 +1,25 @@
+{
+  "$comment": "Single source of truth for service lifecycle stages (data.service_catalog.lifecycle_stage_code). aliases map legacy lifecycle_state / service_status values and must match data.fn_lifecycle_stage_from_state in 35_canonical_service_fields.sql (enforced by middleware/src/__tests__/canonical-service-fields.test.js).",
+  "stages": ["draft", "design", "active", "retiring", "retired"],
+  "transitions": {
+    "draft": ["design", "active"],
+    "design": ["draft", "active"],
+    "active": ["retiring", "retired"],
+    "retiring": ["active", "retired"],
+    "retired": ["retiring"]
+  },
+  "aliases": {
+    "draft": "draft",
+    "design": "design",
+    "planned": "design",
+    "under_review": "design",
+    "approved": "active",
+    "live": "active",
+    "production": "active",
+    "published": "active",
+    "active": "active",
+    "deprecated": "retiring",
+    "retiring": "retiring",
+    "retired": "retired"
+  }
+}

@@ -3,6 +3,7 @@
  * ServiceCatalog validation — canonical schema v2.1.
  */
 const { RELATION_TYPE_CODES: VALID_REL_TYPES } = require('../../../shared/service-catalogue/relationTypes');
+const { LIFECYCLE_STAGES, LIFECYCLE_TRANSITIONS, toLifecycleStage } = require('../utils/lifecycle');
 
 // Must match ref_ServiceType.code in the DB
 const VALID_TYPES = ['CF', 'CFS', 'ES', 'SS', 'MS', 'AS'];
@@ -12,85 +13,75 @@ const VALID_STATUSES = ['draft', 'planned', 'active', 'deprecated', 'retired'];
 
 const SERVICE_ID_REGEX = /^[A-Za-z0-9_.-]{2,50}$/;
 
-// ── Phase 7: Lifecycle governance ────────────────────────────────────────────
+// ── Lifecycle governance (canonical stages, 35/39) ──────────────────────────
 
-const LIFECYCLE_STATES = ['draft', 'live', 'deprecated', 'retired'];
-
-/**
- * Allowed forward and backward transitions.
- * null/'' means "no current lifecycle" → any state is permitted.
- */
-const LIFECYCLE_TRANSITIONS = {
-    draft:      ['live'],
-    live:       ['deprecated', 'retired'],
-    deprecated: ['live', 'retired'],
-    retired:    ['deprecated'],
-};
-
-function normalizeLifecycleState(value) {
-    const normalized = String(value ?? '').trim().toLowerCase();
-    if (!normalized) return '';
-    if (['draft', 'planned', 'design', 'under_review', 'approved'].includes(normalized)) return 'draft';
-    if (['live', 'active', 'published', 'production'].includes(normalized)) return 'live';
-    if (['deprecated', 'retiring'].includes(normalized)) return 'deprecated';
-    if (normalized === 'retired') return 'retired';
-    return normalized;
+/** Requested lifecycle input: canonical lifecycle_stage_code or legacy lifecycle_state. */
+function requestedLifecycle(data = {}) {
+    if (data.lifecycle_stage_code !== undefined) return { field: 'lifecycle_stage_code', value: data.lifecycle_stage_code };
+    if (data.lifecycle_state !== undefined) return { field: 'lifecycle_state', value: data.lifecycle_state };
+    return null;
 }
 
-function validateLifecycleTransition(from, to) {
-    if (!to) return [];
-    const fromState = normalizeLifecycleState(from);
-    const toState = normalizeLifecycleState(to);
-    if (!LIFECYCLE_STATES.includes(toState) || toState !== String(to).trim().toLowerCase()) {
-        return [{ field: 'lifecycle_state', message: `Neplatný lifecycle stav: '${to}'. Povolené hodnoty: ${LIFECYCLE_STATES.join(', ')}` }];
+/** Lifecycle stage after applying `data` to `existing`. */
+function targetLifecycleStage(existing = {}, data = {}) {
+    const requested = requestedLifecycle(data);
+    if (requested) return toLifecycleStage(requested.value);
+    return toLifecycleStage(existing.lifecycle_stage_code ?? existing.lifecycle_state);
+}
+
+function validateLifecycleTransition(from, to, field = 'lifecycle_stage_code') {
+    if (to == null || to === '') return [];
+    const toStage = toLifecycleStage(to);
+    if (!toStage) {
+        return [{ field, message: `Neplatný lifecycle stav: '${to}'. Povolené hodnoty: ${LIFECYCLE_STAGES.join(', ')}` }];
     }
-    // No current state → any target is allowed (first assignment)
-    if (!fromState || fromState === toState) return [];
-    const allowed = LIFECYCLE_TRANSITIONS[fromState];
-    if (!allowed) return []; // unknown from state — permissive
-    if (!allowed.includes(toState)) {
+    const fromStage = toLifecycleStage(from);
+    // No current stage → any target is allowed (first assignment)
+    if (!fromStage || fromStage === toStage) return [];
+    const allowed = LIFECYCLE_TRANSITIONS[fromStage];
+    if (!allowed.includes(toStage)) {
         return [{
-            field: 'lifecycle_state',
-            message: `Nelze přejít ze stavu '${fromState}' do '${toState}'. Povolené přechody: ${allowed.join(', ')}`,
+            field,
+            message: `Nelze přejít ze stavu '${fromStage}' do '${toStage}'. Povolené přechody: ${allowed.join(', ')}`,
         }];
     }
     return [];
 }
 
 /**
- * Gate: service cannot go live unless minimum operational data is present.
+ * Gate: service cannot become active unless minimum operational data is present.
  */
-function validateLifecycleReadiness(merged, context = {}) {
+function validateLifecycleReadiness(merged, context = {}, field = 'lifecycle_stage_code') {
     const errors = [];
-    if (merged.lifecycle_state === 'live') {
+    if (targetLifecycleStage(merged) === 'active') {
         if (merged.requestable === true && !hasRequestChannel(merged) && !context.offeringHasRequestChannel) {
             errors.push({
-                field: 'lifecycle_state',
-                message: 'Přechod do stavu live není možný: služba je requestable, ale nemá nakonfigurovaný request channel.',
+                field,
+                message: 'Přechod do stavu active není možný: služba je requestable, ale nemá nakonfigurovaný request channel.',
             });
         }
     }
     return errors;
 }
 
-function validateLifecycleOperationalReadiness(merged, context = {}) {
+function validateLifecycleOperationalReadiness(merged, context = {}, field = 'lifecycle_stage_code') {
     const errors = [];
-    if (merged.lifecycle_state !== 'live') return errors;
+    if (targetLifecycleStage(merged) !== 'active') return errors;
 
     const offeringCount = Number(context.offeringCount ?? 0);
     const supportModelCount = Number(context.supportModelCount ?? 0);
 
     if (merged.requestable === true && offeringCount <= 0) {
         errors.push({
-            field: 'lifecycle_state',
-            message: 'Přechod do stavu live není možný: requestable služba musí mít alespoň jeden offering.',
+            field,
+            message: 'Přechod do stavu active není možný: requestable služba musí mít alespoň jeden offering.',
         });
     }
 
     if (merged.requestable === true && supportModelCount <= 0) {
         errors.push({
-            field: 'lifecycle_state',
-            message: 'Přechod do stavu live není možný: requestable služba musí mít nakonfigurovaný support model.',
+            field,
+            message: 'Přechod do stavu active není možný: requestable služba musí mít nakonfigurovaný support model.',
         });
     }
 
@@ -152,8 +143,9 @@ function validateCreate(data) {
         errors.push({ field: 'request_channel_url', message: 'Request channel URL musí být validní http/https URL' });
 
     errors.push(...validateRequestability(data));
-    if (data.lifecycle_state !== undefined) {
-        errors.push(...validateLifecycleTransition(null, data.lifecycle_state));
+    const requested = requestedLifecycle(data);
+    if (requested) {
+        errors.push(...validateLifecycleTransition(null, requested.value, requested.field));
     }
 
     return errors;
@@ -177,11 +169,12 @@ function validateUpdate(data, existing = {}, context = {}) {
 
     errors.push(...validateRequestability(merged, context));
 
-    // Phase 7: lifecycle transition + readiness gate
-    if (data.lifecycle_state !== undefined) {
-        errors.push(...validateLifecycleTransition(existing.lifecycle_state ?? null, data.lifecycle_state));
-        if (!errors.some(e => e.field === 'lifecycle_state')) {
-            errors.push(...validateLifecycleReadiness(merged, context));
+    // Lifecycle transition + readiness gate
+    const requested = requestedLifecycle(data);
+    if (requested) {
+        errors.push(...validateLifecycleTransition(existing.lifecycle_stage_code ?? existing.lifecycle_state ?? null, requested.value, requested.field));
+        if (!errors.some(e => e.field === requested.field)) {
+            errors.push(...validateLifecycleReadiness(merged, context, requested.field));
         }
     }
 
@@ -300,9 +293,9 @@ module.exports = {
     validateLifecycleTransition,
     validateLifecycleReadiness,
     validateLifecycleOperationalReadiness,
-    normalizeLifecycleState,
+    targetLifecycleStage,
     LIFECYCLE_TRANSITIONS,
-    LIFECYCLE_STATES,
+    LIFECYCLE_STAGES,
     VALID_TYPES,
     VALID_STATUSES,
 };

@@ -37,6 +37,7 @@ import type {
 import { useT } from '@/app/i18n/useI18n';
 import styles from './editor.module.css';
 import { relationTypeLabelKey, relationTypeOptions } from '@/features/services/relationTypes';
+import { LIFECYCLE_TRANSITIONS, lifecycleStageLabelKey, selectableLifecycleStages, toLifecycleStage } from '@/features/services/lifecycle';
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -69,7 +70,7 @@ const schema = z.object({
   business_summary:       z.string().optional(),
   consumer_value:         z.string().optional(),
   requestable:            z.boolean().optional(),
-  lifecycle_state:        z.string().optional(),
+  lifecycle_stage_code:   z.string().optional(),
   target_audience_summary:z.string().optional(),
   request_channel_type:   z.string().optional(),
   request_channel_url:    z.string().url('Must be a valid URL').optional().or(z.literal('')),
@@ -94,28 +95,9 @@ const schema = z.object({
 
 type FormData = z.output<typeof schema>;
 
-const LIFECYCLE_OPTIONS = ['draft', 'live', 'deprecated', 'retired'] as const;
-type LifecycleState = typeof LIFECYCLE_OPTIONS[number];
-
-function normalizeLifecycleState(value: string | null | undefined): LifecycleState {
-  const normalized = String(value ?? '').trim().toLowerCase();
-  if (['live', 'active', 'published', 'production'].includes(normalized)) return 'live';
-  if (['deprecated', 'retiring'].includes(normalized)) return 'deprecated';
-  if (normalized === 'retired') return 'retired';
-  return 'draft';
-}
-
-// Canonical lifecycle states mirror backend validation.js
 // Standard operational link types
 const OPERATIONAL_LINK_TYPES = ['knowledge', 'incidents', 'changes', 'docs', 'review', 'monitoring', 'support', 'other'];
 
-// Canonical lifecycle transitions mirror backend validation.js
-const LIFECYCLE_TRANSITION_MAP: Record<string, string[]> = {
-  draft:      ['live'],
-  live:       ['deprecated', 'retired'],
-  deprecated: ['live', 'retired'],
-  retired:    ['deprecated'],
-};
 const OFFERING_STATUSES = ['draft', 'active', 'retired'];
 
 interface Props { params: Promise<{ id: string }> }
@@ -704,7 +686,7 @@ export default function ServiceEditorPage({ params }: Props) {
       business_summary:        svc.business_summary ?? '',
       consumer_value:          svc.consumer_value ?? '',
       requestable:             svc.requestable ?? false,
-      lifecycle_state:         normalizeLifecycleState(svc.lifecycle_state ?? svc.lifecycle_stage_code ?? svc.service_status),
+      lifecycle_stage_code:    toLifecycleStage(svc.lifecycle_stage_code ?? svc.lifecycle_state ?? svc.service_status) ?? '',
       target_audience_summary: svc.target_audience_summary ?? '',
       request_channel_type:    svc.request_channel_type ?? '',
       request_channel_url:     svc.request_channel_url ?? '',
@@ -747,11 +729,8 @@ export default function ServiceEditorPage({ params }: Props) {
   };
   /* eslint-enable react-hooks/incompatible-library */
   const dirtyCount          = Object.keys(dirtyFields).length;
-  const currentLifecycle    = svc ? normalizeLifecycleState(svc.lifecycle_state ?? svc.lifecycle_stage_code ?? svc.service_status) : null;
-  const allowedLifecycleOptions = LIFECYCLE_OPTIONS.filter((state) => {
-    if (!currentLifecycle) return true;
-    return state === currentLifecycle || (LIFECYCLE_TRANSITION_MAP[currentLifecycle] ?? []).includes(state);
-  });
+  const currentLifecycle    = svc ? toLifecycleStage(svc.lifecycle_stage_code ?? svc.lifecycle_state ?? svc.service_status) : null;
+  const allowedLifecycleOptions = selectableLifecycleStages(currentLifecycle);
 
   const publishBlockers = useMemo(() => {
     const blockers: string[] = [];
@@ -848,7 +827,7 @@ export default function ServiceEditorPage({ params }: Props) {
         exclusions:              data.exclusions,
         consumer_value:          data.consumer_value || null,
         requestable:             data.requestable ?? false,
-        lifecycle_state:         data.lifecycle_state || null,
+        lifecycle_stage_code:    data.lifecycle_stage_code || null,
         target_audience_summary: data.target_audience_summary || null,
         request_channel_type:    data.request_channel_type || null,
         request_channel_url:     data.request_channel_url || null,
@@ -923,8 +902,8 @@ export default function ServiceEditorPage({ params }: Props) {
       handleTabSelect(editorTabOfSection(targetSection));
       return;
     }
-    setValue('lifecycle_state', 'live', { shouldDirty: true, shouldValidate: true });
-    void handleSubmit((data) => onSubmit({ ...data, lifecycle_state: 'live' }))();
+    setValue('lifecycle_stage_code', 'active', { shouldDirty: true, shouldValidate: true });
+    void handleSubmit((data) => onSubmit({ ...data, lifecycle_stage_code: 'active' }))();
   };
 
   if (!svc) return <div className={styles.state}>{t('common.loading')}</div>;
@@ -938,7 +917,7 @@ export default function ServiceEditorPage({ params }: Props) {
           purpose={t('service_editor.tab.purpose')}
           chips={[
             { label: `ID ${id}`, tone: 'neutral' },
-            { label: `Lifecycle: ${currentLifecycle ?? '—'}`, tone: currentLifecycle === 'live' ? 'ok' : 'info' },
+            { label: `Lifecycle: ${currentLifecycle ? t(lifecycleStageLabelKey(currentLifecycle)) : '—'}`, tone: currentLifecycle === 'active' ? 'ok' : 'info' },
             { label: `Completeness ${svc.completeness_score ?? '—'}%`, tone: (svc.completeness_score ?? 0) >= 80 ? 'ok' : 'warn' },
           ]}
           primaryAction={{ label: 'Zpět na detail', href: `/services/${id}` }}
@@ -1010,21 +989,20 @@ export default function ServiceEditorPage({ params }: Props) {
                   {serviceTypes?.map(t => <option key={t.code} value={t.code}>{t.code} — {t.name}</option>)}
                 </select>
               </Field>
-              <Field label="Lifecycle State">
-                <select {...register('lifecycle_state')} className={styles.input}>
+              <Field label={t('service_editor.lifecycle.label')}>
+                <select {...register('lifecycle_stage_code')} className={styles.input}>
                   <option value="">— select —</option>
-                  {allowedLifecycleOptions.map((state) => {
-                    const isCurrentState = state === currentLifecycle;
-                    return (
-                      <option key={state} value={state}>
-                        {state}{isCurrentState ? ' (current)' : ''}
-                      </option>
-                    );
-                  })}
+                  {allowedLifecycleOptions.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {t(lifecycleStageLabelKey(stage))}{stage === currentLifecycle ? ` (${t('service_editor.lifecycle.current')})` : ''}
+                    </option>
+                  ))}
                 </select>
                 {currentLifecycle && (
                   <span className={styles.hint}>
-                    Current: <strong>{currentLifecycle}</strong> · Allowed next: {(LIFECYCLE_TRANSITION_MAP[currentLifecycle] ?? []).join(', ') || '—'}
+                    {t('service_editor.lifecycle.allowed_next', {
+                      stages: LIFECYCLE_TRANSITIONS[currentLifecycle].map((stage) => t(lifecycleStageLabelKey(stage))).join(', '),
+                    })}
                   </span>
                 )}
               </Field>
@@ -2219,7 +2197,7 @@ const PRIMARY_EDITOR_SECTION_IDS = new Set([
 const ADVANCED_DETAIL_SECTION_IDS = new Set(['flavours', 'raw-fields']);
 
 const SECTION_FIELD_MAP: Record<string, string[]> = {
-  identity: ['title', 'service_type', 'lifecycle_state', 'portfolio_group_code', 'service_line_code', 'security_classification'],
+  identity: ['title', 'service_type', 'lifecycle_stage_code', 'portfolio_group_code', 'service_line_code', 'security_classification'],
   'value-scope': ['summary', 'consumer_value', 'scope_text', 'exclusions'],
   'request-access': ['request_channel_type', 'request_channel_url', 'target_audience_summary', 'fulfillment_lead_time_text'],
   'ownership-support': ['service_owner', 'service_owner_email', 'manager'],

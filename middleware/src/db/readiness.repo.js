@@ -1,6 +1,7 @@
 'use strict';
 
 const { getPool } = require('./pool');
+const { toLifecycleStage } = require('../utils/lifecycle');
 const { DEPENDENCY_RELATION_TYPE_CODES } = require('../../../shared/service-catalogue/relationTypes');
 
 // Static codes from the shared relation type definition, not user input.
@@ -11,15 +12,14 @@ const SERVICE_STATE_SELECT = `
         sc.id AS service_pk,
         sc.service_id,
         sc.title,
-        sc.service_status_code AS service_status,
+        data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status,
         sc.lifecycle_stage_code,
-        sc.lifecycle_state,
+        data.fn_lifecycle_state_from_stage(sc.lifecycle_stage_code) AS lifecycle_state,
         sc.requestable,
         sc.review_due_at,
-        sc.next_review_due_at,
-        sc.sla_availability,
-        sc.sla_restoration_hours AS sla_restoration,
-        sc.sla_delivery_days AS sla_delivery,
+        sla.availability_pct AS sla_availability,
+        sla.restoration_hours AS sla_restoration,
+        sla.delivery_days AS sla_delivery,
         sc.service_cost_raw,
         sc.pricing_note_raw,
         COALESCE(owner.owner_count, 0) AS owner_count,
@@ -53,6 +53,7 @@ const SERVICE_STATE_SELECT = `
             THEN TRUE ELSE FALSE
         END AS has_price_note
     FROM data.service_catalog sc
+    LEFT JOIN data.service_sla sla ON sla.id = data.fn_service_primary_sla_id(sc.id)
     LEFT JOIN LATERAL (
         SELECT COUNT(*)::integer AS owner_count
         FROM data.service_role_assignment sra
@@ -165,8 +166,8 @@ async function listServiceStates(filters = {}) {
     const where = ['sc.is_deleted = FALSE', 'sc.is_stub = FALSE'];
 
     if (filters.lifecycle) {
-        params.push(filters.lifecycle);
-        where.push(`(sc.lifecycle_stage_code = $${params.length} OR sc.lifecycle_state = $${params.length})`);
+        params.push(toLifecycleStage(filters.lifecycle) ?? filters.lifecycle);
+        where.push(`sc.lifecycle_stage_code = $${params.length}`);
     }
     if (filters.owner) {
         params.push(`%${String(filters.owner).trim()}%`);

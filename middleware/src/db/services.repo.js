@@ -2,6 +2,14 @@
 
 const { getPool } = require('./pool');
 const { toLifecycleStage } = require('../utils/lifecycle');
+const {
+    SERVICE_STATUS_SQL,
+    LIFECYCLE_STATE_SQL,
+    PRIMARY_SLA_JOIN,
+    canonicalizeServiceInput,
+    resolvePortfolioId,
+    upsertPrimarySla,
+} = require('./service-fields');
 
 const SC_COLUMNS = `
     sc.id,
@@ -10,12 +18,12 @@ const SC_COLUMNS = `
     sc.portfolio_id,
     sp.portfolio_code,
     sp.title AS portfolio_title,
-    sc.portfolio_group_code AS portfolio_group,
-    COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
+    sp.portfolio_code AS portfolio_group,
+    COALESCE(pg.name, sp.title, sp.portfolio_code) AS portfolio_group_name,
     sc.service_type_code AS service_type,
     COALESCE(st.name, sc.service_type_code) AS service_type_name,
-    sc.service_status_code AS service_status,
-    COALESCE(ss.name, sc.service_status_code) AS service_status_name,
+    ${SERVICE_STATUS_SQL} AS service_status,
+    COALESCE(ss.name, ${SERVICE_STATUS_SQL}) AS service_status_name,
     sc.catalogue_version,
     sc.short_description AS summary,
     sc.description AS detailed_description,
@@ -42,11 +50,11 @@ const SC_COLUMNS = `
     ) AS available_on,
     sc.customer_type_json AS customer_type,
     sc.service_url AS source_url,
-    sc.sla_availability,
-    sc.sla_restoration_hours AS sla_restoration,
-    sc.sla_delivery_days AS sla_delivery,
-    sc.sla_restoration_text,
-    sc.sla_delivery_text,
+    sla.availability_pct AS sla_availability,
+    sla.restoration_hours AS sla_restoration,
+    sla.delivery_days AS sla_delivery,
+    sla.restoration_text AS sla_restoration_text,
+    sla.delivery_text AS sla_delivery_text,
     sc.scope_text,
     sc.operational_notes_raw,
     sc.support_locations_raw,
@@ -56,7 +64,7 @@ const SC_COLUMNS = `
     sc.additional_information_raw,
     sc.target_audience_summary,
     sc.requestable,
-    sc.lifecycle_state,
+    ${LIFECYCLE_STATE_SQL} AS lifecycle_state,
     sc.lifecycle_stage_code,
     sc.criticality_code,
     sc.review_due_at,
@@ -71,7 +79,6 @@ const SC_COLUMNS = `
     sc.other_info_raw,
     sc.pricing_note_raw,
     sc.review_owner_user_id,
-    sc.next_review_due_at,
     sc.graph_x,
     sc.graph_y,
     sc.options_json AS options,
@@ -153,14 +160,6 @@ function parseInteger(value) {
     if (value == null) return null;
     const parsed = parseInt(value, 10);
     return Number.isNaN(parsed) ? null : parsed;
-}
-
-function rawTextIfNonNumeric(value) {
-    if (value == null) return null;
-    if (typeof value === 'number') return null;
-    const normalized = String(value).trim();
-    if (!normalized) return null;
-    return Number.isNaN(parseInt(normalized, 10)) ? normalized : null;
 }
 
 function parseJsonArray(value) {
@@ -247,17 +246,19 @@ async function findAllDirect({
     const domainValues = splitCsv(domain);
     const lifecycleValues = splitCsv(lifecycleState);
     const sortColMap = {
-        service_id: 'service_id',
-        title: 'title',
-        service_status: 'service_status_code',
-        service_type: 'service_type_code',
-        portfolio_group: 'portfolio_group_code',
-        updated_at: 'updated_at',
+        service_id: 'sc.service_id',
+        title: 'sc.title',
+        service_status: SERVICE_STATUS_SQL,
+        service_type: 'sc.service_type_code',
+        portfolio_group: 'sp.portfolio_code',
+        updated_at: 'sc.updated_at',
     };
-    const sortCol = sortColMap[sort] || 'title';
+    const sortCol = sortColMap[sort] || 'sc.title';
     const sortDir = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
     const filters = ['sc.is_deleted = FALSE', 'sc.is_stub = FALSE'];
+    // Legacy status and lifecycle filters are mapped to lifecycle stages.
+    const statusStageValues = statusValues.map((value) => toLifecycleStage(value) ?? value);
     const values = [];
 
     function bind(value) {
@@ -266,23 +267,23 @@ async function findAllDirect({
     }
 
     if (statusValues.length) {
-        filters.push(`sc.service_status_code = ANY(${bind(statusValues)}::varchar[])`);
+        filters.push(`sc.lifecycle_stage_code = ANY(${bind(statusStageValues)}::varchar[])`);
     }
     if (serviceTypeValues.length) {
         filters.push(`sc.service_type_code = ANY(${bind(serviceTypeValues)}::varchar[])`);
     }
     if (portfolioGroup) {
-        filters.push(`sc.portfolio_group_code = ${bind(portfolioGroup)}`);
+        filters.push(`EXISTS (
+            SELECT 1 FROM data.service_portfolio sp_group
+            WHERE sp_group.id = sc.portfolio_id AND sp_group.portfolio_code = ${bind(portfolioGroup)}
+        )`);
     }
     if (portfolioCode) {
-        filters.push(`(
-            sc.portfolio_group_code = ${bind(portfolioCode)}
-            OR EXISTS (
-                SELECT 1
-                FROM data.service_portfolio sp_filter
-                WHERE sp_filter.id = sc.portfolio_id
-                  AND sp_filter.portfolio_code = ${bind(portfolioCode)}
-            )
+        filters.push(`EXISTS (
+            SELECT 1
+            FROM data.service_portfolio sp_filter
+            WHERE sp_filter.id = sc.portfolio_id
+              AND sp_filter.portfolio_code = ${bind(portfolioCode)}
         )`);
     }
     if (domainValues.length) {
@@ -307,7 +308,10 @@ async function findAllDirect({
             OR sc.business_purpose        ILIKE ${searchPlaceholder}
             OR sc.service_area_raw        ILIKE ${searchPlaceholder}
             OR sc.service_line_code       ILIKE ${searchPlaceholder}
-            OR sc.portfolio_group_code    ILIKE ${searchPlaceholder}
+            OR EXISTS (
+                SELECT 1 FROM data.service_portfolio sp_s
+                WHERE sp_s.id = sc.portfolio_id AND sp_s.portfolio_code ILIKE ${searchPlaceholder}
+            )
             OR sc.service_type_code       ILIKE ${searchPlaceholder}
             OR COALESCE(sc.customer_type_json::text, '') ILIKE ${searchPlaceholder}
             OR EXISTS (
@@ -336,7 +340,7 @@ async function findAllDirect({
         )`);
     }
     if (lifecycleValues.length) {
-        filters.push(`sc.lifecycle_state = ANY(${bind(lifecycleValues)}::varchar[])`);
+        filters.push(`sc.lifecycle_stage_code = ANY(${bind(lifecycleValues.map((value) => toLifecycleStage(value) ?? value))}::varchar[])`);
     }
     const lifecycleStageValues = splitCsv(lifecycleStageCode).map((value) => toLifecycleStage(value) ?? value);
     if (lifecycleStageValues.length) {
@@ -358,7 +362,7 @@ async function findAllDirect({
         filters.push(`sc.review_due_at < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
     }
     if (readiness === 'attention') {
-        filters.push(`COALESCE(sc.service_status_code, '') <> 'retired'`);
+        filters.push(`COALESCE(sc.lifecycle_stage_code, '') <> 'retired'`);
         filters.push(`COALESCE(sc.completeness_score, 0) < 80`);
     } else if (readiness === 'blocked') {
         filters.push(`COALESCE(sc.completeness_score, 0) < 50`);
@@ -431,7 +435,7 @@ async function findAllDirect({
             sp.title AS portfolio_title,
             sc.short_description,
             sc.service_type_code AS service_type,
-            sc.service_status_code AS service_status,
+            ${SERVICE_STATUS_SQL} AS service_status,
             sc.unit_of_measure,
             sc.charging_basis,
             (
@@ -439,15 +443,15 @@ async function findAllDirect({
                 FROM data.service_available_on sao
                 WHERE sao.service_id = sc.id
             ) AS available_on,
-            sc.sla_availability,
-            sc.sla_delivery_days AS sla_delivery,
-            sc.sla_restoration_hours AS sla_restoration,
-            sc.portfolio_group_code AS portfolio_group,
-            COALESCE(pg.name, sc.portfolio_group_code) AS portfolio_group_name,
-            COALESCE(sp.title, pg.name, sc.portfolio_group_code) AS portfolio_display_name,
+            sla.availability_pct AS sla_availability,
+            sla.delivery_days AS sla_delivery,
+            sla.restoration_hours AS sla_restoration,
+            sp.portfolio_code AS portfolio_group,
+            COALESCE(pg.name, sp.title, sp.portfolio_code) AS portfolio_group_name,
+            COALESCE(sp.title, pg.name, sp.portfolio_code) AS portfolio_display_name,
             COALESCE(sl.name, sc.service_line_code) AS service_line_name,
             COALESCE(gsg.name, sc.global_service_group_code) AS global_service_group_name,
-            sc.lifecycle_state,
+            ${LIFECYCLE_STATE_SQL} AS lifecycle_state,
             sc.lifecycle_stage_code,
             sc.criticality_code,
             sc.review_due_at,
@@ -533,13 +537,14 @@ async function findAllDirect({
         LEFT JOIN data.service_c3_mapping scm
             ON scm.service_id = sc.id AND scm.is_primary = TRUE
         LEFT JOIN data.ref_portfolio_group pg
-            ON pg.code = sc.portfolio_group_code
+            ON pg.code = sp.portfolio_code
+        ${PRIMARY_SLA_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
             ON gsg.code = sc.global_service_group_code
         WHERE ${whereClause}
-        ORDER BY sc.${sortCol} ${sortDir}
+        ORDER BY ${sortCol} ${sortDir}
         LIMIT $${dataValues.length - 1}
         OFFSET $${dataValues.length}
     `, dataValues);
@@ -576,7 +581,8 @@ async function findByServiceId(serviceId) {
         LEFT JOIN data.service_portfolio sp
             ON sp.id = sc.portfolio_id
         LEFT JOIN data.ref_portfolio_group pg
-            ON pg.code = sc.portfolio_group_code
+            ON pg.code = sp.portfolio_code
+        ${PRIMARY_SLA_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -584,7 +590,7 @@ async function findByServiceId(serviceId) {
         LEFT JOIN data.ref_service_type st
             ON st.code = sc.service_type_code
         LEFT JOIN data.ref_service_status ss
-            ON ss.code = sc.service_status_code
+            ON ss.code = ${SERVICE_STATUS_SQL}
         WHERE sc.service_id = $1
           AND sc.is_deleted = FALSE
     `, [serviceId]);
@@ -624,7 +630,8 @@ async function findAllForExport() {
         LEFT JOIN data.service_portfolio sp
             ON sp.id = sc.portfolio_id
         LEFT JOIN data.ref_portfolio_group pg
-            ON pg.code = sc.portfolio_group_code
+            ON pg.code = sp.portfolio_code
+        ${PRIMARY_SLA_JOIN}
         LEFT JOIN data.ref_service_line sl
             ON sl.code = sc.service_line_code
         LEFT JOIN data.ref_global_service_group gsg
@@ -632,10 +639,10 @@ async function findAllForExport() {
         LEFT JOIN data.ref_service_type st
             ON st.code = sc.service_type_code
         LEFT JOIN data.ref_service_status ss
-            ON ss.code = sc.service_status_code
+            ON ss.code = ${SERVICE_STATUS_SQL}
         WHERE sc.is_deleted = FALSE
           AND sc.is_stub = FALSE
-        ORDER BY sc.portfolio_group_code, sc.service_type_code, sc.title
+        ORDER BY sp.portfolio_code, sc.service_type_code, sc.title
     `);
     return result.rows;
 }
@@ -832,32 +839,34 @@ async function setRole(serviceId, roleCode, displayName, email = null, orgName =
     `, [catalogId, roleCode, displayName, email ?? null, orgName ?? null]);
 }
 
-async function create(data, performedBy) {
-    const createServiceStatus = Object.prototype.hasOwnProperty.call(data, 'service_status')
-        ? (data.service_status === '' ? null : data.service_status)
-        : (data.service_status_code ?? 'active');
+async function create(input, performedBy) {
+    const { fields: data, portfolioCode, sla } = canonicalizeServiceInput(input);
+    // A new service without any lifecycle/status input starts as active (previous default).
+    const createStage = Object.prototype.hasOwnProperty.call(data, 'lifecycle_stage_code')
+        ? data.lifecycle_stage_code
+        : 'active';
     const createIsStub = data.is_stub != null ? !!data.is_stub : false;
+    const pool = getPool();
+    const portfolioId = data.portfolio_id ?? await resolvePortfolioId(pool, portfolioCode);
 
-    await getPool().query(`
+    const inserted = await pool.query(`
         INSERT INTO data.service_catalog (
-            service_id, title, portfolio_group_code,
-            service_type_code, service_status_code, catalogue_version,
+            service_id, title, portfolio_id,
+            service_type_code, lifecycle_stage_code, catalogue_version,
             global_service_group_code, service_line_code, organizational_element_code,
             short_description, description,
             value_proposition, service_features, business_summary,
             business_purpose, scope_text,
             operational_notes_raw, support_locations_raw, request_process_raw,
             support_availability_raw, service_cost_raw, additional_information_raw,
-            target_audience_summary, requestable, lifecycle_state, request_channel_type,
+            target_audience_summary, requestable, criticality_code, request_channel_type,
             request_channel_url, approval_required, fulfillment_lead_time_text,
             service_features_raw, ext_tools_raw, legacy_ssl_mapping_raw,
-            budget_activity_code, other_info_raw, pricing_note_raw, review_owner_user_id, next_review_due_at,
+            budget_activity_code, other_info_raw, pricing_note_raw, review_owner_user_id, review_due_at,
             unit_of_measure, charging_basis, rate_note, ordering_note,
             exclusions, service_area_raw, security_classification_code,
             cp_service_type_raw, is_available_status_ambiguous, is_stub,
             customer_type_json, service_url,
-            sla_availability, sla_restoration_hours, sla_delivery_days,
-            sla_restoration_text, sla_delivery_text,
             graph_x, graph_y,
             options_json, notes_json, training_refs_json, retired_note,
             source_local_id, source_sp_id, source_etag,
@@ -873,14 +882,15 @@ async function create(data, performedBy) {
             $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,
             $42, $43, $44, $45, $46, $47, $48, $49, $50, $51,
             $52, $53, $54, $55, $56, $57, $58, $59, $60, $61,
-            $62, $63, $64, $65, $66, $67, $68, $69, $70
+            $62, $63, $64, $65
         )
+        RETURNING id
     `, [
         data.service_id,
         data.title,
-        data.portfolio_group_code || data.portfolio_group || null,
+        portfolioId,
         data.service_type || data.service_type_code,
-        createServiceStatus,
+        createStage,
         data.catalogue_version || null,
         data.global_service_group_code || null,
         data.service_line_code || null,
@@ -900,7 +910,7 @@ async function create(data, performedBy) {
         data.additional_information_raw || null,
         data.target_audience_summary || null,
         data.requestable == null ? null : !!data.requestable,
-        data.lifecycle_state || null,
+        data.criticality_code || null,
         data.request_channel_type || null,
         data.request_channel_url || null,
         data.approval_required == null ? null : !!data.approval_required,
@@ -912,7 +922,7 @@ async function create(data, performedBy) {
         data.other_info_raw || null,
         data.pricing_note_raw || null,
         data.review_owner_user_id == null ? null : parseInteger(data.review_owner_user_id),
-        sanitizeDate(data.next_review_due_at),
+        sanitizeDate(data.review_due_at),
         data.unit_of_measure || null,
         data.charging_basis || null,
         data.rate_note || null,
@@ -925,11 +935,6 @@ async function create(data, performedBy) {
         createIsStub,
         serializeJson(data.customer_type),
         data.service_url || data.source_url || null,
-        parseDecimal(data.sla_availability),
-        parseInteger(data.sla_restoration ?? data.sla_restoration_hours),
-        parseInteger(data.sla_delivery ?? data.sla_delivery_days),
-        rawTextIfNonNumeric(data.sla_restoration ?? data.sla_restoration_hours),
-        rawTextIfNonNumeric(data.sla_delivery ?? data.sla_delivery_days),
         data.graph_x ?? null,
         data.graph_y ?? null,
         serializeJson(data.options),
@@ -948,10 +953,12 @@ async function create(data, performedBy) {
         performedBy,
     ]);
 
+    await upsertPrimarySla(pool, inserted.rows[0].id, sla);
     return data.service_id;
 }
 
-async function update(serviceId, data, performedBy) {
+async function update(serviceId, input, performedBy) {
+    const { fields: data, portfolioCode, sla } = canonicalizeServiceInput(input);
     const skipFields = new Set([
         'id', 'service_id', 'created_at', 'created_by', 'is_deleted',
         'completeness_score', 'prerequisites', 'dependencies',
@@ -962,15 +969,11 @@ async function update(serviceId, data, performedBy) {
 
     const colMap = {
         service_type: 'service_type_code',
-        service_status: 'service_status_code',
         security_classification: 'security_classification_code',
         customer_type: 'customer_type_json',
         options: 'options_json',
         notes: 'notes_json',
         training_refs: 'training_refs_json',
-        sla_restoration: 'sla_restoration_hours',
-        sla_delivery: 'sla_delivery_days',
-        portfolio_group: 'portfolio_group_code',
         source_url: 'service_url',
         summary: 'short_description',
         detailed_description: 'description',
@@ -978,12 +981,12 @@ async function update(serviceId, data, performedBy) {
     };
 
     const allowedFields = new Set([
-        'title', 'portfolio_group', 'portfolio_group_code', 'service_type', 'service_status',
+        'title', 'service_type',
         'catalogue_version', 'value_proposition', 'service_features', 'business_summary', 'summary',
         'short_description', 'detailed_description', 'description', 'unit_of_measure',
         'charging_basis', 'rate_note', 'ordering_note', 'exclusions', 'service_area',
         'service_area_raw', 'security_classification', 'customer_type', 'source_url',
-        'service_url', 'sla_availability', 'sla_restoration', 'sla_delivery', 'graph_x',
+        'service_url', 'graph_x',
         'graph_y', 'options', 'notes', 'training_refs', 'retired_note', 'cp_service_type_raw',
         'is_available_status_ambiguous', 'source_local_id', 'source_sp_id', 'source_etag',
         'prerequisites_json', 'dependencies_json', 'business_purpose', 'scope_text',
@@ -992,17 +995,17 @@ async function update(serviceId, data, performedBy) {
         'service_features_raw', 'ext_tools_raw', 'legacy_ssl_mapping_raw',
         'budget_activity_code', 'other_info_raw', 'pricing_note_raw',
         'global_service_group_code', 'service_line_code', 'organizational_element_code',
-        'sla_restoration_text', 'sla_delivery_text', 'created_at_source', 'modified_at_source',
-        'target_audience_summary', 'requestable', 'lifecycle_state', 'lifecycle_stage_code',
+        'created_at_source', 'modified_at_source',
+        'target_audience_summary', 'requestable', 'lifecycle_stage_code',
         'criticality_code', 'review_due_at', 'portfolio_id', 'request_channel_type',
         'request_channel_url', 'approval_required', 'fulfillment_lead_time_text',
-        'review_owner_user_id', 'next_review_due_at', 'consumer_value',
+        'review_owner_user_id', 'consumer_value',
     ]);
 
     const jsonFields = new Set(['customer_type', 'options', 'notes', 'training_refs', 'prerequisites_json', 'dependencies_json']);
-    const integerFields = new Set(['sla_restoration', 'sla_delivery', 'source_sp_id', 'review_owner_user_id', 'portfolio_id']);
-    const decimalFields = new Set(['sla_availability']);
-    const dateFields = new Set(['created_at_source', 'modified_at_source', 'next_review_due_at', 'review_due_at']);
+    const integerFields = new Set(['source_sp_id', 'review_owner_user_id', 'portfolio_id']);
+    const decimalFields = new Set();
+    const dateFields = new Set(['created_at_source', 'modified_at_source', 'review_due_at']);
     const booleanFields = new Set(['is_available_status_ambiguous', 'requestable', 'approval_required']);
 
     const values = [performedBy];
@@ -1029,25 +1032,24 @@ async function update(serviceId, data, performedBy) {
         setClauses.push(`${colMap[key] || key} = $${values.length}`);
     }
 
-    if (('sla_restoration' in data || 'sla_restoration_hours' in data) && !('sla_restoration_text' in data)) {
-        values.push(rawTextIfNonNumeric(data.sla_restoration ?? data.sla_restoration_hours));
-        setClauses.push(`sla_restoration_text = $${values.length}`);
-    }
-    if (('sla_delivery' in data || 'sla_delivery_days' in data) && !('sla_delivery_text' in data)) {
-        values.push(rawTextIfNonNumeric(data.sla_delivery ?? data.sla_delivery_days));
-        setClauses.push(`sla_delivery_text = $${values.length}`);
+    if (portfolioCode !== undefined && !Object.prototype.hasOwnProperty.call(data, 'portfolio_id')) {
+        values.push(portfolioCode);
+        setClauses.push(`portfolio_id = (SELECT sp.id FROM data.service_portfolio sp WHERE sp.portfolio_code = $${values.length})`);
     }
 
-    if (setClauses.length === 2) return null;
+    if (setClauses.length === 2 && !sla) return null;
 
+    const pool = getPool();
     values.push(serviceId);
-    await getPool().query(`
+    const updated = await pool.query(`
         UPDATE data.service_catalog
         SET ${setClauses.join(', ')}
         WHERE service_id = $${values.length}
           AND is_deleted = FALSE
+        RETURNING id
     `, values);
 
+    if (updated.rows[0]) await upsertPrimarySla(pool, updated.rows[0].id, sla);
     return findByServiceId(serviceId);
 }
 

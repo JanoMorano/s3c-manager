@@ -212,8 +212,8 @@ export default function MyTasksPage() {
           {myOwnedServices.length === 0 ? <EmptyState title="Žádné vlastněné služby." /> : (
             <div className={govStyles.governanceList}>
               {myOwnedServices.map((service) => {
-                const over = isOverdue(service.next_review_due_at);
-                const soon = !over && isDueSoon(service.next_review_due_at);
+                const over = isOverdue(service.review_due_at);
+                const soon = !over && isDueSoon(service.review_due_at);
                 return (
                   <Link key={service.service_id} href={`/services/${service.service_id}`} className={govStyles.governanceRow}>
                     <span aria-hidden="true">•</span>
@@ -222,7 +222,7 @@ export default function MyTasksPage() {
                       <span>{service.service_id} · {service.lifecycle_stage_code ?? service.service_status ?? 'no lifecycle'}</span>
                     </span>
                     <span className={`${govStyles.rowMetric} ${over ? taskStyles.dueOverdue : soon ? taskStyles.dueSoon : ''}`}>
-                      {over ? '⚠ ' : ''}{formatDate(service.next_review_due_at)}
+                      {over ? '⚠ ' : ''}{formatDate(service.review_due_at)}
                     </span>
                   </Link>
                 );

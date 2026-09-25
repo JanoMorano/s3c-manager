@@ -93,7 +93,7 @@ router.get('/', requireAuth, async (req, res, next) => {
                     scm.id,
                     sc.service_id,
                     sc.title,
-                    sc.service_status_code AS service_status,
+                    data.fn_service_status_code(sc.lifecycle_stage_code, sc.is_stub) AS service_status,
                     scm.mapping_type_code,
                     scm.is_primary
                 FROM data.service_c3_mapping scm
