@@ -17,6 +17,8 @@ On start (`APP_RUN_DB_INIT=true`) `init/init-db-postgres.sh` applies the files i
 - a changed file is applied again (schema files are written to be idempotent);
 - a failing file stops the start-up and is not recorded, so it is retried on the next start.
 
+A fresh, empty database is created from `backend/db/postgres/baseline/baseline.sql` (a generated dump of the chain) and only the files newer than the baseline are applied; `SCHEMA_USE_BASELINE=false` replays the whole chain instead. Existing databases never use the baseline.
+
 The first start after upgrading to this runner applies every file once (the previous behaviour on every start) and records them. Set `SCHEMA_REAPPLY_ALL=true` to force re-applying all files. Before the runner, data migrations such as `30_reduction_domain_model_simplification.sql` ran on every start and reset the readiness rule configuration; they now run once.
 
 New schema changes go into a new file with the next two-digit prefix; do not edit an applied data migration unless re-running it is intended.

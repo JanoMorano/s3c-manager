@@ -49,7 +49,9 @@ run_psql() {
 }
 
 SCHEMA_DIR="${SCHEMA_DIR:-/pgdb/schema}"
+SCHEMA_BASELINE_DIR="${SCHEMA_BASELINE_DIR:-/pgdb/baseline}"
 SCHEMA_REAPPLY_ALL="${SCHEMA_REAPPLY_ALL:-false}"
+SCHEMA_USE_BASELINE="${SCHEMA_USE_BASELINE:-true}"
 
 psql_query() {
   # shellcheck disable=SC2086
@@ -64,7 +66,33 @@ psql_query() {
 # re-running every file on every start, which also reset data migrations
 # such as the readiness rule configuration.
 # SCHEMA_REAPPLY_ALL=true re-applies every file (previous behaviour).
-apply_schema_files() {
+#
+# On an empty database the baseline ($SCHEMA_BASELINE_DIR/baseline.sql, built
+# by scripts/build-schema-baseline.sh) is restored first and the schema files
+# listed in its manifest are recorded as applied, so a fresh install does not
+# replay the whole chain. SCHEMA_USE_BASELINE=false replays the chain instead.
+apply_schema_baseline() {
+  if [ "$SCHEMA_USE_BASELINE" != "true" ] || [ ! -f "$SCHEMA_BASELINE_DIR/baseline.sql" ] || [ ! -f "$SCHEMA_BASELINE_DIR/manifest.txt" ]; then
+    return 0
+  fi
+  fresh="$(psql_query -c "SELECT NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname IN ('platform', 'data'))")"
+  if [ "$fresh" != "t" ]; then
+    return 0
+  fi
+
+  echo "▶ schema baseline ($(wc -l < "$SCHEMA_BASELINE_DIR/manifest.txt") files)"
+  # shellcheck disable=SC2086
+  psql $(build_psql_args) -v ON_ERROR_STOP=1 --single-transaction -q -f "$SCHEMA_BASELINE_DIR/baseline.sql" >/dev/null
+  ensure_schema_ledger
+  while read -r checksum name; do
+    [ -n "$name" ] || continue
+    psql_query -c "INSERT INTO platform.schema_file_ledger (file_name, checksum)
+      VALUES ('${name}', '${checksum}') ON CONFLICT (file_name) DO NOTHING;" >/dev/null
+  done < "$SCHEMA_BASELINE_DIR/manifest.txt"
+  echo "✅ schema baseline restored"
+}
+
+ensure_schema_ledger() {
   psql_query -c "CREATE SCHEMA IF NOT EXISTS platform;
     CREATE TABLE IF NOT EXISTS platform.schema_file_ledger (
       file_name   VARCHAR(200) PRIMARY KEY,
@@ -72,6 +100,11 @@ apply_schema_files() {
       applied_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
       apply_count INTEGER      NOT NULL DEFAULT 1
     );" >/dev/null
+}
+
+apply_schema_files() {
+  apply_schema_baseline
+  ensure_schema_ledger
 
   applied=0
   skipped=0

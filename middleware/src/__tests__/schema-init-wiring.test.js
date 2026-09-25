@@ -55,3 +55,38 @@ describe('PostgreSQL schema runner', () => {
         expect(later).not.toMatch(/CREATE TABLE IF NOT EXISTS (notification|user_notification|user_preferences|service_request)\b/);
     });
 });
+
+describe('PostgreSQL schema baseline', () => {
+    const crypto = require('node:crypto');
+    const baselineDir = path.join(repoRoot, 'backend/db/postgres/baseline');
+    const manifest = fs.readFileSync(path.join(baselineDir, 'manifest.txt'), 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => {
+            const [checksum, name] = line.split(' ');
+            return { checksum, name };
+        });
+
+    test('covers a prefix of the schema chain', () => {
+        const slices = schemaSlices();
+        expect(manifest.length).toBeGreaterThan(0);
+        expect(manifest.map((entry) => entry.name)).toEqual(slices.slice(0, manifest.length));
+    });
+
+    test('was built from the current content of every covered schema file', () => {
+        // A covered file edited after the baseline would be re-applied on fresh installs,
+        // but the baseline should be rebuilt: ./scripts/build-schema-baseline.sh
+        manifest.forEach(({ checksum, name }) => {
+            const actual = crypto.createHash('sha256').update(fs.readFileSync(path.join(schemaDir, name))).digest('hex');
+            expect({ name, checksum: actual }).toEqual({ name, checksum });
+        });
+    });
+
+    test('is restored only into an empty database and marks covered files as applied', () => {
+        const initScript = readRepoFile('init/init-db-postgres.sh');
+        expect(fs.existsSync(path.join(baselineDir, 'baseline.sql'))).toBe(true);
+        expect(initScript).toContain("SELECT NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname IN ('platform', 'data'))");
+        expect(initScript).toContain('SCHEMA_USE_BASELINE="${SCHEMA_USE_BASELINE:-true}"');
+        expect(initScript).toMatch(/done < "\$SCHEMA_BASELINE_DIR\/manifest\.txt"/);
+    });
+});
