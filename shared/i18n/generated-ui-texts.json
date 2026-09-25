@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25T19:23:46.771Z",
+  "generated_at": "2026-09-25T19:47:49.495Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -862,15 +862,6 @@
       ]
     },
     {
-      "key": "ui.generated.add_path.kc07to",
-      "source": "Add path",
-      "cs": "Přidat cestu",
-      "en": "Add path",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.admin_queue.4nmluo",
       "source": "Admin queue",
       "cs": "Fronta administrátora",
@@ -897,15 +888,6 @@
       "files": [
         "frontend/app/administration/import/page.tsx",
         "frontend/app/components/MainNav.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.admins_should_add_a_request_channel_before_manag.k297a3",
-      "source": "Admins should add a request channel before managers promote this service.",
-      "cs": "Administrátoři mají doplnit kanál požadavku dříve, než manažeři službu povýší.",
-      "en": "Admins should add a request channel before managers promote this service.",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -2108,15 +2090,6 @@
       ]
     },
     {
-      "key": "ui.generated.c3_mapping_missing.dquw5g",
-      "source": "C3 mapping missing",
-      "cs": "C3 mapování chybí",
-      "en": "C3 mapping missing",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.c3_mappings.g861xx",
       "source": "C3 Mappings",
       "cs": "C3 Mapování",
@@ -2141,15 +2114,6 @@
       "en": "C3 Parent",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.c3_relationship_is_visible.3oxsic",
-      "source": "C3 relationship is visible",
-      "cs": "Vazba C3 je viditelná",
-      "en": "C3 relationship is visible",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -3062,15 +3026,6 @@
       "en": "Confirm action",
       "files": [
         "frontend/app/components/layout-v2/ReviewActionModal.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.connect_this_service_to_a_capability_so_the_c3_b.i8szgj",
-      "source": "Connect this service to a capability so the C3 board can explain impact.",
-      "cs": "Propojte tuto službu se schopností, aby C3 tabule uměla vysvětlit dopad.",
-      "en": "Connect this service to a capability so the C3 board can explain impact.",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -4059,15 +4014,6 @@
       ]
     },
     {
-      "key": "ui.generated.draft.13gvb5",
-      "source": "Draft",
-      "cs": "Koncept",
-      "en": "Draft",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.draft_navrh_neviditelny_v_katalogu.5r92l7",
       "source": "Draft — návrh, neviditelný v katalogu",
       "cs": "Koncept — návrh, neviditelný v katalogu",
@@ -4770,30 +4716,12 @@
       ]
     },
     {
-      "key": "ui.generated.fix_record.lfkrvo",
-      "source": "Fix record",
-      "cs": "Opravit záznam",
-      "en": "Fix record",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.fix_rule.6gagu1",
       "source": "Fix rule",
       "cs": "Opravit pravidlo",
       "en": "Fix rule",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.fix_support.2old24",
-      "source": "Fix support",
-      "cs": "Opravit podpora",
-      "en": "Fix support",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -4942,24 +4870,6 @@
       "files": [
         "frontend/app/management/new-service/page.tsx",
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.governance.u4fzlq",
-      "source": "Governance",
-      "cs": "Správa",
-      "en": "Governance",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.governance_action.f0yfbo",
-      "source": "Governance action",
-      "cs": "Správní akce",
-      "en": "Governance action",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -5202,15 +5112,6 @@
       ]
     },
     {
-      "key": "ui.generated.how_to_get_it.kfzbli",
-      "source": "How to get it",
-      "cs": "Jak to získat to",
-      "en": "How to get it",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.how_to_get_service.vjvbe",
       "source": "How to get service",
       "cs": "Jak to získat služba",
@@ -5411,15 +5312,6 @@
       ]
     },
     {
-      "key": "ui.generated.incoming_relation.537ueu",
-      "source": "incoming relation",
-      "cs": "incoming vazba",
-      "en": "incoming relation",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.info.1cy4u",
       "source": "Info",
       "cs": "Info",
@@ -5517,15 +5409,6 @@
       "en": "Invalid group identifier",
       "files": [
         "frontend/app/administration/groups/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.is_it_ready.7kggjp",
-      "source": "Is it ready?",
-      "cs": "Je připravená?",
-      "en": "Is it ready?",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -6017,7 +5900,6 @@
       "files": [
         "frontend/app/components/layout-v2/DecisionRecordModal.tsx",
         "frontend/app/management/new-service/page.tsx",
-        "frontend/app/services/[id]/page.tsx",
         "frontend/app/services/list/page.tsx",
         "frontend/features/services/components/ServiceListRow.tsx"
       ]
@@ -6333,15 +6215,6 @@
       ]
     },
     {
-      "key": "ui.generated.managers_can_see_how_this_service_supports_capab.j2012k",
-      "source": "Managers can see how this service supports capability coverage.",
-      "cs": "Manažeři vidí, jak tato služba podporuje pokrytí schopností.",
-      "en": "Managers can see how this service supports capability coverage.",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.managers_can_treat_this_spiral_as_covered_by_cur.8e40a4",
       "source": "Managers can treat this spiral as covered by current mappings.",
       "cs": "Manažeři mohou tuto spirálu považovat za pokrytou aktuálním mapováním.",
@@ -6369,15 +6242,6 @@
       ]
     },
     {
-      "key": "ui.generated.mandatory_dependency.74nysy",
-      "source": "mandatory dependency",
-      "cs": "povinné závislost",
-      "en": "mandatory dependency",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.mandatory.qepftr",
       "source": "Mandatory:",
       "cs": "Povinné:",
@@ -6393,15 +6257,6 @@
       "en": "Manifest",
       "files": [
         "frontend/app/administration/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.map_c3.x1aw5o",
-      "source": "Map C3",
-      "cs": "Mapa C3",
-      "en": "Map C3",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -7649,8 +7504,7 @@
       "en": "No",
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
-        "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
-        "frontend/app/services/[id]/page.tsx"
+        "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
       ]
     },
     {
@@ -7989,15 +7843,6 @@
       "en": "No rationale recorded",
       "files": [
         "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_readiness_blockers_were_detected_in_the_curre.8fp39i",
-      "source": "No readiness blockers were detected in the current Service 360 data.",
-      "cs": "V aktuálních datech Service 360 nebyly zjištěny žádné blokery připravenosti.",
-      "en": "No readiness blockers were detected in the current Service 360 data.",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -8364,30 +8209,12 @@
       ]
     },
     {
-      "key": "ui.generated.open.1gtii",
-      "source": "Open",
-      "cs": "Otevřít",
-      "en": "Open",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.open_all_grouped_results_for.5r9zh2",
       "source": "Open all grouped results for \"",
       "cs": "Otevřít všechny seskupené výsledky pro „",
       "en": "Open all grouped results for “",
       "files": [
         "frontend/app/search/SearchPageClient.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.open_channel.h2trjn",
-      "source": "Open channel",
-      "cs": "Otevřít kanál",
-      "en": "Open channel",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -8825,15 +8652,6 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_readiness.2ekjsc",
-      "source": "Otevřít readiness",
-      "cs": "Otevřít připravenost",
-      "en": "Open readiness",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_review_queue.6nfukf",
       "source": "otevřít review queue",
       "cs": "otevřít revize fronta",
@@ -8957,15 +8775,6 @@
       "en": "Outgoing",
       "files": [
         "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.outgoing_relation.6xymkw",
-      "source": "outgoing relation",
-      "cs": "outgoing vazba",
-      "en": "outgoing relation",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -9094,8 +8903,7 @@
       "cs": "Přehled",
       "en": "Overview",
       "files": [
-        "frontend/app/capabilities/page.tsx",
-        "frontend/app/services/[id]/page.tsx"
+        "frontend/app/capabilities/page.tsx"
       ]
     },
     {
@@ -9143,8 +8951,7 @@
       "en": "Owner load",
       "files": [
         "frontend/app/operations/page.tsx",
-        "frontend/app/page.tsx",
-        "frontend/app/services/[id]/page.tsx"
+        "frontend/app/page.tsx"
       ]
     },
     {
@@ -10217,15 +10024,6 @@
       ]
     },
     {
-      "key": "ui.generated.publish_blockers.lrau2y",
-      "source": "Publish blockers",
-      "cs": "Publikovat blokery",
-      "en": "Publish blockers",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.quick_filters.jvug88",
       "source": "Quick filters",
       "cs": "Quick filtry",
@@ -10341,15 +10139,6 @@
       "en": "Re-parse all unparsed records (max 200)",
       "files": [
         "frontend/app/administration/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.read_full.drbd89",
-      "source": "Read full",
-      "cs": "Číst full",
-      "en": "Read full",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -10502,15 +10291,6 @@
       ]
     },
     {
-      "key": "ui.generated.readiness_reviews_decisions.6zfe3e",
-      "source": "Readiness, reviews, decisions",
-      "cs": "Připravenost, revize, rozhodnutí",
-      "en": "Readiness, reviews, decisions",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.readiness.z0ire8",
       "source": "Readiness:",
       "cs": "Připravenost:",
@@ -10592,15 +10372,6 @@
       "en": "Recent searches",
       "files": [
         "frontend/app/search/SearchPageClient.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.record_can_be_understood.tit57b",
-      "source": "Record can be understood",
-      "cs": "Záznam je srozumitelný",
-      "en": "Record can be understood",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -10907,15 +10678,6 @@
       ]
     },
     {
-      "key": "ui.generated.relationships.l10lcr",
-      "source": "Relationships",
-      "cs": "Vazby",
-      "en": "Relationships",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.remove.ulvuxo",
       "source": "Remove",
       "cs": "Remove",
@@ -10943,15 +10705,6 @@
       ]
     },
     {
-      "key": "ui.generated.request_channel_and_offerings.c2okba",
-      "source": "Request channel and offerings",
-      "cs": "Kanál požadavku a nabídky",
-      "en": "Request channel and offerings",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.request_failed.ij4gem",
       "source": "Request failed",
       "cs": "Požadavek selhalo",
@@ -10967,24 +10720,6 @@
       "en": "Request Model — fill in how this service can be requested",
       "files": [
         "frontend/app/management/new-service/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.request_path_is_configured.7rgr5i",
-      "source": "Request path is configured",
-      "cs": "Cesta požadavku je nastavená",
-      "en": "Request path is configured",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.request_path_missing.umzqf0",
-      "source": "Request path missing",
-      "cs": "Požadavek cesta chybí",
-      "en": "Request path missing",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -11014,15 +10749,6 @@
         "frontend/app/catalogue/page.tsx",
         "frontend/features/services/components/ServiceCard.tsx",
         "frontend/features/services/components/ServiceListRow.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.requestable_services_need_a_named_support_owner_.563z12",
-      "source": "Requestable services need a named support owner and escalation path.",
-      "cs": "Objednatelné služby potřebují jmenovaného vlastníka podpory a eskalační cestu.",
-      "en": "Requestable services need a named support owner and escalation path.",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -11149,8 +10875,7 @@
       "cs": "Revize",
       "en": "Review",
       "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/services/[id]/page.tsx"
+        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -13148,51 +12873,6 @@
       ]
     },
     {
-      "key": "ui.generated.support.356ssx",
-      "source": "Support",
-      "cs": "Podpora",
-      "en": "Support",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.support_sla.s71kpm",
-      "source": "Support / SLA",
-      "cs": "Podpora / SLA",
-      "en": "Support / SLA",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.support_model_missing.yiy79e",
-      "source": "Support model missing",
-      "cs": "Podpora model chybí",
-      "en": "Support model missing",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.support_owner_hours_escalation.ftyeea",
-      "source": "Support owner, hours, escalation",
-      "cs": "Podpora vlastník, hours, eskalace",
-      "en": "Support owner, hours, escalation",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.support_ownership_exists.e0q66",
-      "source": "Support ownership exists",
-      "cs": "Podpora vlastnictví existuje",
-      "en": "Support ownership exists",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.support_window.u3fjvl",
       "source": "support window",
       "cs": "podpora okno",
@@ -14144,15 +13824,6 @@
       ]
     },
     {
-      "key": "ui.generated.users_have_an_external_channel_for_the_service.fah8de",
-      "source": "Users have an external channel for the service.",
-      "cs": "Uživatelé mají pro službu externí kanál.",
-      "en": "Users have an external channel for the service.",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.usetheme_must_be_used_within_themeprovider.j35ves",
       "source": "useTheme must be used within ThemeProvider",
       "cs": "useTheme musí být použito uvnitř ThemeProvider",
@@ -14246,15 +13917,6 @@
         "frontend/app/admin/c3-entities/C3EntityListPage.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.value_scope_owner.5qzvgw",
-      "source": "Value, scope, owner",
-      "cs": "Hodnota, rozsah, vlastník",
-      "en": "Value, scope, owner",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -14373,24 +14035,6 @@
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.view_relationships.g4gfmo",
-      "source": "View relationships",
-      "cs": "Zobrazení vazby",
-      "en": "View relationships",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.view_support.yzz43w",
-      "source": "View support",
-      "cs": "Zobrazení podpora",
-      "en": "View support",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -14740,15 +14384,6 @@
       ]
     },
     {
-      "key": "ui.generated.warnings_before_publish.v8nm4p",
-      "source": "Warnings before publish",
-      "cs": "Varování před publikací",
-      "en": "Warnings before publish",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.weak.1lp5k",
       "source": "Weak",
       "cs": "Slabá",
@@ -14767,30 +14402,12 @@
       ]
     },
     {
-      "key": "ui.generated.what_depends_on_it.8mi71k",
-      "source": "What depends on it?",
-      "cs": "Co na tom závisí?",
-      "en": "What depends on it?",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.what_is_missing.e3wbf8",
       "source": "What is missing",
       "cs": "Co chybí",
       "en": "What is missing",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.what_is_this.uu84vb",
-      "source": "What is this?",
-      "cs": "Co to je?",
-      "en": "What is this?",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -14812,15 +14429,6 @@
       ]
     },
     {
-      "key": "ui.generated.what_this_service_needs_and_affects.t5q30h",
-      "source": "What this service needs and affects",
-      "cs": "Co tato služba potřebuje a ovlivňuje",
-      "en": "What this service needs and affects",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.what.1dql06",
       "source": "What:",
       "cs": "Co:",
@@ -14828,15 +14436,6 @@
       "files": [
         "frontend/app/components/layout-v2/DecisionRecordModal.tsx",
         "frontend/app/components/layout-v2/ReviewActionModal.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.who_owns_it.3rhnwd",
-      "source": "Who owns it?",
-      "cs": "Kdo vlastní to?",
-      "en": "Who owns it?",
-      "files": [
-        "frontend/app/services/[id]/page.tsx"
       ]
     },
     {
@@ -14928,8 +14527,7 @@
       "en": "Yes",
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
-        "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
-        "frontend/app/services/[id]/page.tsx"
+        "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
       ]
     },
     {

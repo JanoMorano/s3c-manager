@@ -105,8 +105,8 @@ export default function ServiceDetailPage({ params }: Props) {
   const lifecycleState = overview?.lifecycle.stage_code ?? svc.lifecycle_stage_code ?? businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status ?? null;
   const normalizedLifecycleStage = normalizeLifecycleState(lifecycleState);
   const overviewFacts = [
-    { label: t('service_detail.text.requestable'), value: formatBool(businessView?.requestable ?? svc.requestable) },
-    { label: t('service_detail.text.lifecycle'), value: formatLifecycleState(normalizedLifecycleStage) },
+    { label: t('service_detail.text.requestable'), value: formatBool(t, businessView?.requestable ?? svc.requestable) },
+    { label: t('service_detail.text.lifecycle'), value: formatLifecycleState(t, normalizedLifecycleStage) },
     { label: t('service_detail.text.primary_offering'), value: primaryOffering?.title ?? primaryOffering?.offering_code ?? t('service_detail.text.not_defined_yet') },
     { label: t('service_detail.text.support'), value: supportModels[0]?.support_owner_name ?? svc.vlastnik ?? '—' },
     { label: t('service_detail.text.audience'), value: businessView?.target_audience_summary ?? svc.target_audience_summary ?? audiencePolicies[0]?.audience_type ?? '—' },
@@ -161,9 +161,9 @@ export default function ServiceDetailPage({ params }: Props) {
             className={`${styles.viewTab} ${view.technical ? styles.viewTabTechnical : ''} ${activeView === view.id ? styles.viewTabActive : ''}`}
             onClick={() => setActiveView(view.id)}
           >
-            <span className={styles.viewTabLabel}>{view.label}</span>
+            <span className={styles.viewTabLabel}>{t(`service_detail.view.${view.id}.label`)}</span>
             {view.technical && <span className={styles.techBadge}>{t('service_detail.text.tech')}</span>}
-            <span className={styles.viewTabHint}>{view.hint}</span>
+            <span className={styles.viewTabHint}>{t(`service_detail.view.${view.id}.hint`)}</span>
           </button>
         ))}
       </nav>
@@ -339,7 +339,7 @@ export default function ServiceDetailPage({ params }: Props) {
                 <div className={styles.railItems}>
                   <MetadataItem label={t('service_detail.text.lifecycle')} value={businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status} />
                   <MetadataItem label={t('service_detail.text.request_channel')} value={primaryOffering?.request_channel_type ?? svc.request_channel_type} />
-                  <MetadataItem label={t('service_detail.text.approval')} value={formatBool(primaryOffering?.approval_required ?? businessView?.approval_required ?? svc.approval_required)} />
+                  <MetadataItem label={t('service_detail.text.approval')} value={formatBool(t, primaryOffering?.approval_required ?? businessView?.approval_required ?? svc.approval_required)} />
                   <MetadataItem label={t('service_detail.text.lead_time')} value={primaryOffering?.lead_time_text ?? businessView?.fulfillment_lead_time_text ?? svc.fulfillment_lead_time_text} />
                   <MetadataItem label={t('service_detail.text.support_owner')} value={supportModels[0]?.support_owner_name ?? svc.vlastnik} />
                 </div>
@@ -493,7 +493,7 @@ function RelationshipStudioHero({
   const owner = overview?.owners.primary?.display_name ?? service.service_owner ?? service.vlastnik ?? t('service_detail.text.owner_missing');
   const resolverGroup = supportModels[0]?.resolver_group ?? t('service_detail.text.resolver_group_missing');
   const steward = overview?.owners.steward?.display_name ?? service.manager ?? t('service_detail.text.steward_missing');
-  const reviewCadence = supportModels[0]?.review_cadence ?? (service.review_due_at ? `Review ${formatDate(service.review_due_at)}` : t('service_detail.text.review_cadence_missing'));
+  const reviewCadence = supportModels[0]?.review_cadence ?? (service.review_due_at ? t('service_detail.review_on', { date: formatDate(service.review_due_at) }) : t('service_detail.text.review_cadence_missing'));
   const downstreamCount = overview?.dependencies.outgoing_count ?? service.relation_count ?? 0;
   const upstreamCount = overview?.dependencies.incoming_count ?? 0;
   const criticalChains = overview?.dependencies.mandatory_count ?? service.relations?.filter((item) => item.is_mandatory).length ?? 0;
@@ -518,6 +518,7 @@ function RelationshipStudioHero({
     blockers,
     warnings,
     capabilityCount,
+    t,
   });
   const mapNodes = [
     {
@@ -545,7 +546,7 @@ function RelationshipStudioHero({
           <div className={styles.headerMeta}>
             <span className={styles.serviceId}>{service.service_id}</span>
             {service.service_type && <span className={styles.typeChip}>{service.service_type}</span>}
-            <LifecycleBadge state={lifecycleState ?? service.service_status ?? null} fallback="Draft" />
+            <LifecycleBadge state={lifecycleState ?? service.service_status ?? null} fallback={t('service_detail.lifecycle.draft')} />
           </div>
           <div className={styles.headerActions}>
             <Link href={`/services/${id}/edit`}><Button size="sm">{t('service_detail.text.edit')}</Button></Link>
@@ -557,17 +558,17 @@ function RelationshipStudioHero({
 
         <div className={styles.questionGrid} aria-label={t('service_detail.text.service_360_questions')}>
           <QuestionCard
-            question="What is this?"
+            question={t('service_detail.question.what')}
             rows={[
               [t('service_detail.text.purpose'), businessSummary ?? service.summary ?? t('service_detail.text.purpose_missing')],
               [t('service_detail.text.portfolio'), portfolioTitle],
               [t('service_detail.text.audience'), audience],
             ]}
             href="#overview"
-            linkLabel="Read full"
+            linkLabel={t('service_detail.question.read_full')}
           />
           <QuestionCard
-            question="Who owns it?"
+            question={t('service_detail.question.who')}
             rows={[
               [t('service_detail.text.service_owner'), owner],
               [t('service_detail.text.resolver_group'), resolverGroup],
@@ -575,29 +576,29 @@ function RelationshipStudioHero({
               [t('service_detail.text.review_cadence_2'), reviewCadence],
             ]}
             href="/operations#owner-load"
-            linkLabel="Owner load"
+            linkLabel={t('service_detail.question.owner_load')}
           />
           <QuestionCard
-            question="Is it ready?"
+            question={t('service_detail.question.ready')}
             rows={[
               [t('service_detail.text.readiness'), completeness != null ? `${completeness}%` : t('service_detail.text.unknown')],
               [t('service_detail.text.blockers'), String(blockers.length)],
               [t('service_detail.text.warnings'), String(warnings.length)],
-              [t('service_detail.text.exceptions'), overview?.readiness?.rules?.some((rule) => rule.status === 'exception') ? 'active' : 'none'],
+              [t('service_detail.text.exceptions'), overview?.readiness?.rules?.some((rule) => rule.status === 'exception') ? t('service_detail.exceptions.active') : t('service_detail.exceptions.none')],
             ]}
             href="#readiness"
-            linkLabel="Otevřít readiness"
+            linkLabel={t('service_detail.question.open_readiness')}
           />
           <QuestionCard
-            question="What depends on it?"
+            question={t('service_detail.question.depends')}
             rows={[
-              [t('service_detail.text.downstream'), countLabel(downstreamCount, 'service')],
-              [t('service_detail.text.upstream'), countLabel(upstreamCount, 'service')],
+              [t('service_detail.text.downstream'), countLabel(t, downstreamCount, 'service')],
+              [t('service_detail.text.upstream'), countLabel(t, upstreamCount, 'service')],
               [t('service_detail.text.critical_chains'), String(criticalChains)],
               [t('service_detail.text.top'), topDependencies],
             ]}
             href="#dependencies"
-            linkLabel="View relationships"
+            linkLabel={t('service_detail.question.view_relationships')}
           />
         </div>
 
@@ -613,7 +614,7 @@ function RelationshipStudioHero({
             <a
               href={`mailto:${service.service_owner ?? service.vlastnik}`}
               className={styles.secondaryAction}
-              title={`Contact ${service.service_owner ?? service.vlastnik}`}
+              title={t('service_detail.contact_name', { name: service.service_owner ?? service.vlastnik ?? '' })}
             >
               {t('service_detail.text.contact_owner')}
             </a>
@@ -674,7 +675,7 @@ function RelationshipStudioHero({
         {overviewFacts.map((fact) => (
           <div key={fact.label} className={styles.heroFact}>
             <span className={styles.heroFactLabel}>{fact.label}</span>
-            {fact.label === 'Lifecycle'
+            {fact.label === t('service_detail.text.lifecycle')
               ? <LifecycleBadge state={lifecycleState} fallback={fact.value} />
               : <span className={styles.heroFactValue}>{fact.value}</span>}
           </div>
@@ -705,6 +706,7 @@ function buildStudioTasks({
   blockers,
   warnings,
   capabilityCount,
+  t,
 }: {
   id: string;
   overview: ServiceOverview | null;
@@ -715,82 +717,83 @@ function buildStudioTasks({
   blockers: string[];
   warnings: string[];
   capabilityCount: number;
+  t: Translate;
 }): StudioTask[] {
   const tasks: StudioTask[] = [];
   if (blockers.length) {
     tasks.push({
       tone: 'danger',
-      title: 'Publish blockers',
-      detail: `${blockers.length} readiness blocker${blockers.length === 1 ? '' : 's'} need attention before publish.`,
+      title: t('service_detail.task.publish_blockers'),
+      detail: t('service_detail.task.publish_blockers_detail', { count: blockers.length }),
       href: `/services/${id}/edit#readiness-governance`,
-      label: 'Fix record',
+      label: t('service_detail.task.fix_record'),
     });
   } else if (warnings.length) {
     tasks.push({
       tone: 'warning',
-      title: 'Warnings before publish',
+      title: t('service_detail.task.warnings'),
       detail: warnings[0],
       href: `/services/${id}/edit#readiness-governance`,
-      label: 'Review',
+      label: t('service_detail.task.review'),
     });
   } else {
     tasks.push({
       tone: 'success',
-      title: 'Record can be understood',
-      detail: 'No readiness blockers were detected in the current Service 360 data.',
+      title: t('service_detail.task.record_ok'),
+      detail: t('service_detail.task.record_ok_detail'),
     });
   }
 
   tasks.push(requestHref ? {
     tone: 'success',
-    title: 'Request path is configured',
-    detail: primaryOffering?.title ? `${primaryOffering.title} points to the external customer path.` : 'Users have an external channel for the service.',
+    title: t('service_detail.task.request_ok'),
+    detail: primaryOffering?.title ? t('service_detail.task.request_ok_offering', { offering: primaryOffering.title }) : t('service_detail.task.request_ok_detail'),
     href: requestHref,
-    label: 'Open channel',
+    label: t('service_detail.task.open_channel'),
   } : {
     tone: 'warning',
-    title: 'Request path missing',
-    detail: 'Admins should add a request channel before managers promote this service.',
+    title: t('service_detail.task.request_missing'),
+    detail: t('service_detail.task.request_missing_detail'),
     href: `/services/${id}/edit#request-access`,
-    label: 'Add path',
+    label: t('service_detail.task.add_path'),
   });
 
   tasks.push(supportModels.length ? {
     tone: 'success',
-    title: 'Support ownership exists',
-    detail: `${supportModels[0]?.support_owner_name ?? service.vlastnik ?? 'Support'} is visible for escalation.`,
+    title: t('service_detail.task.support_ok'),
+    detail: t('service_detail.task.support_ok_detail', { owner: supportModels[0]?.support_owner_name ?? service.vlastnik ?? t('service_detail.task.support') }),
     href: '#support',
-    label: 'View support',
+    label: t('service_detail.task.view_support'),
   } : {
     tone: 'warning',
-    title: 'Support model missing',
-    detail: 'Requestable services need a named support owner and escalation path.',
+    title: t('service_detail.task.support_missing'),
+    detail: t('service_detail.task.support_missing_detail'),
     href: `/services/${id}/edit#support-model`,
-    label: 'Fix support',
+    label: t('service_detail.task.fix_support'),
   });
 
   const missingAction = overview?.missing_actions[0];
   if (missingAction) {
     tasks.push({
       tone: missingAction.severity === 'blocker' ? 'danger' : missingAction.severity === 'warning' ? 'warning' : 'info',
-      title: 'Governance action',
+      title: t('service_detail.task.governance'),
       detail: missingAction.description,
       href: missingAction.href || `/services/${id}/edit#readiness-governance`,
-      label: 'Open',
+      label: t('service_detail.task.open'),
     });
   } else {
     tasks.push(capabilityCount ? {
       tone: 'success',
-      title: 'C3 relationship is visible',
-      detail: 'Managers can see how this service supports capability coverage.',
+      title: t('service_detail.task.c3_ok'),
+      detail: t('service_detail.task.c3_ok_detail'),
       href: '#dependencies',
-      label: 'View relationships',
+      label: t('service_detail.task.view_relationships'),
     } : {
       tone: 'warning',
-      title: 'C3 mapping missing',
-      detail: 'Connect this service to a capability so the C3 board can explain impact.',
+      title: t('service_detail.task.c3_missing'),
+      detail: t('service_detail.task.c3_missing_detail'),
       href: `/services/${id}/edit#c3mapping`,
-      label: 'Map C3',
+      label: t('service_detail.task.map_c3'),
     });
   }
 
@@ -881,8 +884,8 @@ function normalizeLifecycleState(state: string | null): LifecycleStepCode {
   return CANONICAL_LIFECYCLE_STATES.includes(state as LifecycleStepCode) ? state as LifecycleStepCode : 'draft';
 }
 
-function formatLifecycleState(state: LifecycleStepCode) {
-  return state.charAt(0).toUpperCase() + state.slice(1);
+function formatLifecycleState(t: Translate, state: LifecycleStepCode) {
+  return t(`service_detail.lifecycle.${state}`);
 }
 
 function QuestionCard({
@@ -1015,10 +1018,10 @@ function Service360Panel({
           <h3 className={styles.service360Subhead}>{t('service_detail.text.readiness')}</h3>
           <div className={styles.readinessCounts}>
             <span className={`${styles.readinessBadge} ${blockers.length ? styles.readinessBadgeBlocker : ''}`}>
-              {countLabel(blockers.length, 'blocker')}
+              {countLabel(t, blockers.length, 'blocker')}
             </span>
             <span className={`${styles.readinessBadge} ${warnings.length ? styles.readinessBadgeWarning : ''}`}>
-              {countLabel(warnings.length, 'warning', 'warnings')}
+              {countLabel(t, warnings.length, 'warning')}
             </span>
           </div>
         </div>
@@ -1066,15 +1069,15 @@ function Service360Panel({
 
       <div className={styles.service360Grid}>
         <Service360Metric label={t('service_detail.text.portfolio')} value={portfolio} detail={overview.lifecycle.criticality_code ?? t('service_detail.text.standard_criticality')} />
-        <Service360Metric label={t('service_detail.text.lifecycle')} value={lifecycle} detail={overview.lifecycle.review_due_at ? `Review ${formatDate(overview.lifecycle.review_due_at)}` : t('service_detail.text.review_missing')} />
+        <Service360Metric label={t('service_detail.text.lifecycle')} value={lifecycle} detail={overview.lifecycle.review_due_at ? t('service_detail.review_on', { date: formatDate(overview.lifecycle.review_due_at) }) : t('service_detail.text.review_missing')} />
         <Service360Metric label={t('service_detail.text.owners')} value={ownerName} detail={overview.owners.steward?.display_name ?? t('service_detail.text.steward_missing')} />
-        <Service360Metric label={t('service_detail.text.offerings')} value={countLabel(overview.offerings.count, 'offering')} detail={overview.offerings.primary?.title ?? overview.offerings.primary?.offering_code ?? t('service_detail.text.primary_missing')} />
-        <Service360Metric label={t('service_detail.text.sla_offerings')} value={overview.sla.has_sla && overview.offerings.count > 0 ? t('service_detail.text.covered') : t('service_detail.text.incomplete')} detail={`${overview.sla.record_count} SLA records / ${overview.offerings.count} offerings`} />
-        <Service360Metric label={t('service_detail.text.dependencies')} value={`${overview.dependencies.outgoing_count} out / ${overview.dependencies.incoming_count} in`} detail={`${overview.dependencies.mandatory_count} mandatory`} />
-        <Service360Metric label={t('service_detail.text.capabilities')} value={countLabel(overview.capability_mappings.length, 'mapping')} detail={primaryCapability?.code ? `Primary ${primaryCapability.code}` : t('service_detail.text.primary_missing')} />
+        <Service360Metric label={t('service_detail.text.offerings')} value={countLabel(t, overview.offerings.count, 'offering')} detail={overview.offerings.primary?.title ?? overview.offerings.primary?.offering_code ?? t('service_detail.text.primary_missing')} />
+        <Service360Metric label={t('service_detail.text.sla_offerings')} value={overview.sla.has_sla && overview.offerings.count > 0 ? t('service_detail.text.covered') : t('service_detail.text.incomplete')} detail={t('service_detail.sla_records_offerings', { records: overview.sla.record_count, offerings: overview.offerings.count })} />
+        <Service360Metric label={t('service_detail.text.dependencies')} value={t('service_detail.dependencies_out_in', { out: overview.dependencies.outgoing_count, in: overview.dependencies.incoming_count })} detail={t('service_detail.count.mandatory', { count: overview.dependencies.mandatory_count })} />
+        <Service360Metric label={t('service_detail.text.capabilities')} value={countLabel(t, overview.capability_mappings.length, 'mapping')} detail={primaryCapability?.code ? t('service_detail.primary_code', { code: primaryCapability.code }) : t('service_detail.text.primary_missing')} />
         <Service360Metric label={t('service_detail.text.c3_mapping')} value={primaryCapability?.code ?? primaryCapability?.c3_uuid ?? t('service_detail.text.missing')} detail={primaryCapability?.status ?? primaryCapability?.mapping_type_code ?? t('service_detail.text.unclassified')} />
-        <Service360Metric label={t('service_detail.text.readiness')} value={countLabel(overview.governance_risks.count, 'signal')} detail={`${overview.governance_risks.high_count} blockers`} />
-        <Service360Metric label={t('service_detail.text.audit')} value={countLabel(overview.audit_summary.count, 'change')} detail={overview.audit_summary.last_action?.performed_at ? formatDate(overview.audit_summary.last_action.performed_at) : t('service_detail.text.no_recent_changes')} />
+        <Service360Metric label={t('service_detail.text.readiness')} value={countLabel(t, overview.governance_risks.count, 'signal')} detail={countLabel(t, overview.governance_risks.high_count, 'blocker')} />
+        <Service360Metric label={t('service_detail.text.audit')} value={countLabel(t, overview.audit_summary.count, 'change')} detail={overview.audit_summary.last_action?.performed_at ? formatDate(overview.audit_summary.last_action.performed_at) : t('service_detail.text.no_recent_changes')} />
       </div>
 
       <div className={styles.service360Workflow} id="governance-workflow">
@@ -1182,7 +1185,7 @@ function OfferingsGrid({
               )}
             </div>
             <div className={styles.offeringMeta}>
-              <MiniFact label={t('service_detail.text.approval')} value={formatBool(featured.approval_required)} />
+              <MiniFact label={t('service_detail.text.approval')} value={formatBool(t, featured.approval_required)} />
               <MiniFact label={t('service_detail.text.lead_time')} value={featured.lead_time_text ?? '—'} />
               <MiniFact label={t('service_detail.text.support_tier')} value={featured.support_tier_code ?? '—'} />
               <MiniFact label={t('service_detail.text.channel')} value={featured.request_channel_type ?? '—'} />
@@ -1215,7 +1218,7 @@ function OfferingsGrid({
                 </div>
                 {offering.description && <p className={styles.prose}>{offering.description}</p>}
                 <div className={styles.offeringMeta}>
-                  <MiniFact label={t('service_detail.text.approval')} value={formatBool(offering.effective_approval_required ?? offering.approval_required)} />
+                  <MiniFact label={t('service_detail.text.approval')} value={formatBool(t, offering.effective_approval_required ?? offering.approval_required)} />
                   <MiniFact label={t('service_detail.text.lead_time')} value={offering.effective_lead_time_text ?? offering.lead_time_text ?? '—'} />
                   <MiniFact label={t('service_detail.text.support_tier')} value={offering.support_tier_code ?? '—'} />
                   <MiniFact label={t('service_detail.text.channel')} value={offering.effective_request_channel_type ?? offering.request_channel_type ?? '—'} />
@@ -1257,7 +1260,7 @@ function RequestabilityPanel({
         <div className={styles.requestHeadline}>{requestable ? t('service_detail.text.available_to_request') : t('service_detail.text.not_requestable_yet')}</div>
         <div className={styles.requestMeta}>
           <MiniFact label={t('service_detail.text.channel')} value={requestChannel ?? '—'} />
-          <MiniFact label={t('service_detail.text.approval')} value={formatBool(approval)} />
+          <MiniFact label={t('service_detail.text.approval')} value={formatBool(t, approval)} />
           <MiniFact label={t('service_detail.text.lead_time')} value={leadTime ?? '—'} />
         </div>
         {externalRequestHref ? (
@@ -1345,16 +1348,7 @@ function SupportModelPanel({
 // ── Operations panel: grouped links + review metadata ────────────────────────
 
 const LINK_TYPE_ORDER = ['knowledge', 'incidents', 'changes', 'docs', 'review', 'monitoring', 'support', 'other'];
-const LINK_TYPE_LABEL: Record<string, string> = {
-  knowledge:  'Knowledge',
-  incidents:  'Incidents',
-  changes:    'Changes',
-  docs:       'Documentation',
-  review:     'Service Review',
-  monitoring: 'Monitoring',
-  support:    'Support',
-  other:      'Other',
-};
+const LINK_TYPE_CODES = new Set(['knowledge', 'incidents', 'changes', 'docs', 'review', 'monitoring', 'support', 'other']);
 
 function OperationsPanel({
   links,
@@ -1412,7 +1406,7 @@ function OperationsPanel({
       {/* Grouped operational links */}
       {groupKeys.map(key => (
         <div key={key} className={styles.linkGroup}>
-          <div className={styles.linkGroupLabel}>{LINK_TYPE_LABEL[key] ?? key}</div>
+          <div className={styles.linkGroupLabel}>{LINK_TYPE_CODES.has(key) ? t(`service_detail.link_type.${key}`) : key}</div>
           <div className={styles.linksGrid}>
             {grouped[key].map(link => (
               <a
@@ -1449,12 +1443,13 @@ const LIFECYCLE_BADGE_CLASS: Record<string, string> = {
 };
 
 function LifecycleBadge({ state, fallback }: { state: string | null; fallback: string }) {
+  const t = useT();
   if (!state) return <span className={styles.heroFactValue}>{fallback}</span>;
   const normalized = normalizeLifecycleState(state);
   const cls = LIFECYCLE_BADGE_CLASS[normalized] ?? 'lifecycleDraft';
   return (
     <span className={`${styles.lifecycleBadge} ${styles[cls]}`}>
-      {normalized.replace('_', ' ')}
+      {formatLifecycleState(t, normalized)}
     </span>
   );
 }
@@ -1469,13 +1464,10 @@ function MiniFact({ label, value }: { label: string; value: string }) {
 }
 
 // ── Ownership History (Item 12) ────────────────────────────────────────────────
-const ROLE_LABELS: Record<string, string> = {
-  service_owner:             'Owner',
-  service_area_owner:        'Area Owner',
-  service_delivery_manager:  'Delivery Mgr',
-};
+const ROLE_CODES = new Set(['service_owner', 'service_area_owner', 'service_delivery_manager']);
 
 function OwnershipHistory({ roles }: { roles: ServiceRoleAssignment[] }) {
+  const t = useT();
   const today = new Date().toISOString().split('T')[0];
   const current = roles.filter(r => r.valid_to == null);
   const expired = roles.filter(r => r.valid_to != null && r.valid_to < today);
@@ -1484,7 +1476,7 @@ function OwnershipHistory({ roles }: { roles: ServiceRoleAssignment[] }) {
     <div className={styles.ownershipTable}>
       {[...current, ...expired].map(r => (
         <div key={r.id} className={`${styles.ownershipRow} ${r.valid_to ? styles.ownershipRowExpired : ''}`}>
-          <span className={styles.ownershipRole}>{ROLE_LABELS[r.role_code] ?? r.role_code}</span>
+          <span className={styles.ownershipRole}>{ROLE_CODES.has(r.role_code) ? t(`service_detail.role.${r.role_code}`) : r.role_code}</span>
           <span className={styles.ownershipName}>
             {r.display_name}
             {r.organization_name && <span className={styles.ownershipOrg}> · {r.organization_name}</span>}
@@ -1492,7 +1484,7 @@ function OwnershipHistory({ roles }: { roles: ServiceRoleAssignment[] }) {
           <span className={styles.ownershipPeriod}>
             {r.valid_from ? new Date(r.valid_from).toLocaleDateString('cs-CZ') : '—'}
             {' → '}
-            {r.valid_to ? new Date(r.valid_to).toLocaleDateString('cs-CZ') : <em>current</em>}
+            {r.valid_to ? new Date(r.valid_to).toLocaleDateString('cs-CZ') : <em>{t('service_detail.role.current')}</em>}
           </span>
         </div>
       ))}
@@ -1547,8 +1539,8 @@ function DependenciesPanel({
       </Section>
       <Section title={t('service_detail.text.dependency_conclusion')}>
         <p className={styles.prose}>
-          {t('service_detail.text.evidence_includes')}{' '}{countLabel(outgoing.length, 'outgoing relation')} a {countLabel(incoming.length, 'incoming relation')}.
-          {mandatoryCount > 0 ? ` ${countLabel(mandatoryCount, 'mandatory dependency')} má dopad na change/release plán.` : t('service_detail.text.no_mandatory_dependency_is_highlighted')}
+          {t('service_detail.dependency_summary', { outgoing: outgoing.length, incoming: incoming.length })}
+          {mandatoryCount > 0 ? ` ${t('service_detail.mandatory_dependency_impact', { count: mandatoryCount })}` : t('service_detail.text.no_mandatory_dependency_is_highlighted')}
         </p>
       </Section>
     </>
@@ -1563,24 +1555,15 @@ function RelationRow({ relation }: { relation: ServiceRelation }) {
       <Link href={`/services/${relation.to_service_id}`} className={styles.relLink}>
         {relation.to_title ?? relation.to_service_id}
       </Link>
-      {relation.is_mandatory && <span className={styles.relBadgeDanger}>mandatory</span>}
+      {relation.is_mandatory && <span className={styles.relBadgeDanger}>{t('service_detail.relation.mandatory')}</span>}
       {relation.impact_level && <span className={styles.relBadge}>{relation.impact_level}</span>}
-      {relation.is_verified && <span className={styles.relBadgeGreen}>verified</span>}
+      {relation.is_verified && <span className={styles.relBadgeGreen}>{t('service_detail.relation.verified')}</span>}
     </div>
   );
 }
 
 // ── C3 Taxonomy Mapping Table ─────────────────────────────────────────────────
-const C3_ITEM_TYPE_LABELS: Record<string, string> = {
-  BP: 'Business Process',
-  BR: 'Business Role',
-  CP: 'Capability',
-  CI: 'COI Service',
-  CO: 'Communication Service',
-  CR: 'Core Service',
-  IP: 'Information Product',
-  UA: 'User Application',
-};
+const C3_ITEM_TYPE_CODES = new Set(['BP', 'BR', 'CP', 'CI', 'CO', 'CR', 'IP', 'UA']);
 
 const PACE_COLORS: Record<string, string> = {
   Differentiation: 'var(--color-status-active)',
@@ -1611,7 +1594,7 @@ function C3MappingTable({ mappings }: { mappings: ServiceC3Mapping[] }) {
           </span>
           <span>
             {m.c3_item_type && (
-              <span className={styles.c3ItemTypeBadge} title={C3_ITEM_TYPE_LABELS[m.c3_item_type]}>
+              <span className={styles.c3ItemTypeBadge} title={m.c3_item_type && C3_ITEM_TYPE_CODES.has(m.c3_item_type) ? t(`service_detail.c3_item_type.${m.c3_item_type}`) : undefined}>
                 {m.c3_item_type}
               </span>
             )}
@@ -1642,21 +1625,23 @@ function C3MappingTable({ mappings }: { mappings: ServiceC3Mapping[] }) {
   );
 }
 
-const BUSINESS_DETAIL_VIEWS: Array<{ id: DetailView; label: string; hint: string; technical?: boolean }> = [
-  { id: 'overview', label: 'Overview', hint: 'Value, scope, owner' },
-  { id: 'request', label: 'How to get it', hint: 'Request channel and offerings' },
-  { id: 'support', label: 'Support / SLA', hint: 'Support owner, hours, escalation' },
-  { id: 'dependencies', label: 'Relationships', hint: 'What this service needs and affects' },
-  { id: 'governance', label: 'Governance', hint: 'Readiness, reviews, decisions' },
+const BUSINESS_DETAIL_VIEWS: Array<{ id: DetailView; technical?: boolean }> = [
+  { id: 'overview' },
+  { id: 'request' },
+  { id: 'support' },
+  { id: 'dependencies' },
+  { id: 'governance' },
 ];
 
-function countLabel(count: number, singular: string, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`;
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+function countLabel(t: Translate, count: number, noun: 'service' | 'blocker' | 'warning' | 'offering' | 'mapping' | 'signal' | 'change') {
+  return t(`service_detail.count.${noun}`, { count });
 }
 
-function formatBool(value: boolean | null | undefined) {
+function formatBool(t: Translate, value: boolean | null | undefined) {
   if (value == null) return '—';
-  return value ? 'Yes' : 'No';
+  return value ? t('common.yes') : t('common.no');
 }
 
 function formatDate(value: string) {
