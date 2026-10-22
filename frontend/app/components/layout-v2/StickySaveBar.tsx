@@ -1,3 +1,6 @@
+'use client';
+
+import { useT } from '@/app/i18n/useI18n';
 import styles from './StickySaveBar.module.css';
 
 export type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -15,38 +18,39 @@ interface StickySaveBarProps {
   onDiscard?: () => void;
 }
 
-const STATE_LABELS: Record<SaveState, string> = {
-  clean: 'Beze změn',
-  dirty: 'Neuložené změny',
-  saving: 'Ukládám',
-  saved: 'Uloženo',
-  error: 'Chyba uložení',
+const STATE_LABEL_KEYS: Record<SaveState, string> = {
+  clean: 'layout.save_bar.state.clean',
+  dirty: 'layout.save_bar.state.dirty',
+  saving: 'layout.save_bar.state.saving',
+  saved: 'layout.save_bar.state.saved',
+  error: 'layout.save_bar.state.error',
 };
 
 export default function StickySaveBar({
   state,
   message,
-  primaryLabel = 'Uložit změny',
-  secondaryLabel = 'Zahodit',
-  publishLabel = 'Publikovat',
+  primaryLabel,
+  secondaryLabel,
+  publishLabel,
   disabled = false,
   publishDisabled = false,
   onSave,
   onPublish,
   onDiscard,
 }: StickySaveBarProps) {
+  const t = useT();
   return (
-    <div className={styles.wrap} role="region" aria-label="Save status">
+    <div className={styles.wrap} role="region" aria-label={t('layout.save_bar.region_label')}>
       <div className={styles.panel}>
         <div className={styles.status}>
           <span className={`${styles.dot} ${styles[`state_${state}`]}`} aria-hidden="true" />
-          <strong>{STATE_LABELS[state]}</strong>
+          <strong>{t(STATE_LABEL_KEYS[state])}</strong>
           {message ? <span>{message}</span> : null}
         </div>
         <div className={styles.actions}>
           {onDiscard ? (
             <button type="button" className={styles.secondary} onClick={onDiscard} disabled={state === 'saving'}>
-              {secondaryLabel}
+              {secondaryLabel ?? t('layout.save_bar.discard')}
             </button>
           ) : null}
           <button
@@ -55,7 +59,7 @@ export default function StickySaveBar({
             onClick={onSave}
             disabled={disabled || state === 'saving' || state === 'clean'}
           >
-            {state === 'saving' ? 'Ukládám...' : primaryLabel}
+            {state === 'saving' ? t('layout.save_bar.saving_button') : primaryLabel ?? t('layout.save_bar.save_changes')}
           </button>
           {onPublish ? (
             <button
@@ -64,7 +68,7 @@ export default function StickySaveBar({
               onClick={onPublish}
               disabled={publishDisabled || state === 'saving'}
             >
-              {publishLabel}
+              {publishLabel ?? t('layout.save_bar.publish')}
             </button>
           ) : null}
         </div>

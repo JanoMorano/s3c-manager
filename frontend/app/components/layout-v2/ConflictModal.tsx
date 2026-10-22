@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/app/i18n/useI18n';
 import styles from './ConflictModal.module.css';
 
 interface ConflictModalProps {
@@ -11,31 +12,32 @@ interface ConflictModalProps {
 }
 
 export default function ConflictModal({
-  title = 'Záznam se mezitím změnil',
-  message = 'Server odmítl uložení, protože někdo nebo import změnil stejný záznam po načtení editoru.',
+  title,
+  message,
   details,
   onReload,
   onClose,
 }: ConflictModalProps) {
+  const t = useT();
   return (
     <div className={styles.backdrop} role="presentation">
       <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="conflict-modal-title">
         <div className={styles.header}>
           <div>
-            <h2 id="conflict-modal-title">{title}</h2>
-            <p>{message}</p>
+            <h2 id="conflict-modal-title">{title ?? t('layout.conflict_modal.title')}</h2>
+            <p>{message ?? t('layout.conflict_modal.message')}</p>
           </div>
           <button type="button" className={styles.close} onClick={onClose}>
-            Zavřít
+            {t('layout.conflict_modal.close')}
           </button>
         </div>
         {details ? <pre className={styles.details}>{details}</pre> : null}
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} onClick={onClose}>
-            Zůstat v editoru
+            {t('layout.conflict_modal.stay')}
           </button>
           <button type="button" className={styles.primary} onClick={onReload}>
-            Načíst aktuální data
+            {t('layout.conflict_modal.reload')}
           </button>
         </div>
       </section>

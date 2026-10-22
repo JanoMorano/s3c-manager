@@ -4,7 +4,7 @@ export interface CountForms {
   many: string;
 }
 
-function resolveCountForm(value: number, forms: CountForms) {
+export function resolveCountForm(value: number, forms: CountForms) {
   const absolute = Math.abs(value);
   const mod10 = absolute % 10;
   const mod100 = absolute % 100;

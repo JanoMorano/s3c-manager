@@ -16,6 +16,7 @@ import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
 import { useServiceSla } from '@/features/services/hooks/useServices';
 import type { SlaRecord } from '@/features/services/model/service.types';
 import { useT } from '@/app/i18n/useI18n';
+import { formatCountLabel } from '@/app/lib/counts';
 import styles from './editor.module.css';
 import { LIFECYCLE_TRANSITIONS, lifecycleStageLabelKey, selectableLifecycleStages, toLifecycleStage } from '@/features/services/lifecycle';
 
@@ -300,8 +301,20 @@ export default function ServiceEditorPage({ params }: Props) {
 
   const saveMessage = saveError
     ?? (phase4Saved && !saving ? phase4Saved : null)
-    ?? (!saving && publishBlockers.length > 0 ? `${publishBlockers.length} publish blockers` : null)
-    ?? (isDirty ? `${dirtyCount} změněných polí` : t('service_editor.text.manual_saving_according_to_v2_design'));
+    ?? (!saving && publishBlockers.length > 0
+      ? formatCountLabel(publishBlockers.length, {
+          one: t('service_editor.save_bar.publish_blockers.one'),
+          few: t('service_editor.save_bar.publish_blockers.few'),
+          many: t('service_editor.save_bar.publish_blockers.many'),
+        })
+      : null)
+    ?? (isDirty
+      ? formatCountLabel(dirtyCount, {
+          one: t('service_editor.save_bar.changed_fields.one'),
+          few: t('service_editor.save_bar.changed_fields.few'),
+          many: t('service_editor.save_bar.changed_fields.many'),
+        })
+      : t('service_editor.text.manual_saving_according_to_v2_design'));
 
   const onSubmit = async (data: FormData) => {
     setSaving(true); setSaveError(null); setSaveConflict(null); setSaved(false);
@@ -430,7 +443,7 @@ export default function ServiceEditorPage({ params }: Props) {
     <form className={styles.shell} onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}>
       <div className={styles.stickyHeader}>
         <PageHeader
-          title={`Editor služby — ${svc.title}`}
+          title={t('service_editor.heading', { title: svc.title })}
           purpose={t('service_editor.tab.purpose')}
           chips={[
             { label: `ID ${id}`, tone: 'neutral' },
@@ -883,9 +896,9 @@ export default function ServiceEditorPage({ params }: Props) {
         message={saveMessage}
         disabled={!isDirty || saving}
         publishDisabled={saving || publishBlockers.length > 0}
-        primaryLabel="Save draft"
-        publishLabel="Save & publish"
-        secondaryLabel="Zahodit a zpět"
+        primaryLabel={t('service_editor.save_bar.save_draft')}
+        publishLabel={t('service_editor.save_bar.save_and_publish')}
+        secondaryLabel={t('service_editor.save_bar.discard_and_back')}
         onSave={saveDraft}
         onPublish={handlePublish}
         onDiscard={() => {
