@@ -241,14 +241,17 @@ function C3CatalogueInner() {
 
   // Commit search after a typing pause, replacing the history entry.
   const commitSearch = useCallback((value: string) => pushParams({ search: value || undefined }, { replace: true }), [pushParams]);
-  const [searchDraft, setSearchDraft] = useDebouncedInput(search, commitSearch);
+  const [searchDraft, setSearchDraft, cancelSearchDraft] = useDebouncedInput(search, commitSearch);
 
   const toggleMulti = useCallback((value: string, current: string[], key: string) => {
     const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
     pushParams({ [key]: next });
   }, [pushParams]);
 
-  const clearAll = useCallback(() => router.push(C3_ROUTES.list), [router]);
+  const clearAll = useCallback(() => {
+    cancelSearchDraft();
+    router.push(C3_ROUTES.list);
+  }, [cancelSearchDraft, router]);
   const hasFilters = Boolean(search || exact || itemTypeFilter.length || parentFilter.length || statusFilter.length);
 
   useEffect(() => {

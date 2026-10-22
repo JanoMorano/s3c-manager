@@ -162,8 +162,8 @@ function CatalogueInner() {
   // history entry, so Back still leaves the page instead of undoing keystrokes.
   const commitSearch = useCallback((value: string) => pushParams({ search: value || undefined, page: undefined }, { replace: true }), [pushParams]);
   const commitOwner = useCallback((value: string) => pushParams({ owner: value || undefined, page: undefined }, { replace: true }), [pushParams]);
-  const [searchDraft, setSearchDraft] = useDebouncedInput(search, commitSearch);
-  const [ownerDraft, setOwnerDraft] = useDebouncedInput(owner, commitOwner);
+  const [searchDraft, setSearchDraft, cancelSearchDraft] = useDebouncedInput(search, commitSearch);
+  const [ownerDraft, setOwnerDraft, cancelOwnerDraft] = useDebouncedInput(owner, commitOwner);
 
   const toggleMulti = useCallback((val: string, arr: string[], key: string) => {
     const next = arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
@@ -171,8 +171,10 @@ function CatalogueInner() {
   }, [pushParams]);
 
   const clearAll = useCallback(() => {
+    cancelSearchDraft();
+    cancelOwnerDraft();
     router.push('/services/list');
-  }, [router]);
+  }, [cancelOwnerDraft, cancelSearchDraft, router]);
 
   // Build filter params for hook
   const params = useMemo(() => ({

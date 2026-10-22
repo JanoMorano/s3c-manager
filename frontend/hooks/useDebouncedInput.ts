@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * Local draft for a text input whose committed value lives elsewhere (usually
  * the URL). Typing updates the draft immediately; `onCommit` runs once the user
  * pauses for `delayMs`. External changes to `committed` (Back, "clear all")
- * replace the draft unless they are the echo of our own commit.
+ * replace the draft unless they are the echo of our own commit. `cancel`
+ * drops a pending draft before an external reset, so the timer cannot write
+ * it back afterwards.
  */
 export function useDebouncedInput(
   committed: string,
@@ -29,5 +31,10 @@ export function useDebouncedInput(
     return () => clearTimeout(timer)
   }, [draft, committed, onCommit, delayMs])
 
-  return [draft, setDraft] as const
+  const cancel = useCallback(() => {
+    setDraft(committed)
+    setLastPushed(null)
+  }, [committed])
+
+  return [draft, setDraft, cancel] as const
 }
