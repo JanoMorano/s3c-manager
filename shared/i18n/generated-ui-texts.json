@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T20:41:04.022Z",
+  "generated_at": "2026-10-22T20:43:23.008Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -347,6 +347,7 @@
       "en": "P0",
       "files": [
         "frontend/app/operations/readiness/page.tsx",
+        "frontend/app/services/[id]/page.tsx",
         "frontend/features/services/model/service.types.ts"
       ]
     },

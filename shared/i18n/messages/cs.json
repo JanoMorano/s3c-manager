@@ -3617,5 +3617,16 @@
   "home.getting_started.capabilities.action": "Doplnit schopnosti",
   "import.hub.lead": "Nahrané soubory, jejich výsledek a problémy k opravě.",
   "import.hub.upload": "Nahrát soubor",
-  "import.upload.lead": "Nejdřív spusťte dry-run, po kontrole import potvrďte."
+  "import.upload.lead": "Nejdřív spusťte dry-run, po kontrole import potvrďte.",
+  "service_detail.action.how_to_get": "Jak službu získat",
+  "service_detail.header.completeness": "úplnost {{pct}} %",
+  "service_detail.tab.open_items": "Otevřené body: {{count}}",
+  "service_detail.overview.empty": "Služba zatím nemá popis.",
+  "service_detail.overview.add_description": "Doplnit popis",
+  "service_detail.overview.facts": "Klíčové údaje",
+  "service_detail.check.owner_ok": "Vlastník je určen",
+  "service_detail.check.owner_missing_detail": "Bez vlastníka nikdo neodpovídá za změny a revize.",
+  "service_detail.checklist.progress": "Splněno {{done}} z {{total}}",
+  "service_detail.checklist.why_how": "Proč a jak opravit",
+  "service_detail.checklist.evidence": "Doklad"
 }

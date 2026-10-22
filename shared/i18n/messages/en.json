@@ -3617,5 +3617,16 @@
   "home.getting_started.capabilities.action": "Map capabilities",
   "import.hub.lead": "Uploaded files, their results and issues to fix.",
   "import.hub.upload": "Upload file",
-  "import.upload.lead": "Run a dry run first, then confirm the import."
+  "import.upload.lead": "Run a dry run first, then confirm the import.",
+  "service_detail.action.how_to_get": "How to get it",
+  "service_detail.header.completeness": "{{pct}}% complete",
+  "service_detail.tab.open_items": "Open items: {{count}}",
+  "service_detail.overview.empty": "This service has no description yet.",
+  "service_detail.overview.add_description": "Add description",
+  "service_detail.overview.facts": "Key facts",
+  "service_detail.check.owner_ok": "Owner assigned",
+  "service_detail.check.owner_missing_detail": "Without an owner, nobody is accountable for changes and reviews.",
+  "service_detail.checklist.progress": "{{done}} of {{total}} done",
+  "service_detail.checklist.why_how": "Why and how to fix",
+  "service_detail.checklist.evidence": "Evidence"
 }
