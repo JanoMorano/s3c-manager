@@ -13,6 +13,7 @@ const {
 const { getServiceReadiness } = require('../../services/readiness');
 const { getPool } = require('../../db/pool');
 const logger = require('../../utils/logger');
+const { resolveRequestLocale } = require('../../utils/i18n');
 
 const router = express.Router();
 
@@ -139,7 +140,7 @@ router.get('/:id/graph', async (req, res, next) => {
 
         let readiness = null;
         try {
-            readiness = await getServiceReadiness(rootId);
+            readiness = await getServiceReadiness(rootId, { locale: resolveRequestLocale(req) });
         } catch (readinessErr) {
             logger.warn(`service graph: readiness context unavailable for ${rootId}: ${readinessErr.message}`);
         }

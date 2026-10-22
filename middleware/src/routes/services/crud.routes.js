@@ -16,6 +16,7 @@ const { serviceScore } = require('../../services/scoring');
 const { getPool } = require('../../db/pool');
 const logger = require('../../utils/logger');
 const { _normalizeBody, _validateLiveReadiness } = require('./shared');
+const { resolveRequestLocale } = require('../../utils/i18n');
 
 const router = express.Router();
 
@@ -116,7 +117,7 @@ router.put('/:id', canEdit, async (req, res, next) => {
         const requestedStage = canonicalizeServiceInput(body).fields.lifecycle_stage_code;
         const isActivating = requestedStage === 'active' && existing.lifecycle_stage_code !== 'active';
         if (isActivating) {
-            const readiness = await getServiceReadiness(serviceId);
+            const readiness = await getServiceReadiness(serviceId, { locale: resolveRequestLocale(req) });
             if (!readiness?.is_publishable) {
                 return res.status(409).json({
                     error: 'Službu nelze přepnout do stavu active, dokud nesplňuje publish readiness.',

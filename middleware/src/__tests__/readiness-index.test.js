@@ -74,3 +74,39 @@ describe('readiness index', () => {
         expect(summary.groups.ready).toHaveLength(1);
     });
 });
+
+describe('readiness rule localization', () => {
+    const { localizeRule } = require('../services/readiness');
+    const dbRule = {
+        rule_key: 'service_has_owner',
+        title: 'Service has owner',
+        title_text: 'Service has owner',
+        description: 'A service needs an active owner assignment before it can be governed or published.',
+        why_text: 'A service needs an active owner assignment before it can be governed or published.',
+        howto_text: 'Assign an accountable service owner in the ownership section.',
+        evidence_hint: 'service_role_assignment.role_code=service_owner',
+    };
+
+    test('translates known rules from the shared catalog', () => {
+        const cs = localizeRule(dbRule, 'cs');
+        expect(cs.title).toBe('Služba má vlastníka');
+        expect(cs.title_text).toBe('Služba má vlastníka');
+        expect(cs.howto_text).toBe('V sekci vlastnictví přiřaďte odpovědného vlastníka služby.');
+        expect(cs.evidence_hint).toBe(dbRule.evidence_hint);
+        expect(localizeRule(dbRule, 'en').title).toBe('Service has owner');
+    });
+
+    test('keeps database text for rules without translations and without a locale', () => {
+        const custom = { ...dbRule, rule_key: 'custom_rule', title: 'Custom rule' };
+        expect(localizeRule(custom, 'cs').title).toBe('Custom rule');
+        expect(localizeRule(dbRule, undefined)).toBe(dbRule);
+    });
+
+    test('getReadinessSummary uses the requested locale for blocker messages', async () => {
+        repo.listRules.mockResolvedValue([{ ...dbRule, enabled: true, blocking: true, severity: 'P0' }]);
+        repo.listServiceStates.mockResolvedValue([state(1, { owner_count: 0 })]);
+        repo.listExceptionsForServices.mockResolvedValue([]);
+        const summary = await getReadinessSummary({ locale: 'cs' });
+        expect(summary.groups.blockers[0].blockers).toEqual(['Služba má vlastníka']);
+    });
+});

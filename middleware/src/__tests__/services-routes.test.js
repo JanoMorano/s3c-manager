@@ -253,7 +253,7 @@ describe('services routes', () => {
             service_id: 'SVC-1',
             title: 'Service One',
         }));
-        expect(overviewRepo.getServiceOverview).toHaveBeenCalledWith('SVC-1');
+        expect(overviewRepo.getServiceOverview).toHaveBeenCalledWith('SVC-1', { locale: expect.any(String) });
     });
 
     test('GET /services/:id/overview returns 404 for unknown service', async () => {

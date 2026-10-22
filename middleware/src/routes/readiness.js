@@ -10,6 +10,7 @@ const {
     getReadinessSummary,
 } = require('../services/readiness');
 const { parseIntFilter, parseTextFilter } = require('../utils/query-filters');
+const { resolveRequestLocale } = require('../utils/i18n');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ function actorFrom(req) {
 
 router.get('/services/:id', async (req, res, next) => {
     try {
-        const readiness = await getServiceReadiness(req.params.id);
+        const readiness = await getServiceReadiness(req.params.id, { locale: resolveRequestLocale(req) });
         if (!readiness) return res.status(404).json({ error: 'Služba nenalezena' });
         res.json(readiness);
     } catch (err) { next(err); }
@@ -30,6 +31,7 @@ router.get('/services/:id', async (req, res, next) => {
 router.get('/summary', async (req, res, next) => {
     try {
         const summary = await getReadinessSummary({
+            locale: resolveRequestLocale(req),
             limit: parseIntFilter(req.query.limit, { fallback: 100, min: 1, max: 500 }),
             offset: parseIntFilter(req.query.offset, { fallback: 0, min: 0, max: 100000 }),
             lifecycle: parseTextFilter(req.query.lifecycle, { maxLength: 80 }),

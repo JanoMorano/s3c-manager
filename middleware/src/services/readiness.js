@@ -1,6 +1,34 @@
 'use strict';
 
 const repo = require('../db/readiness.repo');
+const { translate } = require('../../../shared/i18n/locales');
+
+// Rule texts are stored once in the database (English). Known rules carry
+// translations in the shared i18n catalog under readiness_rule.<rule_key>.*;
+// rules without a catalog entry keep their database text.
+const LOCALIZED_RULE_FIELDS = {
+    title: 'title',
+    title_text: 'title',
+    description: 'description',
+    why_text: 'description',
+    howto_text: 'howto',
+};
+
+function localizeRule(rule, locale) {
+    if (!locale || !rule?.rule_key) return rule;
+    const localized = { ...rule };
+    for (const [field, suffix] of Object.entries(LOCALIZED_RULE_FIELDS)) {
+        const key = `readiness_rule.${rule.rule_key}.${suffix}`;
+        const text = translate(locale, key);
+        if (text !== key && rule[field] != null) localized[field] = text;
+    }
+    return localized;
+}
+
+async function listLocalizedRules(locale) {
+    const rules = await repo.listRules();
+    return locale ? rules.map((rule) => localizeRule(rule, locale)) : rules;
+}
 
 function isActiveServiceStatus(status) {
     return String(status ?? '').toLowerCase() === 'active';
@@ -224,21 +252,22 @@ function buildServiceReadiness(row, rules = {}) {
     return evaluateServiceReadinessState(adaptedRow, legacyRules, []);
 }
 
-async function getServiceReadiness(serviceId) {
+// options.locale: language for rule texts (see localizeRule).
+async function getServiceReadiness(serviceId, { locale } = {}) {
     const row = await repo.getServiceState(serviceId);
     if (!row) return null;
     const [rules, exceptions] = await Promise.all([
-        repo.listRules(),
+        listLocalizedRules(locale),
         repo.listExceptionsForService(row.service_pk),
     ]);
     return evaluateServiceReadinessState(row, rules, exceptions);
 }
 
-async function getServiceReadinessByCatalogId(catalogId) {
+async function getServiceReadinessByCatalogId(catalogId, { locale } = {}) {
     const row = await repo.getServiceStateByCatalogId(catalogId);
     if (!row) return null;
     const [rules, exceptions] = await Promise.all([
-        repo.listRules(),
+        listLocalizedRules(locale),
         repo.listExceptionsForService(row.service_pk),
     ]);
     return evaluateServiceReadinessState(row, rules, exceptions);
@@ -258,7 +287,7 @@ function readinessStateOf(readiness) {
 // catalogue (non-deleted, non-stub services) is evaluated.
 async function evaluateReadiness(filters = {}) {
     const [rules, rows] = await Promise.all([
-        repo.listRules(),
+        listLocalizedRules(filters.locale),
         repo.listServiceStates({ ...filters, all: true }),
     ]);
     const exceptions = await repo.listExceptionsForServices(
@@ -312,7 +341,7 @@ async function servicePksForReadinessFilter(value) {
 
 async function getReadinessSummary(filters = {}) {
     // Counts always cover every matching service; only the item lists are paged.
-    const all = await evaluateReadiness({ lifecycle: filters.lifecycle, owner: filters.owner });
+    const all = await evaluateReadiness({ lifecycle: filters.lifecycle, owner: filters.owner, locale: filters.locale });
     const offset = Math.max(0, Number.parseInt(filters.offset ?? 0, 10) || 0);
     const limit = Math.max(1, Number.parseInt(filters.limit ?? 100, 10) || 100);
     const page = (list) => list.slice(offset, offset + limit);
@@ -353,6 +382,7 @@ module.exports = {
     getServiceStateByCatalogId,
     isActiveServiceStatus,
     isReadinessStateFilter,
+    localizeRule,
     readinessStateOf,
     servicePksForReadinessFilter,
 };

@@ -16,6 +16,7 @@ const { MODULE_CODES } = require('../../modules/manifest');
 const { serviceScore } = require('../../services/scoring');
 const { getPool } = require('../../db/pool');
 const logger = require('../../utils/logger');
+const { resolveRequestLocale } = require('../../utils/i18n');
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.get('/:id/360', async (req, res, next) => {
         const serviceId = req.params.id;
         const [service, overview] = await Promise.all([
             repo.findByServiceId(serviceId),
-            serviceOverviewRepo.getServiceOverview(serviceId),
+            serviceOverviewRepo.getServiceOverview(serviceId, { locale: resolveRequestLocale(req) }),
         ]);
 
         if (!service && !overview) return res.status(404).json({ error: 'Služba nenalezena' });
@@ -92,7 +93,7 @@ router.get('/:id/360', async (req, res, next) => {
 // ─── GET /services/:id/overview ──────────────────────────────────────────────
 router.get('/:id/overview', async (req, res, next) => {
     try {
-        const item = await serviceOverviewRepo.getServiceOverview(req.params.id);
+        const item = await serviceOverviewRepo.getServiceOverview(req.params.id, { locale: resolveRequestLocale(req) });
         if (!item) return res.status(404).json({ error: 'Služba nenalezena' });
         res.json({ item });
     } catch (err) { next(err); }

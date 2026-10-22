@@ -10,6 +10,7 @@ const relationsRepo = require('./relations.repo');
 const auditRepo = require('./audit.repo');
 const { getPool } = require('./pool');
 const { getServiceReadiness } = require('../services/readiness');
+const { translate } = require('../../../shared/i18n/locales');
 const logger = require('../utils/logger');
 
 function toNumber(value) {
@@ -325,6 +326,21 @@ function addMissing(actions, key, title, description, href, severity = 'warning'
     actions.push({ key, title, description, href, severity });
 }
 
+// Missing-action texts are written in English above; known action keys
+// have translations under service_overview.action.<key>.{title,detail}.
+function localizeActions(actions, locale) {
+    if (!locale) return actions;
+    const pick = (key, fallback) => {
+        const text = translate(locale, key);
+        return text === key ? fallback : text;
+    };
+    return actions.map((action) => ({
+        ...action,
+        title: pick(`service_overview.action.${action.key}.title`, action.title),
+        description: pick(`service_overview.action.${action.key}.detail`, action.description),
+    }));
+}
+
 function buildMissingActions({
     service,
     portfolio,
@@ -378,7 +394,7 @@ function buildMissingActions({
     return actions;
 }
 
-async function getServiceOverview(serviceId) {
+async function getServiceOverview(serviceId, { locale } = {}) {
     const service = await servicesRepo.findByServiceId(serviceId);
     if (!service) return null;
 
@@ -405,7 +421,7 @@ async function getServiceOverview(serviceId) {
         safeRead(() => getRoleAssignments(serviceId), []),
         safeRead(() => getSlaRecords(serviceId), []),
         safeRead(() => getC3Mappings(serviceId), []),
-        safeRead(() => getServiceReadiness(serviceId), null),
+        safeRead(() => getServiceReadiness(serviceId, { locale }), null),
         safeRead(() => auditRepo.findByRecord('ServiceCatalog', serviceId, 10), []),
     ]);
 
@@ -462,7 +478,7 @@ async function getServiceOverview(serviceId) {
         readiness,
         governance_risks: governanceRisks,
         audit_summary: auditSummary,
-        missing_actions: missingActions,
+        missing_actions: localizeActions(missingActions, locale),
     };
 }
 

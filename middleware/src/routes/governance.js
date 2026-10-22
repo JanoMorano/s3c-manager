@@ -7,6 +7,7 @@ const repo = require('../db/governance.repo');
 const audit = require('../db/audit.repo');
 const { getServiceReadiness } = require('../services/readiness');
 const { parseCsvFilter, parseTextFilter, parseIntFilter } = require('../utils/query-filters');
+const { resolveRequestLocale } = require('../utils/i18n');
 
 const router = express.Router();
 
@@ -196,7 +197,7 @@ router.post('/decisions', canEdit, async (req, res, next) => {
         }
 
         if (decision === 'approved' && !DEFERRAL_DECISION_TYPES.has(decisionType)) {
-            const readiness = await getServiceReadiness(serviceId);
+            const readiness = await getServiceReadiness(serviceId, { locale: resolveRequestLocale(req) });
             if ((readiness?.blockers ?? []).length > 0) {
                 return res.status(409).json({ error: 'Cannot approve while readiness blockers remain', blockers: readiness.blockers });
             }

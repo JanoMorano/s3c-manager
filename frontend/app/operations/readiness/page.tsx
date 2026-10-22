@@ -50,6 +50,13 @@ function editorHrefForRule(serviceId: string, rule: ReadinessRuleResult | null |
   return `/services/${encodeURIComponent(serviceId)}/edit#${editorSectionForRule(rule)}`;
 }
 
+// Rule status codes from the API, shown with a translated label.
+function ruleStatusLabel(status: string, t: (key: string) => string) {
+  const key = `operations.readiness.rule_status.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
+}
+
 function RuleBadges({ rules }: { rules: ReadinessRuleResult[] }) {
   const t = useT();
   if (rules.length === 0) return <span className={govStyles.stateLine}>{t('operations.readiness.no_findings')}</span>;
@@ -58,7 +65,7 @@ function RuleBadges({ rules }: { rules: ReadinessRuleResult[] }) {
       {rules.map((rule) => (
         <span key={rule.rule_key} className={govStyles.ruleBadge}>
           <Badge variant={severityTone(rule.severity)}>{rule.severity}</Badge>
-          <Badge variant={statusTone(rule.status)}>{rule.status}</Badge>
+          <Badge variant={statusTone(rule.status)}>{ruleStatusLabel(rule.status, t)}</Badge>
           <span>{rule.title}</span>
           {rule.exception?.expired ? <strong>{t('operations.readiness.expired_exception')}</strong> : null}
           {rule.status === 'exception' && !rule.exception?.expired ? <strong>{t('operations.readiness.exception')}</strong> : null}

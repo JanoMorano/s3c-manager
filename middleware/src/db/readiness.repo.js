@@ -133,6 +133,10 @@ async function listRules({ includeDisabled = false } = {}) {
             enabled,
             blocking,
             applies_to_lifecycle_stage,
+            title_text,
+            why_text,
+            howto_text,
+            evidence_hint,
             created_at,
             updated_at
         FROM data.readiness_rule
