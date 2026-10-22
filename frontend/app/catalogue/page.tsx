@@ -3,7 +3,7 @@
 import Link from '@/app/components/AppLink';
 import PageHeader from '@/app/components/PageHeader';
 import { KpiCard } from '@/design-system/controls';
-import { useCompleteness, useDashboard, useDashboardHeadline, useDashboardSummary } from '@/features/services/hooks/useServices';
+import { useCompleteness, useDashboard, useDashboardHeadline, useDashboardSummary, useServices } from '@/features/services/hooks/useServices';
 import type { CompletenessItem } from '@/features/services/model/service.types';
 import type { ReactNode } from 'react';
 import styles from '../catalogue-dashboard.module.css';
@@ -42,6 +42,9 @@ export default function CataloguePage() {
   const dashboard = useDashboard();
   const decisionSummary = useDashboardSummary();
   const completeness = useCompleteness();
+  // Counted with the same list filters the KPI links open.
+  const attentionQuery = useServices({ limit: 1, readiness: 'attention' });
+  const overdueServiceReviewsQuery = useServices({ limit: 1, reviewDue: 'overdue' });
 
   const completenessItems = completeness.data ?? [];
   const summary = dashboard.data?.summary;
@@ -50,8 +53,8 @@ export default function CataloguePage() {
 
   const totalServices = decision?.total_services ?? headlineServices ?? summary?.total_services ?? completenessItems.length;
   const requestable = summary?.requestable_services ?? 0;
-  const readinessWarnings = completenessItems.filter((item) => item.service_status !== 'retired' && (item.completeness_score ?? 0) < 80).length;
-  const reviewsDue = decision?.overdue_reviews ?? 0;
+  const readinessWarnings = attentionQuery.data?.total ?? 0;
+  const reviewsDue = overdueServiceReviewsQuery.data?.total ?? 0;
   const attention = completenessItems
     .filter((item) => item.service_status !== 'retired')
     .filter((item) => (item.completeness_score ?? 0) < 80 || !item.summary || !hasC3Mapping(item) || (item.flavour_count ?? 0) === 0)
@@ -92,7 +95,7 @@ export default function CataloguePage() {
           { label: `Total: ${formatNumber(totalServices)}`, tone: 'info' },
           { label: `Requestable: ${formatNumber(requestable)}`, tone: 'ok' },
           { label: `Warnings: ${formatNumber(readinessWarnings)}`, tone: readinessWarnings ? 'warn' : 'ok' },
-          { label: `Reviews due: ${formatNumber(reviewsDue)}`, tone: reviewsDue ? 'warn' : 'ok' },
+          { label: `Review date passed: ${formatNumber(reviewsDue)}`, tone: reviewsDue ? 'warn' : 'ok' },
         ]}
         primaryAction={{ href: '/services/list?requestable=true', label: 'Request a service' }}
       />
@@ -105,10 +108,10 @@ export default function CataloguePage() {
           <KpiCard label="Requestable" value={formatNumber(requestable)} tone="success" trendLabel={`${totalServices ? Math.round((requestable / totalServices) * 100) : 0} %`} />
         </Link>
         <Link href="/services/list?readiness=attention" className={styles.kpiLink} aria-label="Otevřít služby s readiness varováním">
-          <KpiCard label="Readiness warnings" value={formatNumber(readinessWarnings)} tone={readinessWarnings ? 'warning' : 'success'} trendLabel={readinessWarnings ? 'vyžaduje pozornost' : 'bez varování'} />
+          <KpiCard label="Readiness blockers or warnings" value={formatNumber(readinessWarnings)} tone={readinessWarnings ? 'warning' : 'success'} trendLabel={readinessWarnings ? 'vyžaduje pozornost' : 'bez varování'} />
         </Link>
         <Link href="/services/list?review_due=overdue" className={styles.kpiLink} aria-label="Otevřít služby po termínu revize">
-          <KpiCard label="Reviews due" value={formatNumber(reviewsDue)} tone={reviewsDue ? 'warning' : 'neutral'} trendLabel={reviewsDue ? 'otevřít governance' : 'bez fronty'} />
+          <KpiCard label="Service review date passed" value={formatNumber(reviewsDue)} tone={reviewsDue ? 'warning' : 'neutral'} trendLabel={reviewsDue ? 'služby po termínu revize' : 'bez prodlení'} />
         </Link>
       </section>
 

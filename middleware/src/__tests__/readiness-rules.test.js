@@ -26,6 +26,7 @@ jest.mock('../db/readiness.repo', () => ({
     getServiceStateByCatalogId: jest.fn(),
     listServiceStates: jest.fn(),
     listExceptionsForService: jest.fn(),
+    listExceptionsForServices: jest.fn(),
     createException: jest.fn(),
     deleteException: jest.fn(),
 }));
@@ -208,7 +209,7 @@ describe('readiness routes', () => {
             state({ service_id: 'SVC-WARN', dependency_relation_count: 0 }),
             state({ service_id: 'SVC-READY' }),
         ]);
-        repo.listExceptionsForService.mockResolvedValue([]);
+        repo.listExceptionsForServices.mockResolvedValue([]);
 
         const response = await request(buildApp()).get('/api/v1/readiness/summary');
 

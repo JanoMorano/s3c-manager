@@ -64,7 +64,9 @@ export default function HomePage() {
   const operations = useOperationsDashboard();
   const dashboard = useDashboard();
   const totalServicesQuery = useServices({ limit: 1 });
-  const readyServicesQuery = useServices({ limit: 1, readiness: 'ready' });
+  // Readiness counts use the readiness rules (same as the readiness gate and
+  // Operations); "ready" here means no blocking failure, i.e. publishable.
+  const readyServicesQuery = useServices({ limit: 1, readiness: 'publishable' });
   const blockedServicesQuery = useServices({ limit: 1, readiness: 'blocked' });
   const overdueReviewsQuery = useServices({ limit: 1, reviewDue: 'overdue' });
   const capabilityGapsQuery = useServices({ limit: 1, readiness: 'missing_capability' });
@@ -79,12 +81,13 @@ export default function HomePage() {
   const operationSections = operations.data?.sections;
 
   const totalServices = totalServicesQuery.data?.total ?? dashboardSummary?.total_services ?? completenessItems.length;
-  const readyServices = readyServicesQuery.data?.total ?? completenessItems.filter((item) => (item.completeness_score ?? 0) >= 80).length;
-  const blockedServices = blockedServicesQuery.data?.total ?? completenessItems.filter((item) => (item.completeness_score ?? 0) < 50).length;
+  const readyServices = readyServicesQuery.data?.total ?? decisionSummary.data?.summary?.services_ready_for_publish ?? 0;
+  const blockedServices = blockedServicesQuery.data?.total ?? decisionSummary.data?.summary?.services_blocked_by_readiness ?? 0;
   const overdueReviews = overdueReviewsQuery.data?.total ?? 0;
   const capabilityGaps = capabilityGapsQuery.data?.total
     ?? completenessItems.filter((item) => !hasC3Mapping(item)).length;
   const capabilityOverlaps = decisionSummary.data?.summary?.over_covered_capabilities ?? 0;
+  const uncoveredCapabilities = decisionSummary.data?.summary?.uncovered_capabilities ?? 0;
 
   const missingOwners = operationSections?.missing_owners ?? [];
   const missingSla = completenessItems
@@ -116,27 +119,27 @@ export default function HomePage() {
         purpose="Stav portfolia, rizik a rozhodnutí v jednom pohledu."
         chips={[
           { label: `Services: ${formatNumber(totalServices)}`, tone: 'info' },
-          { label: `Ready: ${formatNumber(readyServices)}`, tone: 'ok' },
+          { label: `Ready for publish: ${formatNumber(readyServices)}`, tone: 'ok' },
           { label: `Blocked: ${formatNumber(blockedServices)}`, tone: blockedServices ? 'bad' : 'ok' },
-          { label: `Gaps: ${formatNumber(capabilityGaps)}`, tone: capabilityGaps ? 'warn' : 'ok' },
+          { label: `Without capability: ${formatNumber(capabilityGaps)}`, tone: capabilityGaps ? 'warn' : 'ok' },
         ]}
       />
 
       <section className={styles.kpiGrid} aria-label="Portfolio governance KPIs">
         <KpiLinkCard href="/services/list" ariaLabel="Otevřít všechny služby v seznamu">
-          <KpiCard label="Services total" value={formatNumber(totalServices)} tone="info" trendLabel={`${dashboardSummary?.active_services ?? readyServices} aktivních`} />
+          <KpiCard label="Services total" value={formatNumber(totalServices)} tone="info" trendLabel={dashboardSummary?.active_services != null ? `${dashboardSummary.active_services} aktivních` : undefined} />
         </KpiLinkCard>
-        <KpiLinkCard href="/services/list?readiness=ready" ariaLabel="Otevřít služby filtrované jako připravené">
-          <KpiCard label="Ready" value={formatNumber(readyServices)} tone="success" trendLabel={`${totalServices ? Math.round((readyServices / totalServices) * 100) : 0} % portfolia`} />
+        <KpiLinkCard href="/services/list?readiness=publishable" ariaLabel="Otevřít služby připravené k publikaci">
+          <KpiCard label="Ready for publish" value={formatNumber(readyServices)} tone="success" trendLabel={`${totalServices ? Math.round((readyServices / totalServices) * 100) : 0} % portfolia`} />
         </KpiLinkCard>
         <KpiLinkCard href="/services/list?readiness=blocked" ariaLabel="Otevřít služby blokované readiness kontrolou">
-          <KpiCard label="Blocked" value={formatNumber(blockedServices)} tone={blockedServices ? 'danger' : 'success'} trend={blockedServices ? 'up' : undefined} trendLabel={blockedServices ? 'vyžaduje zásah' : 'bez blokace'} />
+          <KpiCard label="Blocked by readiness" value={formatNumber(blockedServices)} tone={blockedServices ? 'danger' : 'success'} trendLabel={blockedServices ? 'vyžaduje zásah' : 'bez blokace'} />
         </KpiLinkCard>
         <KpiLinkCard href="/services/list?review_due=overdue" ariaLabel="Otevřít služby s prošlým termínem revize">
-          <KpiCard label="Reviews overdue" value={formatNumber(overdueReviews)} tone={overdueReviews ? 'warning' : 'neutral'} trendLabel={overdueReviews ? 'otevřít review queue' : 'bez prodlení'} />
+          <KpiCard label="Service review date passed" value={formatNumber(overdueReviews)} tone={overdueReviews ? 'warning' : 'neutral'} trendLabel={overdueReviews ? 'služby po termínu revize' : 'bez prodlení'} />
         </KpiLinkCard>
         <KpiLinkCard href="/services/list?readiness=missing_capability" ariaLabel="Otevřít služby bez capability mapování">
-          <KpiCard label="Capability gaps" value={formatNumber(capabilityGaps)} tone={capabilityGaps ? 'warning' : 'success'} trendLabel={capabilityOverlaps ? `${formatNumber(capabilityOverlaps)} overlaps` : 'coverage stabilní'} />
+          <KpiCard label="Services without capability" value={formatNumber(capabilityGaps)} tone={capabilityGaps ? 'warning' : 'success'} trendLabel={`${formatNumber(uncoveredCapabilities)} uncovered · ${formatNumber(capabilityOverlaps)} overlaps`} />
         </KpiLinkCard>
       </section>
 

@@ -251,10 +251,21 @@ async function logInstallStateOnStart() {
             logger.warn(`⚠️  Install state: ${status} (mode: ${mode}) — application is waiting for installation to finish`);
             logger.warn(`   → Frontend will be redirected to /install`);
         }
+        return status;
     } catch (err) {
         logger.warn(`Install state check failed — ${err.message}`);
         logger.warn(`If this is a fresh install, run init-db-postgres.sh or deploy through Compose.`);
+        return null;
     }
+}
+
+// Imports, seeds and older releases never stored completeness scores; bring
+// them in line once per start, in the background.
+function refreshCompletenessScoresInBackground() {
+    const { refreshAllServiceScores } = require('./services/completeness');
+    refreshAllServiceScores()
+        .then(({ total, updated }) => logger.info(`Completeness scores refreshed: ${updated}/${total} services`))
+        .catch((err) => logger.warn(`Completeness score refresh failed: ${err.message}`));
 }
 
 /**
@@ -329,13 +340,14 @@ async function start() {
         const { getPlatformPool } = require('./db/pool');
         await installSvc.checkAndApplyUpgradeIfNeeded(getPlatformPool());
     } catch { /* must not block startup */ }
-    await logInstallStateOnStart();
+    const installStatus = await logInstallStateOnStart();
     await startRetentionScheduler();
 
     logger.info(`DB connected: ${config.db.server} -> ${config.dbPlatform.database} + ${config.dbData.database}`);
 
     app.listen(config.app.port, () => {
         logger.info(`✅ Service Catalogue API is running on port ${config.app.port} [${config.app.env}]`);
+        if (installStatus === 'READY') refreshCompletenessScoresInBackground();
     });
 }
 

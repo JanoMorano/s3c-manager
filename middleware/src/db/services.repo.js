@@ -238,6 +238,7 @@ async function findAllDirect({
     criticalityCode,
     reviewDue,
     readiness,
+    servicePks,
     requestable,
     sort = 'title',
     order = 'ASC',
@@ -364,16 +365,16 @@ async function findAllDirect({
         filters.push(`sc.review_due_at >= CURRENT_TIMESTAMP`);
         filters.push(`sc.review_due_at < CURRENT_TIMESTAMP + INTERVAL '90 days'`);
     }
-    if (readiness === 'attention') {
-        filters.push(`COALESCE(sc.lifecycle_stage_code, '') <> 'retired'`);
-        filters.push(`COALESCE(sc.completeness_score, 0) < 80`);
-    } else if (readiness === 'blocked') {
+    // Rule-based readiness states (blocked/warning/ready/attention) are resolved
+    // by the readiness service into servicePks; completeness bands stay here.
+    if (Array.isArray(servicePks)) {
+        filters.push(`sc.id = ANY(${bind(servicePks)}::bigint[])`);
+    }
+    if (readiness === 'completeness_low') {
         filters.push(`COALESCE(sc.completeness_score, 0) < 50`);
-    } else if (readiness === 'warning') {
+    } else if (readiness === 'completeness_medium') {
         filters.push(`COALESCE(sc.completeness_score, 0) >= 50`);
         filters.push(`COALESCE(sc.completeness_score, 0) < 80`);
-    } else if (readiness === 'ready') {
-        filters.push(`COALESCE(sc.completeness_score, 0) >= 80`);
     } else if (readiness === 'missing_owner') {
         filters.push(`NOT EXISTS (
             SELECT 1
@@ -459,6 +460,7 @@ async function findAllDirect({
             sc.criticality_code,
             sc.review_due_at,
             sc.requestable,
+            ROUND(sc.completeness_score)::integer AS completeness_score,
             gl.x AS graph_x,
             gl.y AS graph_y,
             sc.updated_at,
@@ -1044,8 +1046,27 @@ async function softDelete(serviceId, performedBy) {
     `, [serviceId, performedBy]);
 }
 
-async function updateScore() {
-    return null;
+// Stores the completeness score used by list filters, dashboards and portfolio
+// views. Leaves updated_at alone: a recalculated score is not a user edit.
+async function updateScore(serviceId, score) {
+    if (score == null || !Number.isFinite(Number(score))) return null;
+    await getPool().query(`
+        UPDATE data.service_catalog
+        SET completeness_score = $2
+        WHERE service_id = $1
+          AND completeness_score IS DISTINCT FROM $2::numeric
+    `, [serviceId, Number(score)]);
+    return Number(score);
+}
+
+async function listActiveServiceIds() {
+    const result = await getPool().query(`
+        SELECT service_id
+        FROM data.service_catalog
+        WHERE is_deleted = FALSE
+        ORDER BY service_id
+    `);
+    return result.rows.map((row) => row.service_id);
 }
 
 async function serviceIdExists(serviceId, excludeServiceId = null) {
@@ -1070,6 +1091,7 @@ module.exports = {
     update,
     softDelete,
     updateScore,
+    listActiveServiceIds,
     serviceIdExists,
     setDomains,
     setRole,

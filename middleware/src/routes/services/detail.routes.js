@@ -114,6 +114,11 @@ router.get('/:id', async (req, res, next) => {
         const flavours = await flRepo.findByService(serviceId);
         const relations = await relRepo.findByService(serviceId);
         const score = serviceScore(svc, flavours);
+        // Keep the stored score current; offerings, roles and mappings change
+        // through their own endpoints without touching the service record.
+        Promise.resolve().then(() => repo.updateScore(serviceId, score)).catch((scoreErr) => {
+            logger.warn(`service detail: completeness score not stored for ${serviceId}: ${scoreErr.message}`);
+        });
         const primaryOffering = offerings.find((item) => item.is_default) || offerings[0] || null;
 
         const businessView = {

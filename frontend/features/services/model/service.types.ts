@@ -28,6 +28,10 @@ export interface ServiceListItem {
   manager: string | null;
   updated_at: string;
   completeness_score?: number | null;
+  /** Readiness rules result (same evaluation as the readiness gate). */
+  readiness_state?: 'blocked' | 'warning' | 'ready' | null;
+  readiness_blocker_count?: number;
+  readiness_warning_count?: number;
   has_c3_mapping?: number | boolean | null;
   c3_mapping_count?: number | null;
   primary_capability_title?: string | null;
@@ -1088,6 +1092,7 @@ export interface DashboardDecisionSummary {
   total_services: number;
   services_ready_for_publish: number;
   services_blocked_by_readiness: number;
+  services_with_readiness_warnings?: number;
   overdue_reviews: number;
   uncovered_capabilities: number;
   over_covered_capabilities: number;

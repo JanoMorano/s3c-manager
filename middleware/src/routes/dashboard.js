@@ -3,6 +3,7 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
+const { getReadinessIndex } = require('../services/readiness');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -36,6 +37,7 @@ function emptySummary() {
         total_services: 0,
         services_ready_for_publish: 0,
         services_blocked_by_readiness: 0,
+        services_with_readiness_warnings: 0,
         overdue_reviews: 0,
         uncovered_capabilities: 0,
         over_covered_capabilities: 0,
@@ -73,12 +75,6 @@ router.get('/summary', async (req, res, next) => {
                 WHERE sc.is_deleted = FALSE
                   AND sc.is_stub = FALSE
             ),
-            readiness AS (
-                SELECT
-                    COUNT(*) FILTER (WHERE COALESCE(is_publishable, FALSE) = TRUE)::integer AS services_ready_for_publish,
-                    COUNT(*) FILTER (WHERE COALESCE(is_publishable, FALSE) = FALSE)::integer AS services_blocked_by_readiness
-                FROM data.v_servicepublishreadiness
-            ),
             capability AS (
                 SELECT
                     COUNT(*) FILTER (WHERE governance_state = 'uncovered')::integer AS uncovered_capabilities,
@@ -106,23 +102,30 @@ router.get('/summary', async (req, res, next) => {
             )
             SELECT
                 COALESCE(service_totals.total_services, 0)::integer AS total_services,
-                COALESCE(readiness.services_ready_for_publish, 0)::integer AS services_ready_for_publish,
-                COALESCE(readiness.services_blocked_by_readiness, 0)::integer AS services_blocked_by_readiness,
                 COALESCE(reviews.overdue_reviews, 0)::integer AS overdue_reviews,
                 COALESCE(capability.uncovered_capabilities, 0)::integer AS uncovered_capabilities,
                 COALESCE(capability.over_covered_capabilities, 0)::integer AS over_covered_capabilities,
                 COALESCE(reviews.active_governance_reviews, 0)::integer AS active_governance_reviews,
                 COALESCE(decisions.recent_decisions, 0)::integer AS recent_decisions
             FROM service_totals
-            CROSS JOIN readiness
             CROSS JOIN capability
             CROSS JOIN reviews
             CROSS JOIN decisions
         `);
 
+        // Readiness counts come from the readiness rules, the same evaluation the
+        // readiness gate, service detail and services list use.
+        const readinessIndex = await getReadinessIndex();
+        const states = [...readinessIndex.values()].map((entry) => entry.state);
+        const readinessCounts = {
+            services_ready_for_publish: states.filter((state) => state !== 'blocked').length,
+            services_blocked_by_readiness: states.filter((state) => state === 'blocked').length,
+            services_with_readiness_warnings: states.filter((state) => state === 'warning').length,
+        };
+
         res.json({
             generated_at: new Date().toISOString(),
-            summary: normalizeSummary(result.rows[0]),
+            summary: normalizeSummary({ ...result.rows[0], ...readinessCounts }),
             links: summaryLinks(),
         });
     } catch (err) { next(err); }

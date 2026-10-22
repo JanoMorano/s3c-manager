@@ -15,17 +15,26 @@ function hasC3Mapping(service: ServiceListItem) {
   return (service.c3_mapping_count ?? 0) > 0;
 }
 
-function readinessTone(score: number): 'success' | 'warning' | 'danger' {
+type ReadinessTone = 'success' | 'warning' | 'danger';
+
+// Colour and label follow the readiness rules (the readiness gate); the bar
+// shows completeness. Older payloads without readiness_state fall back to
+// completeness bands.
+function readinessTone(score: number, state: ServiceListItem['readiness_state']): ReadinessTone {
+  if (state === 'blocked') return 'danger';
+  if (state === 'warning') return 'warning';
+  if (state === 'ready') return 'success';
   if (score >= 80) return 'success';
   if (score >= 50) return 'warning';
   return 'danger';
 }
 
-function readinessLabel(score: number, service: ServiceListItem) {
-  if (score < 50) return `${score}% · blocker`;
-  if (score < 80) return `${score}% · warning`;
-  if (!service.short_description) return `${score}% · summary`;
-  return `${score}% · ready`;
+// Static strings in their own text nodes so the UI text bridge translates them.
+function readinessStateLabel(service: ServiceListItem) {
+  if (service.readiness_state === 'blocked') return 'Blocked';
+  if (service.readiness_state === 'warning') return 'Warnings';
+  if (service.readiness_state === 'ready') return 'Ready';
+  return null;
 }
 
 function ownerLabel(service: ServiceListItem) {
@@ -40,8 +49,8 @@ function nextAction(service: ServiceListItem) {
   const score = service.completeness_score ?? 0;
   if (!ownerLabel(service)) return 'Přiřadit ownera';
   if (!hasC3Mapping(service)) return 'Doplnit capability';
-  if (score < 50) return 'Doplnit readiness';
-  if (score < 80) return 'Spustit review';
+  if (service.readiness_state === 'blocked') return 'Doplnit readiness';
+  if (service.readiness_state === 'warning' || score < 80) return 'Spustit review';
   if (service.lifecycle_state === 'deprecated') return 'Ověřit náhradu';
   return 'Otevřít';
 }
@@ -54,6 +63,12 @@ interface ServiceListRowProps {
 export function ServiceListRow({ service, selected }: ServiceListRowProps) {
   const score = service.completeness_score ?? 0;
   const owner = ownerLabel(service);
+  const stateLabel = readinessStateLabel(service);
+  const issueCount = service.readiness_state === 'blocked'
+    ? service.readiness_blocker_count ?? 0
+    : service.readiness_state === 'warning'
+      ? service.readiness_warning_count ?? 0
+      : 0;
   const capability = capabilityLabel(service);
 
   return (
@@ -86,8 +101,12 @@ export function ServiceListRow({ service, selected }: ServiceListRowProps) {
       </div>
 
       <div className={styles.colReadiness}>
-        <ProgressBar value={score} tone={readinessTone(score)} label={`${service.title} readiness`} />
-        <span className={styles.readinessText}>{readinessLabel(score, service)}</span>
+        <ProgressBar value={score} tone={readinessTone(score, service.readiness_state)} label={`${service.title} completeness`} />
+        <span className={styles.readinessText} title="Completeness · readiness rules">
+          {score} %
+          {stateLabel && <> · <span className={styles[`readiness_${service.readiness_state}`]}>{stateLabel}</span></>}
+          {issueCount > 0 && <> ({issueCount})</>}
+        </span>
       </div>
 
       <div className={styles.colCapability}>

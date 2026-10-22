@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T19:01:53.465Z",
+  "generated_at": "2026-10-22T19:40:57.505Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -1288,6 +1288,15 @@
       ]
     },
     {
+      "key": "ui.generated.at_least_one_blocking_readiness_rule_fails_same_.utpdrd",
+      "source": "At least one blocking readiness rule fails (same as the readiness gate)",
+      "cs": "Nesplňuje alespoň jedno blokující pravidlo připravenosti (stejně jako brána připravenosti)",
+      "en": "At least one blocking readiness rule fails (same as the readiness gate)",
+      "files": [
+        "frontend/app/services/list/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.audit_and_shortcuts.46sgqp",
       "source": "Audit and shortcuts",
       "cs": "Audit a zkratky",
@@ -1414,15 +1423,6 @@
       ]
     },
     {
-      "key": "ui.generated.bez_fronty.bq5ckn",
-      "source": "bez fronty",
-      "cs": "bez fronty",
-      "en": "no queue",
-      "files": [
-        "frontend/app/catalogue/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.bez_lifecycle.gtdeqn",
       "source": "bez lifecycle",
       "cs": "bez životní cyklus",
@@ -1474,6 +1474,7 @@
       "cs": "bez prodlení",
       "en": "without delay",
       "files": [
+        "frontend/app/catalogue/page.tsx",
         "frontend/app/page.tsx"
       ]
     },
@@ -1539,15 +1540,24 @@
       "files": [
         "frontend/app/operations/page.tsx",
         "frontend/app/operations/readiness/page.tsx",
-        "frontend/app/page.tsx",
-        "frontend/features/capabilities/CapabilityGovernancePage.tsx"
+        "frontend/features/capabilities/CapabilityGovernancePage.tsx",
+        "frontend/features/services/components/ServiceListRow.tsx"
       ]
     },
     {
-      "key": "ui.generated.blocked_50.bde3rt",
-      "source": "Blocked (<50%)",
-      "cs": "Blokováno (<50 %)",
-      "en": "Blocked (<50%)",
+      "key": "ui.generated.blocked_by_readiness.k4or79",
+      "source": "Blocked by readiness",
+      "cs": "Blokováno připraveností",
+      "en": "Blocked by readiness",
+      "files": [
+        "frontend/app/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.blocked_by_readiness_rules.9ixnhw",
+      "source": "Blocked by readiness rules",
+      "cs": "Blokováno pravidly připravenosti",
+      "en": "Blocked by readiness rules",
       "files": [
         "frontend/app/services/list/page.tsx"
       ]
@@ -1559,6 +1569,15 @@
       "en": "Blocked or uncovered",
       "files": [
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.blocked_or_warnings.3jfucg",
+      "source": "Blocked or warnings",
+      "cs": "Blokováno nebo s varováním",
+      "en": "Blocked or warnings",
+      "files": [
+        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -2407,15 +2426,6 @@
       ]
     },
     {
-      "key": "ui.generated.capability_gaps.zg12dh",
-      "source": "Capability gaps",
-      "cs": "Mezery schopností",
-      "en": "Capability gaps",
-      "files": [
-        "frontend/app/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.capability_gaps.zfgmsl",
       "source": "Capability Gaps",
       "cs": "Mezery schopností",
@@ -2993,21 +3003,39 @@
       ]
     },
     {
+      "key": "ui.generated.completeness_readiness_rules.vi3qzs",
+      "source": "Completeness · readiness rules",
+      "cs": "Úplnost · pravidla připravenosti",
+      "en": "Completeness · readiness rules",
+      "files": [
+        "frontend/features/services/components/ServiceListRow.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.completeness_50_79.ibu0r3",
+      "source": "Completeness 50–79 %",
+      "cs": "Úplnost 50–79 %",
+      "en": "Completeness 50–79 %",
+      "files": [
+        "frontend/app/services/list/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.completeness_below_50.cu28pt",
+      "source": "Completeness below 50 %",
+      "cs": "Úplnost pod 50 %",
+      "en": "Completeness below 50 %",
+      "files": [
+        "frontend/app/services/list/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.completeness_score.yai3y6",
       "source": "Completeness Score",
       "cs": "Completeness Score",
       "en": "Completeness Score",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.completeness_under_50.xy6h82",
-      "source": "Completeness under 50%",
-      "cs": "Completeness under 50%",
-      "en": "Completeness under 50%",
-      "files": [
-        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -3171,15 +3199,6 @@
       "en": "Coverage review",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.coverage_stabilni.fpostg",
-      "source": "coverage stabilní",
-      "cs": "pokrytí stabilní",
-      "en": "coverage stable",
-      "files": [
-        "frontend/app/page.tsx"
       ]
     },
     {
@@ -4581,6 +4600,15 @@
       ]
     },
     {
+      "key": "ui.generated.failed_to_load_services.f9v8pi",
+      "source": "Failed to load services",
+      "cs": "Načtení služeb selhalo",
+      "en": "Failed to load services",
+      "files": [
+        "frontend/app/services/list/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.failed_to_load_services_check_middleware_connect.3siojm",
       "source": "Failed to load services. Check middleware connection.",
       "cs": "Selhalo to načíst služby. Kontrola middleware connection.",
@@ -5028,6 +5056,15 @@
       "files": [
         "frontend/app/components/NavGlobalSearch.tsx",
         "frontend/app/search/SearchPageClient.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.hide_filters.496mkj",
+      "source": "Hide filters",
+      "cs": "Skrýt filtry",
+      "en": "Hide filters",
+      "files": [
+        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -6825,7 +6862,6 @@
         "frontend/app/administration/import/page.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/app/c3/capability-map/CapabilityMapPage.tsx",
-        "frontend/app/services/list/page.tsx",
         "frontend/features/admin/components/RefTableEditor.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
       ]
@@ -6847,15 +6883,6 @@
       "files": [
         "frontend/app/admin/c3-entities/C3EntityListPage.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.nacteni_sluzeb_selhalo.18bxed",
-      "source": "Načtení služeb selhalo",
-      "cs": "Načtení služeb selhalo",
-      "en": "Failed to load services",
-      "files": [
-        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -7256,15 +7283,6 @@
       "files": [
         "frontend/app/operations/reviews/page.tsx",
         "frontend/app/spirals/[code]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.needs_attention_80.yfltth",
-      "source": "Needs attention (<80%)",
-      "cs": "Vyžaduje pozornost (<80 %)",
-      "en": "Needs attention (<80%)",
-      "files": [
-        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -8553,15 +8571,6 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_governance.s2ud0o",
-      "source": "otevřít governance",
-      "cs": "otevřít správa",
-      "en": "open governance",
-      "files": [
-        "frontend/app/catalogue/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_level_3_schopnosti.o7pucm",
       "source": "Otevřít Level-3 schopnosti",
       "cs": "Otevřít schopnosti Level-3",
@@ -8661,15 +8670,6 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_review_queue.6nfukf",
-      "source": "otevřít review queue",
-      "cs": "otevřít revize fronta",
-      "en": "open review queue",
-      "files": [
-        "frontend/app/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_revize_po_terminu.w9a0sg",
       "source": "Otevřít revize po termínu",
       "cs": "Otevřít revize po termínu",
@@ -8706,21 +8706,21 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_sluzby_filtrovane_jako_pripravene.t59v1p",
-      "source": "Otevřít služby filtrované jako připravené",
-      "cs": "Otevřít služby filtrované jako připravené",
-      "en": "Open services filtered as ready",
-      "files": [
-        "frontend/app/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_sluzby_po_terminu_revize.o8hfll",
       "source": "Otevřít služby po termínu revize",
       "cs": "Otevřít služby po termínu revize",
       "en": "Open services with overdue reviews",
       "files": [
         "frontend/app/catalogue/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.otevrit_sluzby_pripravene_k_publikaci.pmpyhn",
+      "source": "Otevřít služby připravené k publikaci",
+      "cs": "Otevřít služby připravené k publikaci",
+      "en": "Open services ready for publish",
+      "files": [
+        "frontend/app/page.tsx"
       ]
     },
     {
@@ -8806,10 +8806,10 @@
       ]
     },
     {
-      "key": "ui.generated.overdue_active_reviews.qwapgu",
-      "source": "overdue / active reviews",
-      "cs": "po termínu / aktivní revize",
-      "en": "overdue / active reviews",
+      "key": "ui.generated.overdue_active_review_tasks.j59nzj",
+      "source": "overdue / active review tasks",
+      "cs": "po termínu / aktivní revizní úkoly",
+      "en": "overdue / active review tasks",
       "files": [
         "frontend/app/operations/page.tsx"
       ]
@@ -8824,19 +8824,19 @@
       ]
     },
     {
-      "key": "ui.generated.overdue_reviews.a7d1nf",
-      "source": "overdue reviews",
-      "cs": "revize po termínu",
-      "en": "overdue reviews",
+      "key": "ui.generated.overdue_review_tasks.i2ausm",
+      "source": "Overdue review tasks",
+      "cs": "Revizní úkoly po termínu",
+      "en": "Overdue review tasks",
       "files": [
         "frontend/app/operations/page.tsx"
       ]
     },
     {
-      "key": "ui.generated.overdue_reviews.6a8i2t",
-      "source": "Overdue reviews",
-      "cs": "Po termínu revize",
-      "en": "Overdue reviews",
+      "key": "ui.generated.overdue_reviews.a7d1nf",
+      "source": "overdue reviews",
+      "cs": "revize po termínu",
+      "en": "overdue reviews",
       "files": [
         "frontend/app/operations/page.tsx"
       ]
@@ -9816,15 +9816,6 @@
       ]
     },
     {
-      "key": "ui.generated.pripravenost.mf6kwa",
-      "source": "Připravenost:",
-      "cs": "Připravenost:",
-      "en": "Readiness:",
-      "files": [
-        "frontend/app/portfolio/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.priradit_ownera.gddeop",
       "source": "Přiřadit ownera",
       "cs": "Přiřadit vlastníka",
@@ -10210,6 +10201,15 @@
       ]
     },
     {
+      "key": "ui.generated.readiness_blockers_or_warnings.ibz00t",
+      "source": "Readiness blockers or warnings",
+      "cs": "Blokery nebo varování připravenosti",
+      "en": "Readiness blockers or warnings",
+      "files": [
+        "frontend/app/catalogue/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.readiness_blokatoru_review_muze_selhat.n4ujnl",
       "source": "readiness blokátorů — review může selhat",
       "cs": "připravenost blokátorů — revize může selhat",
@@ -10291,12 +10291,12 @@
       ]
     },
     {
-      "key": "ui.generated.readiness_warnings.eowsyb",
-      "source": "Readiness warnings",
-      "cs": "Varování připravenosti",
-      "en": "Readiness warnings",
+      "key": "ui.generated.readiness_warnings_only.g8c0ov",
+      "source": "Readiness warnings only",
+      "cs": "Pouze varování připravenosti",
+      "en": "Readiness warnings only",
       "files": [
-        "frontend/app/catalogue/page.tsx"
+        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -10316,17 +10316,8 @@
       "files": [
         "frontend/app/operations/page.tsx",
         "frontend/app/operations/readiness/page.tsx",
-        "frontend/app/page.tsx",
-        "frontend/features/capabilities/CapabilityGovernancePage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.ready_80.mxsq00",
-      "source": "Ready (80%+)",
-      "cs": "Připraveno (80%+)",
-      "en": "Ready (80%+)",
-      "files": [
-        "frontend/app/services/list/page.tsx"
+        "frontend/features/capabilities/CapabilityGovernancePage.tsx",
+        "frontend/features/services/components/ServiceListRow.tsx"
       ]
     },
     {
@@ -10336,6 +10327,25 @@
       "en": "Ready For Publish",
       "files": [
         "frontend/app/operations/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.ready_for_publish.e966z",
+      "source": "Ready for publish",
+      "cs": "Připraveno k publikaci",
+      "en": "Ready for publish",
+      "files": [
+        "frontend/app/page.tsx",
+        "frontend/app/services/list/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.ready_no_warnings.r0jpa9",
+      "source": "Ready, no warnings",
+      "cs": "Připraveno, bez varování",
+      "en": "Ready, no warnings",
+      "files": [
+        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -11020,17 +11030,7 @@
       "cs": "Termín revize",
       "en": "Reviews due",
       "files": [
-        "frontend/app/catalogue/page.tsx",
         "frontend/app/services/list/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.reviews_overdue.queidh",
-      "source": "Reviews overdue",
-      "cs": "Revize po termínu",
-      "en": "Reviews overdue",
-      "files": [
-        "frontend/app/page.tsx"
       ]
     },
     {
@@ -11802,6 +11802,16 @@
       ]
     },
     {
+      "key": "ui.generated.service_review_date_passed.k43pkr",
+      "source": "Service review date passed",
+      "cs": "Termín revize služby uplynul",
+      "en": "Service review date passed",
+      "files": [
+        "frontend/app/catalogue/page.tsx",
+        "frontend/app/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.service_statuses.5cu1yj",
       "source": "Service Statuses",
       "cs": "Služba Statuses",
@@ -11971,6 +11981,15 @@
       ]
     },
     {
+      "key": "ui.generated.services_without_capability.voricu",
+      "source": "Services without capability",
+      "cs": "Služby bez schopnosti",
+      "en": "Services without capability",
+      "files": [
+        "frontend/app/page.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.services.txhy0s",
       "source": "Services:",
       "cs": "Služby:",
@@ -12032,6 +12051,15 @@
       "en": "Short Description",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
+      ]
+    },
+    {
+      "key": "ui.generated.show_filters.rn5rm0",
+      "source": "Show filters",
+      "cs": "Zobrazit filtry",
+      "en": "Show filters",
+      "files": [
+        "frontend/app/services/list/page.tsx"
       ]
     },
     {
@@ -12238,12 +12266,13 @@
       ]
     },
     {
-      "key": "ui.generated.sluzby_pod_hranici_pripravenosti_pro_publikaci.3tb3bq",
-      "source": "Služby pod hranicí připravenosti pro publikaci",
-      "cs": "Služby pod hranicí připravenosti pro publikaci",
-      "en": "Services below the publication readiness threshold",
+      "key": "ui.generated.sluzby_po_terminu_revize.ul2rz1",
+      "source": "služby po termínu revize",
+      "cs": "služby po termínu revize",
+      "en": "services past their review date",
       "files": [
-        "frontend/app/portfolio/page.tsx"
+        "frontend/app/catalogue/page.tsx",
+        "frontend/app/page.tsx"
       ]
     },
     {
@@ -12260,6 +12289,15 @@
       "source": "Služby s katalogovým vstupem pro poptávku",
       "cs": "Služby s katalogovým vstupem pro poptávku",
       "en": "Services with a catalogue demand entry",
+      "files": [
+        "frontend/app/portfolio/page.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.sluzby_s_nesplnenym_blokujicim_pravidlem_priprav.qjxpzz",
+      "source": "Služby s nesplněným blokujícím pravidlem připravenosti",
+      "cs": "Služby s nesplněným blokujícím pravidlem připravenosti",
+      "en": "Services failing a blocking readiness rule",
       "files": [
         "frontend/app/portfolio/page.tsx"
       ]
@@ -14373,15 +14411,6 @@
       ]
     },
     {
-      "key": "ui.generated.warning_50_79.h0r1tg",
-      "source": "Warning (50-79%)",
-      "cs": "Varování (50-79%)",
-      "en": "Warning (50-79%)",
-      "files": [
-        "frontend/app/services/list/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.warnings.9b1d9z",
       "source": "Warnings",
       "cs": "Varování",
@@ -14389,7 +14418,8 @@
       "files": [
         "frontend/app/import/page.tsx",
         "frontend/app/import/upload/page.tsx",
-        "frontend/app/operations/readiness/page.tsx"
+        "frontend/app/operations/readiness/page.tsx",
+        "frontend/features/services/components/ServiceListRow.tsx"
       ]
     },
     {

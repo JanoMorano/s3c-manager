@@ -70,18 +70,17 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleDateString('cs-CZ');
 }
 
-function readinessTone(score: number | null | undefined): BadgeVariant {
+// Completeness is a data-quality score. Whether a service blocks publishing
+// comes from the readiness rules (readiness_blocked), as on the readiness gate.
+function completenessTone(score: number | null | undefined): BadgeVariant {
   const value = Number(score ?? 0);
   if (value >= 80) return 'success';
   if (value >= 50) return 'warning';
   return 'danger';
 }
 
-function readinessLabel(score: number | null | undefined) {
-  const value = Math.round(Number(score ?? 0));
-  if (value >= 80) return `Připravenost ${value}%`;
-  if (value >= 50) return `Doplnit připravenost ${value}%`;
-  return `Blokuje připravenost ${value}%`;
+function completenessLabel(score: number | null | undefined) {
+  return `Úplnost ${Math.round(Number(score ?? 0))} %`;
 }
 
 function serviceOwner(service: ServicePortfolioService) {
@@ -275,7 +274,7 @@ export default function PortfolioPage() {
     { id: 'overdue', label: 'Po termínu revize', value: serviceTotals.overdue, hint: 'Služby čekající na governance revizi', tone: serviceTotals.overdue > 0 ? 'danger' : 'success' },
     { id: 'due_soon', label: 'Revize do 90 dnů', value: serviceTotals.dueSoon, hint: 'Služby, které bude potřeba brzy znovu potvrdit', tone: serviceTotals.dueSoon > 0 ? 'warning' : 'success' },
     { id: 'missing_owner', label: 'Chybí vlastník', value: serviceTotals.missingOwner, hint: 'Služby bez aktivního vlastníka služby', tone: serviceTotals.missingOwner > 0 ? 'danger' : 'success' },
-    { id: 'readiness_blocked', label: 'Blokery připravenosti', value: serviceTotals.readinessBlocked, hint: 'Služby pod hranicí připravenosti pro publikaci', tone: serviceTotals.readinessBlocked > 0 ? 'danger' : 'success' },
+    { id: 'readiness_blocked', label: 'Blokery připravenosti', value: serviceTotals.readinessBlocked, hint: 'Služby s nesplněným blokujícím pravidlem připravenosti', tone: serviceTotals.readinessBlocked > 0 ? 'danger' : 'success' },
   ];
   const selectedFilter = serviceFilterOptions.find((option) => option.id === serviceFilter);
   const filteredServices = serviceFilter ? serviceScopeData?.items ?? [] : [];
@@ -334,13 +333,12 @@ export default function PortfolioPage() {
                     <small>
                       Vlastník: {serviceOwner(service) ?? 'chybí'}
                       {' · '}Revize: {formatDate(service.review_due_at)}
-                      {' · '}Připravenost: {Math.round(Number(service.completeness_score ?? 0))}%
                     </small>
                   </span>
                   <span className={styles.rowBadges}>
                     {service.requestable ? <Badge variant="info">Objednatelné</Badge> : null}
-                    <Badge variant={readinessTone(service.completeness_score)}>
-                      {readinessLabel(service.completeness_score)}
+                    <Badge variant={completenessTone(service.completeness_score)}>
+                      {completenessLabel(service.completeness_score)}
                     </Badge>
                     {serviceHasMissingOwner(service) ? <Badge variant="danger">Chybí vlastník</Badge> : null}
                     {service.readiness_blocked ? <Badge variant="danger">Blokuje připravenost</Badge> : null}
@@ -460,9 +458,10 @@ export default function PortfolioPage() {
                         </span>
                         <span className={styles.rowBadges}>
                           {service.requestable ? <Badge variant="info">Objednatelné</Badge> : null}
-                          <Badge variant={readinessTone(service.completeness_score)}>
-                            {readinessLabel(service.completeness_score)}
+                          <Badge variant={completenessTone(service.completeness_score)}>
+                            {completenessLabel(service.completeness_score)}
                           </Badge>
+                          {service.readiness_blocked ? <Badge variant="danger">Blokuje připravenost</Badge> : null}
                           <Badge variant={statusTone(service.service_status)}>{service.service_status ?? 'neznámý'}</Badge>
                         </span>
                       </Link>

@@ -309,7 +309,9 @@ export default function OperationsPage() {
     : readiness.data?.groups?.warnings ?? [];
   const readinessBlockerCount = readiness.data?.counts?.blockers ?? summary?.services_blocked_by_readiness ?? 0;
   const reviewItems = reviews.data?.items ?? [];
-  const overdueReviewCount = reviewItems.filter((item) => item.overdue).length;
+  // Server-side counts cover every review task; the item list is only the first page.
+  const overdueReviewCount = summary?.overdue_reviews ?? reviewItems.filter((item) => item.overdue).length;
+  const activeReviewCount = summary?.active_governance_reviews ?? reviewItems.length;
   const decisionItems = decisions.data?.items ?? [];
   const ownerAssignmentItems = ownerAssignments.data?.items ?? [];
   const dataQualityCount = incomplete.length + missingOwners.length + c3GapTotal;
@@ -349,10 +351,10 @@ export default function OperationsPage() {
           />
           <CockpitSignal
             title="Reviews"
-            value={`${formatCount(overdueReviewCount || summary?.overdue_reviews)} / ${formatCount(reviewItems.length || summary?.active_governance_reviews)}`}
-            detail="overdue / active reviews"
+            value={`${formatCount(overdueReviewCount)} / ${formatCount(activeReviewCount)}`}
+            detail="overdue / active review tasks"
             href={summaryLinks.review_deadlines}
-            tone={(overdueReviewCount || summary?.overdue_reviews || 0) > 0 ? 'danger' : 'neutral'}
+            tone={overdueReviewCount > 0 ? 'danger' : 'neutral'}
           />
           <CockpitSignal
             title="Decisions"
@@ -396,9 +398,9 @@ export default function OperationsPage() {
         </Link>
         <Link href={`/operations/reviews?overdue=1&status=${encodeURIComponent(OPEN_REVIEW_STATUS_FILTER)}`} className={styles.kpiLink} aria-label="Otevřít revize po termínu">
           <KpiCard
-            label="Overdue reviews"
-            value={overdueReviewCount || summary?.overdue_reviews || 0}
-            tone={(overdueReviewCount || summary?.overdue_reviews || 0) ? 'danger' : 'success'}
+            label="Overdue review tasks"
+            value={overdueReviewCount}
+            tone={overdueReviewCount ? 'danger' : 'success'}
             hint="needs owner or governance action"
           />
         </Link>

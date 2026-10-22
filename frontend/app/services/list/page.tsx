@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from '@/app/components/AppLink';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useDebouncedInput } from '@/hooks/useDebouncedInput';
+import { useStoredToggle } from '@/hooks/useStoredToggle';
 import { useServices, usePortfolioGroups, useNetworkDomains, useCatalogQualitySummary } from '@/features/services/hooks/useServices';
 import { ServiceListRow, ServiceListHeader } from '@/features/services/components/ServiceListRow';
 import { Button } from '@/design-system/controls/Button';
@@ -31,11 +32,16 @@ type QuickFilter = {
   updates: Record<string, string | readonly string[] | undefined>;
   isActive: (state: QuickFilterState) => boolean;
 };
+// blocked / warning / ready follow the readiness rules (readiness gate);
+// completeness bands are a separate, data-quality view.
 const READINESS_OPTIONS = [
-  { value: 'attention', label: 'Needs attention (<80%)' },
-  { value: 'blocked', label: 'Blocked (<50%)' },
-  { value: 'warning', label: 'Warning (50-79%)' },
-  { value: 'ready', label: 'Ready (80%+)' },
+  { value: 'blocked', label: 'Blocked by readiness rules' },
+  { value: 'warning', label: 'Readiness warnings only' },
+  { value: 'attention', label: 'Blocked or warnings' },
+  { value: 'publishable', label: 'Ready for publish' },
+  { value: 'ready', label: 'Ready, no warnings' },
+  { value: 'completeness_low', label: 'Completeness below 50 %' },
+  { value: 'completeness_medium', label: 'Completeness 50–79 %' },
   { value: 'missing_owner', label: 'Missing owner' },
   { value: 'missing_request', label: 'Missing request channel' },
   { value: 'missing_capability', label: 'Missing capability' },
@@ -52,7 +58,7 @@ const QUICK_FILTERS: QuickFilter[] = [
   {
     id: 'blocked',
     label: 'Readiness blocked',
-    hint: 'Completeness under 50%',
+    hint: 'At least one blocking readiness rule fails (same as the readiness gate)',
     updates: { readiness: 'blocked', review_due: undefined, lifecycle: undefined },
     isActive: ({ readiness }) => readiness === 'blocked',
   },
@@ -185,6 +191,9 @@ function CatalogueInner() {
   const { data, isLoading, error } = useServices(params);
   const { data: qualityData } = useCatalogQualitySummary();
   const hasFilters = !!(domains.length || owner || portfolio || search || lifecycles.length || readiness || reviewDue || requestableParam);
+  const activeFilterCount = [owner, portfolio, search, readiness, reviewDue, requestableParam].filter(Boolean).length
+    + (domains.length ? 1 : 0) + (lifecycles.length ? 1 : 0);
+  const [railCollapsed, toggleRail] = useStoredToggle('s3c_services_filters_collapsed');
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / limit));
   const [role, setRole] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -234,10 +243,10 @@ function CatalogueInner() {
   const quality = qualityData?.item;
 
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${railCollapsed ? styles.shellRailCollapsed : ''}`}>
 
       {/* ── Filter rail ──────────────────────────────────────────────── */}
-      <aside className={styles.rail} aria-label="Filters">
+      <aside id="service-filter-rail" className={styles.rail} aria-label="Filters">
         <div className={styles.railSection}>
           <input
             className={styles.searchInput}
@@ -383,9 +392,23 @@ function CatalogueInner() {
 
         {/* Toolbar */}
         <div className={styles.toolbar}>
-          <span className={styles.resultCount} aria-live="polite">
-            {isLoading ? 'Načítám…' : error ? 'Načtení služeb selhalo' : formatCountLabel(data?.total ?? 0, COUNT_LABELS.services)}
-          </span>
+          <div className={styles.toolbarLeft}>
+            <button
+              type="button"
+              className={styles.railToggle}
+              onClick={toggleRail}
+              aria-expanded={!railCollapsed}
+              aria-controls="service-filter-rail"
+            >
+              <span>{railCollapsed ? 'Show filters' : 'Hide filters'}</span>
+              {railCollapsed && activeFilterCount > 0 && (
+                <span className={styles.railToggleCount} aria-label={`${activeFilterCount} active`}>{activeFilterCount}</span>
+              )}
+            </button>
+            <span className={styles.resultCount} aria-live="polite">
+              {isLoading ? 'Loading…' : error ? 'Failed to load services' : formatCountLabel(data?.total ?? 0, COUNT_LABELS.services)}
+            </span>
+          </div>
           <div className={styles.toolbarRight}>
             <select
               className={styles.pageSizeSelect}

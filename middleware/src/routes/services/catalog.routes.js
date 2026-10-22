@@ -7,8 +7,30 @@ const repo = require('../../db/services.repo');
 const audit = require('../../db/audit.repo');
 const { canEdit } = require('../../middleware/rbac');
 const { _csvEscapeCell } = require('./shared');
+const { getReadinessIndex, servicePksForReadinessFilter } = require('../../services/readiness');
 
 const router = express.Router();
+
+// blocked/warning/ready/attention come from the readiness rules (same as the
+// readiness gate); other readiness values are plain SQL filters in the repo.
+async function readinessFilterArgs(readiness) {
+    const servicePks = await servicePksForReadinessFilter(readiness);
+    return servicePks ? { readiness: undefined, servicePks } : { readiness, servicePks: undefined };
+}
+
+async function withReadiness(items) {
+    if (!items.length) return items;
+    const index = await getReadinessIndex({ servicePks: items.map((item) => item.id) });
+    return items.map((item) => {
+        const entry = index.get(String(item.id));
+        return {
+            ...item,
+            readiness_state: entry?.state ?? null,
+            readiness_blocker_count: entry?.blocker_count ?? 0,
+            readiness_warning_count: entry?.warning_count ?? 0,
+        };
+    });
+}
 
 // ─── GET /services ────────────────────────────────────────────────────────────
 router.get('/', async (req, res, next) => {
@@ -41,13 +63,14 @@ router.get('/', async (req, res, next) => {
             lifecycleStageCode,
             criticalityCode,
             reviewDue,
-            readiness,
+            ...(await readinessFilterArgs(readiness)),
             requestable,
         });
+        const items = await withReadiness(result.items);
         res.set('X-Total-Count', result.total)
            .set('X-Page', result.page)
            .set('X-Per-Page', result.limit)
-           .json(result);
+           .json({ ...result, items });
     } catch (err) { next(err); }
 });
 
@@ -86,7 +109,7 @@ router.get('/export/csv', canEdit, async (req, res, next) => {
             lifecycleStageCode,
             criticalityCode,
             reviewDue,
-            readiness,
+            ...(await readinessFilterArgs(readiness)),
             requestable,
         });
 

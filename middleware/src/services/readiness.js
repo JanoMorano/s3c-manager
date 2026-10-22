@@ -244,30 +244,94 @@ async function getServiceReadinessByCatalogId(catalogId) {
     return evaluateServiceReadinessState(row, rules, exceptions);
 }
 
-async function getReadinessSummary(filters = {}) {
+// Readiness state of one evaluated service: the single definition behind
+// "blocked", "warning" and "ready" on every screen.
+function readinessStateOf(readiness) {
+    if (!readiness) return null;
+    if (readiness.blockers.length > 0) return 'blocked';
+    if (readiness.warnings.length > 0) return 'warning';
+    return 'ready';
+}
+
+// Evaluates readiness rules for many services with three queries in total.
+// filters: { servicePks?, lifecycle?, owner? } — without servicePks the whole
+// catalogue (non-deleted, non-stub services) is evaluated.
+async function evaluateReadiness(filters = {}) {
     const [rules, rows] = await Promise.all([
         repo.listRules(),
-        repo.listServiceStates(filters),
+        repo.listServiceStates({ ...filters, all: true }),
     ]);
-
+    const exceptions = await repo.listExceptionsForServices(
+        Array.isArray(filters.servicePks) ? filters.servicePks : null,
+    );
+    const exceptionsByService = new Map();
+    for (const exception of exceptions) {
+        const key = String(exception.service_id);
+        if (!exceptionsByService.has(key)) exceptionsByService.set(key, []);
+        exceptionsByService.get(key).push(exception);
+    }
     const items = [];
     for (const row of rows) {
-        const exceptions = await repo.listExceptionsForService(row.service_pk);
-        const readiness = evaluateServiceReadinessState(row, rules, exceptions);
+        const readiness = evaluateServiceReadinessState(row, rules, exceptionsByService.get(String(row.service_pk)) ?? []);
         if (readiness) items.push(readiness);
     }
+    return items;
+}
+
+// Map of service catalog id (as string) → { state, blocker_count, warning_count }.
+async function getReadinessIndex(filters = {}) {
+    const items = await evaluateReadiness(filters);
+    return new Map(items.map((item) => [String(item.service_pk), {
+        state: readinessStateOf(item),
+        blocker_count: item.blockers.length,
+        warning_count: item.warnings.length,
+    }]));
+}
+
+const READINESS_STATE_FILTERS = {
+    blocked: ['blocked'],
+    warning: ['warning'],
+    ready: ['ready'],
+    attention: ['blocked', 'warning'],
+    // No blocking failure: what "ready for publish" counts.
+    publishable: ['ready', 'warning'],
+};
+
+function isReadinessStateFilter(value) {
+    return Object.prototype.hasOwnProperty.call(READINESS_STATE_FILTERS, value);
+}
+
+// Service catalog ids whose readiness state matches a list filter value
+// (blocked | warning | ready | attention | publishable), or null otherwise.
+async function servicePksForReadinessFilter(value) {
+    if (!isReadinessStateFilter(value)) return null;
+    const wanted = new Set(READINESS_STATE_FILTERS[value]);
+    const index = await getReadinessIndex();
+    return [...index.entries()].filter(([, entry]) => wanted.has(entry.state)).map(([pk]) => pk);
+}
+
+async function getReadinessSummary(filters = {}) {
+    // Counts always cover every matching service; only the item lists are paged.
+    const all = await evaluateReadiness({ lifecycle: filters.lifecycle, owner: filters.owner });
+    const offset = Math.max(0, Number.parseInt(filters.offset ?? 0, 10) || 0);
+    const limit = Math.max(1, Number.parseInt(filters.limit ?? 100, 10) || 100);
+    const page = (list) => list.slice(offset, offset + limit);
 
     const groups = {
-        blockers: items.filter((item) => item.blockers.length > 0),
-        warnings: items.filter((item) => item.blockers.length === 0 && item.warnings.length > 0),
-        ready: items.filter((item) => item.blockers.length === 0 && item.warnings.length === 0),
+        blockers: all.filter((item) => readinessStateOf(item) === 'blocked'),
+        warnings: all.filter((item) => readinessStateOf(item) === 'warning'),
+        ready: all.filter((item) => readinessStateOf(item) === 'ready'),
     };
 
     return {
-        items,
-        groups,
+        items: page(all),
+        groups: {
+            blockers: page(groups.blockers),
+            warnings: page(groups.warnings),
+            ready: page(groups.ready),
+        },
         counts: {
-            total: items.length,
+            total: all.length,
             blockers: groups.blockers.length,
             warnings: groups.warnings.length,
             ready: groups.ready.length,
@@ -285,6 +349,10 @@ module.exports = {
     getServiceReadiness,
     getServiceReadinessByCatalogId,
     getReadinessSummary,
+    getReadinessIndex,
     getServiceStateByCatalogId,
     isActiveServiceStatus,
+    isReadinessStateFilter,
+    readinessStateOf,
+    servicePksForReadinessFilter,
 };
