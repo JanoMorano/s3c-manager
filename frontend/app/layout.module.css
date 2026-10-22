@@ -313,6 +313,11 @@
   color: var(--color-text-primary);
 }
 
+.breadcrumbText {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .breadcrumbCurrent {
   color: var(--color-text-primary);
   font-weight: 600;

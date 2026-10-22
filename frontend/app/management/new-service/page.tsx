@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { optionalNumber } from '@/shared/utils/zodFields';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
 import Link from '@/app/components/AppLink';
@@ -168,9 +169,9 @@ const schema = z.object({
   service_owner_org:            z.string().optional(),
   vlastnik:                     z.string().optional(),
   manager:                      z.string().optional(),
-  sla_availability:             z.coerce.number().min(0).max(100).optional().nullable(),
-  sla_restoration:              z.coerce.number().min(0).optional().nullable(),
-  sla_delivery:                 z.coerce.number().min(0).optional().nullable(),
+  sla_availability:             optionalNumber(0, 100),
+  sla_restoration:              optionalNumber(0),
+  sla_delivery:                 optionalNumber(0),
   domains:                      z.array(z.string()).optional(),
   notes_json:                   z.string().optional(),
 });

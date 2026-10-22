@@ -1,7 +1,13 @@
 import type { NextConfig } from 'next';
+import packageJson from './package.json';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+
+  // Shown in the sidebar; follows the release version in package.json.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+  },
 
   // API proxy: /api/* -> local middleware inside the app container.
   // Applies to server-side execution (SSR, Route Handlers).

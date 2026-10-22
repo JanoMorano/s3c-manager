@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25T19:47:49.495Z",
+  "generated_at": "2026-10-22T19:01:53.465Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -2114,6 +2114,15 @@
       "en": "C3 Parent",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
+      ]
+    },
+    {
+      "key": "ui.generated.c3_reference.92w79",
+      "source": "C3 reference",
+      "cs": "C3 reference (expertní)",
+      "en": "C3 reference",
+      "files": [
+        "frontend/app/components/TopBar.tsx"
       ]
     },
     {
@@ -4948,7 +4957,7 @@
     {
       "key": "ui.generated.graph_view.1alb55",
       "source": "Graph view",
-      "cs": "Graf zobrazení",
+      "cs": "Zobrazit graf",
       "en": "Graph view",
       "files": [
         "frontend/app/services/list/page.tsx"
@@ -5114,7 +5123,7 @@
     {
       "key": "ui.generated.how_to_get_service.vjvbe",
       "source": "How to get service",
-      "cs": "Jak to získat služba",
+      "cs": "Jak získat službu",
       "en": "How to get service",
       "files": [
         "frontend/app/components/TopBar.tsx"
@@ -6561,7 +6570,7 @@
     {
       "key": "ui.generated.my_blockers.qihmk3",
       "source": "My blockers",
-      "cs": "My blokery",
+      "cs": "Moje blokery",
       "en": "My blockers",
       "files": [
         "frontend/app/cockpit/my-tasks/page.tsx",
@@ -6571,7 +6580,7 @@
     {
       "key": "ui.generated.my_decisions.lx8ddv",
       "source": "My decisions",
-      "cs": "My rozhodnutí",
+      "cs": "Moje rozhodnutí",
       "en": "My decisions",
       "files": [
         "frontend/app/page.tsx"
@@ -6580,7 +6589,7 @@
     {
       "key": "ui.generated.my_owned_services.hcrl8t",
       "source": "My owned services",
-      "cs": "My owned služby",
+      "cs": "Moje služby",
       "en": "My owned services",
       "files": [
         "frontend/app/page.tsx"
@@ -6589,7 +6598,7 @@
     {
       "key": "ui.generated.my_reviews.edyu61",
       "source": "My reviews",
-      "cs": "My revize",
+      "cs": "Moje revize",
       "en": "My reviews",
       "files": [
         "frontend/app/cockpit/my-tasks/page.tsx",
@@ -6600,7 +6609,7 @@
     {
       "key": "ui.generated.my_task_kpis.i0rg0m",
       "source": "My task KPIs",
-      "cs": "My task KPIs",
+      "cs": "Ukazatele mých úkolů",
       "en": "My task KPIs",
       "files": [
         "frontend/app/cockpit/my-tasks/page.tsx"
@@ -6609,7 +6618,7 @@
     {
       "key": "ui.generated.my_tasks.y46s62",
       "source": "My Tasks",
-      "cs": "My Tasks",
+      "cs": "Moje úkoly",
       "en": "My Tasks",
       "files": [
         "frontend/app/cockpit/my-tasks/page.tsx"
@@ -7442,7 +7451,7 @@
     {
       "key": "ui.generated.new_service.80gsgl",
       "source": "New service",
-      "cs": "Nový služba",
+      "cs": "Nová služba",
       "en": "New service",
       "files": [
         "frontend/app/components/NavTopActions.tsx",
@@ -9011,7 +9020,7 @@
     {
       "key": "ui.generated.owners_with_concentrated_blockers.gmzaud",
       "source": "owners with concentrated blockers",
-      "cs": "vlastníci s concentrated blokery",
+      "cs": "vlastníci s nahromaděnými blokery",
       "en": "owners with concentrated blockers",
       "files": [
         "frontend/app/operations/page.tsx"
@@ -9446,7 +9455,7 @@
     {
       "key": "ui.generated.portfolio_group.k2dlrb",
       "source": "Portfolio Group",
-      "cs": "Portfolio Skupina",
+      "cs": "Skupina portfolia",
       "en": "Portfolio Group",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
@@ -11008,7 +11017,7 @@
     {
       "key": "ui.generated.reviews_due.koxmep",
       "source": "Reviews due",
-      "cs": "Revize termín",
+      "cs": "Termín revize",
       "en": "Reviews due",
       "files": [
         "frontend/app/catalogue/page.tsx",
@@ -11226,7 +11235,8 @@
       "en": "S3C Manager",
       "files": [
         "frontend/app/components/AppShell.tsx",
-        "frontend/app/components/TopBar.tsx"
+        "frontend/app/components/TopBar.tsx",
+        "frontend/app/layout.tsx"
       ]
     },
     {
@@ -11640,7 +11650,6 @@
       "en": "Service Catalogue",
       "files": [
         "frontend/app/administration/groups/[id]/page.tsx",
-        "frontend/app/layout.tsx",
         "frontend/app/login/page.tsx",
         "frontend/features/modules/manifest.ts"
       ]
@@ -11737,7 +11746,7 @@
     {
       "key": "ui.generated.service_line.7ouunz",
       "source": "Service Line",
-      "cs": "Služba Line",
+      "cs": "Linie služeb",
       "en": "Service Line",
       "files": [
         "frontend/app/management/new-service/page.tsx",
@@ -11747,7 +11756,7 @@
     {
       "key": "ui.generated.service_lines.pb88t0",
       "source": "Service Lines",
-      "cs": "Služba Lines",
+      "cs": "Linie služeb",
       "en": "Service Lines",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
@@ -11756,7 +11765,7 @@
     {
       "key": "ui.generated.service_list.7pfadl",
       "source": "Service list",
-      "cs": "Služba seznam",
+      "cs": "Seznam služeb",
       "en": "Service list",
       "files": [
         "frontend/app/components/TopBar.tsx",
@@ -11804,7 +11813,7 @@
     {
       "key": "ui.generated.service_type.7p0ah1",
       "source": "Service Type",
-      "cs": "Služba Typ",
+      "cs": "Typ služby",
       "en": "Service Type",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
@@ -11822,7 +11831,7 @@
     {
       "key": "ui.generated.service_types.pfwutq",
       "source": "Service Types",
-      "cs": "Služba Types",
+      "cs": "Typy služeb",
       "en": "Service Types",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
@@ -11901,7 +11910,7 @@
     {
       "key": "ui.generated.services_checked.co4uzp",
       "source": "services checked",
-      "cs": "služby checked",
+      "cs": "služeb zkontrolováno",
       "en": "services checked",
       "files": [
         "frontend/app/services/list/page.tsx"
@@ -11937,7 +11946,7 @@
     {
       "key": "ui.generated.services_total.6m12vy",
       "source": "Services total",
-      "cs": "Služby total",
+      "cs": "Služby celkem",
       "en": "Services total",
       "files": [
         "frontend/app/page.tsx"
@@ -12019,7 +12028,7 @@
     {
       "key": "ui.generated.short_description.pdammw",
       "source": "Short Description",
-      "cs": "Krátká Popis",
+      "cs": "Krátký popis",
       "en": "Short Description",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
@@ -13517,7 +13526,7 @@
     {
       "key": "ui.generated.unverified_relations.xy6rk8",
       "source": "unverified relations",
-      "cs": "unverified vazby",
+      "cs": "neověřené vazby",
       "en": "unverified relations",
       "files": [
         "frontend/app/services/list/page.tsx"
@@ -13911,7 +13920,7 @@
     {
       "key": "ui.generated.validation.w8x5zt",
       "source": "Validation",
-      "cs": "Validaci",
+      "cs": "Validace",
       "en": "Validation",
       "files": [
         "frontend/app/admin/c3-entities/C3EntityListPage.tsx",

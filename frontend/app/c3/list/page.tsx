@@ -11,6 +11,7 @@ import C3Breadcrumbs from '../../components/C3Breadcrumbs';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
 import { compareText, formatDate } from '@/app/i18n/format';
+import { useDebouncedInput } from '@/hooks/useDebouncedInput';
 import { useLocale, useT } from '@/app/i18n/useI18n';
 import {
   C3_ROUTES,
@@ -222,7 +223,7 @@ function C3CatalogueInner() {
     return [...values].sort((left, right) => compareText(locale, left, right));
   }, [data, locale]);
 
-  const pushParams = useCallback((updates: Record<string, string | string[] | undefined>) => {
+  const pushParams = useCallback((updates: Record<string, string | string[] | undefined>, options?: { replace?: boolean }) => {
     const params = new URLSearchParams(searchParams?.toString() ?? '');
     for (const [key, value] of Object.entries(updates)) {
       if (!value || (Array.isArray(value) && value.length === 0)) {
@@ -231,8 +232,14 @@ function C3CatalogueInner() {
         params.set(key, Array.isArray(value) ? value.join(',') : value);
       }
     }
-    router.push(`${C3_ROUTES.list}${params.toString() ? `?${params.toString()}` : ''}`);
+    const href = `${C3_ROUTES.list}${params.toString() ? `?${params.toString()}` : ''}`;
+    if (options?.replace) router.replace(href);
+    else router.push(href);
   }, [router, searchParams]);
+
+  // Commit search after a typing pause, replacing the history entry.
+  const commitSearch = useCallback((value: string) => pushParams({ search: value || undefined }, { replace: true }), [pushParams]);
+  const [searchDraft, setSearchDraft] = useDebouncedInput(search, commitSearch);
 
   const toggleMulti = useCallback((value: string, current: string[], key: string) => {
     const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
@@ -368,8 +375,8 @@ function C3CatalogueInner() {
             className={catStyles.searchInput}
             type="search"
             placeholder={t('c3.list.search_placeholder')}
-            value={search}
-            onChange={(event) => pushParams({ search: event.target.value || undefined })}
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
             aria-label={t('c3.list.search_aria')}
           />
         </div>

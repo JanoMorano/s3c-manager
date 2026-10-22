@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { use, useEffect, useState, useCallback, useMemo } from 'react';
+import { use, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/app/components/PageHeader';
 import { CodeEditor, ConflictModal, EditorSubNav, StickySaveBar, UserPicker, type EditorSubNavSection, type SaveState } from '@/app/components/layout-v2';
@@ -118,8 +118,7 @@ export default function ServiceEditorPage({ params }: Props) {
     c3Mappings,
   } = c3Editor;
 
-
-  const { register, handleSubmit, reset, watch, setValue,
+  const { register, handleSubmit, reset, watch, setValue, setFocus,
           formState: { errors, isDirty, dirtyFields } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {},
@@ -249,12 +248,19 @@ export default function ServiceEditorPage({ params }: Props) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // On submit with field errors, open the first tab that contains one.
+  // On submit with field errors, open the first tab that contains one and
+  // focus the first invalid field once that tab has rendered.
   const handleInvalidSubmit = useCallback((fieldErrors: Record<string, unknown>) => {
     const errorKeys = Object.keys(fieldErrors);
     const sectionId = Object.keys(SECTION_FIELD_MAP).find((section) => SECTION_FIELD_MAP[section].some((field) => errorKeys.includes(field)));
     if (sectionId) setActiveTab(editorTabOfSection(sectionId));
-  }, []);
+    const firstKey = errorKeys[0] as keyof FormData | undefined;
+    if (firstKey) {
+      window.requestAnimationFrame(() => {
+        try { setFocus(firstKey, { shouldSelect: false }); } catch { /* field not registered as an input */ }
+      });
+    }
+  }, [setFocus]);
 
   const editorSections: EditorSubNavSection[] = useMemo(() => {
     const errorKeys = new Set(Object.keys(errors));
@@ -281,14 +287,15 @@ export default function ServiceEditorPage({ params }: Props) {
     });
   }, [c3Mappings.length, defaultOffering, errors, hasRequestChannel, offerings.length, readiness, supportModels.length, t, visibleEditorTabs, watchedRequestable]);
 
+  // New edits after a save must read as unsaved again, so dirty wins over saved.
   const saveState: SaveState = saving
     ? 'saving'
     : saveError
       ? 'error'
-      : saved || phase4Saved
-        ? 'saved'
-        : isDirty
-          ? 'dirty'
+      : isDirty
+        ? 'dirty'
+        : saved || phase4Saved
+          ? 'saved'
           : 'clean';
 
   const saveMessage = saveError
@@ -358,6 +365,9 @@ export default function ServiceEditorPage({ params }: Props) {
         await updateRole(id, { roleCode: 'service_delivery_manager', displayName: data.manager || null, orgName: data.manager_org || undefined });
       }
 
+      // Make the saved values the new baseline so the form is clean again
+      // (leave guard, change counter and save state all read isDirty).
+      reset(data);
       await mutate();
       await mutateReadiness();
       setSaved(true);
@@ -371,6 +381,28 @@ export default function ServiceEditorPage({ params }: Props) {
       setSaving(false);
     }
   };
+
+  const saveDraft = () => {
+    void handleSubmit(onSubmit, handleInvalidSubmit)();
+  };
+
+  // Ctrl/Cmd+S saves the draft instead of opening the browser's "Save page".
+  // The listener reads the latest saveDraft through a ref so it binds once.
+  const saveShortcutRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    saveShortcutRef.current = () => {
+      if (isDirty && !saving) saveDraft();
+    };
+  });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
+      event.preventDefault();
+      saveShortcutRef.current();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const handlePublish = () => {
     if (publishBlockers.length > 0) {
@@ -388,7 +420,7 @@ export default function ServiceEditorPage({ params }: Props) {
       return;
     }
     setValue('lifecycle_stage_code', 'active', { shouldDirty: true, shouldValidate: true });
-    void handleSubmit((data) => onSubmit({ ...data, lifecycle_stage_code: 'active' }))();
+    void handleSubmit((data) => onSubmit({ ...data, lifecycle_stage_code: 'active' }), handleInvalidSubmit)();
   };
 
   if (!svc) return <div className={styles.state}>{t('common.loading')}</div>;
@@ -854,7 +886,7 @@ export default function ServiceEditorPage({ params }: Props) {
         primaryLabel="Save draft"
         publishLabel="Save & publish"
         secondaryLabel="Zahodit a zpět"
-        onSave={() => void handleSubmit(onSubmit)()}
+        onSave={saveDraft}
         onPublish={handlePublish}
         onDiscard={() => {
           if (isDirty && !confirm(t('service_editor.text.you_have_unsaved_changes_leave_anyway'))) return;

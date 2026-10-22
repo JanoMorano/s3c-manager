@@ -22,3 +22,10 @@ html {
 body { min-height: 100vh; }
 
 a { color: inherit; }
+
+/* Baseline keyboard focus ring. Zero specificity, so any component that
+   styles its own focus state still wins. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

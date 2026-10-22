@@ -1,7 +1,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { Moon, Plus, Sun } from 'lucide-react';
+import { ArrowRight, Moon, Plus, Sun } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AUTH_STATE_EVENT, restoreAuthSession, type AuthSnapshot } from '@/features/auth/authStore';
@@ -9,6 +9,8 @@ import { hasRoleAccess } from '@/features/auth/roles';
 import { useTheme, type ThemeMode } from '@/features/theme/ThemeContext';
 import NavGlobalSearch from './NavGlobalSearch';
 import styles from '../layout.module.css';
+
+const APP_TITLE = 'S3C Manager';
 
 interface Crumb {
   label: string;
@@ -22,6 +24,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   catalogue: 'Katalog',
   coverage: 'Coverage',
   decisions: 'Decision log',
+  edit: 'Edit',
+  history: 'History',
   'dependency-flow': 'Relationships',
   gaps: 'Gaps',
   graph: 'Relationships',
@@ -37,6 +41,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'owner-load': 'Owner load',
   portfolio: 'Portfolio',
   readiness: 'Readiness gate',
+  request: 'Request',
   reviews: 'Reviews',
   search: 'Search',
   services: 'Služby',
@@ -54,6 +59,10 @@ function titleFromSegment(segment: string) {
   return SEGMENT_LABELS[segment] ?? decodeURIComponent(segment).replaceAll('-', ' ');
 }
 
+// Path prefixes that only group child routes and have no page of their own;
+// linking them from the breadcrumb would lead to a 404.
+const NO_INDEX_ROUTES = new Set(['/admin', '/c3', '/c3-entities', '/cockpit', '/management']);
+
 function normalizeBreadcrumbHref(href: string) {
   if (href === '/services') return '/services/list';
   return href;
@@ -62,6 +71,7 @@ function normalizeBreadcrumbHref(href: string) {
 function titleForBreadcrumb(segment: string, href: string) {
   if (href === '/services/graph') return 'Service graph';
   if (href === '/services/list') return 'Service list';
+  if (href === '/c3/list') return 'C3 reference';
   if (/^\/services\/[^/]+$/.test(href)) return decodeURIComponent(segment);
   return titleFromSegment(segment);
 }
@@ -78,7 +88,7 @@ function buildBreadcrumbs(pathname: string, graphView?: string | null): Crumb[] 
     const isLast = index === Math.min(segments.length, 3) - 1;
     crumbs.push({
       label: titleForBreadcrumb(segment, href),
-      href: isLast ? undefined : normalizeBreadcrumbHref(href),
+      href: isLast || NO_INDEX_ROUTES.has(href) ? undefined : normalizeBreadcrumbHref(href),
     });
   });
 
@@ -148,6 +158,23 @@ export default function TopBar() {
   const isEditor = hasRoleAccess(snapshot?.role ?? null, 'editor');
   const primaryAction = primaryActionFor(pathname, isEditor);
 
+  // Name the browser tab after the page heading so several open tabs (and
+  // history entries) can be told apart. Headings often render after data
+  // loads, so follow changes inside <main> until the route changes.
+  useEffect(() => {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+    const update = () => {
+      const heading = main.querySelector('h1')?.textContent?.trim();
+      const next = heading ? `${heading} · ${APP_TITLE}` : APP_TITLE;
+      if (document.title !== next) document.title = next;
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(main, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [pathname]);
+
   return (
     <div className={styles.topBar} role="banner">
       <nav className={styles.topBarBreadcrumbs} aria-label="Breadcrumb">
@@ -156,8 +183,10 @@ export default function TopBar() {
             {index > 0 && <span className={styles.breadcrumbSeparator} aria-hidden="true">/</span>}
             {crumb.href ? (
               <Link href={crumb.href} className={styles.breadcrumbLink}>{crumb.label}</Link>
+            ) : index === breadcrumbs.length - 1 ? (
+              <span className={styles.breadcrumbCurrent} aria-current="page">{crumb.label}</span>
             ) : (
-              <span className={styles.breadcrumbCurrent}>{crumb.label}</span>
+              <span className={styles.breadcrumbText}>{crumb.label}</span>
             )}
           </span>
         ))}
@@ -169,7 +198,9 @@ export default function TopBar() {
         <NavGlobalSearch />
         {primaryAction && (
           <Link href={primaryAction.href} className={styles.topBarPrimaryAction}>
-            <Plus size={14} aria-hidden="true" />
+            {primaryAction.href === '/management/new-service'
+              ? <Plus size={14} aria-hidden="true" />
+              : <ArrowRight size={14} aria-hidden="true" />}
             <span>{primaryAction.label}</span>
           </Link>
         )}

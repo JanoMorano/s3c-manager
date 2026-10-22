@@ -16,7 +16,6 @@ import {
   Home,
   KeyRound,
   List,
-  Logs,
   Map,
   RefreshCw,
   Settings,
@@ -242,7 +241,6 @@ export default function SidebarNav() {
           <NavItem href="/administration/groups" icon={<Users size={16} />} label={t('nav.sidebar.groups')} active={pathname.startsWith('/administration/groups')} />
           <NavItem href="/administration/web" icon={<KeyRound size={16} />} label={t('nav.sidebar.auth_web_sso')} active={pathname.startsWith('/administration/web')} />
           <NavItem href="/administration/catalogue-ref" icon={<Database size={16} />} label={t('nav.sidebar.reference_data')} active={pathname.startsWith('/administration/catalogue-ref')} />
-          <NavItem href="/administration/logs" icon={<Logs size={16} />} label={t('nav.sidebar.logs')} active={pathname.startsWith('/administration/logs')} />
           <NavItem href="/administration/installation" icon={<Wrench size={16} />} label={t('nav.sidebar.installation')} active={pathname.startsWith('/administration/installation')} />
         </NavSection>
       )}

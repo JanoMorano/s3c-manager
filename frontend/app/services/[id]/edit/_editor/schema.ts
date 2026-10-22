@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalNumber } from '@/shared/utils/zodFields';
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
 export const schema = z.object({
@@ -36,9 +37,9 @@ export const schema = z.object({
   fulfillment_lead_time_text: z.string().optional(),
   // Item 13: notes_json
   notes_json:             z.string().optional(),
-  sla_availability:       z.coerce.number().min(0).max(100).optional().nullable(),
-  sla_restoration:        z.coerce.number().min(0).optional().nullable(),
-  sla_delivery:           z.coerce.number().min(0).optional().nullable(),
+  sla_availability:       optionalNumber(0, 100),
+  sla_restoration:        optionalNumber(0),
+  sla_delivery:           optionalNumber(0),
   // Ownership (separate API calls)
   service_owner:          z.string().optional(),
   service_owner_email:    z.string().email().optional().or(z.literal('')),

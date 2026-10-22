@@ -92,12 +92,6 @@ export default function AdministrationPage() {
           desc: t('administration.card.import_audit.desc'),
           icon: '📥',
         },
-        {
-          href: '/administration/logs',
-          title: t('administration.card.audit_logs.title'),
-          desc: t('administration.card.audit_logs.desc'),
-          icon: '📜',
-        },
       ],
     },
   ];

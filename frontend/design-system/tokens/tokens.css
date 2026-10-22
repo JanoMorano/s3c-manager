@@ -16,7 +16,7 @@
   --color-border-strong:       #d4d4d8;   /* hover / active border */
   --color-text-primary:        #18181b;   /* near-black (zinc-900) */
   --color-text-secondary:      #52525b;   /* medium (zinc-600) */
-  --color-text-muted:          #a1a1aa;   /* light (zinc-400) */
+  --color-text-muted:          #71717a;   /* zinc-500: meets WCAG AA (4.5:1) on canvas and surface */
 
   /* ── Action ───────────────────────────────────────────────────────────── */
   --color-action-primary:       #18181b;  /* near-black button */
@@ -115,6 +115,19 @@
   --graph-series-2: #eb6834;   /* orange */
   --graph-series-3: #1baf7a;   /* aqua — below 3:1, relieved by legend + text view */
   --graph-neutral:  #71717a;
+
+  /* ── Aliases ─────────────────────────────────────────────────────────────
+     Names used by older modules. They point at the canonical tokens, so they
+     follow the active theme; without them those declarations were dropped
+     (missing borders, default text colour, no shadow). */
+  --color-border-subtle: var(--color-border-default);
+  --color-border-muted:  var(--color-border-default);
+  --color-text-default:  var(--color-text-primary);
+  --color-text-link:     var(--color-info);
+  --shadow-mid:          var(--shadow-medium);
+  --shadow-high:         var(--shadow-medium);
+  --text-label-xs:       var(--text-label-sm);
+  --space-10:            64px;
 }
 
 :root[data-theme="dark"] {

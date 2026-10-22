@@ -17,7 +17,6 @@ import { DomainDotGroup }    from '@/features/services/components/DomainDotGroup
 import { MetadataItem, MetadataGrid } from '@/features/services/components/MetadataItem';
 import { SlaPanel }          from '@/features/services/components/SlaPanel';
 import { Surface } from '@/design-system/primitives';
-import { Button }  from '@/design-system/controls/Button';
 import { useGovernanceDecisions, useGovernanceReviews } from '@/features/governance/hooks/useGovernance';
 import type {
   ServiceAudiencePolicy,
@@ -549,7 +548,7 @@ function RelationshipStudioHero({
             <LifecycleBadge state={lifecycleState ?? service.service_status ?? null} fallback={t('service_detail.lifecycle.draft')} />
           </div>
           <div className={styles.headerActions}>
-            <Link href={`/services/${id}/edit`}><Button size="sm">{t('service_detail.text.edit')}</Button></Link>
+            <Link href={`/services/${id}/edit`} className={styles.secondaryAction}>{t('service_detail.text.edit')}</Link>
           </div>
         </div>
         <span className={styles.studioEyebrow}>{t('service_detail.text.service_relationship_studio')}</span>

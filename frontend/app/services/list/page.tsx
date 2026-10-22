@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from '@/app/components/AppLink';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useDebouncedInput } from '@/hooks/useDebouncedInput';
 import { useServices, usePortfolioGroups, useNetworkDomains, useCatalogQualitySummary } from '@/features/services/hooks/useServices';
 import { ServiceListRow, ServiceListHeader } from '@/features/services/components/ServiceListRow';
 import { Button } from '@/design-system/controls/Button';
@@ -135,7 +136,7 @@ function CatalogueInner() {
   );
 
   // Helper: push updated URL params
-  const pushParams = useCallback((updates: Record<string, string | readonly string[] | undefined>) => {
+  const pushParams = useCallback((updates: Record<string, string | readonly string[] | undefined>, options?: { replace?: boolean }) => {
     const params = new URLSearchParams(searchParams?.toString() ?? '');
     for (const [key, value] of Object.entries(updates)) {
       if (!value || (Array.isArray(value) && value.length === 0)) {
@@ -144,8 +145,17 @@ function CatalogueInner() {
         params.set(key, Array.isArray(value) ? value.join(',') : String(value));
       }
     }
-    router.push(`/services/list?${params.toString()}`);
+    const href = `/services/list?${params.toString()}`;
+    if (options?.replace) router.replace(href);
+    else router.push(href);
   }, [searchParams, router]);
+
+  // Text filters commit to the URL after a typing pause and replace the
+  // history entry, so Back still leaves the page instead of undoing keystrokes.
+  const commitSearch = useCallback((value: string) => pushParams({ search: value || undefined, page: undefined }, { replace: true }), [pushParams]);
+  const commitOwner = useCallback((value: string) => pushParams({ owner: value || undefined, page: undefined }, { replace: true }), [pushParams]);
+  const [searchDraft, setSearchDraft] = useDebouncedInput(search, commitSearch);
+  const [ownerDraft, setOwnerDraft] = useDebouncedInput(owner, commitOwner);
 
   const toggleMulti = useCallback((val: string, arr: string[], key: string) => {
     const next = arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
@@ -233,8 +243,8 @@ function CatalogueInner() {
             className={styles.searchInput}
             type="search"
             placeholder="Search services…"
-            value={search}
-            onChange={e => pushParams({ search: e.target.value || undefined, page: undefined })}
+            value={searchDraft}
+            onChange={e => setSearchDraft(e.target.value)}
             aria-label="Search services"
           />
         </div>
@@ -253,8 +263,8 @@ function CatalogueInner() {
             className={styles.searchInput}
             type="search"
             placeholder="Owner or active role"
-            value={owner}
-            onChange={e => pushParams({ owner: e.target.value || undefined, page: undefined })}
+            value={ownerDraft}
+            onChange={e => setOwnerDraft(e.target.value)}
             aria-label="Filter by owner or active role"
           />
         </FilterGroup>

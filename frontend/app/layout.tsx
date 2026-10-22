@@ -10,7 +10,7 @@ import { resolveLocaleFromHeader } from '../../shared/i18n/locales';
 import { normalizeSupportedLocale } from '../../shared/i18n/core';
 
 export const metadata: Metadata = {
-  title: 'Service Catalogue',
+  title: 'S3C Manager',
   description: 'Internal service catalogue for ownership, readiness, offerings, and capability mapping',
   icons: {
     icon: '/favicon.svg',
