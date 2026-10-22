@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T20:09:05.802Z",
+  "generated_at": "2026-10-22T20:15:09.896Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -61,15 +61,6 @@
       ]
     },
     {
-      "key": "ui.generated.assigned.59usyf",
-      "source": "· assigned",
-      "cs": "· přiřazeno",
-      "en": "· assigned",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.c3_level_2.9e45sb",
       "source": "· C3 level 2:",
       "cs": "· C3 úroveň 2:",
@@ -85,24 +76,6 @@
       "en": "· confidence",
       "files": [
         "frontend/app/spirals/[code]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.missing_accountability.5lm3ts",
-      "source": "· missing accountability",
-      "cs": "· chybí odpovědnost",
-      "en": "· missing accountability",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.readiness.kasxbz",
-      "source": "· readiness",
-      "cs": "· připravenost",
-      "en": "· readiness",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -175,15 +148,6 @@
       "en": "← Administration",
       "files": [
         "frontend/app/admin/c3-capability-builder/C3CapabilityBuilderPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.zpet_na_historii_importu.41tybf",
-      "source": "← Zpět na historii importů",
-      "cs": "← Zpět na historii importů",
-      "en": "← Back to import history",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -314,15 +278,6 @@
       ]
     },
     {
-      "key": "ui.generated.no_issues_found_in_this_batch.nuvael",
-      "source": "✓ No issues found in this batch.",
-      "cs": "✓ V této dávce nebyly nalezeny žádné problémy.",
-      "en": "✓ No issues found in this batch.",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.readiness_v_poradku_review_lze_vytvorit.canoqv",
       "source": "✓ Readiness v pořádku — review lze vytvořit",
       "cs": "✓ Připravenost je v pořádku — revizi lze vytvořit",
@@ -338,15 +293,6 @@
       "en": "✓ Service found",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.v_tomto_batchi_nejsou_zadne_stub_issues.o18r21",
-      "source": "✓ V tomto batchi nejsou žádné stub issues.",
-      "cs": "✓ V této dávce nejsou žádné problémy se zástupnými službami.",
-      "en": "✓ There are no stub issues in this batch.",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -494,24 +440,6 @@
       ]
     },
     {
-      "key": "ui.generated.accepted_decisions.z8q9ku",
-      "source": "Accepted decisions",
-      "cs": "Přijatá rozhodnutí",
-      "en": "Accepted decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.accepted_with_follow_up.az1hre",
-      "source": "Accepted with follow-up",
-      "cs": "Přijato s navazujícím úkolem",
-      "en": "Accepted with follow-up",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.accounting.jokv5h",
       "source": "Accounting",
       "cs": "Účetnictví",
@@ -528,24 +456,6 @@
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx",
         "frontend/app/capabilities/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.action_queue.qzk4n",
-      "source": "action queue",
-      "cs": "fronta akcí",
-      "en": "action queue",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.action_queue.3gtih3",
-      "source": "Action queue",
-      "cs": "Fronta akcí",
-      "en": "Action queue",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -583,15 +493,6 @@
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx",
         "frontend/app/capabilities/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.affects.9iqrj2",
-      "source": "Affects",
-      "cs": "Dopadá na",
-      "en": "Affects",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -643,15 +544,6 @@
       ]
     },
     {
-      "key": "ui.generated.aktualizovano.h6y69g",
-      "source": "aktualizováno",
-      "cs": "aktualizováno",
-      "en": "updated",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.aktualizuji.39weu1",
       "source": "Aktualizuji…",
       "cs": "Aktualizuji…",
@@ -667,15 +559,6 @@
       "en": "No services requiring repair are currently visible.",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.aktualni_aktivni_baseline.go008q",
-      "source": "Aktuální aktivní baseline",
-      "cs": "Aktuální aktivní baseline",
-      "en": "Current active baseline",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -695,15 +578,6 @@
       "en": "All rules passed",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.all_services_are_above_the_threshold.237v2c",
-      "source": "All services are above the threshold.",
-      "cs": "Všechny služby jsou nad prahovou hodnotou.",
-      "en": "All services are above the threshold.",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -766,7 +640,6 @@
       "cs": "Aplikace",
       "en": "Applications",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/features/c3/components/CapabilityLinksPanel.tsx"
       ]
     },
@@ -834,15 +707,6 @@
       ]
     },
     {
-      "key": "ui.generated.approved.ko5gif",
-      "source": "Approved",
-      "cs": "Schváleno",
-      "en": "Approved",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.assigned_governance_reviews.gyo80h",
       "source": "assigned governance reviews",
       "cs": "přiřazené revize řízení",
@@ -861,15 +725,6 @@
       ]
     },
     {
-      "key": "ui.generated.assignments_for.6miswf",
-      "source": "Assignments for",
-      "cs": "Přiřazení pro",
-      "en": "Assignments for",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.audit_and_shortcuts.46sgqp",
       "source": "Audit and shortcuts",
       "cs": "Audit a zkratky",
@@ -879,39 +734,12 @@
       ]
     },
     {
-      "key": "ui.generated.audit_evidence.1g7e2s",
-      "source": "audit evidence",
-      "cs": "auditní evidence",
-      "en": "audit evidence",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.audit_history.ektx5b",
       "source": "Audit History",
       "cs": "Historie auditu",
       "en": "Audit History",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.auditni_znalostni_baze_rozhodnuti_co_bylo_schval.ue3up4",
-      "source": "Auditní znalostní báze rozhodnutí: co bylo schváleno, proč, čeho se to týká, kdy končí a jaký existuje důkaz.",
-      "cs": "Auditní znalostní báze rozhodnutí: co bylo schváleno, proč, čeho se to týká, kdy končí a jaký existuje důkaz.",
-      "en": "Audit knowledge base of decisions: what was approved, why, what it affects, when it expires, and what evidence exists.",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.auto_created_stub_services.wumriy",
-      "source": "Auto-created stub services",
-      "cs": "Automaticky vytvořené zástupné služby",
-      "en": "Auto-created stub services",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -933,30 +761,12 @@
       ]
     },
     {
-      "key": "ui.generated.backstage_yaml.497zyo",
-      "source": "Backstage YAML",
-      "cs": "Backstage YAML",
-      "en": "Backstage YAML",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.base.187w1",
       "source": "Base",
       "cs": "Základ",
       "en": "Base",
       "files": [
         "frontend/features/services/components/SlaPanel.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.batch.m1ktr1",
-      "source": "Batch #",
-      "cs": "Dávka č.",
-      "en": "Batch #",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -993,33 +803,6 @@
       "en": "no lifecycle",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.bez_nazvu.ocbjgj",
-      "source": "Bez názvu",
-      "cs": "Bez názvu",
-      "en": "Untitled",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.bez_nazvu_zdroje.7r64g5",
-      "source": "bez názvu zdroje",
-      "cs": "bez názvu zdroje",
-      "en": "unnamed source",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.bez_oduvodneni_v_zaznamu.p53f6k",
-      "source": "Bez odůvodnění v záznamu.",
-      "cs": "Bez odůvodnění v záznamu.",
-      "en": "No rationale in the record.",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -1069,21 +852,11 @@
       ]
     },
     {
-      "key": "ui.generated.bezpecny_import_katalogu.gj6q1r",
-      "source": "Bezpečný import katalogu",
-      "cs": "Bezpečný import katalogu",
-      "en": "Safe catalogue import",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.blocked.r6bt1o",
       "source": "Blocked",
       "cs": "Blokováno",
       "en": "Blocked",
       "files": [
-        "frontend/app/operations/page.tsx",
         "frontend/app/operations/readiness/page.tsx",
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
       ]
@@ -1104,24 +877,6 @@
       "en": "Blocked or uncovered",
       "files": [
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.blockers.ld8qa8",
-      "source": "blockers ·",
-      "cs": "blokátory ·",
-      "en": "blockers ·",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.blocks_publish_until_fixed_or_excepted.pam3y4",
-      "source": "blocks publish until fixed or excepted",
-      "cs": "blokuje publikaci do opravy nebo udělení výjimky",
-      "en": "blocks publish until fixed or excepted",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -1189,15 +944,6 @@
       ]
     },
     {
-      "key": "ui.generated.board_list_workflow_for_publication_owner_and_co.x94os",
-      "source": "Board/list workflow for publication, owner, and coverage reviews.",
-      "cs": "Pracovní postup v tabuli nebo seznamu pro revize publikace, vlastníků a pokrytí.",
-      "en": "Board/list workflow for publication, owner, and coverage reviews.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.bp_1016.cvusgz",
       "source": "BP-1016",
       "cs": "BP-1016",
@@ -1261,15 +1007,6 @@
       ]
     },
     {
-      "key": "ui.generated.by.1o7",
-      "source": "By",
-      "cs": "Podle",
-      "en": "By",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.c3.1n4",
       "source": "C3",
       "cs": "C3",
@@ -1278,15 +1015,6 @@
         "frontend/app/capabilities/page.tsx",
         "frontend/app/components/C3Breadcrumbs.tsx",
         "frontend/features/modules/manifest.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.c3_application.o93c68",
-      "source": "C3 Application",
-      "cs": "C3 aplikace",
-      "en": "C3 Application",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -1299,21 +1027,11 @@
       ]
     },
     {
-      "key": "ui.generated.c3_baseline.esrebf",
-      "source": "C3 baseline:",
-      "cs": "C3 baseline:",
-      "en": "C3 baseline:",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.c3_business_processes.8o1uj1",
       "source": "C3 Business Processes",
       "cs": "C3 byznysové procesy",
       "en": "C3 Business Processes",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1323,7 +1041,6 @@
       "cs": "C3 byznysové role",
       "en": "C3 Business Roles",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1333,7 +1050,6 @@
       "cs": "C3 schopnosti",
       "en": "C3 Capabilities",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1344,15 +1060,6 @@
       "en": "C3 Capability Builder",
       "files": [
         "frontend/app/admin/c3-capability-builder/C3CapabilityBuilderPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.c3_capability_map.e8b678",
-      "source": "C3 Capability Map",
-      "cs": "Mapa C3 schopností",
-      "en": "C3 Capability Map",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -1388,7 +1095,6 @@
       "cs": "C3 služby COI",
       "en": "C3 COI Services",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1398,7 +1104,6 @@
       "cs": "C3 komunikační služby",
       "en": "C3 Communication Services",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1408,17 +1113,7 @@
       "cs": "C3 základní služby",
       "en": "C3 Core Services",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.c3_data_object.sz66cl",
-      "source": "C3 Data Object",
-      "cs": "C3 datový objekt",
-      "en": "C3 Data Object",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -1454,7 +1149,6 @@
       "cs": "C3 informační produkty",
       "en": "C3 Information Products",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1546,7 +1240,6 @@
       "en": "C3 Services",
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
-        "frontend/app/import/upload/page.tsx",
         "frontend/features/c3/components/CapabilityLinksPanel.tsx"
       ]
     },
@@ -1557,15 +1250,6 @@
       "en": "C3 Services (",
       "files": [
         "frontend/features/c3/components/CapabilityLinksPanel.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.c3_taxonomie.fdcfjg",
-      "source": "C3 Taxonomie",
-      "cs": "C3 Taxonomie",
-      "en": "C3 Taxonomie",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -1619,8 +1303,7 @@
       "cs": "C3 technologické interakce",
       "en": "C3 Technology Interactions",
       "files": [
-        "frontend/app/admin/c3-entities/config.tsx",
-        "frontend/app/import/upload/page.tsx"
+        "frontend/app/admin/c3-entities/config.tsx"
       ]
     },
     {
@@ -1647,7 +1330,6 @@
       "cs": "C3 uživatelská aplikace",
       "en": "C3 User Application",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/lib/c3Routes.ts"
       ]
     },
@@ -1741,7 +1423,6 @@
       "cs": "Pokrytí schopností",
       "en": "Capability coverage",
       "files": [
-        "frontend/app/import/page.tsx",
         "frontend/app/page.tsx"
       ]
     },
@@ -1854,15 +1535,6 @@
       ]
     },
     {
-      "key": "ui.generated.capability_map.5qbcfg",
-      "source": "Capability Map",
-      "cs": "Mapa schopností",
-      "en": "Capability Map",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.capability_map_spirals.15phje",
       "source": "Capability map spirals",
       "cs": "Spirály mapy schopností",
@@ -1878,15 +1550,6 @@
       "en": "Capability mapping enables coverage and impact decisions.",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.capability_mapping_gaps.n5e7h3",
-      "source": "Capability mapping gaps",
-      "cs": "Mezery v mapování schopností",
-      "en": "Capability mapping gaps",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -1989,57 +1652,12 @@
       ]
     },
     {
-      "key": "ui.generated.catalogue_import_can_affect_service_ownership_c3.4am8k5",
-      "source": "Catalogue import can affect service ownership, C3 mapping, readiness and decision evidence. Commit is intentionally separated from dry run.",
-      "cs": "Import katalogu může ovlivnit vlastnictví služeb, C3 mapování, připravenost a evidenci rozhodnutí. Zápis je záměrně oddělený od zkušebního běhu.",
-      "en": "Catalogue import can affect service ownership, C3 mapping, readiness and decision evidence. Commit is intentionally separated from dry run.",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.catalogue_import_export_profile.xnlhsg",
-      "source": "Catalogue import/export profile",
-      "cs": "Profil importu/exportu katalogu",
-      "en": "Catalogue import/export profile",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.catalogue_kpis.rmkb1i",
       "source": "Catalogue KPIs",
       "cs": "KPI katalogu",
       "en": "Catalogue KPIs",
       "files": [
         "frontend/app/catalogue/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.catalogue_quality_fixes_plus_the_import_workspac.hzpw5u",
-      "source": "Catalogue quality fixes plus the import workspace for controlled corrections.",
-      "cs": "Opravy kvality katalogu a importní pracovní plocha pro řízené korekce.",
-      "en": "Catalogue quality fixes plus the import workspace for controlled corrections.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.catalogue_records_with_enough_evidence.ftq9eq",
-      "source": "catalogue records with enough evidence",
-      "cs": "záznamy katalogu s dostatečnou evidencí",
-      "en": "catalogue records with enough evidence",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.catalogue_records_with_weak_evidence_shown_as_fi.9gg52w",
-      "source": "Catalogue records with weak evidence, shown as fix targets only.",
-      "cs": "Záznamy katalogu se slabou evidencí, zobrazené pouze jako cíle oprav.",
-      "en": "Catalogue records with weak evidence, shown as fix targets only.",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -2087,15 +1705,6 @@
       "en": "Error: C3 item not found.",
       "files": [
         "frontend/app/c3/[uuid]/edit/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.chybejici_sluzby.cclfgh",
-      "source": "Chybějící služby",
-      "cs": "Chybějící služby",
-      "en": "Missing services",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -2200,24 +1809,6 @@
       ]
     },
     {
-      "key": "ui.generated.commit.xh1r9z",
-      "source": "Commit",
-      "cs": "Commit",
-      "en": "Commit",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.commit_vytvori_davku_issues_a_auditni_stopu.7ck886",
-      "source": "Commit vytvoří dávku, issues a auditní stopu.",
-      "cs": "Commit vytvoří dávku, problémy a auditní stopu.",
-      "en": "Commit creates a batch, issues, and audit trail.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.completeness_score.yai3y6",
       "source": "Completeness Score",
       "cs": "Skóre úplnosti",
@@ -2277,15 +1868,6 @@
       ]
     },
     {
-      "key": "ui.generated.contract.8b23ta",
-      "source": "Contract",
-      "cs": "Smlouva",
-      "en": "Contract",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.coverage.4qy1h4",
       "source": "Coverage",
       "cs": "Pokrytí",
@@ -2293,7 +1875,6 @@
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx",
         "frontend/app/capabilities/page.tsx",
-        "frontend/app/operations/page.tsx",
         "frontend/app/page.tsx",
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
       ]
@@ -2314,15 +1895,6 @@
       "en": "Coverage confidence",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.coverage_gaps_need_catalogue_or_import_evidence.le28qr",
-      "source": "coverage gaps need catalogue or import evidence.",
-      "cs": "mezery pokrytí potřebují katalogovou nebo importní evidenci.",
-      "en": "coverage gaps need catalogue or import evidence.",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -2480,15 +2052,6 @@
       ]
     },
     {
-      "key": "ui.generated.daily_work_queue.59fy9j",
-      "source": "Daily work queue",
-      "cs": "Denní pracovní fronta",
-      "en": "Daily work queue",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.dalsi_portfolio_signaly.2xsrv0",
       "source": "Další portfolio signály",
       "cs": "Další portfolio signály",
@@ -2522,7 +2085,6 @@
       "en": "Data Objects",
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
-        "frontend/app/import/upload/page.tsx",
         "frontend/features/c3/components/CapabilityLinksPanel.tsx"
       ]
     },
@@ -2543,15 +2105,6 @@
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.data_quality_fixes.nubvzo",
-      "source": "Data quality fixes",
-      "cs": "Opravy kvality dat",
-      "en": "Data quality fixes",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -2580,15 +2133,6 @@
       "en": "Datasets (raw)",
       "files": [
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.date.19hvy",
-      "source": "Date",
-      "cs": "Datum",
-      "en": "Date",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -2628,33 +2172,6 @@
       ]
     },
     {
-      "key": "ui.generated.decision_could_not_be_recorded.q6xevx",
-      "source": "Decision could not be recorded",
-      "cs": "Rozhodnutí se nepodařilo uložit",
-      "en": "Decision could not be recorded",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.decision_history.76zo9c",
-      "source": "Decision history",
-      "cs": "Historie rozhodnutí",
-      "en": "Decision history",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.decision_log.dvflds",
-      "source": "Decision Log",
-      "cs": "Log rozhodnutí",
-      "en": "Decision Log",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.decision_log.dvg940",
       "source": "Decision log",
       "cs": "Log rozhodnutí",
@@ -2662,15 +2179,6 @@
       "files": [
         "frontend/app/operations/reviews/page.tsx",
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.decision_log_is_not_available.808hwo",
-      "source": "Decision log is not available.",
-      "cs": "Log rozhodnutí není dostupný.",
-      "en": "Decision log is not available.",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -2701,40 +2209,12 @@
       ]
     },
     {
-      "key": "ui.generated.decisions.vz7bbd",
-      "source": "Decisions",
-      "cs": "Rozhodnutí",
-      "en": "Decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx",
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.decisions_are_recorded_through_the_shared_modal_.tgt3j8",
-      "source": "Decisions are recorded through the shared modal so the same What, Why, Affects, Expires and Evidence pattern is used in reviews and standalone governance work.",
-      "cs": "Rozhodnutí se ukládají přes společný dialog, aby se v revizích i samostatné správě používal stejný vzor Co, Proč, Dopadá, Platnost a Podklady.",
-      "en": "Decisions are recorded through the shared modal so the same What, Why, Affects, Expires and Evidence pattern is used in reviews and standalone governance work.",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.defer.138o5u",
       "source": "Defer",
       "cs": "Odložit",
       "en": "Defer",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.deferred.bs83jz",
-      "source": "Deferred",
-      "cs": "Odložené",
-      "en": "Deferred",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -2790,7 +2270,6 @@
       "cs": "Detail",
       "en": "Detail",
       "files": [
-        "frontend/app/import/page.tsx",
         "frontend/app/operations/readiness/page.tsx",
         "frontend/app/services/graph/page.tsx"
       ]
@@ -2805,30 +2284,12 @@
       ]
     },
     {
-      "key": "ui.generated.detail_stubu.ks1kzu",
-      "source": "Detail stubu →",
-      "cs": "Detail zástupné služby →",
-      "en": "Stub detail →",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.dle_vazby.mjyjkz",
       "source": "Dle vazby",
       "cs": "Podle vazby",
       "en": "By relation",
       "files": [
         "frontend/app/services/graph/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.docasne_zaznamy.9s53mn",
-      "source": "Dočasné záznamy",
-      "cs": "Dočasné záznamy",
-      "en": "Temporary records",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -2911,60 +2372,6 @@
       "en": "Deprecating services need a replacement, exception, or retirement plan.",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.dry_run.bjemq2",
-      "source": "Dry run",
-      "cs": "Dry run",
-      "en": "Dry run",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.dry_run_zkontrolovat.peqhub",
-      "source": "Dry-run (zkontrolovat)",
-      "cs": "Zkušební běh (zkontrolovat)",
-      "en": "Dry-run (check)",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.dry_run_hotov_souhrn_je_nize.4aabyv",
-      "source": "Dry-run hotov. Souhrn je níže.",
-      "cs": "Zkušební běh dokončen. Souhrn je níže.",
-      "en": "Dry-run complete. Summary is below.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.dry_run_nenasel_zadne_validacni_problemy.6crzba",
-      "source": "Dry-run nenašel žádné validační problémy.",
-      "cs": "Zkušební běh nenašel žádné validační problémy.",
-      "en": "Dry-run found no validation issues.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.dry_run_selhal.sbgy1c",
-      "source": "Dry-run selhal",
-      "cs": "Zkušební běh selhal",
-      "en": "Dry-run failed",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.dry_run_ukaze_chyby_pred_zapisem.gt8bsf",
-      "source": "Dry-run ukáže chyby před zápisem.",
-      "cs": "Zkušební běh ukáže chyby před zápisem.",
-      "en": "Dry-run shows errors before writing.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -3104,16 +2511,6 @@
       ]
     },
     {
-      "key": "ui.generated.errors.ygvmh7",
-      "source": "Errors",
-      "cs": "Chyby",
-      "en": "Errors",
-      "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.escape.yh5jtt",
       "source": "Escape",
       "cs": "Escape",
@@ -3148,15 +2545,6 @@
       "en": "Evidence documents and sources",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.evidence.ge1qxv",
-      "source": "Evidence:",
-      "cs": "Evidence:",
-      "en": "Evidence:",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -3205,24 +2593,6 @@
       ]
     },
     {
-      "key": "ui.generated.expert_c3_evidence.dq2yen",
-      "source": "Expert C3 evidence",
-      "cs": "Expertní evidence C3",
-      "en": "Expert C3 evidence",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.expert_c3_fmns_import.jo8q7k",
-      "source": "Expert C3/FMNs import",
-      "cs": "Expertní import C3/FMN",
-      "en": "Expert C3/FMNs import",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.expired_exception.dz9sdo",
       "source": "expired exception",
       "cs": "výjimka po platnosti",
@@ -3232,39 +2602,12 @@
       ]
     },
     {
-      "key": "ui.generated.expires.5vlu6s",
-      "source": "Expires",
-      "cs": "Platnost",
-      "en": "Expires",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.explain_the_map_next.1xhhsh",
       "source": "Explain the map next",
       "cs": "Dále vysvětlit mapu",
       "en": "Explain the map next",
       "files": [
         "frontend/app/capabilities/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.export_bundle.jkojk",
-      "source": "Export bundle →",
-      "cs": "Exportní balíček →",
-      "en": "Export bundle →",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.export_manifest.ikvd0t",
-      "source": "Export manifest →",
-      "cs": "Export manifest →",
-      "en": "Export manifest →",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -3301,51 +2644,6 @@
       "en": "External ID / Page is not filled in yet.",
       "files": [
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.failed.yoexct",
-      "source": "Failed",
-      "cs": "Selhalo",
-      "en": "Failed",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.failed_rows.wff1do",
-      "source": "Failed rows",
-      "cs": "Neúspěšné řádky",
-      "en": "Failed rows",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.failed_to_load_batches.zh71vi",
-      "source": "Failed to load batches.",
-      "cs": "Dávky se nepodařilo načíst.",
-      "en": "Failed to load batches.",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.field.14espm",
-      "source": "Field",
-      "cs": "Pole",
-      "en": "Field",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.file.1axlo",
-      "source": "File",
-      "cs": "Soubor",
-      "en": "File",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -3421,15 +2719,6 @@
       ]
     },
     {
-      "key": "ui.generated.fix_before_commit.6re1ub",
-      "source": "fix before commit",
-      "cs": "opravit před zápisem",
-      "en": "fix before commit",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.fix_rule.6gagu1",
       "source": "Fix rule",
       "cs": "Opravit pravidlo",
@@ -3455,24 +2744,6 @@
       "en": "FMN context available",
       "files": [
         "frontend/app/capabilities/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.focused_work_queue_for_readiness_reviews_decisio.xun8rd",
-      "source": "Focused work queue for readiness, reviews, decisions, owner load, and import/data quality.",
-      "cs": "Zaměřená pracovní fronta pro připravenost, revize, rozhodnutí, zátěž vlastníků a kvalitu importovaných dat.",
-      "en": "Focused work queue for readiness, reviews, decisions, owner load, and import/data quality.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.format.gbtymb",
-      "source": "Formát:",
-      "cs": "Formát:",
-      "en": "Format:",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -3565,33 +2836,6 @@
       "en": "Global Service Group",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.governance_decision_kpis.yjy3kl",
-      "source": "Governance decision KPIs",
-      "cs": "KPI rozhodnutí",
-      "en": "Governance decision KPIs",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.governance_impact.iyqm90",
-      "source": "Governance impact",
-      "cs": "Dopad na řízení",
-      "en": "Governance impact",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.governance_report.n3r5si",
-      "source": "Governance report",
-      "cs": "Zpráva o řízení",
-      "en": "Governance report",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -3694,15 +2938,6 @@
       ]
     },
     {
-      "key": "ui.generated.hodnota_se_zapise_do_c3_fmn_evidence_u_importu_k.3m3ojh",
-      "source": "Hodnota se zapíše do C3/FMN evidence u importů, které baseline používají.",
-      "cs": "Hodnota se zapíše do evidence C3/FMN u importů, které baseline používají.",
-      "en": "The value is written to C3/FMN evidence for imports that use the baseline.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.how_to_fix.ly4xls",
       "source": "How to fix",
       "cs": "Jak to opravit",
@@ -3748,33 +2983,6 @@
       ]
     },
     {
-      "key": "ui.generated.import_data_quality.51lyln",
-      "source": "Import / Data Quality",
-      "cs": "Import / kvalita dat",
-      "en": "Import / Data Quality",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.import_and_data_quality.n9e3mb",
-      "source": "Import and data quality",
-      "cs": "Import a kvalita dat",
-      "en": "Import and data quality",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.import_bude_oznacen_jako.8drht8",
-      "source": "Import bude označen jako",
-      "cs": "Import bude označen jako",
-      "en": "Import will be marked as",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.import_c3_capabilities_before_managers_can_compa.3spfq6",
       "source": "Import C3 capabilities before managers can compare service coverage.",
       "cs": "Před porovnáním pokrytí služeb manažery importujte C3 schopnosti.",
@@ -3784,48 +2992,12 @@
       ]
     },
     {
-      "key": "ui.generated.import_dat.2xuts4",
-      "source": "Import dat",
-      "cs": "Import dat",
-      "en": "Data import",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.import_dokoncen.iig6wi",
-      "source": "Import dokončen",
-      "cs": "Import dokončen",
-      "en": "Import completed",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.import_history.3w35mh",
-      "source": "Import history",
-      "cs": "Historie importů",
-      "en": "Import history",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.import_taxonomy_first.sevs9o",
       "source": "Import taxonomy first",
       "cs": "Nejprve importujte taxonomii",
       "en": "Import taxonomy first",
       "files": [
         "frontend/app/capabilities/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.import_workspace.z9ug3q",
-      "source": "Import workspace",
-      "cs": "Importní pracovní plocha",
-      "en": "Import workspace",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -3844,33 +3016,6 @@
       "en": "In review",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.incoming.2lqibq",
-      "source": "Incoming",
-      "cs": "Příchozí",
-      "en": "Incoming",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.inserted.a11xko",
-      "source": "Inserted",
-      "cs": "Vloženo",
-      "en": "Inserted",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.integration_mappings.k3az5",
-      "source": "Integration mappings",
-      "cs": "Integrační mapování",
-      "en": "Integration mappings",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -3907,24 +3052,6 @@
       "en": "Is Primary Mapping",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.issue.168uyh",
-      "source": "Issue",
-      "cs": "Problém",
-      "en": "Issue",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.issues.ynhe7a",
-      "source": "Issues",
-      "cs": "Problémy",
-      "en": "Issues",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -3974,33 +3101,6 @@
       ]
     },
     {
-      "key": "ui.generated.jen_pro_administracni_a_taxonomy_praci_bezny_kat.mp6pkq",
-      "source": "Jen pro administrační a taxonomy práci. Běžný katalogový import výše zůstává hlavní cesta.",
-      "cs": "Jen pro administrační práci a práci s taxonomií. Běžný katalogový import výše zůstává hlavní cestou.",
-      "en": "Only for administration and taxonomy work. The regular catalogue import above remains the main path.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.jen_stuby.dehjdu",
-      "source": "Jen stuby",
-      "cs": "Jen zástupné služby",
-      "en": "Jen stuby",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.json_musi_byt_pole_objektu_objekt_s_klicem_items.czfvbk",
-      "source": "JSON musí být pole objektů, objekt s klíčem \"items\", nebo 3-table payload se ServiceCatalog.",
-      "cs": "JSON musí být pole objektů, objekt s klíčem \"items\" nebo třítabulkový payload se ServiceCatalog.",
-      "en": "JSON must be an array of objects, an object with an \"items\" key, or a 3-table payload with ServiceCatalog.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.kalendar_revizi.nhq6zo",
       "source": "Kalendář revizí",
       "cs": "Kalendář revizí",
@@ -4035,15 +3135,6 @@
       "en": "active categories",
       "files": [
         "frontend/app/c3/capability-map/CapabilityMapPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.kazda_karta_ukazuje_what_why_affects_expires_a_e.cw4jda",
-      "source": "Každá karta ukazuje What, Why, Affects, Expires a Evidence jako v review modalu.",
-      "cs": "Každá karta ukazuje Co, Proč, Dopadá, Platnost a Podklady jako v modalu revize.",
-      "en": "Each card shows What, Why, Affects, Expires, and Evidence like in the review modal.",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -4191,15 +3282,6 @@
       ]
     },
     {
-      "key": "ui.generated.legacy_variants.3cvvh7",
-      "source": "Legacy variants",
-      "cs": "Historické varianty",
-      "en": "Legacy variants",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.legacy_variants.2aebqz",
       "source": "Legacy Variants",
       "cs": "Historické varianty",
@@ -4303,15 +3385,6 @@
       ]
     },
     {
-      "key": "ui.generated.live_data.fpsva6",
-      "source": "live data",
-      "cs": "živá data",
-      "en": "live data",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.loading_capability_governance.xxr4y0",
       "source": "Loading capability governance...",
       "cs": "Načítám správu schopností…",
@@ -4327,24 +3400,6 @@
       "en": "Loading capability…",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.loading_decision_log.365c2y",
-      "source": "Loading decision log...",
-      "cs": "Načítám log rozhodnutí…",
-      "en": "Loading decision log...",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.loading_decisions.6hhoqt",
-      "source": "Loading decisions...",
-      "cs": "Načítám rozhodnutí…",
-      "en": "Loading decisions...",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -4375,48 +3430,12 @@
       ]
     },
     {
-      "key": "ui.generated.loading_owner_assignments.it3f9j",
-      "source": "Loading owner assignments...",
-      "cs": "Načítám přiřazení vlastníků…",
-      "en": "Loading owner assignments...",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.loading_owner_load.jr8muh",
-      "source": "Loading owner load...",
-      "cs": "Načítám zátěž vlastníků…",
-      "en": "Loading owner load...",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.loading_readiness_data.fobgxq",
       "source": "Loading readiness data…",
       "cs": "Načítají se data připravenosti…",
       "en": "Loading readiness data…",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.loading_readiness_queue.dzgl3d",
-      "source": "Loading readiness queue...",
-      "cs": "Načítá se fronta připravenosti...",
-      "en": "Loading readiness queue...",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.loading_reviews.kw6whj",
-      "source": "Loading reviews...",
-      "cs": "Načítám revize…",
-      "en": "Loading reviews...",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -4438,30 +3457,12 @@
       ]
     },
     {
-      "key": "ui.generated.loading.vloway",
-      "source": "Loading…",
-      "cs": "Načítám…",
-      "en": "Loading…",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.low.1n3o",
       "source": "Low",
       "cs": "Nízká",
       "en": "Low",
       "files": [
         "frontend/features/services/components/AvailabilityBadge.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.lowest_readiness_services.2858da",
-      "source": "Lowest readiness services",
-      "cs": "Služby s nejnižší připraveností",
-      "en": "Lowest readiness services",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -4564,15 +3565,6 @@
       ]
     },
     {
-      "key": "ui.generated.mapping_suggestions.eftzsz",
-      "source": "Mapping suggestions",
-      "cs": "Návrhy mapování",
-      "en": "Mapping suggestions",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.mazani_selhalo.yeq7jk",
       "source": "Mazání selhalo",
       "cs": "Mazání selhalo",
@@ -4597,42 +3589,6 @@
       "en": "Medium",
       "files": [
         "frontend/features/services/components/AvailabilityBadge.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.message.rphee1",
-      "source": "Message",
-      "cs": "Zpráva",
-      "en": "Message",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.metadata.6dflpt",
-      "source": "Metadata",
-      "cs": "Metadata",
-      "en": "Metadata",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.metadata_owner_and_coverage_fixes.3gklrc",
-      "source": "metadata, owner, and coverage fixes",
-      "cs": "opravy metadat, vlastníka a pokrytí",
-      "en": "metadata, owner, and coverage fixes",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.metadata_owners_import_evidence.6z474r",
-      "source": "metadata, owners, import evidence",
-      "cs": "metadata, vlastníci, importní evidence",
-      "en": "metadata, owners, import evidence",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -4981,33 +3937,6 @@
       ]
     },
     {
-      "key": "ui.generated.nahrajte_csv_nebo_json_katalog_sluzeb_nejdriv_sp.pizdzw",
-      "source": "Nahrajte CSV nebo JSON katalog služeb, nejdřív spusťte dry-run a teprve po kontrole issues potvrďte import.",
-      "cs": "Nahrajte CSV nebo JSON katalog služeb, nejdřív spusťte zkušební běh a teprve po kontrole problémů import potvrďte.",
-      "en": "Upload a CSV or JSON service catalogue, run dry-run first, and confirm the import only after reviewing issues.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.nahrat_a_importovat.xzn64y",
-      "source": "Nahrát a importovat",
-      "cs": "Nahrát a importovat",
-      "en": "Upload and import",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.nahravam.bp2y1k",
-      "source": "Nahrávám…",
-      "cs": "Nahrávám…",
-      "en": "Uploading…",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.namapovano.ogakfi",
       "source": "Namapováno",
       "cs": "Namapováno",
@@ -5035,30 +3964,12 @@
       ]
     },
     {
-      "key": "ui.generated.narodni_service_catalogue.k8mrv3",
-      "source": "Národní Service Catalogue",
-      "cs": "Národní katalog služeb",
-      "en": "National Service Catalogue",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.nastaveni_mapy.mstqwy",
       "source": "Nastavení mapy",
       "cs": "Nastavení mapy",
       "en": "Map settings",
       "files": [
         "frontend/app/admin/c3-capability-builder/C3CapabilityBuilderPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.native_import_export_profile.3smtdc",
-      "source": "Native import/export profile.",
-      "cs": "Nativní profil importu/exportu.",
-      "en": "Native import/export profile.",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -5089,15 +4000,6 @@
       ]
     },
     {
-      "key": "ui.generated.ncia_service_catalogue.k9ruln",
-      "source": "NCIA Service Catalogue",
-      "cs": "Katalog služeb NCIA",
-      "en": "NCIA Service Catalogue",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.ne.1xz",
       "source": "Ne",
       "cs": "Ne",
@@ -5113,15 +4015,6 @@
       "en": "does not block draft, but requires attention",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.nebo_kliknete_pro_vyber_max.x2d12k",
-      "source": "nebo klikněte pro výběr — max",
-      "cs": "nebo klikněte pro výběr — max",
-      "en": "or click to choose — max",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -5150,24 +4043,6 @@
       "en": "Needs decision",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.needs_owner_or_governance_action.mf3l09",
-      "source": "needs owner or governance action",
-      "cs": "potřebuje vlastníka nebo akci řízení",
-      "en": "needs owner or governance action",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.nejasne_reference.p3933p",
-      "source": "Nejasné reference",
-      "cs": "Nejasné reference",
-      "en": "Unclear references",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -5261,15 +4136,6 @@
       ]
     },
     {
-      "key": "ui.generated.new_records.6waov2",
-      "source": "New records",
-      "cs": "Nové záznamy",
-      "en": "New records",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.next_action.snilgd",
       "source": "Next action",
       "cs": "Další akce",
@@ -5314,15 +4180,6 @@
       "en": "No actions in this bucket",
       "files": [
         "frontend/app/spirals/[code]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_blocking_errors.3269bd",
-      "source": "no blocking errors",
-      "cs": "žádné blokující chyby",
-      "en": "no blocking errors",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -5389,22 +4246,12 @@
       ]
     },
     {
-      "key": "ui.generated.no_data_quality_fixes_queued.xzhyva",
-      "source": "No data quality fixes queued.",
-      "cs": "Ve frontě nejsou žádné opravy kvality dat.",
-      "en": "No data quality fixes queued.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.no_date.9kjdyr",
       "source": "No date",
       "cs": "Bez data",
       "en": "No date",
       "files": [
-        "frontend/app/cockpit/my-tasks/page.tsx",
-        "frontend/app/operations/decisions/page.tsx"
+        "frontend/app/cockpit/my-tasks/page.tsx"
       ]
     },
     {
@@ -5422,7 +4269,6 @@
       "cs": "Bez termínu",
       "en": "No due date",
       "files": [
-        "frontend/app/operations/page.tsx",
         "frontend/app/operations/reviews/page.tsx"
       ]
     },
@@ -5456,39 +4302,12 @@
       ]
     },
     {
-      "key": "ui.generated.no_governance_decisions_for_this_filter.2v56gd",
-      "source": "No governance decisions for this filter.",
-      "cs": "Pro tento filtr nejsou žádná rozhodnutí.",
-      "en": "No governance decisions for this filter.",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.no_governance_reviews.iru5zi",
       "source": "No governance reviews.",
       "cs": "Žádné revize řízení.",
       "en": "No governance reviews.",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_imports_yet.b0zckp",
-      "source": "No imports yet.",
-      "cs": "Zatím žádné importy.",
-      "en": "No imports yet.",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_legacy_price.g6w3zl",
-      "source": "no legacy price",
-      "cs": "žádná historická cena",
-      "en": "no legacy price",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -5564,24 +4383,6 @@
       ]
     },
     {
-      "key": "ui.generated.no_open_reviews.7vln5i",
-      "source": "No open reviews.",
-      "cs": "Žádné otevřené revize.",
-      "en": "No open reviews.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_organization.q20dla",
-      "source": "no organization",
-      "cs": "bez organizace",
-      "en": "no organization",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.no_owner.cdt558",
       "source": "No owner",
       "cs": "Bez vlastníka",
@@ -5618,33 +4419,6 @@
       ]
     },
     {
-      "key": "ui.generated.no_rationale_recorded.1kctw8",
-      "source": "No rationale recorded",
-      "cs": "Odůvodnění nebylo zaznamenáno",
-      "en": "No rationale recorded",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_readiness_blockers.lv6duo",
-      "source": "No readiness blockers.",
-      "cs": "Žádné blokátory připravenosti.",
-      "en": "No readiness blockers.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_recent_decisions.iiz0wt",
-      "source": "No recent decisions.",
-      "cs": "Žádná nedávná rozhodnutí.",
-      "en": "No recent decisions.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.no_results_found_in_modules_or_help.tcren1",
       "source": "No results found in modules or help.",
       "cs": "V modulech ani v nápovědě nebylo nic nalezeno.",
@@ -5660,15 +4434,6 @@
       "en": "No reviews",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.no_role_assignments_found_for_this_owner.a898vx",
-      "source": "No role assignments found for this owner.",
-      "cs": "Pro tohoto vlastníka nebyla nalezena žádná přiřazení rolí.",
-      "en": "No role assignments found for this owner.",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -5762,15 +4527,6 @@
       ]
     },
     {
-      "key": "ui.generated.not_provided.9ux7qo",
-      "source": "not provided",
-      "cs": "neuvedeno",
-      "en": "not provided",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.not_ready.u7ivau",
       "source": "Not ready",
       "cs": "Není připraveno",
@@ -5844,24 +4600,6 @@
       ]
     },
     {
-      "key": "ui.generated.ocekavany_format.m0vpd2",
-      "source": "Očekávaný formát:",
-      "cs": "Očekávaný formát:",
-      "en": "Expected format:",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.odebrat.y9x1v",
-      "source": "Odebrat",
-      "cs": "Odebrat",
-      "en": "Odebrat",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.odebrat_tuto_vazbu.coob58",
       "source": "Odebrat tuto vazbu?",
       "cs": "Odebrat tuto vazbu?",
@@ -5880,24 +4618,6 @@
       ]
     },
     {
-      "key": "ui.generated.ok.1y4",
-      "source": "OK",
-      "cs": "OK",
-      "en": "OK",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.ok.213sj",
-      "source": "ok ·",
-      "cs": "ok ·",
-      "en": "ok ·",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.once_multiple_services_cover_the_same_requiremen.ncwos",
       "source": "Once multiple services cover the same requirements, this panel highlights rationalization candidates for owner review.",
       "cs": "Jakmile stejné požadavky pokrývá více služeb, panel zvýrazní kandidáty na racionalizaci pro revizi vlastníkem.",
@@ -5913,15 +4633,6 @@
       "en": "Open all grouped results for “",
       "files": [
         "frontend/app/search/SearchPageClient.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.open_decision_log.3spyie",
-      "source": "Open decision log",
-      "cs": "Otevřít log rozhodnutí",
-      "en": "Open decision log",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -5944,57 +4655,12 @@
       ]
     },
     {
-      "key": "ui.generated.open_import_workspace.redwds",
-      "source": "Open import workspace",
-      "cs": "Otevřít importní pracovní plochu",
-      "en": "Open import workspace",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.open_operations.225sw2",
-      "source": "Open Operations",
-      "cs": "Otevřít provoz",
-      "en": "Open Operations",
-      "files": [
-        "frontend/app/operations/owner-load/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.open_owner_load_panel.kihyvh",
-      "source": "Open owner load panel",
-      "cs": "Otevřít panel zátěže vlastníků",
-      "en": "Open owner load panel",
-      "files": [
-        "frontend/app/operations/owner-load/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.open_readiness_gate.q6u5s9",
-      "source": "Open readiness gate",
-      "cs": "Otevřít kontrolu připravenosti",
-      "en": "Open readiness gate",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.open_related_capability.svywtf",
       "source": "Open related capability",
       "cs": "Otevřít související schopnost",
       "en": "Open related capability",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.open_review_board.kh6dck",
-      "source": "Open review board",
-      "cs": "Otevřít tabuli revizí",
-      "en": "Open review board",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6016,15 +4682,6 @@
       ]
     },
     {
-      "key": "ui.generated.open_service_list.2db081",
-      "source": "Open service list",
-      "cs": "Otevřít seznam služeb",
-      "en": "Open service list",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.operational_blockers.nvpmqv",
       "source": "Operational blockers",
       "cs": "Provozní blokátory",
@@ -6040,33 +4697,6 @@
       "en": "Operational Notes",
       "files": [
         "frontend/features/admin/constants/permissionResources.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.operations_action_queue.oh0af9",
-      "source": "Operations action queue",
-      "cs": "Provozní fronta akcí",
-      "en": "Operations action queue",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.operations_action_summary.molpw0",
-      "source": "Operations action summary",
-      "cs": "Souhrn provozních akcí",
-      "en": "Operations action summary",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.operations_queue_kpis.wbq5yq",
-      "source": "Operations queue KPIs",
-      "cs": "KPI provozní fronty",
-      "en": "Operations queue KPIs",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6170,15 +4800,6 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_list.omf0x2",
-      "source": "Otevřít list →",
-      "cs": "Otevřít seznam →",
-      "en": "Open list →",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_mapu.oz07qv",
       "source": "Otevřít mapu (",
       "cs": "Otevřít mapu (",
@@ -6224,15 +4845,6 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_opravy_kvality_dat.9bsfc8",
-      "source": "Otevřít opravy kvality dat",
-      "cs": "Otevřít opravy kvality dat",
-      "en": "Open data-quality fixes",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_pracovni_katalog.x535nl",
       "source": "Otevřít pracovní katalog",
       "cs": "Otevřít pracovní katalog",
@@ -6242,30 +4854,12 @@
       ]
     },
     {
-      "key": "ui.generated.otevrit_pripravenost_blokery.n1mnec",
-      "source": "Otevřít připravenost blokery",
-      "cs": "Otevřít blokátory připravenosti",
-      "en": "Open readiness blockers",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.otevrit_queue.qmavet",
       "source": "Otevřít queue",
       "cs": "Otevřít frontu",
       "en": "Open queue",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.otevrit_revize_po_terminu.w9a0sg",
-      "source": "Otevřít revize po termínu",
-      "cs": "Otevřít revize po termínu",
-      "en": "Open overdue reviews",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6359,15 +4953,6 @@
       ]
     },
     {
-      "key": "ui.generated.outgoing.237ma4",
-      "source": "Outgoing",
-      "cs": "Odchozí",
-      "en": "Outgoing",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.over_covered.7npsub",
       "source": "Over-covered",
       "cs": "Nadměrně pokryto",
@@ -6382,17 +4967,7 @@
       "cs": "Po termínu",
       "en": "Overdue",
       "files": [
-        "frontend/app/operations/page.tsx",
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.overdue_active_review_tasks.j59nzj",
-      "source": "overdue / active review tasks",
-      "cs": "po termínu / aktivní revizní úkoly",
-      "en": "overdue / active review tasks",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6402,24 +4977,6 @@
       "en": "Overdue only",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.overdue_review_tasks.i2ausm",
-      "source": "Overdue review tasks",
-      "cs": "Revizní úkoly po termínu",
-      "en": "Overdue review tasks",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.overdue_reviews.a7d1nf",
-      "source": "overdue reviews",
-      "cs": "overdue reviews",
-      "en": "overdue reviews",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6497,67 +5054,12 @@
       ]
     },
     {
-      "key": "ui.generated.owner.19m2dv",
-      "source": "Owner",
-      "cs": "Vlastník",
-      "en": "Owner",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.owner_concentration_as_an_operations_panel_not_a.k710wq",
-      "source": "Owner concentration as an operations panel, not a separate application.",
-      "cs": "Koncentrace služeb u vlastníků jako provozní panel, ne samostatná aplikace.",
-      "en": "Owner concentration as an operations panel, not a separate application.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.owner_load.ttsn7x",
-      "source": "Owner Load",
-      "cs": "Zátěž vlastníků",
-      "en": "Owner Load",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.owner_load.tt87n1",
       "source": "Owner load",
       "cs": "Zátěž vlastníků",
       "en": "Owner load",
       "files": [
-        "frontend/app/operations/page.tsx",
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.owner_load_is_balanced.fzter",
-      "source": "Owner load is balanced.",
-      "cs": "Zátěž vlastníků je vyvážená.",
-      "en": "Owner load is balanced.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.owner_load_is_now_a_panel_and_filter_inside_the_.xx55px",
-      "source": "Owner load is now a panel and filter inside the Operations action queue.",
-      "cs": "Zátěž vlastníků je nově panel a filtr uvnitř provozní fronty akcí.",
-      "en": "Owner load is now a panel and filter inside the Operations action queue.",
-      "files": [
-        "frontend/app/operations/owner-load/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.owner_load_moved_into_operations.q9j6fm",
-      "source": "Owner load moved into Operations",
-      "cs": "Zátěž vlastníků přesunuta do Provozu",
-      "en": "Owner load moved into Operations",
-      "files": [
-        "frontend/app/operations/owner-load/page.tsx"
       ]
     },
     {
@@ -6576,15 +5078,6 @@
       "en": "owner@example.com",
       "files": [
         "frontend/app/components/layout-v2/Pickers.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.owners_with_concentrated_blockers.gmzaud",
-      "source": "owners with concentrated blockers",
-      "cs": "vlastníci s nahromaděnými blokátory",
-      "en": "owners with concentrated blockers",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6708,30 +5201,12 @@
       ]
     },
     {
-      "key": "ui.generated.parsed_legacy_variants_and_sla.a6ne8b",
-      "source": "Parsed legacy variants and SLA",
-      "cs": "Zpracované historické varianty a SLA",
-      "en": "Parsed legacy variants and SLA",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.partial.eezyw1",
       "source": "Partial",
       "cs": "Částečné",
       "en": "Partial",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.partial_data.94ubqh",
-      "source": "partial data",
-      "cs": "částečná data",
-      "en": "partial data",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -6816,15 +5291,6 @@
       "en": "Review overdue",
       "files": [
         "frontend/app/portfolio/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pocitam.hc6u05",
-      "source": "Počítám…",
-      "cs": "Počítám…",
-      "en": "Calculating…",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -6991,24 +5457,6 @@
       ]
     },
     {
-      "key": "ui.generated.posledni_dry_run.rqzk6z",
-      "source": "Poslední dry-run:",
-      "cs": "Poslední zkušební běh:",
-      "en": "Last dry-run:",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.posledni_import_summary_pro_c3_entity.kzivh1",
-      "source": "Poslední import summary pro C3 entity",
-      "cs": "Souhrn posledního importu pro C3 entity",
-      "en": "Latest import summary for C3 entities",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.posledni_rozhodnuti.qallbq",
       "source": "Poslední rozhodnutí",
       "cs": "Poslední rozhodnutí",
@@ -7025,42 +5473,6 @@
       "en": "Needs accountability assignment",
       "files": [
         "frontend/app/portfolio/[code]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pouze_csv_nebo_txt_soubory.adooq4",
-      "source": "Pouze .csv nebo .txt soubory.",
-      "cs": "Pouze soubory .csv nebo .txt.",
-      "en": "Pouze .csv nebo .txt soubory.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pouze_json_soubory.nfog22",
-      "source": "Pouze .json soubory.",
-      "cs": "Pouze soubory .json.",
-      "en": "Pouze .json soubory.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pouze_xlsx_soubory.2a1gxl",
-      "source": "Pouze .xlsx soubory.",
-      "cs": "Pouze soubory .xlsx.",
-      "en": "Pouze .xlsx soubory.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pouze_xml_soubory.stsby1",
-      "source": "Pouze .xml soubory.",
-      "cs": "Pouze soubory .xml.",
-      "en": "Pouze .xml soubory.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -7134,15 +5546,6 @@
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pretahnete.qapuwz",
-      "source": "Přetáhněte",
-      "cs": "Přetáhněte",
-      "en": "Drag",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -7263,66 +5666,12 @@
       ]
     },
     {
-      "key": "ui.generated.pro_zvoleny_cil_neni_csv_import_dostupny.gumf8r",
-      "source": "Pro zvolený cíl není CSV import dostupný.",
-      "cs": "Pro zvolený cíl není CSV import dostupný.",
-      "en": "CSV import is not available for the selected target.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pro_zvoleny_cil_neni_json_import_dostupny.s308qn",
-      "source": "Pro zvolený cíl není JSON import dostupný.",
-      "cs": "Pro zvolený cíl není JSON import dostupný.",
-      "en": "JSON import is not available for the selected target.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pro_zvoleny_cil_neni_xlsx_import_dostupny.aiprps",
-      "source": "Pro zvolený cíl není XLSX import dostupný.",
-      "cs": "Pro zvolený cíl není XLSX import dostupný.",
-      "en": "XLSX import is not available for the selected target.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pro_zvoleny_cil_neni_xml_dry_run_dostupny.1513fg",
-      "source": "Pro zvolený cíl není XML dry-run dostupný.",
-      "cs": "Pro zvolený cíl není zkušební běh XML dostupný.",
-      "en": "XML dry-run is not available for the selected target.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.pro_zvoleny_cil_neni_xml_import_dostupny.ii3nt2",
-      "source": "Pro zvolený cíl není XML import dostupný.",
-      "cs": "Pro zvolený cíl není XML import dostupný.",
-      "en": "XML import is not available for the selected target.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.prochazet_podle_portfolia.4gry26",
       "source": "Procházet podle portfolia",
       "cs": "Procházet podle portfolia",
       "en": "Browse by portfolio",
       "files": [
         "frontend/app/catalogue/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.profile.mev895",
-      "source": "Profile",
-      "cs": "Profil",
-      "en": "Profile",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -7371,30 +5720,12 @@
       ]
     },
     {
-      "key": "ui.generated.radku_celkem.b3pb93",
-      "source": "řádků celkem",
-      "cs": "řádků celkem",
-      "en": "rows total",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.raw_json_text.ft1x7m",
       "source": "Raw JSON / text",
       "cs": "Surový JSON / text",
       "en": "Raw JSON / text",
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.raw_value.mlnt7r",
-      "source": "Raw value",
-      "cs": "Surová hodnota",
-      "en": "Raw value",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -7431,7 +5762,6 @@
       "en": "Readiness",
       "files": [
         "frontend/app/catalogue/page.tsx",
-        "frontend/app/operations/page.tsx",
         "frontend/app/services/[id]/edit/page.tsx",
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
       ]
@@ -7443,15 +5773,6 @@
       "en": "readiness and evidence gaps",
       "files": [
         "frontend/app/cockpit/my-tasks/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.readiness_blockers.xx4t2p",
-      "source": "Readiness blockers",
-      "cs": "Blokátory připravenosti",
-      "en": "Readiness blockers",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -7518,15 +5839,6 @@
       ]
     },
     {
-      "key": "ui.generated.readiness_queue.x10ujf",
-      "source": "Readiness Queue",
-      "cs": "Fronta připravenosti",
-      "en": "Readiness Queue",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.readiness_queue_is_not_available.k8gs39",
       "source": "Readiness queue is not available. (",
       "cs": "Fronta připravenosti není dostupná. (",
@@ -7550,18 +5862,8 @@
       "cs": "Připraveno",
       "en": "Ready",
       "files": [
-        "frontend/app/operations/page.tsx",
         "frontend/app/operations/readiness/page.tsx",
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.ready_for_publish.firdet",
-      "source": "Ready For Publish",
-      "cs": "Připraveno k publikaci",
-      "en": "Ready For Publish",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -7574,15 +5876,6 @@
       ]
     },
     {
-      "key": "ui.generated.recent_batches.rinejh",
-      "source": "Recent Batches",
-      "cs": "Nedávné dávky",
-      "en": "Recent Batches",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.recent_decisions.wepj66",
       "source": "Recent decisions",
       "cs": "Nedávná rozhodnutí",
@@ -7592,66 +5885,12 @@
       ]
     },
     {
-      "key": "ui.generated.recent_governance_decisions.xom60u",
-      "source": "recent governance decisions",
-      "cs": "nedávná rozhodnutí",
-      "en": "recent governance decisions",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.recent_governance_decisions_and_deferrals_with_a.aksiyt",
-      "source": "Recent governance decisions and deferrals with audit evidence.",
-      "cs": "Nedávná rozhodnutí a odklady s auditní evidencí.",
-      "en": "Recent governance decisions and deferrals with audit evidence.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.recent_searches.u2op7p",
       "source": "Recent searches",
       "cs": "Nedávná hledání",
       "en": "Recent searches",
       "files": [
         "frontend/app/search/SearchPageClient.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.record_decision.9wrbyt",
-      "source": "Record decision",
-      "cs": "Zaznamenat rozhodnutí",
-      "en": "Record decision",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.record_decision.8u9s8l",
-      "source": "Record Decision",
-      "cs": "Zaznamenat rozhodnutí",
-      "en": "Record Decision",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.recorded_by.lkrbdl",
-      "source": "Recorded by",
-      "cs": "Zaznamenal",
-      "en": "Recorded by",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.recorded_governance_decisions.cgomnd",
-      "source": "Recorded governance decisions",
-      "cs": "Zaznamenaná rozhodnutí",
-      "en": "Recorded governance decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -7818,24 +6057,6 @@
       ]
     },
     {
-      "key": "ui.generated.rejected.8zsn6q",
-      "source": "Rejected",
-      "cs": "Odmítnuté",
-      "en": "Rejected",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.rejected_or_cancelled.mosdjq",
-      "source": "Rejected or cancelled",
-      "cs": "Odmítnuto nebo zrušeno",
-      "en": "Rejected or cancelled",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.rejected_cancelled.54ewyl",
       "source": "rejected,cancelled",
       "cs": "rejected,cancelled",
@@ -7851,15 +6072,6 @@
       "en": "Related governance process",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.related_services.8yvgh9",
-      "source": "Related services",
-      "cs": "Související služby",
-      "en": "Related services",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -7886,7 +6098,6 @@
       "cs": "Vazby",
       "en": "Relations",
       "files": [
-        "frontend/app/import/page.tsx",
         "frontend/features/admin/constants/permissionResources.ts"
       ]
     },
@@ -8045,15 +6256,6 @@
       ]
     },
     {
-      "key": "ui.generated.review.ulq8w8",
-      "source": "Review",
-      "cs": "Revize",
-      "en": "Review",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.review_a_vyjimky_s_governance_dopadem.oquiir",
       "source": "Review a výjimky s governance dopadem.",
       "cs": "Revize a výjimky s dopadem na řízení.",
@@ -8145,15 +6347,6 @@
       ]
     },
     {
-      "key": "ui.generated.reviews.pb4xz9",
-      "source": "Reviews",
-      "cs": "Revize",
-      "en": "Reviews",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.revised.pb4o1g",
       "source": "Revised",
       "cs": "Revidováno",
@@ -8239,44 +6432,6 @@
       ]
     },
     {
-      "key": "ui.generated.rollback_pouzijte_export_bundle_manifest_z_histo.i3m3xz",
-      "source": "Rollback: použijte export bundle/manifest z historie importů.",
-      "cs": "Rollback: použijte export bundle/manifest z historie importů.",
-      "en": "Rollback: use the export bundle/manifest from import history.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.row.1rju",
-      "source": "Row",
-      "cs": "Řádek",
-      "en": "Row",
-      "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.row_issues.klqolk",
-      "source": "Row Issues (",
-      "cs": "Problémy řádků (",
-      "en": "Row Issues (",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.rows.1iq61",
-      "source": "Rows",
-      "cs": "Řádky",
-      "en": "Rows",
-      "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.rozhodnuti.kuqq1s",
       "source": "Rozhodnutí",
       "cs": "Rozhodnutí",
@@ -8351,15 +6506,6 @@
       ]
     },
     {
-      "key": "ui.generated.s3c_service_catalogue_json.cmk4hz",
-      "source": "S3C service catalogue JSON",
-      "cs": "JSON katalogu služeb S3C",
-      "en": "S3C service catalogue JSON",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.s3c_globalsearch_recent.oylrv7",
       "source": "s3c.globalSearch.recent",
       "cs": "s3c.globalSearch.recent",
@@ -8375,15 +6521,6 @@
       "en": "s3c.globalSearch.saved",
       "files": [
         "frontend/app/search/SearchPageClient.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.safe_to_commit_after_validation.e9v74k",
-      "source": "safe to commit after validation",
-      "cs": "bezpečné zapsat po validaci",
-      "en": "safe to commit after validation",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -8429,15 +6566,6 @@
       "en": "SC Mappings (",
       "files": [
         "frontend/features/c3/components/CapabilityLinksPanel.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.schema.u618an",
-      "source": "Schema",
-      "cs": "Schéma",
-      "en": "Schema",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -8558,33 +6686,6 @@
       ]
     },
     {
-      "key": "ui.generated.select_a_batch_to_see_details_and_issues.uqdmsk",
-      "source": "Select a batch to see details and issues.",
-      "cs": "Vyberte dávku pro zobrazení detailů a problémů.",
-      "en": "Select a batch to see details and issues.",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.selected_owner_assignments.zdae5w",
-      "source": "Selected owner assignments",
-      "cs": "Vybraná přiřazení vlastníků",
-      "en": "Selected owner assignments",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.server_side_dry_run.n1ej1l",
-      "source": "server-side dry run",
-      "cs": "zkušební běh na serveru",
-      "en": "server-side dry run",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.service.aopgtn",
       "source": "Service",
       "cs": "Služba",
@@ -8637,8 +6738,6 @@
       "cs": "ID služby",
       "en": "Service ID",
       "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/operations/reviews/page.tsx",
         "frontend/app/services/graph/page.tsx",
         "frontend/features/admin/constants/permissionResources.ts"
@@ -8761,8 +6860,6 @@
       "en": "Services",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx",
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx",
         "frontend/features/capabilities/CapabilityGovernancePage.tsx"
       ]
     },
@@ -8772,7 +6869,6 @@
       "cs": "služby ·",
       "en": "services ·",
       "files": [
-        "frontend/app/operations/page.tsx",
         "frontend/app/services/graph/page.tsx"
       ]
     },
@@ -8804,15 +6900,6 @@
       ]
     },
     {
-      "key": "ui.generated.services_blocked_by_readiness.9bh5p3",
-      "source": "services blocked by readiness",
-      "cs": "služby blokované připraveností",
-      "en": "services blocked by readiness",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.services_graph.7aqad0",
       "source": "Services Graph",
       "cs": "Graf služeb",
@@ -8822,30 +6909,12 @@
       ]
     },
     {
-      "key": "ui.generated.services_that_cannot_be_published_without_a_fix_.1vk3qn",
-      "source": "Services that cannot be published without a fix or exception.",
-      "cs": "Služby, které nelze publikovat bez opravy nebo výjimky.",
-      "en": "Services that cannot be published without a fix or exception.",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.services_total.6m12vy",
       "source": "Services total",
       "cs": "Služeb celkem",
       "en": "Services total",
       "files": [
         "frontend/app/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.services_where_this_owner_has_an_active_role.83345l",
-      "source": "Services where this owner has an active role.",
-      "cs": "Služby, kde má tento vlastník aktivní roli.",
-      "en": "Services where this owner has an active role.",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -8864,16 +6933,6 @@
       "en": "Services:",
       "files": [
         "frontend/app/services/graph/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.severity.pimnml",
-      "source": "Severity",
-      "cs": "Závažnost",
-      "en": "Severity",
-      "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -8982,8 +7041,7 @@
       "cs": "Služba",
       "en": "Service",
       "files": [
-        "frontend/app/catalogue/page.tsx",
-        "frontend/app/import/page.tsx"
+        "frontend/app/catalogue/page.tsx"
       ]
     },
     {
@@ -8992,7 +7050,6 @@
       "cs": "Služby",
       "en": "Services",
       "files": [
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/portfolio/[code]/page.tsx",
         "frontend/app/portfolio/page.tsx"
       ]
@@ -9186,15 +7243,6 @@
       "en": "Delete",
       "files": [
         "frontend/features/admin/components/RefTableEditor.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.soubor_neni_platny_json.1keb2y",
-      "source": "Soubor není platný JSON.",
-      "cs": "Soubor není platný JSON.",
-      "en": "File is not valid JSON.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -9453,15 +7501,6 @@
       ]
     },
     {
-      "key": "ui.generated.stahnout_json.qdp24g",
-      "source": "Stáhnout JSON",
-      "cs": "Stáhnout JSON",
-      "en": "Download JSON",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.standards.47cwju",
       "source": "Standards",
       "cs": "Standardy",
@@ -9486,15 +7525,6 @@
       "en": "Start",
       "files": [
         "frontend/app/operations/reviews/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.start_with_publish_blockers_review_deadlines_dec.8h64tl",
-      "source": "Start with publish blockers, review deadlines, decisions, owner concentration, and import/data quality evidence.",
-      "cs": "Začněte blokátory publikace, termíny revizí, rozhodnutími, koncentrací vlastníků a evidencí kvality importovaných dat.",
-      "en": "Start with publish blockers, review deadlines, decisions, owner concentration, and import/data quality evidence.",
-      "files": [
-        "frontend/app/operations/page.tsx"
       ]
     },
     {
@@ -9539,39 +7569,12 @@
       ]
     },
     {
-      "key": "ui.generated.stubs.1brgx1",
-      "source": "Stubs",
-      "cs": "Zástupné služby",
-      "en": "Stubs",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.stubs_and_unresolved_references.v7395f",
-      "source": "stubs and unresolved references",
-      "cs": "zástupné záznamy a nevyřešené reference",
-      "en": "stubs and unresolved references",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.styl_car.y2v6lu",
       "source": "Styl čar",
       "cs": "Styl čar",
       "en": "Line style",
       "files": [
         "frontend/app/services/graph/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.support_window.u3fjvl",
-      "source": "support window",
-      "cs": "okno podpory",
-      "en": "support window",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -9644,15 +7647,6 @@
       "en": "This entity has no raw fields.",
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.taxonomy.39t95b",
-      "source": "Taxonomy",
-      "cs": "Taxonomie",
-      "en": "Taxonomy",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -9781,7 +7775,6 @@
       "files": [
         "frontend/app/admin/c3-capability-builder/C3CapabilityBuilderPage.tsx",
         "frontend/app/admin/c3-entities/config.tsx",
-        "frontend/app/import/page.tsx",
         "frontend/app/services/graph/page.tsx",
         "frontend/features/admin/constants/permissionResources.ts"
       ]
@@ -9848,15 +7841,6 @@
       "en": "Total services",
       "files": [
         "frontend/app/catalogue/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.typ.1t9n",
-      "source": "Typ",
-      "cs": "Typ",
-      "en": "Typ",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -9988,15 +7972,6 @@
       ]
     },
     {
-      "key": "ui.generated.unclear_refs.oq0o18",
-      "source": "Unclear refs",
-      "cs": "Nejasné reference",
-      "en": "Unclear refs",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.uncovered_or_not_ready_capabilities_with_recomme.prwyiw",
       "source": "Uncovered or not-ready capabilities with recommended next actions.",
       "cs": "Nepokryté nebo nepřipravené schopnosti s doporučenými dalšími kroky.",
@@ -10060,57 +8035,12 @@
       ]
     },
     {
-      "key": "ui.generated.updated.nnin4r",
-      "source": "Updated",
-      "cs": "Aktualizováno",
-      "en": "Updated",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.updated_records.ircrb7",
-      "source": "Updated records",
-      "cs": "Aktualizované záznamy",
-      "en": "Updated records",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.uplnost_capability.vub7k0",
       "source": "Úplnost capability",
       "cs": "Úplnost schopnosti",
       "en": "Capability completeness",
       "files": [
         "frontend/features/c3/components/CapabilityLinksPanel.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.upload.t0pwpr",
-      "source": "Upload",
-      "cs": "Nahrát",
-      "en": "Upload",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.upload_catalogue.bcbrj0",
-      "source": "Upload catalogue →",
-      "cs": "Nahrát katalog →",
-      "en": "Upload catalogue →",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.upload_selhal.w8uggo",
-      "source": "Upload selhal",
-      "cs": "Nahrání selhalo",
-      "en": "Upload failed",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -10327,26 +8257,7 @@
       "en": "Valid",
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
-        "frontend/app/import/upload/page.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.validacni_issues.j5iyab",
-      "source": "Validační issues",
-      "cs": "Validační problémy",
-      "en": "Validation issues",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.validate.mfp9e2",
-      "source": "Validate",
-      "cs": "Ověřit",
-      "en": "Validate",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -10358,24 +8269,6 @@
         "frontend/app/admin/c3-entities/C3EntityListPage.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.varianty.jlh6bw",
-      "source": "Varianty",
-      "cs": "Varianty",
-      "en": "Varianty",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.vazby.1d2tnq",
-      "source": "Vazby",
-      "cs": "Vazby",
-      "en": "Relations",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -10459,15 +8352,6 @@
       "files": [
         "frontend/app/portfolio/[code]/page.tsx",
         "frontend/app/portfolio/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.vlozeno.97qjz5",
-      "source": "vloženo",
-      "cs": "vloženo",
-      "en": "inserted",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -10597,15 +8481,6 @@
       ]
     },
     {
-      "key": "ui.generated.vysledek_dry_run.oxu2b6",
-      "source": "Výsledek dry-run",
-      "cs": "Výsledek zkušebního běhu",
-      "en": "Dry-run result",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.vytvoreni_spiraly_selhalo.92z87n",
       "source": "Vytvoření spirály selhalo",
       "cs": "Vytvoření spirály selhalo",
@@ -10651,22 +8526,11 @@
       ]
     },
     {
-      "key": "ui.generated.warning.owjz44",
-      "source": "Warning",
-      "cs": "Varování",
-      "en": "Warning",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.warnings.9b1d9z",
       "source": "Warnings",
       "cs": "Varování",
       "en": "Warnings",
       "files": [
-        "frontend/app/import/page.tsx",
-        "frontend/app/import/upload/page.tsx",
         "frontend/app/operations/readiness/page.tsx"
       ]
     },
@@ -10677,15 +8541,6 @@
       "en": "Weak",
       "files": [
         "frontend/app/capabilities/[slug]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.what.1lrdw",
-      "source": "What",
-      "cs": "Co",
-      "en": "What",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -10704,24 +8559,6 @@
       "en": "What NATO capabilities are covered, missing, or duplicated.",
       "files": [
         "frontend/app/capabilities/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.what_needs_attention_today.svagow",
-      "source": "What needs attention today",
-      "cs": "Co dnes vyžaduje pozornost",
-      "en": "What needs attention today",
-      "files": [
-        "frontend/app/operations/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.why.1v3c",
-      "source": "Why",
-      "cs": "Proč",
-      "en": "Why",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -10843,15 +8680,6 @@
       ]
     },
     {
-      "key": "ui.generated.zadne_chybejici_target_sluzby.f9wotr",
-      "source": "Žádné chybějící target služby.",
-      "cs": "Žádné chybějící cílové služby.",
-      "en": "No missing target services.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.zadne_mapovani_ze_service_catalogue.2ia6m1",
       "source": "Žádné mapování ze Service Catalogue",
       "cs": "Žádné mapování z katalogu služeb",
@@ -10876,15 +8704,6 @@
       "en": "No child capabilities for this C3 portfolio.",
       "files": [
         "frontend/app/portfolio/[code]/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.zadne_nerozpoznane_reference.glfd2z",
-      "source": "Žádné nerozpoznané reference.",
-      "cs": "Žádné nerozpoznané reference.",
-      "en": "No unrecognized references.",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
       ]
     },
     {
@@ -10957,15 +8776,6 @@
       "en": "No services for the selected filter.",
       "files": [
         "frontend/app/portfolio/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.zadne_stub_sluzby_cekajici_na_doplneni.o8neqv",
-      "source": "Žádné stub služby čekající na doplnění.",
-      "cs": "Žádné zástupné služby čekající na doplnění.",
-      "en": "No stub services waiting for completion.",
-      "files": [
-        "frontend/app/import/page.tsx"
       ]
     },
     {
@@ -11123,15 +8933,6 @@
       ]
     },
     {
-      "key": "ui.generated.zdrojove_vazby_k_doreseni.t97buy",
-      "source": "Zdrojové vazby k dořešení",
-      "cs": "Zdrojové vazby k dořešení",
-      "en": "Source relations to resolve",
-      "files": [
-        "frontend/app/import/upload/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.zivotni_cyklus.35zohl",
       "source": "Životní cyklus",
       "cs": "Životní cyklus",
@@ -11150,39 +8951,12 @@
       ]
     },
     {
-      "key": "ui.generated.zobrazit_odlozena_rozhodnuti.vwowuv",
-      "source": "Zobrazit odložená rozhodnutí",
-      "cs": "Zobrazit odložená rozhodnutí",
-      "en": "Show deferred decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.zobrazit_odmitnuta_rozhodnuti.n04pr8",
-      "source": "Zobrazit odmítnutá rozhodnutí",
-      "cs": "Zobrazit odmítnutá rozhodnutí",
-      "en": "Show rejected decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.zobrazit_pripravene_sluzby.28n33b",
       "source": "Zobrazit připravené služby",
       "cs": "Zobrazit připravené služby",
       "en": "Show ready services",
       "files": [
         "frontend/app/operations/readiness/page.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.zobrazit_schvalena_rozhodnuti.v6xabs",
-      "source": "Zobrazit schválená rozhodnutí",
-      "cs": "Zobrazit schválená rozhodnutí",
-      "en": "Show approved decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
@@ -11210,15 +8984,6 @@
       "en": "Show all",
       "files": [
         "frontend/app/c3/capability-map/CapabilityMapPage.tsx"
-      ]
-    },
-    {
-      "key": "ui.generated.zobrazit_vsechna_rozhodnuti.n5twl",
-      "source": "Zobrazit všechna rozhodnutí",
-      "cs": "Zobrazit všechna rozhodnutí",
-      "en": "Show all decisions",
-      "files": [
-        "frontend/app/operations/decisions/page.tsx"
       ]
     },
     {
