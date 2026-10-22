@@ -3628,5 +3628,14 @@
   "service_detail.check.owner_missing_detail": "Without an owner, nobody is accountable for changes and reviews.",
   "service_detail.checklist.progress": "{{done}} of {{total}} done",
   "service_detail.checklist.why_how": "Why and how to fix",
-  "service_detail.checklist.evidence": "Evidence"
+  "service_detail.checklist.evidence": "Evidence",
+  "layout.graph_workspace.close_detail": "Close detail",
+  "graph.view.label": "View",
+  "graph.view.graph": "Graph",
+  "graph.options.title": "Options",
+  "graph.filter.empty": "No service matches the filters.",
+  "graph.filter.clear": "Clear filters",
+  "graph.layout.hint_toggle": "Hint: moving nodes",
+  "graph.layout.hint_dismiss": "Hide hint",
+  "service_graph.overview.empty": "The catalogue has no services yet."
 }

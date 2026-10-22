@@ -41,7 +41,7 @@
 .kind { font: var(--text-label-sm); color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 2px; }
 .code { font: var(--text-mono-sm); color: var(--color-text-muted); margin-bottom: 2px; }
 .capability .code { color: var(--color-info); }
-.title { font: var(--text-label-md); color: var(--color-text-primary); margin-bottom: var(--space-1); }
+.title { font: var(--text-title-sm); color: var(--color-text-primary); margin-bottom: var(--space-1); }
 .flavour .title { color: var(--color-warning); margin-bottom: 0; }
 .status { display: flex; justify-content: flex-start; margin-bottom: 2px; }
 .meta { font: var(--text-label-sm); color: var(--color-text-muted); margin-top: 2px; }

@@ -3628,5 +3628,14 @@
   "service_detail.check.owner_missing_detail": "Bez vlastníka nikdo neodpovídá za změny a revize.",
   "service_detail.checklist.progress": "Splněno {{done}} z {{total}}",
   "service_detail.checklist.why_how": "Proč a jak opravit",
-  "service_detail.checklist.evidence": "Doklad"
+  "service_detail.checklist.evidence": "Doklad",
+  "layout.graph_workspace.close_detail": "Zavřít detail",
+  "graph.view.label": "Zobrazení",
+  "graph.view.graph": "Graf",
+  "graph.options.title": "Možnosti",
+  "graph.filter.empty": "Filtrům neodpovídá žádná služba.",
+  "graph.filter.clear": "Zrušit filtry",
+  "graph.layout.hint_toggle": "Nápověda k přesouvání uzlů",
+  "graph.layout.hint_dismiss": "Skrýt nápovědu",
+  "service_graph.overview.empty": "Katalog zatím nemá žádné služby."
 }

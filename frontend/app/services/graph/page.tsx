@@ -23,6 +23,7 @@ import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_SERVICE_STATUS, lifecycleStageLabelKe
 import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
 import { applyLineStyleMode, resolveServiceRelationVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
 import { GraphCanvas, isLargeGraph } from '@/features/graph/GraphCanvas';
+import { GraphOptionGroup, GraphOptionsMenu, GraphSegmented, graphToolbarStyles } from '@/features/graph/GraphToolbar';
 import { GRAPH_NODE_TYPE } from '@/features/graph/GraphNodeCard';
 import { layoutByDependency } from '@/features/graph/autoLayout';
 import { computeGraphHighlight, DIMMED_EDGE_OPACITY, DIMMED_NODE_OPACITY, type GraphHighlight } from '@/features/graph/graphHighlight';
@@ -34,7 +35,7 @@ import shellStyles from '../../graph/overview.module.css';
 
 type ServiceGraphNodeData = GraphOverviewNode & Record<string, unknown>;
 type ServiceGraphEdgeData = GraphOverviewEdge & Record<string, unknown>;
-type ServicesGraphViewMode = 'detail' | 'graph-only' | 'text';
+type ServicesGraphViewMode = 'graph' | 'text';
 type ServicesGraphLayoutMode = 'dependency' | 'portfolio';
 
 const NODE_WIDTH = 250;
@@ -45,9 +46,9 @@ const LAYOUT_NODE_WIDTH = 220;
 const LAYOUT_NODE_HEIGHT = 104;
 const HIGHLIGHT_DEPTHS = [1, 2, 3, 5];
 
+/** `?view=text` adds the text list of relations; older `detail` / `graph-only` links show the graph. */
 function normalizeViewMode(value: string | null | undefined): ServicesGraphViewMode {
-  if (value === 'graph-only' || value === 'text' || value === 'detail') return value;
-  return 'detail';
+  return value === 'text' ? 'text' : 'graph';
 }
 
 function serviceNodeKey(node: GraphOverviewNode) {
@@ -184,15 +185,6 @@ function layoutEdges(
   });
 }
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className={shellStyles.railSection}>
-      <div className={shellStyles.filterLabel}>{label}</div>
-      <div className={shellStyles.filterOptions}>{children}</div>
-    </div>
-  );
-}
-
 function PanelRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className={shellStyles.panelRow}>
@@ -241,9 +233,7 @@ export default function ServicesGraphPage() {
   const layout = useGraphLayout(`service-overview/${layoutMode}`);
   const [highlightDepth, setHighlightDepth] = useState<number>(2);
   const viewMode = normalizeViewMode(searchParams?.get('view'));
-  const canvasOnly = viewMode === 'graph-only';
   const showTextAlternative = viewMode === 'text';
-  const detailOpen = viewMode === 'detail';
 
   const services = useMemo(() => (data?.nodes ?? []).filter((node) => node.node_kind === 'service'), [data?.nodes]);
   const serviceIds = useMemo(() => new Set(services.map((node) => node.id)), [services]);
@@ -258,7 +248,7 @@ export default function ServicesGraphPage() {
   }, []);
 
   const selectViewMode = useCallback((mode: ServicesGraphViewMode) => {
-    const nextUrl = mode === 'detail' ? '/services/graph' : `/services/graph?view=${mode}`;
+    const nextUrl = mode === 'text' ? '/services/graph?view=text' : '/services/graph';
     router.push(nextUrl, { scroll: false });
   }, [router]);
 
@@ -292,12 +282,6 @@ export default function ServicesGraphPage() {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
 
-  const nodeCountsByPortfolio = useMemo(() => {
-    const counts = new Map<string, number>();
-    services.forEach((node) => counts.set(groupLabel(node, noPortfolioLabel), (counts.get(groupLabel(node, noPortfolioLabel)) ?? 0) + 1));
-    return Array.from(counts.entries()).sort((a, b) => compareText(locale, a[0], b[0], { sensitivity: 'base' }));
-  }, [locale, noPortfolioLabel, services]);
-
   const mandatoryCount = relations.filter((edge) => edge.is_mandatory).length;
   const unverifiedCount = relations.filter((edge) => edge.is_verified === false).length;
   const performanceMode = isLargeGraph(nodes.length, edges.length);
@@ -327,171 +311,122 @@ export default function ServicesGraphPage() {
     setSelectedNode(null);
   }, []);
 
+  const clearSelection = useCallback(() => {
+    setSelectedNode(null);
+    setSelectedEdge(null);
+  }, []);
+
   if (isLoading) return <div className={shellStyles.state}>{t('service_graph.text.loading_service_graph')}</div>;
   if (error || !data) return <div className={shellStyles.stateError}>{t('service_graph.text.service_graph_is_not_available')}</div>;
+
+  const filtersActive = Boolean(searchInput || portfolioFilter || statusFilter);
+  const detailTitle = selectedNode
+    ? selectedNode.title
+    : selectedEdge
+      ? relationLabel(selectedEdge, t)
+      : undefined;
 
   return (
     <GraphWorkspace
       title={t('service_graph.text.service_graph')}
       purpose={t('service_graph.overview.purpose')}
-      canvasOnly={canvasOnly}
-      detailOpen={detailOpen}
-      showWorkspaceActions={false}
+      meta={(
+        <>
+          <span title={`${t('service_graph.overview.summary_mandatory', { count: mandatoryCount })} · ${t('service_graph.overview.summary_unverified', { count: unverifiedCount })}`}>
+            {t('service_graph.overview.meta', { services: services.length, relations: relations.length })}
+          </span>
+          {performanceMode && <span className={shellStyles.performanceBadge}>{t('service_graph.overview.large_graph')}</span>}
+        </>
+      )}
       toolbar={(
         <>
-          <FilterGroup label={t('service_graph.text.pohledy')}>
-            <Link href="/services/list" className={shellStyles.panelLink}>{t('service_graph.text.service_list')}</Link>
-            <button
-              type="button"
-              className={`${shellStyles.viewModeButton} ${viewMode === 'graph-only' ? shellStyles.viewModeButtonActive : ''}`}
-              onClick={() => selectViewMode('graph-only')}
-            >
-              {t('service_graph.text.graph_only')}
-            </button>
-            <button
-              type="button"
-              className={`${shellStyles.viewModeButton} ${viewMode === 'text' ? shellStyles.viewModeButtonActive : ''}`}
-              onClick={() => selectViewMode('text')}
-            >
-              {t('service_graph.text.text_relationships')}
-            </button>
-            <button
-              type="button"
-              className={`${shellStyles.viewModeButton} ${viewMode === 'detail' ? shellStyles.viewModeButtonActive : ''}`}
-              onClick={() => selectViewMode('detail')}
-            >
-              {t('service_graph.text.detail')}
-            </button>
-          </FilterGroup>
-
-          <FilterGroup label={t('graph.filter.search')}>
-            <input
-              type="search"
-              className={shellStyles.searchInput}
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={t('graph.filter.search')}
-              aria-label={t('graph.filter.search')}
-            />
-            <select
-              className={shellStyles.selectInput}
-              value={portfolioFilter}
-              onChange={(event) => setPortfolioFilter(event.target.value)}
-              aria-label={t('graph.filter.portfolio')}
-            >
-              <option value="">{t('graph.filter.portfolio')}: {t('graph.filter.all')}</option>
-              {(portfolioGroups ?? []).map((group) => (
-                <option key={group.code} value={group.code}>{group.name || group.code}</option>
-              ))}
-            </select>
-            <select
-              className={shellStyles.selectInput}
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              aria-label={t('graph.filter.status')}
-            >
-              <option value="">{t('graph.filter.status')}: {t('graph.filter.all')}</option>
-              {LIFECYCLE_STAGES.map((stage) => (
-                <option key={stage} value={LIFECYCLE_STAGE_SERVICE_STATUS[stage]}>{t(lifecycleStageLabelKey(stage))}</option>
-              ))}
-            </select>
-            <div className={shellStyles.meta}>{t('graph.filter.shown', { count: services.length })}</div>
-          </FilterGroup>
-
-          <FilterGroup label={t('service_graph.text.souhrn')}>
-            <div className={shellStyles.meta}>{t('service_graph.overview.summary_services', { count: services.length })}</div>
-            <div className={shellStyles.meta}>{t('service_graph.overview.summary_relations', { count: relations.length })}</div>
-            <div className={shellStyles.meta}>{t('service_graph.overview.summary_mandatory', { count: mandatoryCount })}</div>
-            <div className={shellStyles.meta}>{t('service_graph.overview.summary_unverified', { count: unverifiedCount })}</div>
-          </FilterGroup>
-
-          <FilterGroup label={t('service_graph.text.portfolio')}>
-            {nodeCountsByPortfolio.slice(0, 12).map(([portfolio, count]) => (
-              <div key={portfolio} className={shellStyles.meta}>{portfolio}: {count}</div>
+          <input
+            type="search"
+            className={graphToolbarStyles.search}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder={t('graph.filter.search')}
+            aria-label={t('graph.filter.search')}
+          />
+          <select
+            className={graphToolbarStyles.select}
+            value={portfolioFilter}
+            onChange={(event) => setPortfolioFilter(event.target.value)}
+            aria-label={t('graph.filter.portfolio')}
+          >
+            <option value="">{t('graph.filter.portfolio')}: {t('graph.filter.all')}</option>
+            {(portfolioGroups ?? []).map((group) => (
+              <option key={group.code} value={group.code}>{group.name || group.code}</option>
             ))}
-          </FilterGroup>
-
-          <FilterGroup label={t('graph.layout.title')}>
-            <div className={shellStyles.typeList}>
-              {([
-                { value: 'dependency', label: t('graph.layout.dependency') },
-                { value: 'portfolio', label: t('graph.layout.portfolio') },
-              ] as const).map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`${shellStyles.typeBtn} ${layoutMode === option.value ? shellStyles.typeBtnOn : ''}`}
-                  aria-pressed={layoutMode === option.value}
-                  onClick={() => setLayoutMode(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </FilterGroup>
-
-          <FilterGroup label={t('graph.highlight.depth')}>
-            <div className={shellStyles.typeList}>
-              {HIGHLIGHT_DEPTHS.map((depth) => (
-                <button
-                  key={depth}
-                  type="button"
-                  className={`${shellStyles.typeBtn} ${highlightDepth === depth ? shellStyles.typeBtnOn : ''}`}
-                  aria-pressed={highlightDepth === depth}
-                  onClick={() => setHighlightDepth(depth)}
-                >
-                  {depth}
-                </button>
-              ))}
-            </div>
-          </FilterGroup>
-
-          <FilterGroup label={t('service_graph.text.typ_spojnic')}>
-            <div className={shellStyles.typeList}>
-              <button
-                type="button"
-                className={`${shellStyles.typeBtn} ${edgeType === 'smoothstep' ? shellStyles.typeBtnOn : ''}`}
-                onClick={() => setEdgeType('smoothstep')}
-              >
-                {t('service_graph.text.orthogonal')}
-              </button>
-              <button
-                type="button"
-                className={`${shellStyles.typeBtn} ${edgeType === 'straight' ? shellStyles.typeBtnOn : ''}`}
-                onClick={() => setEdgeType('straight')}
-              >
-                {t('service_graph.text.direct')}
-              </button>
-            </div>
-          </FilterGroup>
-
-          <FilterGroup label={t('service_graph.text.line_style')}>
-            <div className={shellStyles.typeList}>
-              {[
-                { value: 'auto', label: t('service_graph.text.by_relation') },
-                { value: 'solid', label: t('service_graph.text.full') },
-                { value: 'dashed', label: t('service_graph.text.dashed') },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`${shellStyles.typeBtn} ${lineStyleMode === option.value ? shellStyles.typeBtnOn : ''}`}
-                  onClick={() => setLineStyleMode(option.value as GraphLineStyleMode)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </FilterGroup>
+          </select>
+          <select
+            className={graphToolbarStyles.select}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            aria-label={t('graph.filter.status')}
+          >
+            <option value="">{t('graph.filter.status')}: {t('graph.filter.all')}</option>
+            {LIFECYCLE_STAGES.map((stage) => (
+              <option key={stage} value={LIFECYCLE_STAGE_SERVICE_STATUS[stage]}>{t(lifecycleStageLabelKey(stage))}</option>
+            ))}
+          </select>
+          <GraphSegmented
+            label={t('graph.view.label')}
+            value={viewMode}
+            options={[
+              { value: 'graph', label: t('graph.view.graph') },
+              { value: 'text', label: t('service_graph.text.text_relationships') },
+            ]}
+            onChange={selectViewMode}
+          />
+          <GraphOptionsMenu label={t('graph.options.title')}>
+            <GraphOptionGroup label={t('graph.layout.title')}>
+              <GraphSegmented
+                label={t('graph.layout.title')}
+                value={layoutMode}
+                options={[
+                  { value: 'dependency', label: t('graph.layout.dependency') },
+                  { value: 'portfolio', label: t('graph.layout.portfolio') },
+                ]}
+                onChange={setLayoutMode}
+              />
+            </GraphOptionGroup>
+            <GraphOptionGroup label={t('graph.highlight.depth')}>
+              <GraphSegmented
+                label={t('graph.highlight.depth')}
+                value={highlightDepth}
+                options={HIGHLIGHT_DEPTHS.map((depth) => ({ value: depth, label: String(depth) }))}
+                onChange={setHighlightDepth}
+              />
+            </GraphOptionGroup>
+            <GraphOptionGroup label={t('service_graph.text.typ_spojnic')}>
+              <GraphSegmented
+                label={t('service_graph.text.typ_spojnic')}
+                value={edgeType}
+                options={[
+                  { value: 'smoothstep', label: t('service_graph.text.orthogonal') },
+                  { value: 'straight', label: t('service_graph.text.direct') },
+                ]}
+                onChange={setEdgeType}
+              />
+            </GraphOptionGroup>
+            <GraphOptionGroup label={t('service_graph.text.line_style')}>
+              <GraphSegmented
+                label={t('service_graph.text.line_style')}
+                value={lineStyleMode}
+                options={[
+                  { value: 'auto', label: t('service_graph.text.by_relation') },
+                  { value: 'solid', label: t('service_graph.text.full') },
+                  { value: 'dashed', label: t('service_graph.text.dashed') },
+                ]}
+                onChange={setLineStyleMode}
+              />
+            </GraphOptionGroup>
+          </GraphOptionsMenu>
         </>
       )}
       canvas={(
-        <main className={`${shellStyles.main} ${canvasOnly ? shellStyles.mainGraphOnly : ''}`}>
-          <div className={shellStyles.header}>
-            <div className={shellStyles.title}>{t('service_graph.text.service_graph')}</div>
-            <div className={shellStyles.meta}>{t('service_graph.overview.meta', { services: services.length, relations: relations.length })}</div>
-            {performanceMode && <div className={shellStyles.performanceBadge}>{t('service_graph.overview.large_graph')}</div>}
-          </div>
+        <div className={shellStyles.main}>
           <div className={shellStyles.canvasWrap}>
             <div className={shellStyles.canvas} role="region" aria-label={t('service_graph.overview.canvas_aria')}>
               <GraphCanvas
@@ -502,15 +437,31 @@ export default function ServicesGraphPage() {
                 onNodeClick={onNodeClick}
                 onNodeDoubleClick={onNodeDoubleClick}
                 onEdgeClick={onEdgeClick}
-                onPaneClick={() => { setSelectedNode(null); setSelectedEdge(null); }}
-                fitViewPadding={0.18}
+                onPaneClick={clearSelection}
+                fitViewPadding={0.08}
                 minimapNodeColor={nodeColor}
                 legend={{ title: t('graph.legend.title'), items: legendItems }}
                 layout={layout}
               />
+              {services.length === 0 && (
+                <div className={graphToolbarStyles.emptyCanvas}>
+                  <p>{filtersActive ? t('graph.filter.empty') : t('service_graph.overview.empty')}</p>
+                  {filtersActive ? (
+                    <button
+                      type="button"
+                      className={graphToolbarStyles.emptyAction}
+                      onClick={() => { setSearchInput(''); setPortfolioFilter(''); setStatusFilter(''); }}
+                    >
+                      {t('graph.filter.clear')}
+                    </button>
+                  ) : (
+                    <Link href="/management/new-service" className={graphToolbarStyles.emptyAction}>{t('nav.new_service')}</Link>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-          {!canvasOnly && showTextAlternative ? (
+          {showTextAlternative ? (
           <section
             className={shellStyles.graphTextAlternative}
             aria-labelledby="service-graph-text-alt"
@@ -540,44 +491,34 @@ export default function ServicesGraphPage() {
             ) : null}
           </section>
           ) : null}
-        </main>
+        </div>
       )}
+      detailOpen={Boolean(selectedNode || selectedEdge)}
+      detailTitle={detailTitle}
+      onDetailPanelClose={clearSelection}
       detailPanelContent={(
-        <>
-          <div className={shellStyles.panelHeader}>
-            <div className={shellStyles.panelTitle}>{t('service_graph.text.detail')}</div>
-          </div>
-          <div className={shellStyles.panelBody}>
-            {selectedNode ? (
-              <>
-                <PanelRow label={t('service_graph.field.service_id')}>{selectedNode.service_id ?? selectedNode.code ?? selectedNode.id}</PanelRow>
-                <PanelRow label={t('service_graph.field.title')}>{selectedNode.title}</PanelRow>
-                <PanelRow label={t('service_graph.text.status')}>{selectedNode.service_status ?? selectedNode.status ?? '—'}</PanelRow>
-                <PanelRow label={t('service_graph.text.portfolio')}>{selectedNode.portfolio_group ?? '—'}</PanelRow>
-                <PanelRow label={t('service_graph.text.typ')}>{selectedNode.service_type ?? '—'}</PanelRow>
-                <PanelRow label="SLA">{selectedNode.sla_availability != null ? `${selectedNode.sla_availability}%` : '—'}</PanelRow>
-                <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}`} className={shellStyles.panelLink}>{t('service_graph.overview.open_service_detail')}</Link>
-                <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}/graph`} className={shellStyles.panelLink}>{t('service_graph.overview.open_detail_graph')}</Link>
-              </>
-            ) : null}
+        <div className={shellStyles.panelBody}>
+          {selectedNode ? (
+            <>
+              <PanelRow label={t('service_graph.field.service_id')}>{selectedNode.service_id ?? selectedNode.code ?? selectedNode.id}</PanelRow>
+              <PanelRow label={t('service_graph.text.status')}>{selectedNode.service_status ?? selectedNode.status ?? '—'}</PanelRow>
+              <PanelRow label={t('service_graph.text.portfolio')}>{selectedNode.portfolio_group ?? '—'}</PanelRow>
+              <PanelRow label={t('service_graph.text.typ')}>{selectedNode.service_type ?? '—'}</PanelRow>
+              <PanelRow label="SLA">{selectedNode.sla_availability != null ? `${selectedNode.sla_availability}%` : '—'}</PanelRow>
+              <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}`} className={shellStyles.panelLink}>{t('service_graph.overview.open_service_detail')}</Link>
+              <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}/graph`} className={shellStyles.panelLink}>{t('service_graph.overview.open_detail_graph')}</Link>
+            </>
+          ) : null}
 
-            {selectedEdge ? (
-              <>
-                <PanelRow label={t('service_graph.field.relation')}>{relationLabel(selectedEdge, t)}</PanelRow>
-                <PanelRow label={t('service_graph.text.typ')}>{t(relationTypeLabelKey(selectedEdge.relation_type))}</PanelRow>
-                <PanelRow label={t('service_graph.text.mandatory')}>{selectedEdge.is_mandatory ? t('common.yes') : t('common.no')}</PanelRow>
-                <PanelRow label={t('service_graph.field.verified')}>{selectedEdge.is_verified ? t('common.yes') : t('common.no')}</PanelRow>
-                <PanelRow label={t('service_graph.text.impact')}>{selectedEdge.impact_level ?? '—'}</PanelRow>
-              </>
-            ) : null}
-
-            {!selectedNode && !selectedEdge ? (
-              <div className={shellStyles.meta}>
-                {t('service_graph.overview.empty_hint')}
-              </div>
-            ) : null}
-          </div>
-        </>
+          {selectedEdge ? (
+            <>
+              <PanelRow label={t('service_graph.text.typ')}>{t(relationTypeLabelKey(selectedEdge.relation_type))}</PanelRow>
+              <PanelRow label={t('service_graph.text.mandatory')}>{selectedEdge.is_mandatory ? t('common.yes') : t('common.no')}</PanelRow>
+              <PanelRow label={t('service_graph.field.verified')}>{selectedEdge.is_verified ? t('common.yes') : t('common.no')}</PanelRow>
+              <PanelRow label={t('service_graph.text.impact')}>{selectedEdge.impact_level ?? '—'}</PanelRow>
+            </>
+          ) : null}
+        </div>
       )}
     />
   );

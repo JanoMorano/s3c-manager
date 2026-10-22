@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T20:43:23.008Z",
+  "generated_at": "2026-10-22T20:46:05.299Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -255,7 +255,8 @@
       "files": [
         "frontend/app/c3/capability-map/CapabilityMapPage.tsx",
         "frontend/app/components/NavGlobalSearch.tsx",
-        "frontend/app/import/ImportExportMenu.tsx"
+        "frontend/app/import/ImportExportMenu.tsx",
+        "frontend/features/graph/GraphToolbar.tsx"
       ]
     },
     {
@@ -320,15 +321,6 @@
       "en": "Management Cockpit",
       "files": [
         "frontend/features/modules/manifest.ts"
-      ]
-    },
-    {
-      "key": "ui.generated.noopener_noreferrer_width_1400_height_900.3j4q2l",
-      "source": "noopener,noreferrer,width=1400,height=900",
-      "cs": "noopener,noreferrer,width=1400,height=900",
-      "en": "noopener,noreferrer,width=1400,height=900",
-      "files": [
-        "frontend/features/graph/exportGraphPdf.ts"
       ]
     },
     {
@@ -674,6 +666,15 @@
       ]
     },
     {
+      "key": "ui.generated.s3c_graph_layoutnotedismissed.6j8f2a",
+      "source": "s3c.graph.layoutNoteDismissed",
+      "cs": "s3c.graph.layoutNoteDismissed",
+      "en": "s3c.graph.layoutNoteDismissed",
+      "files": [
+        "frontend/features/graph/GraphLayoutControls.tsx"
+      ]
+    },
+    {
       "key": "ui.generated.service_catalogue.b9woe6",
       "source": "Service Catalogue",
       "cs": "Katalog služeb",
@@ -871,6 +872,7 @@
         "frontend/features/graph/GraphCanvas.tsx",
         "frontend/features/graph/GraphLayoutControls.tsx",
         "frontend/features/graph/GraphNodeCard.tsx",
+        "frontend/features/graph/GraphToolbar.tsx",
         "frontend/features/graph/exportGraphPdf.ts",
         "frontend/features/graph/useGraphLayout.ts",
         "frontend/features/home/GettingStarted.tsx",
@@ -907,6 +909,15 @@
       "files": [
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/features/c3/components/CapabilityDetailPage.tsx"
+      ]
+    },
+    {
+      "key": "ui.generated.width_1400_height_900.28n4dn",
+      "source": "width=1400,height=900",
+      "cs": "width=1400,height=900",
+      "en": "width=1400,height=900",
+      "files": [
+        "frontend/features/graph/exportGraphPdf.ts"
       ]
     }
   ]

@@ -18,12 +18,14 @@ import {
 import { exportGraphToPdf } from '@/features/graph/exportGraphPdf';
 import { applyLineStyleMode, resolveServiceGraphEdgeVisual, serviceGraphLegendItems, type GraphEdgeType, type GraphLineStyleMode } from '@/features/graph/graphVisuals';
 import { GraphCanvas } from '@/features/graph/GraphCanvas';
+import { GraphOptionGroup, GraphOptionsMenu, GraphSegmented, graphToolbarStyles } from '@/features/graph/GraphToolbar';
 import { GRAPH_NODE_TYPE, type GraphNodeCardData } from '@/features/graph/GraphNodeCard';
 import { applyNodePositions, useGraphLayout } from '@/features/graph/useGraphLayout';
 import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import { useServiceGraph, useServices } from '@/features/services/hooks/useServices';
 import type { ServiceGraphV2Response, ServiceGraphV2Node, ServiceGraphV2Edge } from '@/features/services/model/service.types';
 import { GraphWorkspace } from '@/app/components/layout-v2';
+import { Button } from '@/design-system/controls';
 import shellStyles from '../../../graph/overview.module.css';
 import localStyles from './graph.module.css';
 import { compareText } from '@/app/i18n/format';
@@ -33,7 +35,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-type ServiceGraphViewMode = 'detail' | 'graph-only' | 'text';
+type ServiceGraphViewMode = 'graph' | 'text';
 
 const COLUMN_X: Record<ServiceGraphV2Node['node_kind'], number> = {
   service: 0,
@@ -76,9 +78,9 @@ const NODE_KIND_COLOR: Record<ServiceGraphV2Node['node_kind'], string> = {
   c3_service: 'var(--color-domain-relay)',
 };
 
+/** `?view=text` adds the text list of relations; older `detail` / `graph-only` links show the graph. */
 function normalizeViewMode(value: string | null | undefined): ServiceGraphViewMode {
-  if (value === 'graph-only' || value === 'text' || value === 'detail') return value;
-  return 'detail';
+  return value === 'text' ? 'text' : 'graph';
 }
 
 function edgeLabel(edge: ServiceGraphV2Edge & { mapping_type_code?: string | null }) {
@@ -194,9 +196,8 @@ export default function GraphPage({ params }: Props) {
   const { data: serviceList } = useServices({ limit: 500, sort: 'service_id', order: 'ASC' });
 
   const viewMode = normalizeViewMode(searchParams?.get('view'));
-  const canvasOnly = viewMode === 'graph-only';
   const showTextAlternative = viewMode === 'text';
-  const detailOpen = viewMode === 'detail';
+  const [readinessOpen, setReadinessOpen] = useState(false);
 
   const { data, isLoading, error } = useServiceGraph(id, 1, 'v2');
   const graphData = data as ServiceGraphV2Response | undefined;
@@ -209,6 +210,7 @@ export default function GraphPage({ params }: Props) {
     () => applyNodePositions(layoutNodes(rootGraph.nodes, selectedNode?.id ?? null, (node) => {
       setSelectedNode(node);
       setSelectedEdge(null);
+      setReadinessOpen(false);
     }, locale), layout.positions),
     [layout.positions, locale, rootGraph.nodes, selectedNode?.id],
   );
@@ -252,12 +254,6 @@ export default function GraphPage({ params }: Props) {
     return counts;
   }, [rootGraph.nodes]);
 
-  const edgeCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    rootGraph.edges.forEach((edge) => counts.set(edge.edge_kind, (counts.get(edge.edge_kind) ?? 0) + 1));
-    return counts;
-  }, [rootGraph.edges]);
-
   const textRelationRows = useMemo(() => rootGraph.edges.map((edge) => ({
     id: edge.id,
     source: graphNodeById.get(edge.source),
@@ -268,7 +264,7 @@ export default function GraphPage({ params }: Props) {
 
   const selectViewMode = useCallback((mode: ServiceGraphViewMode) => {
     const basePath = `/services/${encodeURIComponent(id)}/graph`;
-    router.push(mode === 'detail' ? basePath : `${basePath}?view=${mode}`, { scroll: false });
+    router.push(mode === 'text' ? `${basePath}?view=text` : basePath, { scroll: false });
   }, [id, router]);
 
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
@@ -280,11 +276,19 @@ export default function GraphPage({ params }: Props) {
     const raw = (edge.data as { raw?: ServiceGraphV2Edge } | undefined)?.raw;
     setSelectedEdge(raw ?? null);
     setSelectedNode(null);
+    setReadinessOpen(false);
   }, []);
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNode(node.data as ServiceGraphV2Node);
     setSelectedEdge(null);
+    setReadinessOpen(false);
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    setReadinessOpen(false);
   }, []);
 
   if (isLoading) return <div className={shellStyles.state}>{t('service_graph.text.loading_service_graph')}</div>;
@@ -293,131 +297,29 @@ export default function GraphPage({ params }: Props) {
   const selectedNodeHref = selectedNode ? resolveNodeHref(selectedNode) : null;
   const typedSelectedEdge = selectedEdge as (ServiceGraphV2Edge & { mapping_type_code?: string | null }) | null;
 
+  const readiness = graphData.readiness;
+  const detailOpen = Boolean(selectedNode || typedSelectedEdge || (readinessOpen && readiness));
+  const detailTitle = selectedNode
+    ? selectedNode.label
+    : typedSelectedEdge
+      ? edgeLabel(typedSelectedEdge)
+      : t('service_graph.text.readiness');
+  const nodeCountSummary = NODE_KIND_ORDER
+    .filter((kind) => (nodeCounts.get(kind) ?? 0) > 0)
+    .map((kind) => `${t(NODE_KIND_LABEL[kind])}: ${nodeCounts.get(kind)}`)
+    .join(' · ');
+
   return (
     <GraphWorkspace
       title={t('service_graph.text.service_graph')}
-      purpose={t('service_graph.text.service_offering_c3_element_and_readiness_contex')}
-      canvasOnly={canvasOnly}
-      detailOpen={detailOpen}
-      showWorkspaceActions={false}
+      purpose={t('service_graph.text.click_a_node_or_edge_double_clicking_a_node_open')}
+      meta={<span title={nodeCountSummary}>{t('service_graph.detail_meta', { blocks: rootGraph.nodes.length, relations: rootGraph.edges.length })}</span>}
       toolbar={(
         <>
-        <FilterGroup label={t('service_graph.text.pohledy')}>
-          <Link href="/services/list" className={shellStyles.panelLink}>{t('service_graph.text.service_list')}</Link>
-          <button
-            type="button"
-            className={`${shellStyles.viewModeButton} ${viewMode === 'graph-only' ? shellStyles.viewModeButtonActive : ''}`}
-            onClick={() => selectViewMode('graph-only')}
-          >
-            {t('service_graph.text.graph_only')}
-          </button>
-          <button
-            type="button"
-            className={`${shellStyles.viewModeButton} ${viewMode === 'text' ? shellStyles.viewModeButtonActive : ''}`}
-            onClick={() => selectViewMode('text')}
-          >
-            {t('service_graph.text.text_relationships')}
-          </button>
-          <button
-            type="button"
-            className={`${shellStyles.viewModeButton} ${viewMode === 'detail' ? shellStyles.viewModeButtonActive : ''}`}
-            onClick={() => selectViewMode('detail')}
-          >
-            {t('service_graph.text.detail')}
-          </button>
-        </FilterGroup>
-
-        <FilterGroup label={t('service_graph.text.souhrn')}>
-          <div className={shellStyles.meta}>{t('service_graph.text.service')}{' '}{graphData.root_service_id}</div>
-          <div className={shellStyles.meta}>{t('service_graph.text.blocks')}{' '}{rootGraph.nodes.length}</div>
-          <div className={shellStyles.meta}>{t('service_graph.text.relations')}{' '}{rootGraph.edges.length}</div>
-        </FilterGroup>
-
-        <FilterGroup label={t('service_graph.text.uzly')}>
-          {NODE_KIND_ORDER.map((kind) => (
-            <div key={kind} className={shellStyles.meta}>
-              {t(NODE_KIND_LABEL[kind])}: {nodeCounts.get(kind) ?? 0}
-            </div>
-          ))}
-        </FilterGroup>
-
-        <FilterGroup label={t('service_graph.text.relations_2')}>
-          {Array.from(edgeCounts.entries()).sort((a, b) => compareText(locale, a[0], b[0])).map(([kind, count]) => (
-            <div key={kind} className={shellStyles.meta}>
-              {kind.replace(/_/g, ' ')}: {count}
-            </div>
-          ))}
-        </FilterGroup>
-
-        <FilterGroup label={t('service_graph.text.typ_spojnic')}>
-          <div className={shellStyles.typeList}>
-            <button
-              type="button"
-              className={`${shellStyles.typeBtn} ${edgeType === 'smoothstep' ? shellStyles.typeBtnOn : ''}`}
-              onClick={() => setEdgeType('smoothstep')}
-            >
-              {t('service_graph.text.orthogonal')}
-            </button>
-            <button
-              type="button"
-              className={`${shellStyles.typeBtn} ${edgeType === 'straight' ? shellStyles.typeBtnOn : ''}`}
-              onClick={() => setEdgeType('straight')}
-            >
-              {t('service_graph.text.direct')}
-            </button>
-          </div>
-        </FilterGroup>
-
-        <FilterGroup label={t('service_graph.text.line_style')}>
-          <div className={shellStyles.typeList}>
-            {[
-              { value: 'auto', label: t('service_graph.text.by_relation') },
-              { value: 'solid', label: t('service_graph.text.full') },
-              { value: 'dashed', label: t('service_graph.text.dashed') },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`${shellStyles.typeBtn} ${lineStyleMode === option.value ? shellStyles.typeBtnOn : ''}`}
-                onClick={() => setLineStyleMode(option.value as GraphLineStyleMode)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </FilterGroup>
-
-        {graphData.readiness && (
-          <FilterGroup label={t('service_graph.text.readiness')}>
-            <div className={shellStyles.meta}>{t('service_graph.text.blockers')}{' '}{graphData.readiness.blockers.length}</div>
-            <div className={shellStyles.meta}>{t('service_graph.text.warnings')}{' '}{graphData.readiness.warnings.length}</div>
-            <div className={shellStyles.meta}>{t('service_graph.text.primary_c3')}{' '}{graphData.readiness.primary_c3_code ?? '—'}</div>
-            <div className={shellStyles.meta}>{t('service_graph.text.legacy_variants')}{' '}{graphData.readiness.active_flavour_count}</div>
-          </FilterGroup>
-        )}
-
-        <FilterGroup label={t('service_graph.text.export')}>
-          <button
-            type="button"
-            className={shellStyles.saveButtonInline}
-            onClick={() => exportGraphToPdf(graphCanvasRef.current, t('service_graph.export_title', { id: graphData.root_service_id }))}
-          >
-            {t('service_graph.text.export_do_pdf')}
-          </button>
-        </FilterGroup>
-        </>
-      )}
-      canvas={(
-        <main className={`${shellStyles.main} ${canvasOnly ? shellStyles.mainGraphOnly : ''}`}>
-        <div className={shellStyles.header}>
-          <div className={shellStyles.title}>{t('service_graph.text.service_graph_2')}</div>
-          <div className={shellStyles.meta}>
-            {graphData.root_service_id} · {t('service_graph.detail_meta', { blocks: rootGraph.nodes.length, relations: rootGraph.edges.length })}
-          </div>
           <select
-            className={shellStyles.selectInput}
-            style={{ maxWidth: 340, marginLeft: 'auto' }}
+            className={`${graphToolbarStyles.select} ${graphToolbarStyles.selectWide}`}
             value={id}
+            aria-label={t('service_graph.text.service')}
             onChange={(event) => {
               const nextId = event.target.value;
               if (!nextId || nextId === id) return;
@@ -431,143 +333,190 @@ export default function GraphPage({ params }: Props) {
               </option>
             ))}
           </select>
-          {graphData.readiness && (
-            <span className={graphData.readiness.is_publishable ? localStyles.readinessOk : localStyles.readinessBlocked}>
-              {graphData.readiness.is_publishable ? t('service_graph.text.publish_ready') : t('service_graph.text.publish_blocked')}
-            </span>
-          )}
-        </div>
-
-        <div className={shellStyles.canvasWrap}>
-          <div className={shellStyles.canvas} ref={graphCanvasRef}>
-            <GraphCanvas
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onNodeClick={onNodeClick}
-              onNodeDoubleClick={onNodeDoubleClick}
-              onEdgeClick={onEdgeClick}
-              minimapNodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'}
-              legend={{ title: t('graph.legend.title'), items: legendItems }}
-              layout={layout}
-            />
-          </div>
-        </div>
-        {!canvasOnly && showTextAlternative ? (
-          <section
-            className={shellStyles.graphTextAlternative}
-            aria-labelledby="service-detail-graph-text-alt"
-          >
-            <div className={shellStyles.graphTextHeader}>
-              <h2 id="service-detail-graph-text-alt">{t('service_graph.text.text_alternative_for_relations')}</h2>
-              <div className={shellStyles.graphTextHeaderActions}>
-                <span>{t('service_graph.text_alt_count', { total: rootGraph.edges.length, shown: Math.min(textRelationRows.length, 200) })}</span>
-              </div>
-            </div>
-            {textRelationRows.length > 0 ? (
-              <ul id="service-detail-graph-text-alt-content" className={shellStyles.graphRelationList}>
-                {textRelationRows.slice(0, 200).map((relation) => (
-                  <li key={relation.id}>
-                    <strong>{relation.source?.label ?? relation.source?.code ?? relation.source?.id ?? relation.id}</strong>
-                    <span>{relation.label}</span>
-                    <strong>{relation.target?.label ?? relation.target?.code ?? relation.target?.id ?? t('service_graph.text.unknown_target')}</strong>
-                    <small>{relation.kind}</small>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {textRelationRows.length === 0 ? (
-              <p id="service-detail-graph-text-alt-content" className={shellStyles.meta}>{t('service_graph.text.no_graph_relations_are_recorded_for_this_service')}</p>
-            ) : null}
-          </section>
-        ) : null}
-      </main>
-      )}
-      detailPanelContent={(
-        <>
-          <div className={shellStyles.panelHeader}>
-            <div className={shellStyles.panelTitle}>{t('service_graph.text.detail')}</div>
-          </div>
-          <div className={shellStyles.panelBody}>
-            {selectedNode ? (
-              <>
-                <PanelRow label={t('service_graph.text.typ')}>{t(NODE_KIND_LABEL[selectedNode.node_kind])}</PanelRow>
-                <PanelRow label={t('service_graph.text.code')}>{selectedNode.code ?? '—'}</PanelRow>
-                <PanelRow label={t('service_graph.text.name')}>{selectedNode.label}</PanelRow>
-                {selectedNode.status && <PanelRow label={t('service_graph.text.status')}>{selectedNode.status}</PanelRow>}
-                {selectedNode.service_type && <PanelRow label={t('service_graph.text.service_type')}>{selectedNode.service_type}</PanelRow>}
-                {selectedNode.portfolio_group && <PanelRow label={t('service_graph.text.portfolio')}>{selectedNode.portfolio_group}</PanelRow>}
-                {selectedNode.item_type && <PanelRow label={t('service_graph.text.item_type')}>{selectedNode.item_type}</PanelRow>}
-                {selectedNode.completeness_status && <PanelRow label={t('service_graph.text.completeness')}>{selectedNode.completeness_status}</PanelRow>}
-                {selectedNodeHref ? (
-                  <Link href={selectedNodeHref} className={shellStyles.panelLink}>
-                    {t('service_graph.text.open_detail')}
-                  </Link>
-                ) : null}
-              </>
-            ) : null}
-
-            {typedSelectedEdge ? (
-              <>
-                <PanelRow label={t('service_graph.text.edge')}>{typedSelectedEdge.edge_kind}</PanelRow>
-                <PanelRow label={t('service_graph.text.typ')}>
-                  {typedSelectedEdge.edge_kind === 'service_relation'
-                    ? t(relationTypeLabelKey(typedSelectedEdge.relation_type))
-                    : typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}
-                </PanelRow>
-                {typedSelectedEdge.relation_label ? <PanelRow label={t('service_graph.text.label')}>{typedSelectedEdge.relation_label}</PanelRow> : null}
-                {typedSelectedEdge.pace_code ? <PanelRow label="PACE">{typedSelectedEdge.pace_code}</PanelRow> : null}
-                {typedSelectedEdge.impact_level ? <PanelRow label={t('service_graph.text.impact')}>{typedSelectedEdge.impact_level}</PanelRow> : null}
-                {typedSelectedEdge.is_primary != null ? <PanelRow label={t('service_graph.text.primary')}>{typedSelectedEdge.is_primary ? t('service_graph.text.ano') : t('service_graph.text.ne')}</PanelRow> : null}
-                {typedSelectedEdge.is_mandatory != null ? <PanelRow label={t('service_graph.text.mandatory')}>{typedSelectedEdge.is_mandatory ? t('service_graph.text.ano') : t('service_graph.text.ne')}</PanelRow> : null}
-                {typedSelectedEdge.relation_note ? <PanelRow label={t('service_graph.text.note')}>{typedSelectedEdge.relation_note}</PanelRow> : null}
-              </>
-            ) : null}
-
-            {!selectedNode && !typedSelectedEdge && graphData.readiness ? (
-              <>
-                <div className={shellStyles.meta}>
-                  {t('service_graph.text.click_a_node_or_edge_double_clicking_a_node_open')}
-                </div>
-                <PanelRow label={t('service_graph.text.primary_c3_2')}>
-                  {graphData.readiness.primary_c3_code ?? '—'} {graphData.readiness.primary_c3_title ?? ''}
-                </PanelRow>
-                <PanelRow label={t('service_graph.text.capability')}>
-                  {graphData.readiness.primary_c3_completeness_status ?? '—'}
-                </PanelRow>
-                <PanelRow label={t('service_graph.text.legacy_variants_2')}>{graphData.readiness.active_flavour_count}</PanelRow>
-                {graphData.readiness.blockers.length > 0 ? (
-                  <div className={localStyles.edgePanelBlock}>
-                    <strong>{t('service_graph.text.blockers_2')}</strong>
-                    <ul className={localStyles.edgePanelList}>
-                      {graphData.readiness.blockers.map((item) => <li key={item}>{item}</li>)}
-                    </ul>
-                  </div>
-                ) : null}
-                {graphData.readiness.warnings.length > 0 ? (
-                  <div className={localStyles.edgePanelBlock}>
-                    <strong>{t('service_graph.text.warnings_2')}</strong>
-                    <ul className={localStyles.edgePanelList}>
-                      {graphData.readiness.warnings.map((item) => <li key={item}>{item}</li>)}
-                    </ul>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-          </div>
+          <GraphSegmented
+            label={t('graph.view.label')}
+            value={viewMode}
+            options={[
+              { value: 'graph', label: t('graph.view.graph') },
+              { value: 'text', label: t('service_graph.text.text_relationships') },
+            ]}
+            onChange={selectViewMode}
+          />
+          <GraphOptionsMenu label={t('graph.options.title')}>
+            <GraphOptionGroup label={t('service_graph.text.typ_spojnic')}>
+              <GraphSegmented
+                label={t('service_graph.text.typ_spojnic')}
+                value={edgeType}
+                options={[
+                  { value: 'smoothstep', label: t('service_graph.text.orthogonal') },
+                  { value: 'straight', label: t('service_graph.text.direct') },
+                ]}
+                onChange={setEdgeType}
+              />
+            </GraphOptionGroup>
+            <GraphOptionGroup label={t('service_graph.text.line_style')}>
+              <GraphSegmented
+                label={t('service_graph.text.line_style')}
+                value={lineStyleMode}
+                options={[
+                  { value: 'auto', label: t('service_graph.text.by_relation') },
+                  { value: 'solid', label: t('service_graph.text.full') },
+                  { value: 'dashed', label: t('service_graph.text.dashed') },
+                ]}
+                onChange={setLineStyleMode}
+              />
+            </GraphOptionGroup>
+          </GraphOptionsMenu>
         </>
       )}
-    />
-  );
-}
+      actions={(
+        <>
+          {readiness && (
+            <button
+              type="button"
+              className={graphToolbarStyles.badgeButton}
+              aria-expanded={readinessOpen && !selectedNode && !typedSelectedEdge}
+              title={t('service_graph.text.readiness')}
+              onClick={() => {
+                const open = !(readinessOpen && !selectedNode && !typedSelectedEdge);
+                setSelectedNode(null);
+                setSelectedEdge(null);
+                setReadinessOpen(open);
+              }}
+            >
+              <span className={readiness.is_publishable ? localStyles.readinessOk : localStyles.readinessBlocked}>
+                {readiness.is_publishable ? t('service_graph.text.publish_ready') : t('service_graph.text.publish_blocked')}
+              </span>
+            </button>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => exportGraphToPdf(graphCanvasRef.current, t('service_graph.export_title', { id: graphData.root_service_id }))}
+          >
+            {t('service_graph.text.export_do_pdf')}
+          </Button>
+        </>
+      )}
+      canvas={(
+        <div className={shellStyles.main}>
+          <div className={shellStyles.canvasWrap}>
+            <div className={shellStyles.canvas} ref={graphCanvasRef}>
+              <GraphCanvas
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onNodeClick={onNodeClick}
+                onNodeDoubleClick={onNodeDoubleClick}
+                onEdgeClick={onEdgeClick}
+                onPaneClick={closeDetail}
+                fitViewPadding={0.08}
+                minimapNodeColor={(node) => NODE_KIND_COLOR[String(node.data?.node_kind ?? 'service') as ServiceGraphV2Node['node_kind']] ?? 'var(--color-text-secondary)'}
+                legend={{ title: t('graph.legend.title'), items: legendItems }}
+                layout={layout}
+              />
+            </div>
+          </div>
+          {showTextAlternative ? (
+            <section
+              className={shellStyles.graphTextAlternative}
+              aria-labelledby="service-detail-graph-text-alt"
+            >
+              <div className={shellStyles.graphTextHeader}>
+                <h2 id="service-detail-graph-text-alt">{t('service_graph.text.text_alternative_for_relations')}</h2>
+                <div className={shellStyles.graphTextHeaderActions}>
+                  <span>{t('service_graph.text_alt_count', { total: rootGraph.edges.length, shown: Math.min(textRelationRows.length, 200) })}</span>
+                </div>
+              </div>
+              {textRelationRows.length > 0 ? (
+                <ul id="service-detail-graph-text-alt-content" className={shellStyles.graphRelationList}>
+                  {textRelationRows.slice(0, 200).map((relation) => (
+                    <li key={relation.id}>
+                      <strong>{relation.source?.label ?? relation.source?.code ?? relation.source?.id ?? relation.id}</strong>
+                      <span>{relation.label}</span>
+                      <strong>{relation.target?.label ?? relation.target?.code ?? relation.target?.id ?? t('service_graph.text.unknown_target')}</strong>
+                      <small>{relation.kind}</small>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {textRelationRows.length === 0 ? (
+                <p id="service-detail-graph-text-alt-content" className={shellStyles.meta}>{t('service_graph.text.no_graph_relations_are_recorded_for_this_service')}</p>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
+      )}
+      detailOpen={detailOpen}
+      detailTitle={detailTitle}
+      onDetailPanelClose={closeDetail}
+      detailPanelContent={(
+        <div className={shellStyles.panelBody}>
+          {selectedNode ? (
+            <>
+              <PanelRow label={t('service_graph.text.typ')}>{t(NODE_KIND_LABEL[selectedNode.node_kind])}</PanelRow>
+              <PanelRow label={t('service_graph.text.code')}>{selectedNode.code ?? '—'}</PanelRow>
+              {selectedNode.status && <PanelRow label={t('service_graph.text.status')}>{selectedNode.status}</PanelRow>}
+              {selectedNode.service_type && <PanelRow label={t('service_graph.text.service_type')}>{selectedNode.service_type}</PanelRow>}
+              {selectedNode.portfolio_group && <PanelRow label={t('service_graph.text.portfolio')}>{selectedNode.portfolio_group}</PanelRow>}
+              {selectedNode.item_type && <PanelRow label={t('service_graph.text.item_type')}>{selectedNode.item_type}</PanelRow>}
+              {selectedNode.completeness_status && <PanelRow label={t('service_graph.text.completeness')}>{selectedNode.completeness_status}</PanelRow>}
+              {selectedNodeHref ? (
+                <Link href={selectedNodeHref} className={shellStyles.panelLink}>
+                  {t('service_graph.text.open_detail')}
+                </Link>
+              ) : null}
+            </>
+          ) : null}
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className={shellStyles.railSection}>
-      <div className={shellStyles.filterLabel}>{label}</div>
-      <div className={shellStyles.filterOptions}>{children}</div>
-    </div>
+          {typedSelectedEdge ? (
+            <>
+              <PanelRow label={t('service_graph.text.edge')}>{typedSelectedEdge.edge_kind}</PanelRow>
+              <PanelRow label={t('service_graph.text.typ')}>
+                {typedSelectedEdge.edge_kind === 'service_relation'
+                  ? t(relationTypeLabelKey(typedSelectedEdge.relation_type))
+                  : typedSelectedEdge.mapping_type_code ?? typedSelectedEdge.relation_type}
+              </PanelRow>
+              {typedSelectedEdge.relation_label ? <PanelRow label={t('service_graph.text.label')}>{typedSelectedEdge.relation_label}</PanelRow> : null}
+              {typedSelectedEdge.pace_code ? <PanelRow label="PACE">{typedSelectedEdge.pace_code}</PanelRow> : null}
+              {typedSelectedEdge.impact_level ? <PanelRow label={t('service_graph.text.impact')}>{typedSelectedEdge.impact_level}</PanelRow> : null}
+              {typedSelectedEdge.is_primary != null ? <PanelRow label={t('service_graph.text.primary')}>{typedSelectedEdge.is_primary ? t('service_graph.text.ano') : t('service_graph.text.ne')}</PanelRow> : null}
+              {typedSelectedEdge.is_mandatory != null ? <PanelRow label={t('service_graph.text.mandatory')}>{typedSelectedEdge.is_mandatory ? t('service_graph.text.ano') : t('service_graph.text.ne')}</PanelRow> : null}
+              {typedSelectedEdge.relation_note ? <PanelRow label={t('service_graph.text.note')}>{typedSelectedEdge.relation_note}</PanelRow> : null}
+            </>
+          ) : null}
+
+          {!selectedNode && !typedSelectedEdge && readiness ? (
+            <>
+              <PanelRow label={t('service_graph.text.primary_c3_2')}>
+                {readiness.primary_c3_code ?? '—'} {readiness.primary_c3_title ?? ''}
+              </PanelRow>
+              <PanelRow label={t('service_graph.text.capability')}>
+                {readiness.primary_c3_completeness_status ?? '—'}
+              </PanelRow>
+              <PanelRow label={t('service_graph.text.legacy_variants_2')}>{readiness.active_flavour_count}</PanelRow>
+              {readiness.blockers.length > 0 ? (
+                <div className={localStyles.edgePanelBlock}>
+                  <strong>{t('service_graph.text.blockers_2')}</strong>
+                  <ul className={localStyles.edgePanelList}>
+                    {readiness.blockers.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {readiness.warnings.length > 0 ? (
+                <div className={localStyles.edgePanelBlock}>
+                  <strong>{t('service_graph.text.warnings_2')}</strong>
+                  <ul className={localStyles.edgePanelList}>
+                    {readiness.warnings.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      )}
+    />
   );
 }
 
