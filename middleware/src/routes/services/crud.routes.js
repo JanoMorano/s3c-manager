@@ -75,12 +75,12 @@ router.post('/', canEdit, async (req, res, next) => {
         }
 
         const newSvcId = await repo.create(body, req.user.username);
-        const newSvc   = await repo.findByServiceId(newSvcId);
 
-        // Domains M:N — set after row exists
+        // Domains M:N — set after row exists, before reading the service back for the score
         if (Array.isArray(body.available_on)) {
             await repo.setDomains(newSvcId, body.available_on);
         }
+        const newSvc   = await repo.findByServiceId(newSvcId);
 
         const flavoursForScore = await flRepo.findByService(body.service_id).catch(() => []);
         const score = serviceScore(newSvc, flavoursForScore);
@@ -126,11 +126,13 @@ router.put('/:id', canEdit, async (req, res, next) => {
             }
         }
 
-        const updated = await repo.update(serviceId, body, req.user.username);
+        let updated = await repo.update(serviceId, body, req.user.username);
 
-        // Domains M:N — only if available_on explicitly sent in body
+        // Domains M:N — only if available_on explicitly sent in body; re-read so
+        // the score and the response include the new domains.
         if (Array.isArray(body.available_on)) {
             await repo.setDomains(serviceId, body.available_on);
+            updated = (await repo.findByServiceId(serviceId)) || updated;
         }
 
         const flavours = await flRepo.findByService(serviceId);
