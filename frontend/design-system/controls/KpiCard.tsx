@@ -12,7 +12,7 @@ interface KpiCardProps {
   tone?: KpiCardTone;
   /** Optional trend arrow shown next to value */
   trend?: KpiTrend;
-  /** Small text describing the trend, e.g. "+3 tento měsíc" */
+  /** Small text describing the trend, e.g. "+3 this month" */
   trendLabel?: string;
 }
 

@@ -1,25 +1,26 @@
 /**
- * Service Detail: catalogue-first main body plus governance right rail.
- * Keep raw/import evidence out of the default detail path; expose audit history
- * and editor links for authorized users instead.
+ * Service Detail: compact header (identity, owner, readiness, max. two actions),
+ * tabs directly underneath, one fact per screen. The active tab lives in the
+ * URL hash so refresh, Back and shared links keep it.
  */
 'use client';
 
-import { use, useEffect, useState, type MouseEvent } from 'react';
+import { use, useCallback, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import * as TabsPrimitive from '@radix-ui/react-tabs';
 import Link from '@/app/components/AppLink';
 import { useInstallStatus } from '@/features/install/installStatus';
 import {
   useService, useService360, useServiceOverview, useServiceSla, useServiceRoles, useServiceC3Mappings,
   type ServiceC3Mapping,
 } from '@/features/services/hooks/useServices';
-import { AvailabilityBadge } from '@/features/services/components/AvailabilityBadge';
 import { DomainDotGroup }    from '@/features/services/components/DomainDotGroup';
 import { MetadataItem, MetadataGrid } from '@/features/services/components/MetadataItem';
 import { SlaPanel }          from '@/features/services/components/SlaPanel';
-import { Surface } from '@/design-system/primitives';
-import { Button }  from '@/design-system/controls/Button';
 import { useGovernanceDecisions, useGovernanceReviews } from '@/features/governance/hooks/useGovernance';
+import { AUTH_STATE_EVENT, restoreAuthSession } from '@/features/auth/authStore';
+import { hasRoleAccess } from '@/features/auth/roles';
 import type {
+  ReadinessRuleResult,
   ServiceAudiencePolicy,
   ServiceOffering,
   ServiceOperationalLink,
@@ -31,11 +32,43 @@ import type {
 } from '@/features/services/model/service.types';
 import { safeHref } from '@/shared/utils/safeHref';
 import { useT } from '@/app/i18n/useI18n';
+import { formatCountLabel } from '@/app/lib/counts';
 import { relationTypeLabelKey } from '@/features/services/relationTypes';
 import styles from './detail.module.css';
 
 interface Props { params: Promise<{ id: string }> }
 type DetailView = 'overview' | 'request' | 'support' | 'dependencies' | 'governance';
+
+/** Hash values that open a tab. Anchors inside a tab map to that tab. */
+const HASH_TO_VIEW: Record<string, DetailView> = {
+  overview: 'overview',
+  request: 'request',
+  support: 'support',
+  dependencies: 'dependencies',
+  governance: 'governance',
+  'governance-workflow': 'governance',
+  history: 'governance',
+  audit: 'governance',
+  readiness: 'governance',
+};
+
+function useCanEdit() {
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const syncRole = async () => {
+      const snapshot = await restoreAuthSession();
+      if (!cancelled) setRole(snapshot?.role ?? null);
+    };
+    void syncRole();
+    window.addEventListener(AUTH_STATE_EVENT, syncRole);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(AUTH_STATE_EVENT, syncRole);
+    };
+  }, []);
+  return hasRoleAccess(role, 'editor');
+}
 
 export default function ServiceDetailPage({ params }: Props) {
   const t = useT();
@@ -47,20 +80,43 @@ export default function ServiceDetailPage({ params }: Props) {
   const { data: slaData } = useServiceSla(id);
   const { data: rolesData } = useServiceRoles(id);
   const { data: c3MappingsData } = useServiceC3Mappings(c3Visible ? id : null);
-  const [activeView,  setActiveView]  = useState<DetailView>('overview');
+  const canEdit = useCanEdit();
+  const [activeView, setActiveView] = useState<DetailView>('overview');
+  const [pendingAnchor, setPendingAnchor] = useState<string | null>(null);
 
+  // Read the tab from the hash on load and on in-page anchor navigation.
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'request') setActiveView('request');
-      if (hash === 'support') setActiveView('support');
-      if (hash === 'dependencies') setActiveView('dependencies');
-      if (hash === 'governance' || hash === 'governance-workflow' || hash === 'history' || hash === 'audit' || hash === 'readiness') setActiveView('governance');
+      const view = HASH_TO_VIEW[hash];
+      if (!view) return;
+      setActiveView(view);
+      if (hash !== view) setPendingAnchor(hash);
     };
-
     applyHash();
     window.addEventListener('hashchange', applyHash);
     return () => window.removeEventListener('hashchange', applyHash);
+  }, []);
+
+  // Scroll to an anchor inside a tab once that tab has rendered.
+  useEffect(() => {
+    if (!pendingAnchor) return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(pendingAnchor);
+      if (el) {
+        el.scrollIntoView({ block: 'start' });
+        setPendingAnchor(null);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingAnchor, activeView, svc]);
+
+  // Write the tab to the hash (replace, so Back leaves the page instead of cycling tabs).
+  const selectView = useCallback((value: string) => {
+    const view = HASH_TO_VIEW[value] ?? 'overview';
+    setActiveView(view);
+    const base = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState(window.history.state, '', view === 'overview' ? base : `${base}#${view}`);
   }, []);
 
   if (isLoading) return <div className={styles.state}>{t('service_detail.text.loading')}</div>;
@@ -75,15 +131,12 @@ export default function ServiceDetailPage({ params }: Props) {
   const supportModels = businessView?.support_model ?? svc.support_model ?? [];
   const audiencePolicies = businessView?.audience_policies ?? svc.audience_policies ?? [];
   const operationalLinks = businessView?.operational_links ?? svc.operational_links ?? [];
-  const externalRequestHref = safeHref(
+  const requestHref = safeHref(
     primaryOffering?.request_channel_url ??
     businessView?.request_channel_url ??
     svc.request_channel_url
   );
-  const requestHref = externalRequestHref;
   const isRequestable = primaryOffering?.requestable ?? businessView?.requestable ?? svc.requestable ?? false;
-  const supportAnchor = '#support';
-  const governanceAnchor = '#governance';
   const editHref = `/services/${id}/edit`;
   const importEvidenceHref = `${editHref}#raw-fields`;
   const hasImportEvidence = Boolean(
@@ -94,26 +147,51 @@ export default function ServiceDetailPage({ params }: Props) {
     svc.created_at_source ||
     svc.modified_at_source
   );
-  const openGovernanceWorkflow = (event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    setActiveView('governance');
-    window.setTimeout(() => {
-      window.history.replaceState(null, '', '#governance-workflow');
-      document.getElementById('governance-workflow')?.scrollIntoView({ block: 'start' });
-    }, 0);
-  };
   const lifecycleState = overview?.lifecycle.stage_code ?? svc.lifecycle_stage_code ?? businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status ?? null;
   const normalizedLifecycleStage = normalizeLifecycleState(lifecycleState);
-  const overviewFacts = [
-    { label: t('service_detail.text.requestable'), value: formatBool(t, businessView?.requestable ?? svc.requestable) },
-    { label: t('service_detail.text.lifecycle'), value: formatLifecycleState(t, normalizedLifecycleStage) },
-    { label: t('service_detail.text.primary_offering'), value: primaryOffering?.title ?? primaryOffering?.offering_code ?? t('service_detail.text.not_defined_yet') },
-    { label: t('service_detail.text.support'), value: supportModels[0]?.support_owner_name ?? svc.vlastnik ?? '—' },
-    { label: t('service_detail.text.audience'), value: businessView?.target_audience_summary ?? svc.target_audience_summary ?? audiencePolicies[0]?.audience_type ?? '—' },
-    { label: t('service_detail.text.lead_time'), value: primaryOffering?.lead_time_text ?? businessView?.fulfillment_lead_time_text ?? svc.fulfillment_lead_time_text ?? '—' },
-  ];
 
-  const visibleViews = BUSINESS_DETAIL_VIEWS;
+  // ── Readiness (header) ──────────────────────────────────────────────────
+  const blockers = overview?.readiness?.blockers ?? [];
+  const warnings = overview?.readiness?.warnings ?? [];
+  const completeness = svc.completeness_score ?? (overview?.readiness?.is_publishable ? 100 : null);
+  const readinessTone: Tone = blockers.length ? 'danger' : warnings.length ? 'warning' : overview?.readiness ? 'ok' : 'muted';
+  const readinessLabel = blockers.length
+    ? formatCountLabel(blockers.length, countForms(t, 'blockers'))
+    : warnings.length
+      ? formatCountLabel(warnings.length, countForms(t, 'warnings'))
+      : overview?.readiness
+        ? t('service_detail.text.ready_to_run')
+        : t('service_detail.text.readiness_unknown');
+
+  // ── People ──────────────────────────────────────────────────────────────
+  const ownerName = overview?.owners.primary?.display_name ?? svc.service_owner ?? svc.vlastnik ?? null;
+  const primaryCapability = overview?.capability_mappings.find((item) => item.is_primary) ?? overview?.capability_mappings[0] ?? null;
+  const capabilityCount = overview?.capability_mappings.length ?? (svc.c3_uuid ? 1 : 0);
+
+  const checklist = buildChecklist({
+    id,
+    overview,
+    service: svc,
+    ownerName,
+    supportModels,
+    requestHref,
+    primaryOffering,
+    capabilityCount,
+    t,
+  });
+  const openItems = checklist.filter((item) => item.tone !== 'ok').length;
+
+  const goToRequest = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    selectView('request');
+    document.getElementById('service-tabs')?.scrollIntoView({ block: 'nearest' });
+  };
+
+  const requestAction = isRequestable ? (
+    <a href="#request" onClick={goToRequest} className={canEdit ? styles.secondaryAction : styles.primaryAction}>
+      {t('service_detail.action.how_to_get')}
+    </a>
+  ) : null;
 
   return (
     <div className={styles.shell}>
@@ -131,194 +209,255 @@ export default function ServiceDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/*
-       * Design exception (LAYOUT_PROPOSAL §11):
-       * Service 360 uses RelationshipStudioHero as a full-canvas hero
-       * instead of the standard <PageHeader>. RelationshipStudioHero
-       * provides the 4-question-card pattern (What / Who / Ready / Depends)
-       * specified in §11 and is the intentional top-of-page anchoring element.
-       * Do NOT add a generic PageHeader above this component.
-       */}
-      <RelationshipStudioHero
-        id={id}
-        service={svc}
-        overview={overview}
-        businessSummary={businessSummary}
-        consumerValue={consumerValue}
-        primaryOffering={primaryOffering}
-        supportModels={supportModels}
-        requestHref={requestHref}
-        supportAnchor={supportAnchor}
-        lifecycleState={lifecycleState}
-        overviewFacts={overviewFacts}
-      />
+      {/* ── Compact header ──────────────────────────────────────────────── */}
+      <header className={styles.detailHeader}>
+        <div className={styles.detailHeaderMain}>
+          <div className={styles.headerMeta}>
+            <span className={styles.serviceId}>{svc.service_id}</span>
+            {(svc.service_type_name ?? svc.service_type) && <span className={styles.typeChip}>{svc.service_type_name ?? svc.service_type}</span>}
+            <LifecycleBadge state={lifecycleState ?? svc.service_status ?? null} fallback={t('service_detail.lifecycle.draft')} />
+          </div>
+          <h1 className={styles.detailTitle}>{svc.title}</h1>
+          <dl className={styles.headerFacts}>
+            <div className={styles.headerFact}>
+              <dt>{t('service_detail.text.owner')}</dt>
+              <dd>{ownerName ?? <span className={styles.textWarning}>{t('service_detail.text.owner_missing')}</span>}</dd>
+            </div>
+            <div className={styles.headerFact}>
+              <dt>{t('service_detail.text.readiness')}</dt>
+              <dd>
+                <span className={`${styles.statusDot} ${styles[`statusDot_${readinessTone}`]}`} aria-hidden="true" />
+                {readinessLabel}
+                {completeness != null && (
+                  <span className={styles.headerFactMuted} title={t('service_detail.text.completeness')}>
+                    {' · '}{t('service_detail.header.completeness', { pct: completeness })}
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        {(canEdit || requestAction) && (
+          <div className={styles.headerActions}>
+            {requestAction}
+            {canEdit && <Link href={editHref} className={styles.primaryAction}>{t('service_detail.text.edit')}</Link>}
+          </div>
+        )}
+      </header>
 
-      <nav className={styles.viewNav} aria-label={t('service_detail.text.service_detail_views')}>
-        {visibleViews.map((view) => (
-          <button
-            key={view.id}
-            type="button"
-            className={`${styles.viewTab} ${view.technical ? styles.viewTabTechnical : ''} ${activeView === view.id ? styles.viewTabActive : ''}`}
-            onClick={() => setActiveView(view.id)}
-          >
-            <span className={styles.viewTabLabel}>{t(`service_detail.view.${view.id}.label`)}</span>
-            {view.technical && <span className={styles.techBadge}>{t('service_detail.text.tech')}</span>}
-            <span className={styles.viewTabHint}>{t(`service_detail.view.${view.id}.hint`)}</span>
-          </button>
-        ))}
-      </nav>
+      {/* ── Tabs ────────────────────────────────────────────────────────── */}
+      <TabsPrimitive.Root value={activeView} onValueChange={selectView} className={styles.tabsRoot}>
+        <TabsPrimitive.List id="service-tabs" className={styles.tabList} aria-label={t('service_detail.text.service_detail_views')}>
+          {BUSINESS_DETAIL_VIEWS.map((view) => (
+            <TabsPrimitive.Trigger
+              key={view}
+              value={view}
+              className={styles.tab}
+              title={t(`service_detail.view.${view}.hint`)}
+            >
+              {t(`service_detail.view.${view}.label`)}
+              {view === 'governance' && openItems > 0 && (
+                <span className={styles.tabCount} aria-label={t('service_detail.tab.open_items', { count: openItems })}>{openItems}</span>
+              )}
+            </TabsPrimitive.Trigger>
+          ))}
+        </TabsPrimitive.List>
 
-      {/* ── Body + Right rail ────────────────────────────────────────── */}
-      <div className={styles.body}>
-
-        {/* Main content */}
-        <div className={styles.main}>
-          {activeView === 'overview' && (
-            <>
-              {(businessSummary || svc.detailed_description) && (
-                <Section title={t('service_detail.text.overview')} id="overview">
-                  {businessSummary && <p className={styles.prose}>{businessSummary}</p>}
-                  {svc.detailed_description && svc.detailed_description !== businessSummary && (
-                    <p className={styles.prose} style={{ marginTop: 'var(--space-3)' }}>
-                      {svc.detailed_description}
-                    </p>
+        {/* ── Přehled ─────────────────────────────────────────────────── */}
+        <TabsPrimitive.Content value="overview" className={styles.tabPanel}>
+          <div className={styles.split}>
+            <div className={styles.main}>
+              {businessSummary || svc.detailed_description || consumerValue || svc.scope_text || svc.exclusions ? (
+                <>
+                  {(businessSummary || svc.detailed_description) && (
+                    <Section title={t('service_detail.text.purpose')} id="overview">
+                      <p className={styles.lead}>{businessSummary ?? svc.detailed_description}</p>
+                      {businessSummary && svc.detailed_description && svc.detailed_description !== businessSummary && (
+                        <details className={styles.more}>
+                          <summary>{t('service_detail.question.read_full')}</summary>
+                          <p className={styles.prose}>{svc.detailed_description}</p>
+                        </details>
+                      )}
+                    </Section>
                   )}
-                </Section>
-              )}
 
-              {consumerValue && (
-                <Section title={t('service_detail.text.business_value')}>
-                  {consumerValue.split(/\n\s*\n/).map((paragraph, index) => (
-                    <p
-                      key={index}
-                      className={index === 0 ? styles.calloutQuote : styles.prose}
-                      style={index === 0 ? { borderLeftColor: 'var(--color-info)' } : undefined}
-                    >
-                      {paragraph}
-                    </p>
-                  ))}
-                </Section>
-              )}
+                  {consumerValue && consumerValue !== businessSummary && (
+                    <Section title={t('service_detail.text.business_value')}>
+                      {consumerValue.split(/\n\s*\n/).map((paragraph, index) => (
+                        <p key={index} className={styles.prose}>{paragraph}</p>
+                      ))}
+                    </Section>
+                  )}
 
-              {(svc.scope_text || svc.exclusions) && (
-                <Section title={t('service_detail.text.scope')}>
-                  <div className={styles.dualPanel}>
-                    {svc.scope_text && (
-                      <div className={styles.infoCard}>
-                        <div className={styles.infoCardLabel}>{t('service_detail.text.included')}</div>
-                        <p className={styles.prose}>{svc.scope_text}</p>
+                  {(svc.scope_text || svc.exclusions) && (
+                    <Section title={t('service_detail.text.scope')}>
+                      <div className={styles.dualPanel}>
+                        {svc.scope_text && (
+                          <div className={styles.infoCard}>
+                            <div className={styles.infoCardLabel}>{t('service_detail.text.included')}</div>
+                            <p className={styles.prose}>{svc.scope_text}</p>
+                          </div>
+                        )}
+                        {svc.exclusions && (
+                          <div className={styles.infoCard}>
+                            <div className={styles.infoCardLabel}>{t('service_detail.text.not_covered')}</div>
+                            <p className={styles.prose}>{svc.exclusions}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {svc.exclusions && (
-                      <div className={styles.infoCard}>
-                        <div className={styles.infoCardLabel}>{t('service_detail.text.not_covered')}</div>
-                        <p className={styles.prose}>{svc.exclusions}</p>
-                      </div>
-                    )}
+                    </Section>
+                  )}
+                </>
+              ) : (
+                <Section title={t('service_detail.text.purpose')} id="overview">
+                  <div className={styles.emptyBlock}>
+                    <p>{t('service_detail.overview.empty')}</p>
+                    {canEdit && <Link href={`${editHref}#description`} className={styles.secondaryAction}>{t('service_detail.overview.add_description')}</Link>}
                   </div>
                 </Section>
               )}
-            </>
-          )}
+            </div>
 
-          {activeView === 'request' && (
-            <>
-              <Section title={t('service_detail.text.how_to_get_this_service')} id="request">
-                <RequestabilityPanel
-                  service={svc}
-                  primaryOffering={primaryOffering}
-                  audiencePolicies={audiencePolicies}
+            <aside className={styles.aside}>
+              <Section title={t('service_detail.overview.facts')}>
+                <dl className={styles.factList}>
+                  <Fact label={t('service_detail.text.portfolio')}>
+                    {overview?.portfolio.title ?? overview?.portfolio.code ?? svc.portfolio_group_name ?? svc.portfolio_group}
+                  </Fact>
+                  <Fact label={t('service_detail.text.audience')}>
+                    {businessView?.target_audience_summary ?? svc.target_audience_summary ?? audiencePolicies[0]?.audience_type}
+                  </Fact>
+                  {svc.vlastnik !== ownerName && (
+                    <Fact label={t('service_detail.text.area_owner')}>{svc.vlastnik}</Fact>
+                  )}
+                  <Fact label={t('service_detail.text.delivery_manager')}>{overview?.owners.delivery_manager?.display_name ?? svc.manager}</Fact>
+                  {overview?.owners.steward?.display_name
+                    && overview.owners.steward.display_name !== svc.vlastnik
+                    && overview.owners.steward.display_name !== (overview.owners.delivery_manager?.display_name ?? svc.manager) && (
+                    <Fact label={t('service_detail.text.steward')}>{overview.owners.steward.display_name}</Fact>
+                  )}
+                  <Fact label={t('service_detail.text.capability')}>
+                    {primaryCapability
+                      ? <Link href={`/c3/${encodeURIComponent(primaryCapability.c3_uuid)}`} className={styles.inlineLink}>{primaryCapability.title}</Link>
+                      : (svc.c3_domain ?? svc.c3_reference)}
+                  </Fact>
+                  {svc.available_on && svc.available_on.length > 0 && (
+                    <Fact label={t('service_detail.text.domains')}>
+                      <DomainDotGroup domains={svc.available_on} />
+                    </Fact>
+                  )}
+                </dl>
+              </Section>
+            </aside>
+          </div>
+        </TabsPrimitive.Content>
+
+        {/* ── Jak ji získat ──────────────────────────────────────────── */}
+        <TabsPrimitive.Content value="request" className={styles.tabPanel}>
+          <div className={styles.main}>
+            <Section title={t('service_detail.text.how_to_get_this_service')} id="request">
+              <RequestabilityPanel
+                service={svc}
+                primaryOffering={primaryOffering}
+                audiencePolicies={audiencePolicies}
+              />
+            </Section>
+            {svc.offerings.length > 0 && (
+              <Section title={t('service_detail.text.available_offerings')}>
+                <OfferingsGrid offerings={svc.offerings} primaryOffering={primaryOffering} />
+              </Section>
+            )}
+          </div>
+        </TabsPrimitive.Content>
+
+        {/* ── Podpora / SLA ──────────────────────────────────────────── */}
+        <TabsPrimitive.Content value="support" className={styles.tabPanel}>
+          <div className={styles.main}>
+            {(supportModels.length > 0 || isRequestable) && (
+              <Section title={t('service_detail.text.support')} id="support">
+                <SupportModelPanel supportModels={supportModels} svc={svc} />
+              </Section>
+            )}
+
+            <Section title={t('service_detail.text.sla_commitments')}>
+              <SlaPanel
+                summary={{
+                  sla_availability:    svc.sla_availability    ?? null,
+                  sla_restoration:     svc.sla_restoration     ?? null,
+                  sla_delivery:        svc.sla_delivery        ?? null,
+                  sla_restoration_text: svc.sla_restoration_text ?? null,
+                  sla_delivery_text:   svc.sla_delivery_text   ?? null,
+                }}
+                detail={slaData}
+              />
+            </Section>
+
+            {(operationalLinks.length > 0 || svc.review_due_at || svc.review_owner_user_id) && (
+              <Section title={t('service_detail.text.operations')}>
+                <OperationsPanel
+                  links={operationalLinks}
+                  reviewDueAt={svc.review_due_at ?? null}
+                  reviewOwnerId={svc.review_owner_user_id ?? null}
+                  serviceId={id}
                 />
               </Section>
-              {svc.offerings.length > 0 && (
-                <Section title={t('service_detail.text.available_offerings')}>
-                  <OfferingsGrid offerings={svc.offerings} primaryOffering={primaryOffering} />
-                </Section>
-              )}
-            </>
-          )}
+            )}
+          </div>
+        </TabsPrimitive.Content>
 
-          {activeView === 'support' && (
-            <>
-              {(supportModels.length > 0 || isRequestable) && (
-                <Section title={t('service_detail.text.support')} id="support">
-                  <SupportModelPanel supportModels={supportModels} svc={svc} />
-                </Section>
-              )}
-
-              <Section title={t('service_detail.text.sla_commitments')}>
-                <SlaPanel
-                  summary={{
-                    sla_availability:    svc.sla_availability    ?? null,
-                    sla_restoration:     svc.sla_restoration     ?? null,
-                    sla_delivery:        svc.sla_delivery        ?? null,
-                    sla_restoration_text: svc.sla_restoration_text ?? null,
-                    sla_delivery_text:   svc.sla_delivery_text   ?? null,
-                  }}
-                  detail={slaData}
-                />
-              </Section>
-
-              {(operationalLinks.length > 0 || svc.review_due_at || svc.review_owner_user_id) && (
-                <Section title={t('service_detail.text.operations')}>
-                  <OperationsPanel
-                    links={operationalLinks}
-                    reviewDueAt={svc.review_due_at ?? null}
-                    reviewOwnerId={svc.review_owner_user_id ?? null}
-                    serviceId={id}
-                  />
-                </Section>
-              )}
-            </>
-          )}
-
-          {activeView === 'dependencies' && (
+        {/* ── Vazby ──────────────────────────────────────────────────── */}
+        <TabsPrimitive.Content value="dependencies" className={styles.tabPanel}>
+          <div className={styles.main}>
+            <Section
+              title={t('service_detail.text.relationship_map')}
+              action={<Link href={`/services/${id}/graph`} className={styles.inlineLink}>{t('service_detail.text.dependency_graph')}</Link>}
+            >
+              <RelationshipMap
+                serviceTitle={svc.title}
+                primaryOffering={primaryOffering?.title ?? primaryOffering?.offering_code ?? t('service_detail.text.offering_missing')}
+                nodes={[
+                  {
+                    label: t('service_detail.text.requester'),
+                    value: businessView?.target_audience_summary ?? svc.target_audience_summary ?? t('service_detail.text.audience_missing'),
+                  },
+                  {
+                    label: t('service_detail.text.owner'),
+                    value: ownerName ?? t('service_detail.text.owner_missing'),
+                  },
+                  {
+                    label: t('service_detail.text.support'),
+                    value: supportModels[0]?.support_owner_name ?? svc.vlastnik ?? t('service_detail.text.support_missing'),
+                  },
+                  {
+                    label: t('service_detail.text.capability'),
+                    value: primaryCapability?.title ?? svc.c3_domain ?? svc.c3_reference ?? t('service_detail.text.c3_mapping_missing'),
+                  },
+                ]}
+              />
+            </Section>
             <DependenciesPanel relations={svc.relations ?? []} overview={overview} />
-          )}
+          </div>
+        </TabsPrimitive.Content>
 
-          {activeView === 'governance' && (
-            <div id="governance" className={styles.governanceStack}>
-              <Service360Panel
-                overview={overview}
+        {/* ── Řízení ─────────────────────────────────────────────────── */}
+        <TabsPrimitive.Content value="governance" className={styles.tabPanel} id="governance">
+          <div className={styles.split}>
+            <div className={styles.main}>
+              <ReadinessChecklist
+                items={checklist}
                 isLoading={overviewLoading}
                 error={overviewError}
-                serviceId={id}
+                blockerCount={blockers.length}
+                warningCount={warnings.length}
+                riskCount={overview?.governance_risks.count ?? null}
+                riskHighCount={overview?.governance_risks.high_count ?? null}
               />
 
-              <Section title={t('service_detail.text.governance_facts')}>
-                <MetadataGrid columns={3}>
-                  <MetadataItem label={t('service_detail.text.lifecycle')} value={businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status} />
-                  <MetadataItem label={t('service_detail.text.status')} value={svc.service_status_name ?? svc.service_status} />
-                  <MetadataItem label={t('service_detail.text.criticality')} value={svc.criticality_code ?? svc.security_classification} />
-                  <MetadataItem label={t('service_detail.text.owner')} value={svc.service_owner} kind="person" />
-                  <MetadataItem label={t('service_detail.text.area_owner')} value={svc.vlastnik} kind="person" />
-                  <MetadataItem label={t('service_detail.text.review_owner')} value={svc.review_owner_user_id != null ? String(svc.review_owner_user_id) : null} />
-                  <MetadataItem label={t('service_detail.text.next_review')} value={svc.review_due_at} kind="date" />
-                  <MetadataItem label={t('service_detail.text.portfolio')} value={svc.portfolio_group_name ?? svc.portfolio_group} />
-                  <MetadataItem label={t('service_detail.text.updated')} value={svc.updated_at} kind="date" />
-                </MetadataGrid>
-              </Section>
+              <GovernanceWorkflow serviceId={id} />
 
               {c3Visible && c3MappingsData && c3MappingsData.mappings.length > 0 && (
                 <Section title={t('service_detail.text.c3_taxonomy_mapping')}>
                   <C3MappingTable mappings={c3MappingsData.mappings} />
-                </Section>
-              )}
-
-              <Section title={t('service_detail.text.audit_trail')}>
-                <MetadataGrid columns={3}>
-                  <MetadataItem label={t('service_detail.text.version')} value={svc.catalogue_version} />
-                  <MetadataItem label={t('service_detail.text.created')} value={svc.created_at} kind="date" />
-                  <MetadataItem label={t('service_detail.text.updated')} value={svc.updated_at} kind="date" />
-                  <MetadataItem label={t('service_detail.text.created_by')} value={svc.created_by} />
-                  <MetadataItem label={t('service_detail.text.updated_by')} value={svc.updated_by} />
-                </MetadataGrid>
-                <a href="#governance" className={styles.graphLink} onClick={() => setActiveView('governance')}>{t('service_detail.text.open_audit_trail')}</a>
-              </Section>
-
-              {rolesData && rolesData.length > 0 && (
-                <Section title={t('service_detail.text.ownership_history')}>
-                  <OwnershipHistory roles={rolesData} />
                 </Section>
               )}
 
@@ -328,545 +467,320 @@ export default function ServiceDetailPage({ params }: Props) {
                 </Section>
               )}
             </div>
-          )}
-        </div>
 
-        <aside className={styles.rail} aria-label={t('service_detail.text.service_detail_side_panels')}>
-          {activeView !== 'governance' ? (
-            <>
-              <Surface padding="var(--space-4)" className={styles.accentSurface}>
-                <div className={styles.railTitle}>{t('service_detail.text.at_a_glance')}</div>
-                <div className={styles.railItems}>
-                  <MetadataItem label={t('service_detail.text.lifecycle')} value={businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status} />
-                  <MetadataItem label={t('service_detail.text.request_channel')} value={primaryOffering?.request_channel_type ?? svc.request_channel_type} />
-                  <MetadataItem label={t('service_detail.text.approval')} value={formatBool(t, primaryOffering?.approval_required ?? businessView?.approval_required ?? svc.approval_required)} />
-                  <MetadataItem label={t('service_detail.text.lead_time')} value={primaryOffering?.lead_time_text ?? businessView?.fulfillment_lead_time_text ?? svc.fulfillment_lead_time_text} />
-                  <MetadataItem label={t('service_detail.text.support_owner')} value={supportModels[0]?.support_owner_name ?? svc.vlastnik} />
-                </div>
-              </Surface>
+            <aside className={styles.aside}>
+              <Section title={t('service_detail.text.governance_facts')}>
+                <MetadataGrid columns={2}>
+                  <MetadataItem label={t('service_detail.text.status')} value={svc.service_status_name ?? svc.service_status} />
+                  <MetadataItem label={t('service_detail.text.criticality')} value={overview?.lifecycle.criticality_code ?? svc.criticality_code ?? svc.security_classification} />
+                  <MetadataItem label={t('service_detail.text.next_review')} value={svc.review_due_at ?? overview?.lifecycle.review_due_at} kind="date" />
+                  <MetadataItem label={t('service_detail.text.review_owner')} value={svc.review_owner_user_id != null ? String(svc.review_owner_user_id) : null} />
+                  <MetadataItem
+                    label={t('service_detail.text.sla_offerings')}
+                    value={overview ? `${overview.sla.has_sla && overview.offerings.count > 0 ? t('service_detail.text.covered') : t('service_detail.text.incomplete')} · ${t('service_detail.sla_records_offerings', { records: overview.sla.record_count, offerings: overview.offerings.count })}` : null}
+                  />
+                  <MetadataItem label={t('service_detail.text.version')} value={svc.catalogue_version} />
+                  <MetadataItem label={t('service_detail.text.created')} value={svc.created_at} kind="date" />
+                  <MetadataItem label={t('service_detail.text.created_by')} value={svc.created_by} />
+                  <MetadataItem label={t('service_detail.text.updated')} value={svc.updated_at} kind="date" />
+                  <MetadataItem label={t('service_detail.text.updated_by')} value={svc.updated_by} />
+                  <MetadataItem
+                    label={t('service_detail.text.audit')}
+                    value={overview ? `${countLabel(t, overview.audit_summary.count, 'change')}${overview.audit_summary.last_action?.performed_at ? ` · ${formatDate(overview.audit_summary.last_action.performed_at)}` : ''}` : null}
+                  />
+                </MetadataGrid>
+              </Section>
 
-              <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                <div className={styles.railTitle}>{t('service_detail.text.people_coverage')}</div>
-                <div className={styles.railItems}>
-                  <MetadataItem label={t('service_detail.text.owner')} value={svc.service_owner} kind="person" />
-                  <MetadataItem label={t('service_detail.text.area_owner')} value={svc.vlastnik} kind="person" />
-                  <MetadataItem label={t('service_detail.text.delivery_manager')} value={svc.manager} kind="person" />
-                  <MetadataItem label={t('service_detail.text.audience')} value={businessView?.target_audience_summary ?? svc.target_audience_summary} />
-                  <MetadataItem label={t('service_detail.text.portfolio')} value={svc.portfolio_group_name ?? svc.portfolio_group} />
-                </div>
-              </Surface>
-
-              <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                <div className={styles.railTitle}>{t('service_detail.text.actions')}</div>
-                <div className={styles.quickLinks}>
-                  {requestHref && <ActionHref href={requestHref}>{t('service_detail.text.open_request_channel')}</ActionHref>}
-                  <a href={supportAnchor}>{t('service_detail.text.jump_to_support')}</a>
-                  <a href={governanceAnchor}>{t('service_detail.text.open_governance')}</a>
-                  <Link href={editHref}>{t('service_detail.text.edit_service')}</Link>
-                </div>
-              </Surface>
-
-              <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                <div className={styles.railTitle}>{t('service_detail.text.fix_in_context')}</div>
-                <p className={styles.railHint}>{t('service_detail.text.jump_directly_to_the_editor_section_that_owns_th')}</p>
-                <div className={styles.quickLinks}>
-                  <Link href={`${editHref}#ownership`}>{t('service_detail.text.fix_owner')}</Link>
-                  <Link href={`${editHref}#request-access`}>{t('service_detail.text.fix_request_path')}</Link>
-                  <Link href={`${editHref}#c3mapping`}>{t('service_detail.text.fix_c3_mapping')}</Link>
-                  <Link href={importEvidenceHref}>{t('service_detail.text.open_latest_import_evidence')}</Link>
-                  <a href="#governance-workflow" onClick={openGovernanceWorkflow}>{t('service_detail.text.open_governance_decisions')}</a>
-                </div>
-              </Surface>
+              {rolesData && rolesData.length > 0 && (
+                <Section
+                  title={t('service_detail.text.ownership_history')}
+                  action={<Link href="/operations#owner-load" className={styles.inlineLink}>{t('service_detail.question.owner_load')}</Link>}
+                >
+                  <OwnershipHistory roles={rolesData} />
+                </Section>
+              )}
 
               {hasImportEvidence && (
-                <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                  <div className={styles.railTitle}>{t('service_detail.text.import_evidence')}</div>
-                  <div className={styles.railItems}>
+                <Section title={t('service_detail.text.import_evidence')}>
+                  <MetadataGrid columns={2}>
                     <MetadataItem label={t('service_detail.text.source_id')} value={svc.source_local_id ?? svc.source_sp_id} />
                     <MetadataItem label={t('service_detail.text.source_modified')} value={svc.modified_at_source ?? svc.created_at_source} kind="date" />
-                    <Link href={importEvidenceHref} className={styles.actionInlineLink}>{t('service_detail.text.open_import_source_evidence')}</Link>
-                  </div>
-                </Surface>
+                  </MetadataGrid>
+                  <Link href={importEvidenceHref} className={styles.inlineLink}>{t('service_detail.text.open_import_source_evidence')}</Link>
+                </Section>
               )}
-            </>
-          ) : (
-            <>
-              <Surface padding="var(--space-4)">
-                <div className={styles.railTitle}>{t('service_detail.text.governance')}</div>
-                <div className={styles.railItems}>
-                  <MetadataItem label={t('service_detail.text.lifecycle')}      value={businessView?.lifecycle_state ?? svc.lifecycle_state ?? svc.service_status} />
-                  <MetadataItem label={t('service_detail.text.completeness')}   value={svc.completeness_score != null ? `${svc.completeness_score}%` : null} />
-                  <MetadataItem label={t('service_detail.text.next_review')}    value={svc.review_due_at} kind="date" />
-                  <MetadataItem label={t('service_detail.text.version')}        value={svc.catalogue_version} />
-                  <MetadataItem label={t('service_detail.text.updated')}        value={svc.updated_at}   kind="date" />
-                  <MetadataItem label={t('service_detail.text.updated_by')}     value={svc.updated_by} />
-                </div>
-              </Surface>
-
-              <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                <div className={styles.railTitle}>{t('service_detail.text.ownership')}</div>
-                <div className={styles.railItems}>
-                  <MetadataItem label={t('service_detail.text.owner')}         value={svc.service_owner}  kind="person" />
-                  <MetadataItem label={t('service_detail.text.area_owner_2')}    value={svc.vlastnik}       kind="person" />
-                  <MetadataItem label={t('service_detail.text.delivery_mgr')}  value={svc.manager}        kind="person" />
-                </div>
-              </Surface>
-
-              <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                <div className={styles.railTitle}>{t('service_detail.text.quick_links')}</div>
-                <div className={styles.quickLinks}>
-                  <Link href={`/services/${id}/graph`}>{t('service_detail.text.dependency_graph')}</Link>
-                  <a href="#governance" onClick={() => setActiveView('governance')}>{t('service_detail.text.audit_trail')}</a>
-                  <Link href={`/operations/reviews?service_id=${encodeURIComponent(id)}`}>{t('service_detail.text.governance_reviews')}</Link>
-                  <Link href={`/operations/decisions?service_id=${encodeURIComponent(id)}`}>{t('service_detail.text.governance_decisions')}</Link>
-                  <Link href={`${editHref}#ownership`}>{t('service_detail.text.fix_owner')}</Link>
-                  <Link href={`${editHref}#request-access`}>{t('service_detail.text.fix_request_path')}</Link>
-                  <Link href={`${editHref}#c3mapping`}>{t('service_detail.text.fix_c3_mapping')}</Link>
-                  <Link href={importEvidenceHref}>{t('service_detail.text.open_latest_import_evidence')}</Link>
-                </div>
-              </Surface>
-
-              {hasImportEvidence && (
-                <Surface padding="var(--space-4)" style={{ marginTop: 'var(--space-3)' }}>
-                  <div className={styles.railTitle}>{t('service_detail.text.import_evidence')}</div>
-                  <div className={styles.railItems}>
-                    <MetadataItem label={t('service_detail.text.source_id')} value={svc.source_local_id ?? svc.source_sp_id} />
-                    <MetadataItem label={t('service_detail.text.source_modified')} value={svc.modified_at_source ?? svc.created_at_source} kind="date" />
-                    <Link href={importEvidenceHref} className={styles.actionInlineLink}>{t('service_detail.text.open_import_source_evidence')}</Link>
-                  </div>
-                </Surface>
-              )}
-            </>
-          )}
-        </aside>
-      </div>
+            </aside>
+          </div>
+        </TabsPrimitive.Content>
+      </TabsPrimitive.Root>
     </div>
   );
 }
 
 // ── Local helpers ─────────────────────────────────────────────────────────────
-type StudioActionTone = 'success' | 'warning' | 'danger' | 'info';
+type Tone = 'ok' | 'warning' | 'danger' | 'info' | 'muted';
 
-interface StudioTask {
-  tone: StudioActionTone;
+interface ChecklistItem {
+  key: string;
+  tone: Tone;
   title: string;
-  detail: string;
-  href?: string;
-  label?: string;
+  detail?: string | null;
+  why?: string | null;
+  how?: string | null;
+  evidence?: string | null;
+  status?: string | null;
+  action?: { label: string; href: string };
 }
 
-function RelationshipStudioHero({
-  id,
-  service,
-  overview,
-  businessSummary,
-  consumerValue,
-  primaryOffering,
-  supportModels,
-  requestHref,
-  supportAnchor,
-  lifecycleState,
-  overviewFacts,
-}: {
-  id: string;
-  service: ServiceDetail;
-  overview: ServiceOverview | null;
-  businessSummary: string | null | undefined;
-  consumerValue: string | null | undefined;
-  primaryOffering: ServiceOffering | null | undefined;
-  supportModels: ServiceSupportModel[];
-  requestHref: string | null;
-  supportAnchor: string;
-  lifecycleState: string | null;
-  overviewFacts: Array<{ label: string; value: string }>;
-}) {
-  const t = useT();
-  const blockers = overview?.readiness?.blockers ?? [];
-  const warnings = overview?.readiness?.warnings ?? [];
-  const relations = overview?.dependencies.total_count ?? service.relation_count ?? service.relations?.length ?? 0;
-  const mandatoryRelations = overview?.dependencies.mandatory_count ?? service.relations?.filter((item) => item.is_mandatory).length ?? 0;
-  const capabilityCount = overview?.capability_mappings.length ?? (service.c3_uuid ? 1 : 0);
-  const primaryCapability = overview?.capability_mappings.find((item) => item.is_primary) ?? overview?.capability_mappings[0] ?? null;
-  const completeness = service.completeness_score ?? (overview?.readiness?.is_publishable ? 100 : null);
-  const portfolioTitle = overview?.portfolio.title ?? overview?.portfolio.code ?? service.portfolio_group_name ?? service.portfolio_group ?? t('service_detail.text.portfolio_missing');
-  const audience = service.business_view?.target_audience_summary ?? service.target_audience_summary ?? t('service_detail.text.audience_policy_missing');
-  const owner = overview?.owners.primary?.display_name ?? service.service_owner ?? service.vlastnik ?? t('service_detail.text.owner_missing');
-  const resolverGroup = supportModels[0]?.resolver_group ?? t('service_detail.text.resolver_group_missing');
-  const steward = overview?.owners.steward?.display_name ?? service.manager ?? t('service_detail.text.steward_missing');
-  const reviewCadence = supportModels[0]?.review_cadence ?? (service.review_due_at ? t('service_detail.review_on', { date: formatDate(service.review_due_at) }) : t('service_detail.text.review_cadence_missing'));
-  const downstreamCount = overview?.dependencies.outgoing_count ?? service.relation_count ?? 0;
-  const upstreamCount = overview?.dependencies.incoming_count ?? 0;
-  const criticalChains = overview?.dependencies.mandatory_count ?? service.relations?.filter((item) => item.is_mandatory).length ?? 0;
-  const topDependencies = (overview?.dependencies.items ?? service.relations ?? [])
-    .slice(0, 3)
-    .map((item) => item.to_title ?? item.to_service_id)
-    .filter(Boolean)
-    .join(', ') || t('service_detail.text.no_dependency_list');
-  const managerSummary = consumerValue ?? businessSummary ?? service.summary ?? t('service_detail.text.service_record_is_ready_for_business_facing_enri');
-  const readinessLabel = blockers.length
-    ? `${blockers.length} open blocker${blockers.length === 1 ? '' : 's'}`
-    : warnings.length
-      ? `${warnings.length} open warning${warnings.length === 1 ? '' : 's'}`
-      : t('service_detail.text.ready_to_run');
-  const taskQueue = buildStudioTasks({
-    id,
-    overview,
-    service,
-    supportModels,
-    requestHref,
-    primaryOffering,
-    blockers,
-    warnings,
-    capabilityCount,
-    t,
-  });
-  const mapNodes = [
-    {
-      label: t('service_detail.text.requester'),
-      value: service.business_view?.target_audience_summary ?? service.target_audience_summary ?? t('service_detail.text.audience_missing'),
-    },
-    {
-      label: t('service_detail.text.owner'),
-      value: overview?.owners.primary?.display_name ?? service.service_owner ?? service.vlastnik ?? t('service_detail.text.owner_missing'),
-    },
-    {
-      label: t('service_detail.text.support'),
-      value: supportModels[0]?.support_owner_name ?? service.vlastnik ?? t('service_detail.text.support_missing'),
-    },
-    {
-      label: t('service_detail.text.capability'),
-      value: primaryCapability?.title ?? service.c3_domain ?? service.c3_reference ?? t('service_detail.text.c3_mapping_missing'),
-    },
-  ];
+const TONE_ORDER: Record<Tone, number> = { danger: 0, warning: 1, info: 2, muted: 3, ok: 4 };
 
-  return (
-    <section className={styles.studioHero} aria-label={t('service_detail.text.service_relationship_overview')}>
-      <div className={styles.studioSummary}>
-        <div className={styles.studioTopline}>
-          <div className={styles.headerMeta}>
-            <span className={styles.serviceId}>{service.service_id}</span>
-            {service.service_type && <span className={styles.typeChip}>{service.service_type}</span>}
-            <LifecycleBadge state={lifecycleState ?? service.service_status ?? null} fallback={t('service_detail.lifecycle.draft')} />
-          </div>
-          <div className={styles.headerActions}>
-            <Link href={`/services/${id}/edit`}><Button size="sm">{t('service_detail.text.edit')}</Button></Link>
-          </div>
-        </div>
-        <span className={styles.studioEyebrow}>{t('service_detail.text.service_relationship_studio')}</span>
-        <h1 className={styles.studioTitle}>{service.title}</h1>
-        <p className={styles.studioLead}>{managerSummary}</p>
-
-        <div className={styles.questionGrid} aria-label={t('service_detail.text.service_360_questions')}>
-          <QuestionCard
-            question={t('service_detail.question.what')}
-            rows={[
-              [t('service_detail.text.purpose'), businessSummary ?? service.summary ?? t('service_detail.text.purpose_missing')],
-              [t('service_detail.text.portfolio'), portfolioTitle],
-              [t('service_detail.text.audience'), audience],
-            ]}
-            href="#overview"
-            linkLabel={t('service_detail.question.read_full')}
-          />
-          <QuestionCard
-            question={t('service_detail.question.who')}
-            rows={[
-              [t('service_detail.text.service_owner'), owner],
-              [t('service_detail.text.resolver_group'), resolverGroup],
-              [t('service_detail.text.steward'), steward],
-              [t('service_detail.text.review_cadence_2'), reviewCadence],
-            ]}
-            href="/operations#owner-load"
-            linkLabel={t('service_detail.question.owner_load')}
-          />
-          <QuestionCard
-            question={t('service_detail.question.ready')}
-            rows={[
-              [t('service_detail.text.readiness'), completeness != null ? `${completeness}%` : t('service_detail.text.unknown')],
-              [t('service_detail.text.blockers'), String(blockers.length)],
-              [t('service_detail.text.warnings'), String(warnings.length)],
-              [t('service_detail.text.exceptions'), overview?.readiness?.rules?.some((rule) => rule.status === 'exception') ? t('service_detail.exceptions.active') : t('service_detail.exceptions.none')],
-            ]}
-            href="#readiness"
-            linkLabel={t('service_detail.question.open_readiness')}
-          />
-          <QuestionCard
-            question={t('service_detail.question.depends')}
-            rows={[
-              [t('service_detail.text.downstream'), countLabel(t, downstreamCount, 'service')],
-              [t('service_detail.text.upstream'), countLabel(t, upstreamCount, 'service')],
-              [t('service_detail.text.critical_chains'), String(criticalChains)],
-              [t('service_detail.text.top'), topDependencies],
-            ]}
-            href="#dependencies"
-            linkLabel={t('service_detail.question.view_relationships')}
-          />
-        </div>
-
-        <div className={styles.studioActions}>
-          {requestHref ? (
-            <ActionHref href={requestHref} className={styles.primaryAction}>{t('service_detail.text.open_request_channel_2')}</ActionHref>
-          ) : (
-            <button type="button" className={styles.primaryActionMuted} disabled>
-              {t('service_detail.text.request_path_missing')}
-            </button>
-          )}
-          {(service.service_owner || service.vlastnik) && (
-            <a
-              href={`mailto:${service.service_owner ?? service.vlastnik}`}
-              className={styles.secondaryAction}
-              title={t('service_detail.contact_name', { name: service.service_owner ?? service.vlastnik ?? '' })}
-            >
-              {t('service_detail.text.contact_owner')}
-            </a>
-          )}
-          <a href={supportAnchor} className={styles.secondaryAction}>{t('service_detail.text.support')}</a>
-          <Link href={`/services/${id}/edit`} className={styles.secondaryAction}>{t('service_detail.text.edit')}</Link>
-        </div>
-
-        {(service.sla_availability != null || service.sla_restoration != null || service.sla_delivery != null) && (
-          <div className={styles.heroSlaStrip} aria-label={t('service_detail.text.sla_commitments')}>
-            <div className={`${styles.heroSlaChip} ${service.sla_availability != null ? styles.heroSlaChip_success : styles.heroSlaChip_muted}`}>
-              <strong>{service.sla_availability != null ? `${service.sla_availability}%` : 'N/A'}</strong>
-              <small>{t('service_detail.text.availability')}</small>
-            </div>
-            <div className={`${styles.heroSlaChip} ${service.sla_restoration != null ? styles.heroSlaChip_warning : styles.heroSlaChip_muted}`}>
-              <strong>{service.sla_restoration_text ?? (service.sla_restoration != null ? `${service.sla_restoration}h` : 'N/A')}</strong>
-              <small>{t('service_detail.text.restoration')}</small>
-            </div>
-            <div className={`${styles.heroSlaChip} ${service.sla_delivery != null ? styles.heroSlaChip_warning : styles.heroSlaChip_muted}`}>
-              <strong>{service.sla_delivery_text ?? (service.sla_delivery != null ? `${service.sla_delivery}d` : 'N/A')}</strong>
-              <small>{t('service_detail.text.delivery')}</small>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.studioMetricGrid} aria-label={t('service_detail.text.service_headline_metrics')}>
-          <StudioMetric value={completeness != null ? `${completeness}%` : 'N/A'} label={t('service_detail.text.completeness')} detail={readinessLabel} tone={blockers.length ? 'danger' : warnings.length ? 'warning' : 'success'} />
-          <StudioMetric value={String(relations)} label={t('service_detail.text.relations')} detail={`${mandatoryRelations} mandatory`} tone={mandatoryRelations ? 'warning' : 'info'} />
-          <StudioMetric value={String(capabilityCount)} label={t('service_detail.text.c3_links')} detail={primaryCapability?.code ?? service.c3_reference ?? t('service_detail.text.no_primary')} tone={capabilityCount ? 'success' : 'warning'} />
-        </div>
-      </div>
-
-      <div className={styles.studioTaskPanel}>
-        <div className={styles.studioPanelHeader}>
-          <div>
-            <span className={styles.studioEyebrow}>{t('service_detail.text.admin_queue')}</span>
-            <h2>{t('service_detail.text.what_needs_attention')}</h2>
-          </div>
-          <span className={`${styles.studioBadge} ${styles[`studioBadge_${blockers.length ? 'danger' : warnings.length ? 'warning' : 'success'}`]}`}>
-            {readinessLabel}
-          </span>
-        </div>
-        <div className={styles.studioTaskList}>
-          {taskQueue.map((task) => (
-            <StudioTaskRow key={task.title} task={task} />
-          ))}
-        </div>
-      </div>
-
-      <RelationshipMap
-        serviceTitle={service.title}
-        nodes={mapNodes}
-        readinessLabel={readinessLabel}
-        primaryOffering={primaryOffering?.title ?? primaryOffering?.offering_code ?? t('service_detail.text.offering_missing')}
-      />
-
-      <div className={styles.studioFactsPanel}>
-        {overviewFacts.map((fact) => (
-          <div key={fact.label} className={styles.heroFact}>
-            <span className={styles.heroFactLabel}>{fact.label}</span>
-            {fact.label === t('service_detail.text.lifecycle')
-              ? <LifecycleBadge state={lifecycleState} fallback={fact.value} />
-              : <span className={styles.heroFactValue}>{fact.value}</span>}
-          </div>
-        ))}
-        <div className={styles.summaryMiniRow}>
-          <SummaryItem label={t('service_detail.text.availability')}>
-            <AvailabilityBadge pct={service.sla_availability} />
-          </SummaryItem>
-          <SummaryItem label={t('service_detail.text.domains')}>
-            <DomainDotGroup domains={service.available_on} />
-          </SummaryItem>
-          <SummaryItem label={t('service_detail.text.review_due')}>
-            {service.review_due_at ? formatDate(service.review_due_at) : 'N/A'}
-          </SummaryItem>
-        </div>
-      </div>
-    </section>
-  );
+function editorSectionForRule(rule: ReadinessRuleResult) {
+  const text = `${rule.rule_key ?? ''} ${rule.title ?? ''} ${rule.message ?? ''}`.toLowerCase();
+  if (text.includes('owner') || text.includes('ownership')) return 'ownership';
+  if (text.includes('request') || text.includes('channel') || text.includes('offering')) return 'request-access';
+  if (text.includes('c3') || text.includes('capability') || text.includes('mapping')) return 'c3mapping';
+  if (text.includes('support') || text.includes('sla')) return 'support-model';
+  return 'readiness-governance';
 }
 
-function buildStudioTasks({
+/**
+ * One readiness checklist for the Řízení tab: readiness-gate rules, loose
+ * blockers/warnings, the four core checks (owner, request path, support, C3)
+ * and any remaining missing actions from Service 360 — each listed once.
+ */
+function buildChecklist({
   id,
   overview,
   service,
+  ownerName,
   supportModels,
   requestHref,
   primaryOffering,
-  blockers,
-  warnings,
   capabilityCount,
   t,
 }: {
   id: string;
   overview: ServiceOverview | null;
   service: ServiceDetail;
+  ownerName: string | null;
   supportModels: ServiceSupportModel[];
   requestHref: string | null;
   primaryOffering: ServiceOffering | null | undefined;
-  blockers: string[];
-  warnings: string[];
   capabilityCount: number;
   t: Translate;
-}): StudioTask[] {
-  const tasks: StudioTask[] = [];
-  if (blockers.length) {
-    tasks.push({
-      tone: 'danger',
-      title: t('service_detail.task.publish_blockers'),
-      detail: t('service_detail.task.publish_blockers_detail', { count: blockers.length }),
-      href: `/services/${id}/edit#readiness-governance`,
-      label: t('service_detail.task.fix_record'),
-    });
-  } else if (warnings.length) {
-    tasks.push({
-      tone: 'warning',
-      title: t('service_detail.task.warnings'),
-      detail: warnings[0],
-      href: `/services/${id}/edit#readiness-governance`,
-      label: t('service_detail.task.review'),
-    });
-  } else {
-    tasks.push({
-      tone: 'success',
-      title: t('service_detail.task.record_ok'),
-      detail: t('service_detail.task.record_ok_detail'),
+}): ChecklistItem[] {
+  const editHref = `/services/${id}/edit`;
+  const items: ChecklistItem[] = [];
+  const rules = (overview?.readiness?.rules ?? []).filter((rule) => rule.status !== 'passed');
+  const ruleTexts = new Set(rules.flatMap((rule) => [rule.message, rule.title, rule.title_text].filter(Boolean) as string[]));
+
+  for (const rule of rules) {
+    const failed = rule.status === 'failed';
+    items.push({
+      key: `rule-${rule.rule_key}`,
+      tone: failed ? (rule.blocking || rule.severity === 'P0' ? 'danger' : 'warning') : rule.status === 'exception' ? 'info' : 'muted',
+      title: rule.title_text ?? rule.title,
+      detail: rule.message || rule.description,
+      why: rule.why_text,
+      how: rule.howto_text,
+      evidence: rule.evidence_hint,
+      status: failed ? rule.severity : `${rule.severity} · ${rule.status}`,
+      action: failed ? { label: t('operations.readiness.action.fix_rule'), href: `${editHref}#${editorSectionForRule(rule)}` } : undefined,
     });
   }
+  (overview?.readiness?.blockers ?? []).filter((text) => !ruleTexts.has(text)).forEach((text, index) => {
+    items.push({ key: `blocker-${index}`, tone: 'danger', title: text, action: { label: t('service_detail.task.fix_record'), href: `${editHref}#readiness-governance` } });
+  });
+  (overview?.readiness?.warnings ?? []).filter((text) => !ruleTexts.has(text)).forEach((text, index) => {
+    items.push({ key: `warning-${index}`, tone: 'warning', title: text, action: { label: t('service_detail.task.review'), href: `${editHref}#readiness-governance` } });
+  });
 
-  tasks.push(requestHref ? {
-    tone: 'success',
-    title: t('service_detail.task.request_ok'),
+  // Service 360 missing actions; the ones matching a core check feed that check instead.
+  const missing = overview?.missing_actions ?? [];
+  const matchCore = (pattern: RegExp) => missing.find((action) => pattern.test(action.key));
+  const ownerAction = matchCore(/owner/);
+  const requestAction = matchCore(/request|channel/);
+  const supportAction = matchCore(/support/);
+  const c3Action = matchCore(/c3|capab/);
+  const coreActions = new Set([ownerAction, requestAction, supportAction, c3Action].filter(Boolean));
+
+  items.push(ownerName && !ownerAction ? {
+    key: 'owner', tone: 'ok', title: t('service_detail.check.owner_ok'), detail: ownerName,
+  } : {
+    key: 'owner', tone: 'warning', title: t('service_detail.text.owner_missing'), detail: ownerAction?.description ?? t('service_detail.check.owner_missing_detail'),
+    action: { label: t('service_detail.text.fix_owner'), href: ownerAction?.href || `${editHref}#ownership` },
+  });
+
+  items.push(requestHref && !requestAction ? {
+    key: 'request', tone: 'ok', title: t('service_detail.task.request_ok'),
     detail: primaryOffering?.title ? t('service_detail.task.request_ok_offering', { offering: primaryOffering.title }) : t('service_detail.task.request_ok_detail'),
-    href: requestHref,
-    label: t('service_detail.task.open_channel'),
   } : {
-    tone: 'warning',
-    title: t('service_detail.task.request_missing'),
-    detail: t('service_detail.task.request_missing_detail'),
-    href: `/services/${id}/edit#request-access`,
-    label: t('service_detail.task.add_path'),
+    key: 'request', tone: 'warning', title: t('service_detail.task.request_missing'), detail: t('service_detail.task.request_missing_detail'),
+    action: { label: t('service_detail.task.add_path'), href: requestAction?.href || `${editHref}#request-access` },
   });
 
-  tasks.push(supportModels.length ? {
-    tone: 'success',
-    title: t('service_detail.task.support_ok'),
+  items.push(supportModels.length && !supportAction ? {
+    key: 'support', tone: 'ok', title: t('service_detail.task.support_ok'),
     detail: t('service_detail.task.support_ok_detail', { owner: supportModels[0]?.support_owner_name ?? service.vlastnik ?? t('service_detail.task.support') }),
-    href: '#support',
-    label: t('service_detail.task.view_support'),
   } : {
-    tone: 'warning',
-    title: t('service_detail.task.support_missing'),
-    detail: t('service_detail.task.support_missing_detail'),
-    href: `/services/${id}/edit#support-model`,
-    label: t('service_detail.task.fix_support'),
+    key: 'support', tone: 'warning', title: t('service_detail.task.support_missing'), detail: t('service_detail.task.support_missing_detail'),
+    action: { label: t('service_detail.task.fix_support'), href: supportAction?.href || `${editHref}#support-model` },
   });
 
-  const missingAction = overview?.missing_actions[0];
-  if (missingAction) {
-    tasks.push({
-      tone: missingAction.severity === 'blocker' ? 'danger' : missingAction.severity === 'warning' ? 'warning' : 'info',
-      title: t('service_detail.task.governance'),
-      detail: missingAction.description,
-      href: missingAction.href || `/services/${id}/edit#readiness-governance`,
-      label: t('service_detail.task.open'),
-    });
-  } else {
-    tasks.push(capabilityCount ? {
-      tone: 'success',
-      title: t('service_detail.task.c3_ok'),
-      detail: t('service_detail.task.c3_ok_detail'),
-      href: '#dependencies',
-      label: t('service_detail.task.view_relationships'),
-    } : {
-      tone: 'warning',
-      title: t('service_detail.task.c3_missing'),
-      detail: t('service_detail.task.c3_missing_detail'),
-      href: `/services/${id}/edit#c3mapping`,
-      label: t('service_detail.task.map_c3'),
+  items.push(capabilityCount && !c3Action ? {
+    key: 'c3', tone: 'ok', title: t('service_detail.task.c3_ok'), detail: t('service_detail.task.c3_ok_detail'),
+  } : {
+    key: 'c3', tone: 'warning', title: t('service_detail.task.c3_missing'), detail: t('service_detail.task.c3_missing_detail'),
+    action: { label: t('service_detail.task.map_c3'), href: c3Action?.href || `${editHref}#c3mapping` },
+  });
+
+  for (const action of missing) {
+    if (coreActions.has(action)) continue;
+    items.push({
+      key: `action-${action.key}`,
+      tone: action.severity === 'blocker' ? 'danger' : action.severity === 'warning' ? 'warning' : 'info',
+      title: action.title,
+      detail: action.description,
+      action: { label: t('service_detail.task.open'), href: action.href || `${editHref}#readiness-governance` },
     });
   }
 
-  return tasks.slice(0, 4);
+  return items.sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
 }
 
-function StudioMetric({ value, label, detail, tone }: { value: string; label: string; detail: string; tone: StudioActionTone }) {
+function ReadinessChecklist({
+  items,
+  isLoading,
+  error,
+  blockerCount,
+  warningCount,
+  riskCount,
+  riskHighCount,
+}: {
+  items: ChecklistItem[];
+  isLoading: boolean;
+  error: unknown;
+  blockerCount: number;
+  warningCount: number;
+  riskCount: number | null;
+  riskHighCount: number | null;
+}) {
+  const t = useT();
+  const done = items.filter((item) => item.tone === 'ok').length;
+
   return (
-    <div className={`${styles.studioMetric} ${styles[`studioMetric_${tone}`]}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-      <small>{detail}</small>
-    </div>
+    <Section
+      title={t('service_detail.text.readiness')}
+      id="readiness"
+      action={(
+        <span className={styles.checklistSummary}>
+          {t('service_detail.checklist.progress', { done, total: items.length })}
+          {blockerCount > 0 && <span className={`${styles.countPill} ${styles.countPill_danger}`}>{formatCountLabel(blockerCount, countForms(t, 'blockers'))}</span>}
+          {warningCount > 0 && <span className={`${styles.countPill} ${styles.countPill_warning}`}>{formatCountLabel(warningCount, countForms(t, 'warnings'))}</span>}
+          {riskCount ? (
+            <span className={styles.countPill} title={countLabel(t, riskHighCount ?? 0, 'blocker')}>{countLabel(t, riskCount, 'signal')}</span>
+          ) : null}
+        </span>
+      )}
+    >
+      {isLoading && <p className={styles.emptyState}>{t('service_detail.text.loading_overview')}</p>}
+      {Boolean(error) && <p className={styles.textWarning}>{t('service_detail.text.service_360_overview_is_not_available')}</p>}
+      <ul className={styles.checklist}>
+        {items.map((item) => (
+          <li key={item.key} className={`${styles.checkRow} ${item.tone === 'ok' ? styles.checkRowOk : ''}`}>
+            <span className={`${styles.checkIcon} ${styles[`checkIcon_${item.tone}`]}`} aria-hidden="true">
+              {item.tone === 'ok' ? '✓' : item.tone === 'danger' || item.tone === 'warning' ? '!' : 'i'}
+            </span>
+            <div className={styles.checkBody}>
+              <div className={styles.checkTitle}>
+                {item.title}
+                {item.status && <span className={styles.checkStatus}>{item.status}</span>}
+              </div>
+              {item.detail && <p className={styles.checkDetail}>{item.detail}</p>}
+              {(item.why || item.how || item.evidence) && (
+                <details className={styles.more}>
+                  <summary>{t('service_detail.checklist.why_how')}</summary>
+                  <dl className={styles.checkExplain}>
+                    {item.why && (<><dt>{t('operations.readiness.detail.why')}</dt><dd>{item.why}</dd></>)}
+                    {item.how && (<><dt>{t('operations.readiness.detail.how')}</dt><dd>{item.how}</dd></>)}
+                    {item.evidence && (<><dt>{t('service_detail.checklist.evidence')}</dt><dd><code>{item.evidence}</code></dd></>)}
+                  </dl>
+                </details>
+              )}
+            </div>
+            {item.action && (
+              <ActionHref href={item.action.href} className={styles.checkAction}>{item.action.label}</ActionHref>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 
-function StudioTaskRow({ task }: { task: StudioTask }) {
-  const content = (
-    <>
-      <span className={`${styles.taskDot} ${styles[`taskDot_${task.tone}`]}`} />
-      <span className={styles.taskCopy}>
-        <strong>{task.title}</strong>
-        <small>{task.detail}</small>
-      </span>
-      {task.label && <em>{task.label}</em>}
-    </>
+function GovernanceWorkflow({ serviceId }: { serviceId: string }) {
+  const t = useT();
+  const { data: reviewData } = useGovernanceReviews({ serviceId, limit: 5 });
+  const { data: decisionData } = useGovernanceDecisions({ serviceId, limit: 5 });
+  const reviews = reviewData?.items ?? [];
+  const decisions = decisionData?.items ?? [];
+  const encodedId = encodeURIComponent(serviceId);
+
+  return (
+    <Section title={t('service_detail.text.governance_workflow')} id="governance-workflow">
+      <div className={styles.workflowMiniGrid}>
+        <div>
+          <div className={styles.workflowHead}>
+            <h3>{t('service_detail.text.current_reviews')}</h3>
+            <Link href={`/operations/reviews?service_id=${encodedId}`} className={styles.inlineLink}>{t('service_detail.text.open_reviews')}</Link>
+          </div>
+          {reviews.length ? reviews.map((review) => (
+            <Link key={review.id} href="/operations/reviews" className={styles.workflowMiniRow}>
+              <strong>{review.review_type}</strong>
+              <span>{review.status} · {review.assigned_to ?? t('service_detail.text.unassigned')} · {review.due_at ? formatDate(review.due_at) : t('service_detail.text.no_due_date')}</span>
+            </Link>
+          )) : <p className={styles.emptyState}>{t('service_detail.text.no_current_governance_reviews')}</p>}
+        </div>
+        <div>
+          <div className={styles.workflowHead}>
+            <h3>{t('service_detail.text.recent_decisions')}</h3>
+            <Link href={`/operations/decisions?service_id=${encodedId}`} className={styles.inlineLink}>{t('service_detail.text.open_governance_decisions')}</Link>
+          </div>
+          {decisions.length ? decisions.map((decision) => (
+            <Link key={decision.id} href="/operations/decisions" className={styles.workflowMiniRow}>
+              <strong>{decision.decision}</strong>
+              <span>{decision.decision_type} · {decision.decided_by ?? t('service_detail.text.unknown')} · {decision.rationale ?? t('service_detail.text.no_rationale')}</span>
+            </Link>
+          )) : <p className={styles.emptyState}>{t('service_detail.text.no_governance_decisions_yet')}</p>}
+        </div>
+      </div>
+    </Section>
   );
-
-  if (task.href?.startsWith('http')) {
-    return <a href={task.href} target="_blank" rel="noreferrer" className={styles.studioTask}>{content}</a>;
-  }
-
-  if (task.href) {
-    return <Link href={task.href} className={styles.studioTask}>{content}</Link>;
-  }
-
-  return <div className={styles.studioTask}>{content}</div>;
 }
 
 function RelationshipMap({
   serviceTitle,
   nodes,
-  readinessLabel,
   primaryOffering,
 }: {
   serviceTitle: string;
   nodes: Array<{ label: string; value: string }>;
-  readinessLabel: string;
   primaryOffering: string;
 }) {
   const t = useT();
   return (
-    <div className={styles.relationshipPanel}>
-      <div className={styles.studioPanelHeader}>
-        <div>
-          <span className={styles.studioEyebrow}>{t('service_detail.text.relationship_map')}</span>
-          <h2>{t('service_detail.text.how_this_service_fits')}</h2>
-        </div>
-        <span className={styles.studioBadge}>{primaryOffering}</span>
+    <div className={styles.relationshipMap}>
+      <div className={styles.mapNodePrimary}>
+        <span>{t('service_detail.text.service')}</span>
+        <strong>{serviceTitle}</strong>
+        <small>{primaryOffering}</small>
       </div>
-      <div className={styles.relationshipMap}>
-        <div className={styles.mapNodePrimary}>
-          <span>{t('service_detail.text.service')}</span>
-          <strong>{serviceTitle}</strong>
-          <small>{readinessLabel}</small>
+      {nodes.map((node, index) => (
+        <div key={`${node.label}-${index}`} className={`${styles.mapNode} ${styles[`mapNode_${index}`] ?? ''}`}>
+          <span>{node.label}</span>
+          <strong>{node.value}</strong>
         </div>
-        {nodes.map((node, index) => (
-          <div key={`${node.label}-${index}`} className={`${styles.mapNode} ${styles[`mapNode_${index}`] ?? ''}`}>
-            <span>{node.label}</span>
-            <strong>{node.value}</strong>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
@@ -888,252 +802,35 @@ function formatLifecycleState(t: Translate, state: LifecycleStepCode) {
   return t(`service_detail.lifecycle.${state}`);
 }
 
-function QuestionCard({
-  question,
-  rows,
-  href,
-  linkLabel,
-}: {
-  question: string;
-  rows: Array<[string, string]>;
-  href: string;
-  linkLabel: string;
-}) {
-  return (
-    <article className={styles.questionCard}>
-      <h2>{question}</h2>
-      <div className={styles.questionRows}>
-        {rows.map(([key, value]) => (
-          <div key={key} className={styles.questionRow}>
-            <span>{key}</span>
-            <strong>{value}</strong>
-          </div>
-        ))}
-      </div>
-      <Link href={href} className={styles.questionLink}>{linkLabel} →</Link>
-    </article>
-  );
-}
-
-function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
+function Section({ title, children, id, action }: { title: string; children: ReactNode; id?: string; action?: ReactNode }) {
   return (
     <section className={styles.section} id={id}>
-      {title ? <h2 className={styles.sectionTitle}>{title}</h2> : null}
+      {title ? (
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>{title}</h2>
+          {action}
+        </div>
+      ) : null}
       {children}
     </section>
   );
 }
 
-function ActionHref({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  const empty = children == null || children === '';
+  return (
+    <div className={styles.fact}>
+      <dt>{label}</dt>
+      <dd>{empty ? <span className={styles.factEmpty}>—</span> : children}</dd>
+    </div>
+  );
+}
+
+function ActionHref({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
   if (/^https?:\/\//i.test(href)) {
     return <a href={href} target="_blank" rel="noreferrer" className={className}>{children}</a>;
   }
   return <Link href={href} className={className}>{children}</Link>;
-}
-
-function SummaryItem({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className={styles.summaryItem}>
-      <span className={styles.summaryLabel}>{label}</span>
-      <span className={styles.summaryValue}>{children}</span>
-    </div>
-  );
-}
-
-function Service360Panel({
-  overview,
-  isLoading,
-  error,
-  serviceId,
-}: {
-  overview: ServiceOverview | null;
-  isLoading: boolean;
-  error: unknown;
-  serviceId: string;
-}) {
-  const t = useT();
-  const { data: reviewData } = useGovernanceReviews({ serviceId, limit: 5 });
-  const { data: decisionData } = useGovernanceDecisions({ serviceId, limit: 5 });
-  const reviews = reviewData?.items ?? [];
-  const decisions = decisionData?.items ?? [];
-
-  if (isLoading) {
-    return (
-      <Section title={t('service_detail.text.service_360')}>
-        <div className={styles.service360State}>{t('service_detail.text.loading_overview')}</div>
-      </Section>
-    );
-  }
-
-  if (error) {
-    return (
-      <Section title={t('service_detail.text.service_360')}>
-        <div className={styles.service360StateError}>{t('service_detail.text.service_360_overview_is_not_available')}</div>
-      </Section>
-    );
-  }
-
-  if (!overview) {
-    return (
-      <Section title={t('service_detail.text.service_360')}>
-        <div className={styles.service360State}>{t('service_detail.text.no_service_360_data_yet')}</div>
-      </Section>
-    );
-  }
-
-  const blockers = overview.readiness?.blockers ?? [];
-  const warnings = overview.readiness?.warnings ?? [];
-  const ruleBadges = (overview.readiness?.rules ?? [])
-    .filter((rule) => ['failed', 'exception', 'disabled', 'skipped'].includes(rule.status))
-    .slice(0, 8);
-  const ruleExplanations = (overview.readiness?.rules ?? [])
-    .filter((rule) => rule.status === 'failed')
-    .slice(0, 3);
-  const primaryCapability = overview.capability_mappings.find((item) => item.is_primary) ?? overview.capability_mappings[0] ?? null;
-  const ownerName = overview.owners.primary?.display_name ?? t('service_detail.text.missing');
-  const lifecycle = overview.lifecycle.stage_code ?? overview.lifecycle.state ?? overview.lifecycle.service_status ?? t('service_detail.text.missing');
-  const portfolio = overview.portfolio.title ?? overview.portfolio.code ?? t('service_detail.text.missing');
-  const readinessStatus = overview.readiness == null
-    ? t('service_detail.text.readiness_unknown')
-    : overview.readiness.is_publishable
-      ? t('service_detail.text.publishable')
-      : t('service_detail.text.not_publishable');
-
-  return (
-    <Section title={t('service_detail.text.service_360')}>
-      <div className={styles.service360Header}>
-        <div>
-          <div className={styles.service360Eyebrow}>{t('service_detail.text.decision_cockpit')}</div>
-          <p className={styles.service360Lead}>
-            {overview.service.summary ?? t('service_detail.text.operational_governance_summary_for_this_service')}
-          </p>
-        </div>
-        <span className={`${styles.service360Status} ${overview.readiness?.is_publishable ? styles.service360StatusReady : styles.service360StatusBlocked}`}>
-          {readinessStatus}
-        </span>
-      </div>
-
-      <div className={styles.service360Readiness} id="readiness">
-        <div className={styles.readinessHeader}>
-          <h3 className={styles.service360Subhead}>{t('service_detail.text.readiness')}</h3>
-          <div className={styles.readinessCounts}>
-            <span className={`${styles.readinessBadge} ${blockers.length ? styles.readinessBadgeBlocker : ''}`}>
-              {countLabel(t, blockers.length, 'blocker')}
-            </span>
-            <span className={`${styles.readinessBadge} ${warnings.length ? styles.readinessBadgeWarning : ''}`}>
-              {countLabel(t, warnings.length, 'warning')}
-            </span>
-          </div>
-        </div>
-        {blockers.length || warnings.length ? (
-          <div className={styles.issueList}>
-            {blockers.map((item) => (
-              <div key={`blocker-${item}`} className={styles.issueItemBlocker}>{item}</div>
-            ))}
-            {warnings.map((item) => (
-              <div key={`warning-${item}`} className={styles.issueItemWarning}>{item}</div>
-            ))}
-          </div>
-        ) : (
-          <p className={styles.emptyState}>{t('service_detail.text.no_readiness_blockers_or_warnings')}</p>
-        )}
-        {ruleBadges.length > 0 && (
-          <div className={styles.readinessRuleBadges} aria-label={t('service_detail.text.readiness_rules')}>
-            {ruleBadges.map((rule) => (
-              <span
-                key={rule.rule_key}
-                className={`${styles.readinessRuleBadge} ${styles[`readinessRule_${rule.status}`] ?? ''}`}
-                title={[rule.why_text, rule.howto_text, rule.evidence_hint].filter(Boolean).join(' ')}
-              >
-                {rule.severity} {rule.title_text ?? rule.title}
-              </span>
-            ))}
-          </div>
-        )}
-        {ruleExplanations.length > 0 && (
-          <details className={styles.readinessExplainDetails}>
-            <summary>{t('service_detail.text.why_this_is_a_blocker_and_how_to_fix_it')}</summary>
-            <div className={styles.readinessExplainGrid} aria-label={t('service_detail.text.readiness_explanations')}>
-              {ruleExplanations.map((rule) => (
-                <div key={`explain-${rule.rule_key}`} className={styles.readinessExplainCard}>
-                  <strong>{rule.title_text ?? rule.title}</strong>
-                  {rule.why_text && <span>{rule.why_text}</span>}
-                  {rule.howto_text && <small>{rule.howto_text}</small>}
-                  {rule.evidence_hint && <code>{rule.evidence_hint}</code>}
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-      </div>
-
-      <div className={styles.service360Grid}>
-        <Service360Metric label={t('service_detail.text.portfolio')} value={portfolio} detail={overview.lifecycle.criticality_code ?? t('service_detail.text.standard_criticality')} />
-        <Service360Metric label={t('service_detail.text.lifecycle')} value={lifecycle} detail={overview.lifecycle.review_due_at ? t('service_detail.review_on', { date: formatDate(overview.lifecycle.review_due_at) }) : t('service_detail.text.review_missing')} />
-        <Service360Metric label={t('service_detail.text.owners')} value={ownerName} detail={overview.owners.steward?.display_name ?? t('service_detail.text.steward_missing')} />
-        <Service360Metric label={t('service_detail.text.offerings')} value={countLabel(t, overview.offerings.count, 'offering')} detail={overview.offerings.primary?.title ?? overview.offerings.primary?.offering_code ?? t('service_detail.text.primary_missing')} />
-        <Service360Metric label={t('service_detail.text.sla_offerings')} value={overview.sla.has_sla && overview.offerings.count > 0 ? t('service_detail.text.covered') : t('service_detail.text.incomplete')} detail={t('service_detail.sla_records_offerings', { records: overview.sla.record_count, offerings: overview.offerings.count })} />
-        <Service360Metric label={t('service_detail.text.dependencies')} value={t('service_detail.dependencies_out_in', { out: overview.dependencies.outgoing_count, in: overview.dependencies.incoming_count })} detail={t('service_detail.count.mandatory', { count: overview.dependencies.mandatory_count })} />
-        <Service360Metric label={t('service_detail.text.capabilities')} value={countLabel(t, overview.capability_mappings.length, 'mapping')} detail={primaryCapability?.code ? t('service_detail.primary_code', { code: primaryCapability.code }) : t('service_detail.text.primary_missing')} />
-        <Service360Metric label={t('service_detail.text.c3_mapping')} value={primaryCapability?.code ?? primaryCapability?.c3_uuid ?? t('service_detail.text.missing')} detail={primaryCapability?.status ?? primaryCapability?.mapping_type_code ?? t('service_detail.text.unclassified')} />
-        <Service360Metric label={t('service_detail.text.readiness')} value={countLabel(t, overview.governance_risks.count, 'signal')} detail={countLabel(t, overview.governance_risks.high_count, 'blocker')} />
-        <Service360Metric label={t('service_detail.text.audit')} value={countLabel(t, overview.audit_summary.count, 'change')} detail={overview.audit_summary.last_action?.performed_at ? formatDate(overview.audit_summary.last_action.performed_at) : t('service_detail.text.no_recent_changes')} />
-      </div>
-
-      <div className={styles.service360Workflow} id="governance-workflow">
-        <div className={styles.readinessHeader}>
-          <h3 className={styles.service360Subhead}>{t('service_detail.text.governance_workflow')}</h3>
-          <Link href={`/operations/reviews?service_id=${encodeURIComponent(serviceId)}`} className={styles.actionInlineLink}>{t('service_detail.text.open_reviews')}</Link>
-        </div>
-        <div className={styles.workflowMiniGrid}>
-          <div>
-            <h4>{t('service_detail.text.current_reviews')}</h4>
-            {reviews.length ? reviews.map((review) => (
-              <Link key={review.id} href="/operations/reviews" className={styles.workflowMiniRow}>
-                <strong>{review.review_type}</strong>
-                <span>{review.status} · {review.assigned_to ?? t('service_detail.text.unassigned')} · {review.due_at ? formatDate(review.due_at) : t('service_detail.text.no_due_date')}</span>
-              </Link>
-            )) : <p className={styles.emptyState}>{t('service_detail.text.no_current_governance_reviews')}</p>}
-          </div>
-          <div>
-            <h4>{t('service_detail.text.recent_decisions')}</h4>
-            {decisions.length ? decisions.map((decision) => (
-              <Link key={decision.id} href="/operations/decisions" className={styles.workflowMiniRow}>
-                <strong>{decision.decision}</strong>
-                <span>{decision.decision_type} · {decision.decided_by ?? 'unknown'} · {decision.rationale ?? t('service_detail.text.no_rationale')}</span>
-              </Link>
-            )) : <p className={styles.emptyState}>{t('service_detail.text.no_governance_decisions_yet')}</p>}
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.service360Actions}>
-        <h3 className={styles.service360Subhead}>{t('service_detail.text.actions')}</h3>
-        {overview.missing_actions.length > 0 ? (
-          <div className={styles.actionList}>
-            {overview.missing_actions.map((action) => (
-              <Link key={action.key} href={action.href || `/services/${serviceId}/edit`} className={styles.actionLink}>
-                <span className={styles.actionTitle}>{action.title}</span>
-                <span className={styles.actionDescription}>{action.description}</span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className={styles.emptyState}>{t('service_detail.text.no_missing_actions_detected')}</p>
-        )}
-      </div>
-    </Section>
-  );
-}
-
-function Service360Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className={styles.service360Metric}>
-      <span className={styles.service360MetricLabel}>{label}</span>
-      <span className={styles.service360MetricValue}>{value}</span>
-      <span className={styles.service360MetricDetail}>{detail}</span>
-    </div>
-  );
 }
 
 function OfferingsGrid({
@@ -1507,9 +1204,6 @@ function DependenciesPanel({
   return (
     <>
       <Section title={t('service_detail.text.relationships')} id="dependencies">
-        <p className={styles.sectionIntro}>
-          {t('service_detail.text.what_this_service_needs_what_depends_on_it_and_w')}
-        </p>
         <div className={styles.dualPanel}>
           <div className={styles.infoCard}>
             <div className={styles.infoCardLabel}>{t('service_detail.text.what_the_service_needs')}</div>
@@ -1625,18 +1319,20 @@ function C3MappingTable({ mappings }: { mappings: ServiceC3Mapping[] }) {
   );
 }
 
-const BUSINESS_DETAIL_VIEWS: Array<{ id: DetailView; technical?: boolean }> = [
-  { id: 'overview' },
-  { id: 'request' },
-  { id: 'support' },
-  { id: 'dependencies' },
-  { id: 'governance' },
-];
+const BUSINESS_DETAIL_VIEWS: DetailView[] = ['overview', 'request', 'support', 'dependencies', 'governance'];
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 function countLabel(t: Translate, count: number, noun: 'service' | 'blocker' | 'warning' | 'offering' | 'mapping' | 'signal' | 'change') {
   return t(`service_detail.count.${noun}`, { count });
+}
+
+function countForms(t: Translate, noun: 'blockers' | 'warnings') {
+  return {
+    one: t(`layout.review_action_modal.${noun}.one`),
+    few: t(`layout.review_action_modal.${noun}.few`),
+    many: t(`layout.review_action_modal.${noun}.many`),
+  };
 }
 
 function formatBool(t: Translate, value: boolean | null | undefined) {

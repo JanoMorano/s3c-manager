@@ -3,8 +3,10 @@
 export async function exportGraphToPdf(element: HTMLElement | null, title: string) {
   if (!element || typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1400,height=900');
+  // No 'noopener' here: with it window.open() returns null and nothing could be written.
+  const printWindow = window.open('', '_blank', 'width=1400,height=900');
   if (!printWindow) return;
+  printWindow.opener = null;
 
   const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
     .map((node) => node.outerHTML)
@@ -19,7 +21,7 @@ export async function exportGraphToPdf(element: HTMLElement | null, title: strin
       .print-title { font-size: 18px; font-weight: 700; margin: 0 0 12px; }
       .react-flow__controls,
       .react-flow__minimap,
-      button,
+      button:not(.react-flow__node button),
       input,
       select { display: none !important; }
       .print-shell .react-flow,

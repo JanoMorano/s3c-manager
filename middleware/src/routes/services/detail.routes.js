@@ -16,6 +16,7 @@ const { MODULE_CODES } = require('../../modules/manifest');
 const { serviceScore } = require('../../services/scoring');
 const { getPool } = require('../../db/pool');
 const logger = require('../../utils/logger');
+const { resolveRequestLocale } = require('../../utils/i18n');
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.get('/:id/360', async (req, res, next) => {
         const serviceId = req.params.id;
         const [service, overview] = await Promise.all([
             repo.findByServiceId(serviceId),
-            serviceOverviewRepo.getServiceOverview(serviceId),
+            serviceOverviewRepo.getServiceOverview(serviceId, { locale: resolveRequestLocale(req) }),
         ]);
 
         if (!service && !overview) return res.status(404).json({ error: 'Služba nenalezena' });
@@ -92,7 +93,7 @@ router.get('/:id/360', async (req, res, next) => {
 // ─── GET /services/:id/overview ──────────────────────────────────────────────
 router.get('/:id/overview', async (req, res, next) => {
     try {
-        const item = await serviceOverviewRepo.getServiceOverview(req.params.id);
+        const item = await serviceOverviewRepo.getServiceOverview(req.params.id, { locale: resolveRequestLocale(req) });
         if (!item) return res.status(404).json({ error: 'Služba nenalezena' });
         res.json({ item });
     } catch (err) { next(err); }
@@ -114,6 +115,11 @@ router.get('/:id', async (req, res, next) => {
         const flavours = await flRepo.findByService(serviceId);
         const relations = await relRepo.findByService(serviceId);
         const score = serviceScore(svc, flavours);
+        // Keep the stored score current; offerings, roles and mappings change
+        // through their own endpoints without touching the service record.
+        Promise.resolve().then(() => repo.updateScore(serviceId, score)).catch((scoreErr) => {
+            logger.warn(`service detail: completeness score not stored for ${serviceId}: ${scoreErr.message}`);
+        });
         const primaryOffering = offerings.find((item) => item.is_default) || offerings[0] || null;
 
         const businessView = {

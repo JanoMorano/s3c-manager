@@ -1,11 +1,10 @@
 /**
  * Layer 3 — Button
- * Thin wrapper around shadcn/ui Button for backward compatibility.
- * Maps legacy variant/size names → new CVA variants.
+ * Styled by Button.module.css with design tokens, so it renders the same in
+ * light and dark mode without depending on Tailwind utility generation.
  */
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { Button as ShadButton } from '@/components/ui/button';
-import type { ButtonProps as ShadButtonProps } from '@/components/ui/button';
+import styles from './Button.module.css';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerSolid';
 export type ButtonSize    = 'sm' | 'md' | 'lg';
@@ -17,35 +16,23 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-const VARIANT_MAP: Record<ButtonVariant, ShadButtonProps['variant']> = {
-  primary:     'default',
-  secondary:   'secondary',
-  ghost:       'ghost',
-  danger:      'outline',
-  dangerSolid: 'destructive',
-};
-
-const SIZE_MAP: Record<ButtonSize, ShadButtonProps['size']> = {
-  sm: 'sm',
-  md: 'default',
-  lg: 'lg',
-};
-
 export function Button({
   variant = 'primary',
   size    = 'md',
   loading = false,
+  disabled,
+  className,
+  type = 'button',
   children,
   ...rest
 }: ButtonProps) {
+  const classes = [styles.btn, styles[size], styles[variant], loading ? styles.loading : '', className ?? '']
+    .filter(Boolean)
+    .join(' ');
   return (
-    <ShadButton
-      variant={VARIANT_MAP[variant]}
-      size={SIZE_MAP[size]}
-      loading={loading}
-      {...rest}
-    >
+    <button type={type} className={classes} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
+      {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
       {children}
-    </ShadButton>
+    </button>
   );
 }

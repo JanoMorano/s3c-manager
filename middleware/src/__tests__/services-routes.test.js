@@ -55,9 +55,66 @@ jest.mock('../db/services.repo', () => ({
     getCatalogId: jest.fn(),
 }));
 
+jest.mock('../services/readiness', () => ({
+    ...jest.requireActual('../services/readiness'),
+    getReadinessIndex: jest.fn(async () => new Map()),
+    servicePksForReadinessFilter: jest.fn(async () => null),
+}));
+
 describe('services routes', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+    });
+
+    test('GET /services resolves readiness=blocked through the readiness rules', async () => {
+        const repo = require('../db/services.repo');
+        const readiness = require('../services/readiness');
+        readiness.servicePksForReadinessFilter.mockResolvedValueOnce(['11', '12']);
+        readiness.getReadinessIndex.mockResolvedValueOnce(new Map([
+            ['11', { state: 'blocked', blocker_count: 2, warning_count: 1 }],
+        ]));
+        repo.findAllDirect.mockResolvedValue({
+            items: [{ id: '11', service_id: 'SVC-A' }],
+            total: 1,
+            page: 1,
+            limit: 50,
+        });
+
+        const router = require('../routes/services');
+        const app = express();
+        app.use('/api/v1/services', router);
+
+        const response = await request(app).get('/api/v1/services?readiness=blocked');
+
+        expect(response.status).toBe(200);
+        expect(readiness.servicePksForReadinessFilter).toHaveBeenCalledWith('blocked');
+        expect(repo.findAllDirect).toHaveBeenCalledWith(expect.objectContaining({
+            readiness: undefined,
+            servicePks: ['11', '12'],
+        }));
+        expect(readiness.getReadinessIndex).toHaveBeenCalledWith({ servicePks: ['11'] });
+        expect(response.body.items[0]).toEqual(expect.objectContaining({
+            readiness_state: 'blocked',
+            readiness_blocker_count: 2,
+            readiness_warning_count: 1,
+        }));
+    });
+
+    test('GET /services passes non-rule readiness filters to the repo unchanged', async () => {
+        const repo = require('../db/services.repo');
+        repo.findAllDirect.mockResolvedValue({ items: [], total: 0, page: 1, limit: 50 });
+
+        const router = require('../routes/services');
+        const app = express();
+        app.use('/api/v1/services', router);
+
+        const response = await request(app).get('/api/v1/services?readiness=missing_owner');
+
+        expect(response.status).toBe(200);
+        expect(repo.findAllDirect).toHaveBeenCalledWith(expect.objectContaining({
+            readiness: 'missing_owner',
+            servicePks: undefined,
+        }));
     });
 
     test('GET /services forwards multi-select status/type filters', async () => {
@@ -196,7 +253,7 @@ describe('services routes', () => {
             service_id: 'SVC-1',
             title: 'Service One',
         }));
-        expect(overviewRepo.getServiceOverview).toHaveBeenCalledWith('SVC-1');
+        expect(overviewRepo.getServiceOverview).toHaveBeenCalledWith('SVC-1', { locale: expect.any(String) });
     });
 
     test('GET /services/:id/overview returns 404 for unknown service', async () => {

@@ -7,7 +7,8 @@ import useSWR from 'swr';
 import { apiFetch } from '@/features/services/api/services.api';
 import { readStoredC3TaxonomySort } from '../../lib/c3Routes';
 import { compareText } from '@/app/i18n/format';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useLocale, useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 import styles from './capability-map.module.css';
 
 const CATALOGUE_STATE_KEY = 'czech_army_sharepoint_live_v2';
@@ -97,7 +98,8 @@ interface PosterRuntime {
 
 interface CapabilityMapPageProps {
   apiPath: string;
-  defaultTitle: string;
+  /** Optional title override; defaults to a translated baseline title for the active spiral. */
+  defaultTitle?: string;
   activeSpiralCode?: string;
   builderHref?: string;
   emptyStateDescription?: string;
@@ -117,8 +119,8 @@ interface SpiralResponse {
 }
 
 const FALLBACK_SPIRAL_MAP_LINKS = [
-  { code: 'Spiral_6', label: 'Spiral 6', href: '/c3/capability-map-spiral6' },
-  { code: 'Spiral_7', label: 'Spiral 7', href: '/c3/capability-map-spiral7' },
+  { code: 'Spiral_6', href: '/c3/capability-map-spiral6' },
+  { code: 'Spiral_7', href: '/c3/capability-map-spiral7' },
 ];
 
 function spiralNumber(code: string) {
@@ -177,6 +179,7 @@ export default function CapabilityMapPage({
 }: CapabilityMapPageProps) {
   const router = useRouter();
   const locale = useLocale();
+  const t = useT();
   const { data, isLoading, error } = useSWR<CapabilityMapResponse>(
     apiPath,
     apiFetch,
@@ -192,7 +195,10 @@ export default function CapabilityMapPage({
   const [infoNode, setInfoNode] = useState<CapabilityItem | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, text: '', x: 0, y: 0 });
   const spiralMapLinks = useMemo(() => {
-    const byCode = new Map(FALLBACK_SPIRAL_MAP_LINKS.map((spiral) => [spiral.code, spiral]));
+    const byCode = new Map(FALLBACK_SPIRAL_MAP_LINKS.map((spiral) => [
+      spiral.code,
+      { ...spiral, label: t('capability_map.spiral_label', { number: spiralNumber(spiral.code) }) },
+    ]));
     (spiralData?.all ?? []).forEach((spiral) => {
       byCode.set(spiral.spiral_code, {
         code: spiral.spiral_code,
@@ -203,12 +209,12 @@ export default function CapabilityMapPage({
     if (activeSpiralCode && !byCode.has(activeSpiralCode)) {
       byCode.set(activeSpiralCode, {
         code: activeSpiralCode,
-        label: `Spiral ${spiralNumber(activeSpiralCode) || activeSpiralCode}`,
+        label: t('capability_map.spiral_label', { number: spiralNumber(activeSpiralCode) || activeSpiralCode }),
         href: buildSpiralHref(activeSpiralCode),
       });
     }
     return [...byCode.values()].sort((left, right) => Number(spiralNumber(left.code)) - Number(spiralNumber(right.code)));
-  }, [activeSpiralCode, spiralData?.all]);
+  }, [activeSpiralCode, spiralData?.all, t]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -329,7 +335,7 @@ export default function CapabilityMapPage({
           chips.push({
             item: l2,
             mapped,
-            tooltip: `${children.length} aplikací${mappedCount ? ` · ${mappedCount} mapováno` : ''}`,
+            tooltip: `${t(resolveCountForm(children.length, { one: 'capability_map.tooltip.apps.one', few: 'capability_map.tooltip.apps.few', many: 'capability_map.tooltip.apps.many' }), { count: children.length })}${mappedCount ? ` · ${t('capability_map.tooltip.mapped_count', { count: mappedCount })}` : ''}`,
             isL2: true,
           });
           return chips;
@@ -375,12 +381,12 @@ export default function CapabilityMapPage({
             const mappedCount = l4s.filter((node) => isMapped(node)).length;
             const tooltipText = l4s.length > 0
               ? mappedCount === l4s.length
-                ? `✓ ${l4s.length} L4 mapováno`
+                ? `✓ ${t('capability_map.tooltip.all_l4_mapped', { count: l4s.length })}`
                 : mappedCount > 0
-                  ? `${mappedCount}/${l4s.length} L4 mapováno`
+                  ? t('capability_map.tooltip.l4_ratio_mapped', { mapped: mappedCount, total: l4s.length })
                   : ''
               : isMapped(l3)
-                ? '✓ mapováno'
+                ? `✓ ${t('capability_map.tooltip.mapped')}`
                 : '';
 
             chips.push({
@@ -435,7 +441,7 @@ export default function CapabilityMapPage({
       isMapped,
       totalItems: data.items.length,
     };
-  }, [data, locale, mappedPageIds, mappedUuids, showUnmapped]);
+  }, [data, locale, mappedPageIds, mappedUuids, showUnmapped, t]);
 
   const infoDomain = infoNode && runtime?.domainByCode.get(infoNode.domain_code);
   const infoDescendants = infoNode && runtime ? runtime.getDescendants(infoNode.page_id) : [];
@@ -448,6 +454,13 @@ export default function CapabilityMapPage({
     ? `/capabilities?view=coverage&domain=${encodeURIComponent(infoNode.domain_code)}`
     : null;
   const infoChildrenHref = infoNode ? buildParentListHref(infoNode.title) : null;
+
+  const activeSpiralNumber = spiralNumber(activeSpiralCode) || activeSpiralCode;
+  const pageTitle = data?.page_title || defaultTitle || t('capability_map.default_title', { number: activeSpiralNumber });
+  const emptyText = emptyStateDescription
+    ?? (builderHref
+      ? t('capability_map.empty_builder', { number: activeSpiralNumber })
+      : t('capability_map.empty_baseline', { number: activeSpiralNumber }));
 
   function openNodeInCatalogue(item: CapabilityItem) {
     setInfoNode(item);
@@ -492,7 +505,7 @@ export default function CapabilityMapPage({
       )}
 
       <div className={styles.infoBar}>
-        <div className={styles.spiralSwitch} aria-label="Capability map spirals">
+        <div className={styles.spiralSwitch} aria-label={t('capability_map.spirals_aria')}>
           {spiralMapLinks.map((spiral) => (
             <Link
               key={spiral.code}
@@ -502,53 +515,53 @@ export default function CapabilityMapPage({
             >
               <span>{spiral.label}</span>
               <small className={styles.spiralChipMeta}>
-                {spiral.code === 'Spiral_7' ? 'primary' : 'history'}
+                {spiral.code === 'Spiral_7' ? t('capability_map.spiral_primary') : t('capability_map.spiral_history')}
               </small>
             </Link>
           ))}
         </div>
-        <strong>{data?.page_title || defaultTitle}</strong>
+        <strong>{pageTitle}</strong>
         {runtime ? (
           <span>
-            <strong>{runtime.stats.mappedL4}</strong> / {runtime.stats.totalL4} L4 služeb mapováno &nbsp;|&nbsp; <strong>{runtime.stats.mappedL3}</strong> kategorií aktivních
+            <strong>{runtime.stats.mappedL4}</strong> {t('capability_map.stats.l4_mapped_suffix', { total: runtime.stats.totalL4 })} &nbsp;|&nbsp; <strong>{runtime.stats.mappedL3}</strong> {t('capability_map.stats.l3_active_suffix')}
           </span>
         ) : (
-          <span>Načítám…</span>
+          <span>{t('common.loading')}</span>
         )}
         <div className={styles.legend}>
           <span className={styles.legendItem}>
             <span className={styles.legendDot} style={{ background: 'var(--color-info)', opacity: 1 }} />
-            Mapováno v katalogu
+            {t('capability_map.legend.mapped')}
           </span>
           <span className={styles.legendItem}>
             <span className={styles.legendDot} style={{ background: 'var(--color-text-muted)', opacity: 0.35 }} />
-            Není mapováno
+            {t('capability_map.legend.unmapped')}
           </span>
         </div>
         <button type="button" className={styles.barButton} onClick={() => setShowUnmapped((current) => !current)}>
-          {showUnmapped ? 'Skrýt nemapované' : 'Zobrazit vše'}
+          {showUnmapped ? t('capability_map.hide_unmapped') : t('capability_map.show_all')}
         </button>
       </div>
 
       {!runtime && isLoading && (
         <div className={styles.poster}>
-          <p className={styles.loadingState}>Načítám taxonomii…</p>
+          <p className={styles.loadingState}>{t('capability_map.loading_taxonomy')}</p>
         </div>
       )}
 
       {!runtime && error && (
         <div className={styles.poster}>
-          <div className={styles.emptyState}>C3 Capability Map není dostupná. Zkontroluj middleware nebo zdrojová data capability mapy.</div>
+          <div className={styles.emptyState}>{t('capability_map.unavailable')}</div>
         </div>
       )}
 
       {!runtime && !isLoading && !error && (
         <div className={styles.poster}>
           <div className={styles.emptyState}>
-            {emptyStateDescription ?? 'Pro C3 Capability Map zatím nejsou dostupná žádná data.'}
+            {emptyText}
             {builderHref ? (
               <div style={{ marginTop: 12 }}>
-                <Link href={builderHref}>Otevřít C3 Capability Builder</Link>
+                <Link href={builderHref}>{t('capability_map.open_builder')}</Link>
               </div>
             ) : null}
           </div>
@@ -558,10 +571,10 @@ export default function CapabilityMapPage({
       {runtime && runtime.totalItems === 0 && (
         <div className={styles.poster}>
           <div className={styles.emptyState}>
-            {emptyStateDescription ?? 'Pro tuto Capability Map zatím nejsou v builderu žádná data.'}
+            {emptyText}
             {builderHref ? (
               <div style={{ marginTop: 12 }}>
-                <Link href={builderHref}>Otevřít C3 Capability Builder</Link>
+                <Link href={builderHref}>{t('capability_map.open_builder')}</Link>
               </div>
             ) : null}
           </div>
@@ -588,7 +601,7 @@ export default function CapabilityMapPage({
               >
                 <span>{domainView.domain.label}</span>
                 <span className={styles.domainMeta}>
-                  {domainView.mappedPosterNodesCount}/{domainView.totalPosterNodesCount} napamováno
+                  {t('capability_map.domain_mapped', { mapped: domainView.mappedPosterNodesCount, total: domainView.totalPosterNodesCount })}
                 </span>
               </div>
 
@@ -688,13 +701,13 @@ export default function CapabilityMapPage({
                 <code className={styles.infoCode} style={{ color: infoDomain.heading_color }}>{infoNode.page_id}</code>
                 <div className={styles.infoMeta}>L{infoNode.level} · {formatDomainDisplayName(infoNode.domain_code)}</div>
               </div>
-              <button type="button" className={styles.closeIconButton} onClick={() => setInfoNode(null)}>✕</button>
+              <button type="button" className={styles.closeIconButton} onClick={() => setInfoNode(null)} aria-label={t('capability_map.close')}>✕</button>
             </div>
             <h3 className={styles.infoTitle} style={{ color: infoDomain.heading_color }}>{infoNode.title}</h3>
             {linkedC3Href && (
               <div className={styles.infoC3LinkWrap}>
                 <Link href={linkedC3Href} className={styles.infoC3Link}>
-                  ↗ Otevřít C3 záznam
+                  ↗ {t('capability_map.open_c3_record')}
                 </Link>
                 <span className={styles.infoC3Meta}>
                   {infoNode.linked_c3_external_id ?? infoNode.linked_c3_uuid}
@@ -705,12 +718,12 @@ export default function CapabilityMapPage({
             <div className={styles.infoSummary}>
               {infoL4s.length > 0 ? (
                 <>
-                  <strong>{infoMappedL4s.length}</strong> / {infoL4s.length} L4 položek namapováno v katalogu
+                  <strong>{infoMappedL4s.length}</strong> {t('capability_map.info.l4_mapped_suffix', { total: infoL4s.length })}
                 </>
               ) : runtime?.isMapped(infoNode) ? (
-                <span style={{ color: 'var(--color-success)' }}>✓ Namapováno v katalogu</span>
+                <span style={{ color: 'var(--color-success)' }}>✓ {t('capability_map.legend.mapped')}</span>
               ) : (
-                <span style={{ color: 'var(--color-text-muted)' }}>— Není namapováno</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>— {t('capability_map.legend.unmapped')}</span>
               )}
             </div>
             {infoMappedL4s.length > 0 && (
@@ -730,7 +743,7 @@ export default function CapabilityMapPage({
                 disabled={!canOpenCatalogue}
                 onClick={() => filterCatalogueToNode(infoNode)}
               >
-                → Otevřít v katalogu
+                → {t('capability_map.open_in_catalogue')}
               </button>
               {coverageCapabilityHref && (
                 <Link
@@ -739,7 +752,7 @@ export default function CapabilityMapPage({
                   style={{ color: infoDomain.heading_color, borderColor: infoDomain.background_color }}
                   onClick={() => setInfoNode(null)}
                 >
-                  ↗ Coverage evidence
+                  ↗ {t('capability_map.coverage_evidence')}
                 </Link>
               )}
               {infoChildrenHref && (
@@ -749,11 +762,11 @@ export default function CapabilityMapPage({
                   style={{ color: infoDomain.heading_color, borderColor: infoDomain.background_color }}
                   onClick={() => setInfoNode(null)}
                 >
-                  ↗ Podřízené v seznamu
+                  ↗ {t('capability_map.children_in_list')}
                 </Link>
               )}
               <button type="button" className={styles.infoSecondaryBtn} onClick={() => setInfoNode(null)}>
-                Zavřít
+                {t('capability_map.close')}
               </button>
             </div>
           </div>

@@ -12,11 +12,14 @@ import {
 } from '@/features/admin/api/groups.api'
 import { PERMISSION_SECTIONS } from '@/features/admin/constants/permissionResources'
 import type { GroupPermission, GroupMember } from '@/features/admin/types/groups.types'
+import { useT } from '@/app/i18n/useI18n'
+import { formatCountLabel } from '@/app/lib/counts'
 import styles from '../groups.module.css'
 
 type Tab = 'info' | 'permissions' | 'members'
 
 export default function GroupDetailPage() {
+  const t = useT()
   const params   = useParams<{ id: string }>()
   const groupIdRaw = Number(params?.id ?? '')
   const groupId = Number.isFinite(groupIdRaw) && groupIdRaw > 0 ? groupIdRaw : null
@@ -48,9 +51,9 @@ export default function GroupDetailPage() {
     try {
       await updateGroup(groupId, { group_name: groupName, description, is_active: isActive })
       await mutate()
-      setInfoMsg({ ok: true, text: 'Uloženo.' })
+      setInfoMsg({ ok: true, text: t('administration.groups.saved') })
     } catch (err) {
-      setInfoMsg({ ok: false, text: err instanceof Error ? err.message : 'Chyba' })
+      setInfoMsg({ ok: false, text: err instanceof Error ? err.message : t('administration.groups.error') })
     } finally {
       setInfoSaving(false)
     }
@@ -108,9 +111,9 @@ export default function GroupDetailPage() {
       })
       await setGroupPermissions(groupId, permissions)
       await mutate()
-      setPermMsg({ ok: true, text: `Uloženo ${permissions.length} oprávnění.` })
+      setPermMsg({ ok: true, text: t('administration.groups.permissions_saved', { count: String(permissions.length) }) })
     } catch (err) {
-      setPermMsg({ ok: false, text: err instanceof Error ? err.message : 'Chyba' })
+      setPermMsg({ ok: false, text: err instanceof Error ? err.message : t('administration.groups.error') })
     } finally {
       setPermSaving(false)
     }
@@ -132,7 +135,7 @@ export default function GroupDetailPage() {
       setNewMemberSub('')
       await mutate()
     } catch (err) {
-      setMemberError(err instanceof Error ? err.message : 'Chyba')
+      setMemberError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setMemberAdding(false)
     }
@@ -140,13 +143,13 @@ export default function GroupDetailPage() {
 
   async function handleRemoveMember(userSub: string) {
     if (groupId == null) return
-    if (!confirm(`Odebrat "${userSub}" ze skupiny?`)) return
+    if (!confirm(t('administration.groups.remove_member_confirm', { user: userSub }))) return
     setRemovingId(userSub)
     try {
       await removeGroupMember(groupId, userSub)
       await mutate()
     } catch (err) {
-      setMemberError(err instanceof Error ? err.message : 'Chyba')
+      setMemberError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setRemovingId(null)
     }
@@ -155,15 +158,15 @@ export default function GroupDetailPage() {
   // ── Render guards ───────────────────────────────────────────────────────
   if (groupId == null) return (
     <div className={styles.shell}>
-      <div className={styles.errorBanner}>Invalid group identifier</div>
-      <Link href="/administration/groups" className={styles.btnSecondary}>← Zpět</Link>
+      <div className={styles.errorBanner}>{t('administration.groups.invalid_id')}</div>
+      <Link href="/administration/groups" className={styles.btnSecondary}>← {t('common.back')}</Link>
     </div>
   )
-  if (isLoading) return <div className={styles.shell}><p className={styles.loading}>Načítám…</p></div>
+  if (isLoading) return <div className={styles.shell}><p className={styles.loading}>{t('common.loading')}</p></div>
   if (error || !group) return (
     <div className={styles.shell}>
-      <div className={styles.errorBanner}>{error?.message ?? 'Skupina nenalezena'}</div>
-      <Link href="/administration/groups" className={styles.btnSecondary}>← Zpět</Link>
+      <div className={styles.errorBanner}>{error?.message ?? t('administration.groups.not_found')}</div>
+      <Link href="/administration/groups" className={styles.btnSecondary}>← {t('common.back')}</Link>
     </div>
   )
 
@@ -174,7 +177,7 @@ export default function GroupDetailPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.breadcrumb}>
-        <Link href="/administration/groups">Group Management</Link>
+        <Link href="/administration/groups">{t('administration.card.groups.title')}</Link>
         <span>›</span>
         <span>{group.group_name}</span>
       </div>
@@ -186,10 +189,14 @@ export default function GroupDetailPage() {
             <span className={styles.codeBadge}>{group.group_code}</span>
             {' · '}
             <span className={`${styles.activeBadge} ${group.is_active ? styles.badgeActive : styles.badgeInactive}`}>
-              {group.is_active ? 'Active' : 'Inactive'}
+              {group.is_active ? t('common.active') : t('administration.groups.inactive')}
             </span>
             {' · '}
-            {group.member_count ?? group.members?.length ?? 0} members
+            {formatCountLabel(group.member_count ?? group.members?.length ?? 0, {
+              one: t('administration.groups.member_count.one'),
+              few: t('administration.groups.member_count.few'),
+              many: t('administration.groups.member_count.many'),
+            })}
           </p>
         </div>
       </div>
@@ -202,9 +209,9 @@ export default function GroupDetailPage() {
             className={`${styles.tabBtn} ${activeTab === tab ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'info'        ? 'Info'
-            : tab === 'permissions' ? `Permissions (${checkedPerms.size})`
-            : `Members (${group.members?.length ?? 0})`}
+            {tab === 'info'        ? t('administration.groups.tab.info')
+            : tab === 'permissions' ? t('administration.groups.tab.permissions', { count: String(checkedPerms.size) })
+            : t('administration.groups.tab.members', { count: String(group.members?.length ?? 0) })}
           </button>
         ))}
       </div>
@@ -218,35 +225,35 @@ export default function GroupDetailPage() {
             </div>
           )}
           <div className={styles.formGroup}>
-            <label>Group Code</label>
+            <label>{t('administration.groups.field.code')}</label>
             <input type="text" value={group.group_code} readOnly />
           </div>
           <div className={styles.formGroup}>
-            <label>Group Name *</label>
+            <label>{t('administration.groups.field.name')} *</label>
             <input
               type="text"
               value={groupName}
               onChange={e => setGroupName(e.target.value)}
-              placeholder="Např. IT Operations"
+              placeholder={t('administration.groups.field.name_placeholder')}
             />
           </div>
           <div className={styles.formGroup}>
-            <label>Description</label>
+            <label>{t('administration.groups.field.description')}</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Volitelný popis skupiny…"
+              placeholder={t('administration.groups.field.description_placeholder')}
             />
           </div>
           <div className={styles.formGroup}>
-            <label>Status</label>
+            <label>{t('common.status')}</label>
             <div className={styles.toggleRow}>
               <button
                 className={`${styles.toggle} ${isActive ? styles.toggleOn : styles.toggleOff}`}
                 onClick={() => setIsActive(v => !v)}
-                title={isActive ? 'Deaktivovat' : 'Aktivovat'}
+                title={isActive ? t('administration.groups.deactivate') : t('administration.groups.activate')}
               />
-              <span>{isActive ? 'Active' : 'Inactive'}</span>
+              <span>{isActive ? t('common.active') : t('administration.groups.inactive')}</span>
             </div>
           </div>
           <button
@@ -254,7 +261,7 @@ export default function GroupDetailPage() {
             onClick={handleSaveInfo}
             disabled={infoSaving || !groupName.trim()}
           >
-            {infoSaving ? 'Ukládám…' : 'Save'}
+            {infoSaving ? t('administration.groups.saving') : t('common.save')}
           </button>
         </div>
       )}
@@ -270,7 +277,7 @@ export default function GroupDetailPage() {
 
           {/* Service Catalogue */}
           <div className={styles.permScope}>
-            <h2 className={styles.permScopeTitle}>Service Catalogue</h2>
+            <h2 className={styles.permScopeTitle}>{t('administration.groups.scope.service_catalogue')}</h2>
             {scSections.map(section => (
               <PermSection
                 key={`${section.scope}-${section.permission}`}
@@ -285,7 +292,7 @@ export default function GroupDetailPage() {
 
           {/* C3 Taxonomy */}
           <div className={styles.permScope}>
-            <h2 className={styles.permScopeTitle}>C3 Taxonomy</h2>
+            <h2 className={styles.permScopeTitle}>{t('administration.groups.scope.c3_taxonomy')}</h2>
             {c3Sections.map(section => (
               <PermSection
                 key={`${section.scope}-${section.permission}`}
@@ -303,7 +310,7 @@ export default function GroupDetailPage() {
             onClick={handleSavePermissions}
             disabled={permSaving}
           >
-            {permSaving ? 'Ukládám…' : `Save Permissions (${checkedPerms.size} checked)`}
+            {permSaving ? t('administration.groups.saving') : t('administration.groups.save_permissions', { count: String(checkedPerms.size) })}
           </button>
         </div>
       )}
@@ -317,7 +324,7 @@ export default function GroupDetailPage() {
             <input
               className={styles.addMemberInput}
               type="text"
-              placeholder="User sub (JWT sub claim, např. alice@company.com)"
+              placeholder={t('administration.groups.member_placeholder')}
               value={newMemberSub}
               onChange={e => setNewMemberSub(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddMember()}
@@ -327,19 +334,19 @@ export default function GroupDetailPage() {
               onClick={handleAddMember}
               disabled={memberAdding || !newMemberSub.trim()}
             >
-              {memberAdding ? '…' : 'Add Member'}
+              {memberAdding ? '…' : t('administration.groups.add_member')}
             </button>
           </div>
 
           {(!group.members || group.members.length === 0) ? (
-            <p className={styles.emptyState}>Žádní členové. Přidejte prvního pomocí pole výše.</p>
+            <p className={styles.emptyState}>{t('administration.groups.members_empty')}</p>
           ) : (
             <table className={styles.membersTable}>
               <thead>
                 <tr>
-                  <th>User Sub</th>
-                  <th>Assigned At</th>
-                  <th>Assigned By</th>
+                  <th>{t('administration.groups.members_table.user_sub')}</th>
+                  <th>{t('administration.groups.members_table.assigned_at')}</th>
+                  <th>{t('administration.groups.members_table.assigned_by')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -355,7 +362,7 @@ export default function GroupDetailPage() {
                         onClick={() => handleRemoveMember(m.user_sub)}
                         disabled={removingId === m.user_sub}
                       >
-                        {removingId === m.user_sub ? '…' : 'Remove'}
+                        {removingId === m.user_sub ? '…' : t('common.remove')}
                       </button>
                     </td>
                   </tr>
@@ -384,6 +391,7 @@ interface PermSectionProps {
 }
 
 function PermSection({ section, checkedPerms, onToggle, onSelectAll, onDeselectAll }: PermSectionProps) {
+  const t = useT()
   const { scope, permission, permLabel, resources } = section
   const checkedCount = resources.filter(r => checkedPerms.has(`${scope}|${permission}|${r.key}`)).length
 
@@ -391,15 +399,15 @@ function PermSection({ section, checkedPerms, onToggle, onSelectAll, onDeselectA
     <div className={styles.permSection}>
       <div className={styles.permSectionHeader}>
         <span className={styles.permSectionTitle}>
-          {permLabel} ({checkedCount}/{resources.length})
+          {t(permLabel)} ({checkedCount}/{resources.length})
         </span>
         <span className={styles.selectAllRow}>
           <button className={styles.selectAllBtn} onClick={() => onSelectAll(scope, permission, resources)}>
-            Select All
+            {t('administration.groups.select_all')}
           </button>
           <span style={{ color: 'var(--color-border-default)' }}>|</span>
           <button className={styles.selectAllBtn} onClick={() => onDeselectAll(scope, permission, resources)}>
-            Deselect All
+            {t('administration.groups.deselect_all')}
           </button>
         </span>
       </div>
@@ -414,7 +422,7 @@ function PermSection({ section, checkedPerms, onToggle, onSelectAll, onDeselectA
                 checked={checked}
                 onChange={() => onToggle(scope, permission, r.key)}
               />
-              {r.label}
+              {t(r.label)}
             </label>
           )
         })}

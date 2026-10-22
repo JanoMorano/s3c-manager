@@ -315,26 +315,26 @@ export default function AdministrationUsersPage() {
         </button>
       </div>
 
-      <section className={styles.kpiGrid} aria-label="User account KPIs">
+      <section className={styles.kpiGrid} aria-label={t('administration.users.kpi.aria_label')}>
         <article className={`${styles.kpiCard} ${styles.kpiInfo}`}>
-          <span>Total</span>
+          <span>{t('administration.users.kpi.total')}</span>
           <strong>{users.length}</strong>
-          <small>{filteredUsers.length} ve filtru</small>
+          <small>{t('administration.users.kpi.in_filter', { count: String(filteredUsers.length) })}</small>
         </article>
         <article className={`${styles.kpiCard} ${styles.kpiSuccess}`}>
-          <span>Active</span>
+          <span>{t('common.active')}</span>
           <strong>{activeUsers}</strong>
-          <small>{users.length - activeUsers} disabled</small>
+          <small>{t('administration.users.kpi.disabled', { count: String(users.length - activeUsers) })}</small>
         </article>
         <article className={`${styles.kpiCard} ${styles.kpiLocal}`}>
-          <span>Local</span>
+          <span>{t('administration.users.kpi.local')}</span>
           <strong>{localUsers}</strong>
-          <small>spravováno v S3C</small>
+          <small>{t('administration.users.kpi.local_hint')}</small>
         </article>
         <article className={`${styles.kpiCard} ${styles.kpiAd}`}>
-          <span>AD</span>
+          <span>{t('administration.users.kpi.ad')}</span>
           <strong>{adUsers}</strong>
-          <small>federované identity</small>
+          <small>{t('administration.users.kpi.ad_hint')}</small>
         </article>
       </section>
 
@@ -379,7 +379,7 @@ export default function AdministrationUsersPage() {
               className={styles.input}
               value={draft.username}
               onChange={(event) => updateDraft('username', event.target.value)}
-              placeholder="jnovak"
+              placeholder={t('administration.users.username_placeholder')}
             />
           </label>
 
@@ -558,7 +558,7 @@ export default function AdministrationUsersPage() {
                     <td>
                       <div className={styles.stack}>
                         <span>{formatDate(user.last_login_at, locale, neverLabel)}</span>
-                        {user.last_sso_login_at && <span>SSO: {formatDate(user.last_sso_login_at, locale, neverLabel)}</span>}
+                        {user.last_sso_login_at && <span>{t('administration.users.last_sso_login', { date: formatDate(user.last_sso_login_at, locale, neverLabel) })}</span>}
                       </div>
                     </td>
                     <td>

@@ -47,49 +47,11 @@
   white-space: nowrap;
 }
 
-.chips {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-canvas);
-  color: var(--color-text-secondary);
-  font: var(--text-label-sm);
-}
 
-.chip_ok {
-  color: var(--color-success);
-  border-color: color-mix(in srgb, var(--color-success) 36%, var(--color-border-default));
-  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface));
-}
 
-.chip_warn {
-  color: var(--color-warning);
-  border-color: color-mix(in srgb, var(--color-warning) 38%, var(--color-border-default));
-  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-surface));
-}
 
-.chip_bad {
-  color: var(--color-danger);
-  border-color: color-mix(in srgb, var(--color-danger) 38%, var(--color-border-default));
-  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-bg-surface));
-}
 
-.chip_info {
-  color: var(--color-info);
-  border-color: color-mix(in srgb, var(--color-info) 38%, var(--color-border-default));
-  background: color-mix(in srgb, var(--color-info) 8%, var(--color-bg-surface));
-}
 
 @media (max-width: 760px) {
   .header {

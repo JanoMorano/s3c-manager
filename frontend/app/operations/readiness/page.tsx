@@ -11,6 +11,9 @@ import { useReadinessSummary } from '@/features/governance/hooks/useGovernance';
 import type { ServiceReadiness, ReadinessRuleResult } from '@/features/services/model/service.types';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../governance.module.css';
+import { useT } from '@/app/i18n/useI18n';
+
+type Translate = ReturnType<typeof useT>;
 
 function severityTone(severity: string): BadgeVariant {
   if (severity === 'P0') return 'danger';
@@ -47,17 +50,25 @@ function editorHrefForRule(serviceId: string, rule: ReadinessRuleResult | null |
   return `/services/${encodeURIComponent(serviceId)}/edit#${editorSectionForRule(rule)}`;
 }
 
+// Rule status codes from the API, shown with a translated label.
+function ruleStatusLabel(status: string, t: (key: string) => string) {
+  const key = `operations.readiness.rule_status.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
+}
+
 function RuleBadges({ rules }: { rules: ReadinessRuleResult[] }) {
-  if (rules.length === 0) return <span className={govStyles.stateLine}>No rule findings</span>;
+  const t = useT();
+  if (rules.length === 0) return <span className={govStyles.stateLine}>{t('operations.readiness.no_findings')}</span>;
   return (
     <div className={govStyles.ruleBadgeList}>
       {rules.map((rule) => (
         <span key={rule.rule_key} className={govStyles.ruleBadge}>
           <Badge variant={severityTone(rule.severity)}>{rule.severity}</Badge>
-          <Badge variant={statusTone(rule.status)}>{rule.status}</Badge>
+          <Badge variant={statusTone(rule.status)}>{ruleStatusLabel(rule.status, t)}</Badge>
           <span>{rule.title}</span>
-          {rule.exception?.expired ? <strong>expired exception</strong> : null}
-          {rule.status === 'exception' && !rule.exception?.expired ? <strong>exception</strong> : null}
+          {rule.exception?.expired ? <strong>{t('operations.readiness.expired_exception')}</strong> : null}
+          {rule.status === 'exception' && !rule.exception?.expired ? <strong>{t('operations.readiness.exception')}</strong> : null}
         </span>
       ))}
     </div>
@@ -73,6 +84,7 @@ function ExceptionForm({
   rule: ReadinessRuleResult;
   onSaved: () => Promise<void>;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const reasonId = `exception-reason-${serviceId}-${rule.rule_key}`;
@@ -109,20 +121,20 @@ function ExceptionForm({
   return (
     <div className={govStyles.exceptionPanel}>
       <button type="button" className={govStyles.exceptionSummary} onClick={() => setOpen((value) => !value)}>
-        Exception
+        {t('operations.readiness.exception_toggle')}
       </button>
       {open ? (
         <form className={govStyles.exceptionForm} onSubmit={submit}>
           <label className={govStyles.exceptionField} htmlFor={reasonId}>
-            <span>Exception reason</span>
+            <span>{t('operations.readiness.exception_reason')}</span>
             <input id={reasonId} name="reason" type="text" required maxLength={1000} />
           </label>
           <label className={govStyles.exceptionField} htmlFor={expiryId}>
-            <span>Exception expiry</span>
+            <span>{t('operations.readiness.exception_expiry')}</span>
             <input id={expiryId} name="expires_at" type="date" />
           </label>
           <button type="submit" className={styles.secondaryLink} disabled={busy}>
-            {busy ? 'Saving...' : 'Approve exception'}
+            {busy ? t('operations.readiness.saving') : t('operations.readiness.approve_exception')}
           </button>
         </form>
       ) : null}
@@ -159,10 +171,10 @@ function visibleItems(filter: ReadinessFilter, data: NonNullable<ReturnType<type
   return exceptionItems(data.items ?? []);
 }
 
-function statusLabel(item: ServiceReadiness) {
-  if (item.blockers.length > 0) return 'Blocked';
-  if (item.warnings.length > 0) return 'Warnings';
-  return 'Ready';
+function statusLabelKey(item: ServiceReadiness) {
+  if (item.blockers.length > 0) return 'service_list.row.state.blocked';
+  if (item.warnings.length > 0) return 'service_list.row.state.warning';
+  return 'service_list.row.state.ready';
 }
 
 function statusBadge(item: ServiceReadiness): BadgeVariant {
@@ -171,11 +183,11 @@ function statusBadge(item: ServiceReadiness): BadgeVariant {
   return 'success';
 }
 
-function ruleDetailText(rule: RuleDetail | null, key: 'what' | 'why' | 'how') {
-  if (!rule) return 'Vyber službu z readiness fronty.';
+function ruleDetailText(rule: RuleDetail | null, key: 'what' | 'why' | 'how', t: Translate) {
+  if (!rule) return t('operations.readiness.detail.select_service');
   if (key === 'what') return rule.what_is_missing ?? rule.title_text ?? rule.message ?? rule.title;
-  if (key === 'why') return rule.why_text ?? rule.description ?? 'Bez tohoto údaje není možné průkazně řídit publikaci, změnu ani provozní odpovědnost služby.';
-  return rule.howto_text ?? rule.evidence_hint ?? 'Doplň chybějící evidenci v editoru služby, zkontroluj vlastníka a spusť readiness kontrolu znovu.';
+  if (key === 'why') return rule.why_text ?? rule.description ?? t('operations.readiness.detail.why_fallback');
+  return rule.howto_text ?? rule.evidence_hint ?? t('operations.readiness.detail.how_fallback');
 }
 
 function defaultFilter(data: NonNullable<ReturnType<typeof useReadinessSummary>['data']>): ReadinessFilter {
@@ -197,14 +209,15 @@ function readinessFilterHref(filter: ReadinessFilter, ownerFilter: string) {
 }
 
 export default function ReadinessQueuePage() {
+  const t = useT();
   const searchParams = useSearchParams();
   const ownerFilter = searchParams?.get('owner') ?? '';
   const requestedFilter = resolveReadinessFilter(searchParams?.get('filter'));
   const { data, isLoading, error, mutate } = useReadinessSummary({ limit: 200, owner: ownerFilter || undefined });
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
-  if (isLoading) return <div className={styles.state}>Loading readiness data…</div>;
-  if (error || !data) return <div className={styles.stateError}>Readiness queue is not available. ({String(error ?? 'no data')})</div>;
+  if (isLoading) return <div className={styles.state}>{t('operations.readiness.loading')}</div>;
+  if (error || !data) return <div className={styles.stateError}>{t('operations.readiness.error', { error: String(error ?? t('operations.readiness.no_data')) })}</div>;
 
   // Resolve the active filter — set once when data first arrives, then user-controlled.
   const resolvedFilter: ReadinessFilter = requestedFilter ?? defaultFilter(data);
@@ -213,59 +226,51 @@ export default function ReadinessQueuePage() {
   const selectedItem = filteredItems.find((item) => item.service_id === selectedServiceId) ?? filteredItems[0] ?? null;
   const selectedRule = selectedItem ? (primaryFailedRule(selectedItem) ?? actionableRules(selectedItem)[0] ?? selectedItem.rules?.[0] ?? null) as RuleDetail | null : null;
   const allItems = data.items ?? [];
-  const exceptionCount = exceptionItems(allItems).length;
   const expiringCount = exceptionsExpiring(allItems);
 
   return (
     <main className={styles.shell}>
       <PageHeader
-        title="Readiness Gate"
-        purpose="Publikační brána pro služby: co chybí, proč je to problém, jak to opravit a kdy je povolená výjimka."
-        chips={[
-          { label: `${data.counts.total} scanned`, tone: 'info' },
-          { label: `${data.counts.blockers} blocked`, tone: data.counts.blockers ? 'bad' : 'ok' },
-          { label: `${data.counts.ready} ready`, tone: 'ok' },
-          { label: `${exceptionCount} exceptions`, tone: exceptionCount ? 'warn' : 'neutral' },
-          ...(ownerFilter ? [{ label: `Owner ${ownerFilter}`, tone: 'info' as const }] : []),
-        ]}
+        title={t('nav.sidebar.readiness_gate')}
+        purpose={t('operations.readiness.purpose')}
         primaryAction={{
-          label: 'Service list',
+          label: t('nav.sidebar.service_list'),
           href: ownerFilter ? `/services/list?owner=${encodeURIComponent(ownerFilter)}` : '/services/list',
         }}
       />
 
-      <section className={govStyles.readinessKpiGrid} aria-label="Readiness KPIs">
-        <Link href={readinessFilterHref('blocked', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'blocked' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit blokované služby" onClick={() => setSelectedServiceId(null)}>
-          <KpiCard label="Blocked" value={data.counts.blockers} hint="blokuje publish bez opravy nebo výjimky" tone={data.counts.blockers ? 'danger' : 'success'} />
+      <section className={govStyles.readinessKpiGrid} aria-label={t('operations.readiness.kpi.aria')}>
+        <Link href={readinessFilterHref('blocked', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'blocked' ? govStyles.kpiLinkActive : ''}`} aria-label={t('operations.readiness.kpi.blocked.aria')} onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label={t('service_list.row.state.blocked')} value={data.counts.blockers} hint={t('operations.readiness.kpi.blocked.hint')} tone={data.counts.blockers ? 'danger' : 'success'} />
         </Link>
-        <Link href={readinessFilterHref('warnings', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'warnings' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit služby s varováním" onClick={() => setSelectedServiceId(null)}>
-          <KpiCard label="Warnings" value={data.counts.warnings} hint="neblokuje draft, ale vyžaduje pozornost" tone={data.counts.warnings ? 'warning' : 'success'} />
+        <Link href={readinessFilterHref('warnings', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'warnings' ? govStyles.kpiLinkActive : ''}`} aria-label={t('operations.readiness.kpi.warnings.aria')} onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label={t('service_list.row.state.warning')} value={data.counts.warnings} hint={t('operations.readiness.kpi.warnings.hint')} tone={data.counts.warnings ? 'warning' : 'success'} />
         </Link>
-        <Link href={readinessFilterHref('ready', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'ready' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit připravené služby" onClick={() => setSelectedServiceId(null)}>
-          <KpiCard label="Ready" value={data.counts.ready} hint="služby bez blockerů a warningů" tone="success" />
+        <Link href={readinessFilterHref('ready', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'ready' ? govStyles.kpiLinkActive : ''}`} aria-label={t('operations.readiness.kpi.ready.aria')} onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label={t('service_list.row.state.ready')} value={data.counts.ready} hint={t('operations.readiness.kpi.ready.hint')} tone="success" />
         </Link>
-        <Link href={readinessFilterHref('exceptions', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'exceptions' ? govStyles.kpiLinkActive : ''}`} aria-label="Zobrazit služby s výjimkami" onClick={() => setSelectedServiceId(null)}>
-          <KpiCard label="Exceptions expiring" value={expiringCount} hint="výjimky s koncem do 30 dnů" tone={expiringCount ? 'warning' : 'neutral'} />
+        <Link href={readinessFilterHref('exceptions', ownerFilter)} className={`${govStyles.kpiLink} ${resolvedFilter === 'exceptions' ? govStyles.kpiLinkActive : ''}`} aria-label={t('operations.readiness.kpi.exceptions.aria')} onClick={() => setSelectedServiceId(null)}>
+          <KpiCard label={t('operations.readiness.kpi.exceptions.label')} value={expiringCount} hint={t('operations.readiness.kpi.exceptions.hint')} tone={expiringCount ? 'warning' : 'neutral'} />
         </Link>
       </section>
 
-      <section className={govStyles.readinessWorkspace} aria-label="Readiness gate workspace">
+      <section className={govStyles.readinessWorkspace} aria-label={t('operations.readiness.workspace.aria')}>
         <div className={govStyles.readinessTable}>
           <div className={govStyles.readinessTableHeader}>
-            <span>Service</span>
-            <span>Rule</span>
-            <span>Status</span>
-            <span>Actions</span>
+            <span>{t('service_list.column.service')}</span>
+            <span>{t('operations.readiness.column.rule')}</span>
+            <span>{t('common.status')}</span>
+            <span>{t('common.actions')}</span>
           </div>
           {filteredItems.length === 0 ? (
             <EmptyState title={
               resolvedFilter === 'blocked'
-                ? 'Žádné blokované služby — všechny prošly blocking pravidly.'
+                ? t('operations.readiness.empty.blocked')
                 : resolvedFilter === 'warnings'
-                  ? 'Žádná varování — všechny služby jsou čisté.'
+                  ? t('operations.readiness.empty.warnings')
                   : resolvedFilter === 'ready'
-                    ? 'Žádné ready služby v katalogu.'
-                    : 'Žádné aktivní výjimky.'
+                    ? t('operations.readiness.empty.ready')
+                    : t('operations.readiness.empty.exceptions')
             } />
           ) : filteredItems.map((item) => {
             const failedRule = primaryFailedRule(item);
@@ -283,13 +288,13 @@ export default function ReadinessQueuePage() {
               >
                 <span>
                   <strong>{item.title}</strong>
-                  <small>{item.service_id} · {item.service_status ?? 'unknown'}</small>
+                  <small>{item.service_id} · {item.service_status ?? t('operations.readiness.unknown')}</small>
                 </span>
-                <span>{failedRule?.title ?? findings[0]?.title ?? 'All rules passed'}</span>
-                <Badge variant={statusBadge(item)}>{statusLabel(item)}</Badge>
+                <span>{failedRule?.title ?? findings[0]?.title ?? t('operations.readiness.all_passed')}</span>
+                <Badge variant={statusBadge(item)}>{t(statusLabelKey(item))}</Badge>
                 <span className={govStyles.rowActionStack}>
-                  <Link href={`/services/${encodeURIComponent(item.service_id)}`} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>Detail</Link>
-                  <Link href={editorHrefForRule(item.service_id, failedRule ?? findings[0])} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>Fix rule</Link>
+                  <Link href={`/services/${encodeURIComponent(item.service_id)}`} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>{t('operations.readiness.action.detail')}</Link>
+                  <Link href={editorHrefForRule(item.service_id, failedRule ?? findings[0])} className={govStyles.rowActionLink} onClick={(event) => event.stopPropagation()}>{t('operations.readiness.action.fix_rule')}</Link>
                 </span>
               </article>
             );
@@ -299,38 +304,38 @@ export default function ReadinessQueuePage() {
         <aside className={govStyles.ruleDetailPanel}>
           <div className={govStyles.panelHeader}>
             <div>
-              <h2 className={govStyles.panelTitle}>{selectedRule?.title ?? 'Readiness rule detail'}</h2>
-              <p className={govStyles.panelHint}>{selectedItem ? `${selectedItem.title} · ${selectedItem.service_id}` : 'Vyber položku ve frontě.'}</p>
+              <h2 className={govStyles.panelTitle}>{selectedRule?.title ?? t('operations.readiness.detail.title')}</h2>
+              <p className={govStyles.panelHint}>{selectedItem ? `${selectedItem.title} · ${selectedItem.service_id}` : t('operations.readiness.detail.select_item')}</p>
             </div>
             {selectedRule ? <Badge variant={severityTone(selectedRule.severity)}>{selectedRule.severity}</Badge> : null}
           </div>
 
           <div className={govStyles.ruleExplanation}>
             <section>
-              <h3>What is missing</h3>
-              <p>{ruleDetailText(selectedRule, 'what')}</p>
+              <h3>{t('operations.readiness.detail.what')}</h3>
+              <p>{ruleDetailText(selectedRule, 'what', t)}</p>
             </section>
             <section>
-              <h3>Why it matters</h3>
-              <p>{ruleDetailText(selectedRule, 'why')}</p>
+              <h3>{t('operations.readiness.detail.why')}</h3>
+              <p>{ruleDetailText(selectedRule, 'why', t)}</p>
             </section>
             <section>
-              <h3>Related governance process</h3>
-              <p>{selectedRule?.related_process ?? 'Service Portfolio Management · Change Enablement · Architecture Governance'}</p>
+              <h3>{t('operations.readiness.detail.process')}</h3>
+              <p>{selectedRule?.related_process ?? t('operations.readiness.detail.process_fallback')}</p>
             </section>
             <section>
-              <h3>How to fix</h3>
-              <p>{ruleDetailText(selectedRule, 'how')}</p>
+              <h3>{t('operations.readiness.detail.how')}</h3>
+              <p>{ruleDetailText(selectedRule, 'how', t)}</p>
             </section>
           </div>
 
           {selectedItem ? <RuleBadges rules={actionableRules(selectedItem)} /> : null}
           {selectedItem ? (
             <div className={govStyles.workflowActions}>
-              <Link href={`/services/${encodeURIComponent(selectedItem.service_id)}`} className={govStyles.rowActionLink}>Open service detail</Link>
-              <Link href={editorHrefForRule(selectedItem.service_id, selectedRule)} className={govStyles.rowActionLink}>Open editor on this rule</Link>
+              <Link href={`/services/${encodeURIComponent(selectedItem.service_id)}`} className={govStyles.rowActionLink}>{t('operations.readiness.open_service_detail')}</Link>
+              <Link href={editorHrefForRule(selectedItem.service_id, selectedRule)} className={govStyles.rowActionLink}>{t('operations.reviews.open_editor_rule')}</Link>
               {selectedItem.primary_c3_uuid ? (
-                <Link href={`/c3/${encodeURIComponent(selectedItem.primary_c3_uuid)}`} className={govStyles.rowActionLink}>Open related capability</Link>
+                <Link href={`/c3/${encodeURIComponent(selectedItem.primary_c3_uuid)}`} className={govStyles.rowActionLink}>{t('operations.readiness.open_capability')}</Link>
               ) : null}
             </div>
           ) : null}

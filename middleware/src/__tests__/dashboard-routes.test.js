@@ -18,6 +18,14 @@ jest.mock('../db/pool', () => {
     };
 });
 
+jest.mock('../services/readiness', () => ({
+    getReadinessIndex: jest.fn(),
+}));
+
+function readinessIndex(states) {
+    return new Map(states.map((state, index) => [String(index + 1), { state, blocker_count: 0, warning_count: 0 }]));
+}
+
 describe('dashboard routes', () => {
     beforeEach(() => {
         jest.resetModules();
@@ -75,11 +83,17 @@ describe('dashboard routes', () => {
 
     test('GET /summary returns decision cockpit counters', async () => {
         const { __query } = require('../db/pool');
+        const { getReadinessIndex } = require('../services/readiness');
+        // Readiness counts come from the readiness rules: 5 ready, 2 with
+        // warnings only (still publishable), 5 blocked.
+        getReadinessIndex.mockResolvedValue(readinessIndex([
+            ...Array(5).fill('ready'),
+            ...Array(2).fill('warning'),
+            ...Array(5).fill('blocked'),
+        ]));
         __query.mockResolvedValueOnce({
             rows: [{
                 total_services: 12,
-                services_ready_for_publish: 7,
-                services_blocked_by_readiness: 5,
                 overdue_reviews: 2,
                 uncovered_capabilities: 4,
                 over_covered_capabilities: 3,
@@ -98,6 +112,7 @@ describe('dashboard routes', () => {
             total_services: 12,
             services_ready_for_publish: 7,
             services_blocked_by_readiness: 5,
+            services_with_readiness_warnings: 2,
             overdue_reviews: 2,
             uncovered_capabilities: 4,
             over_covered_capabilities: 3,
@@ -110,12 +125,14 @@ describe('dashboard routes', () => {
             review_deadlines: '/operations/reviews',
             recent_decisions: '/operations/decisions',
         });
-        expect(String(__query.mock.calls[0][0]).toLowerCase()).toContain('v_servicepublishreadiness');
+        expect(String(__query.mock.calls[0][0]).toLowerCase()).not.toContain('v_servicepublishreadiness');
         expect(String(__query.mock.calls[0][0]).toLowerCase()).toContain('v_capability_governance_coverage');
     });
 
     test('GET /summary works with empty data', async () => {
         const { __query } = require('../db/pool');
+        const { getReadinessIndex } = require('../services/readiness');
+        getReadinessIndex.mockResolvedValue(new Map());
         __query.mockResolvedValueOnce({ rows: [] });
 
         const router = require('../routes/dashboard');
@@ -128,6 +145,7 @@ describe('dashboard routes', () => {
             total_services: 0,
             services_ready_for_publish: 0,
             services_blocked_by_readiness: 0,
+            services_with_readiness_warnings: 0,
             overdue_reviews: 0,
             uncovered_capabilities: 0,
             over_covered_capabilities: 0,

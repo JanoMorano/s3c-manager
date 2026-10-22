@@ -63,7 +63,7 @@ export default function NavTopActions() {
       )}
       {isEditor && (
         <Link href="/management/new-service" className={styles.topBarNewBtn}>
-          {t('nav.new_service') || 'New service'}
+          {t('nav.new_service')}
         </Link>
       )}
     </>

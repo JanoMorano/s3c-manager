@@ -1,75 +1,109 @@
-.legend {
+/* Canvas + legend strip: the strip sits under the graph so it never covers nodes. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--color-border-default);
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  padding: 8px 10px;
-  box-shadow: var(--shadow-low);
-  max-width: 220px;
+  flex-shrink: 0;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-3);
+  min-width: 0;
 }
 
 .title {
   font: var(--text-label-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: 4px;
+  color: var(--color-text-muted);
+}
+
+.noteClose:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .list {
   list-style: none;
-  display: grid;
-  gap: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  margin: 0;
+  padding: 0;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font: var(--text-body-sm);
+  gap: 6px;
+  font: var(--text-label-sm);
   color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
 .swatch {
-  width: 28px;
+  width: 22px;
   height: 8px;
   flex: 0 0 auto;
   overflow: visible;
 }
 
-.layoutControls {
-  display: flex;
+.note {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow-low);
-  max-width: 320px;
+  gap: var(--space-1);
+  margin-left: auto;
 }
 
 .layoutHint {
-  font: var(--text-body-sm);
+  font: var(--text-label-sm);
   color: var(--color-text-secondary);
 }
 
 .layoutError {
-  font: var(--text-body-sm);
+  font: var(--text-label-sm);
   color: var(--color-danger);
+  padding-right: var(--space-2);
 }
 
-.layoutReset {
+.noteClose {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font: var(--text-label-sm);
-  color: var(--color-text-primary);
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
-  border: 1px solid var(--color-border-default);
-  border-radius: 4px;
-  padding: 2px 8px;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
-.layoutReset:hover {
-  background: var(--color-bg-subtle, var(--color-bg-surface));
+.noteClose:hover {
+  color: var(--color-text-primary);
+}
+
+/* Theme the React Flow controls with app tokens so they follow light/dark. */
+.flow {
+  --xy-controls-button-background-color: var(--color-bg-surface);
+  --xy-controls-button-background-color-hover: var(--color-bg-subtle);
+  --xy-controls-button-color: var(--color-text-secondary);
+  --xy-controls-button-color-hover: var(--color-text-primary);
+  --xy-controls-button-border-color: var(--color-border-default);
+  --xy-edge-label-background-color: var(--color-bg-surface);
 }

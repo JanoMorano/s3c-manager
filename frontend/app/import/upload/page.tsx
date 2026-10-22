@@ -19,6 +19,8 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
 import { useInstallStatus } from '@/features/install/installStatus';
+import { useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 
 const MAX_SIZE_MB = 5;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
@@ -43,10 +45,12 @@ type Target =
 
 type Format = 'csv' | 'json' | 'xlsx' | 'xml';
 type TargetSection = 'service-catalogue' | 'c3-taxonomy' | 'fmn-spirals';
+/** i18n key of the format hint; `file` and `columns` are source file / column names interpolated into it. */
+type FormatHint = { key: string; file?: string; columns?: string };
 
 const TARGET_OPTIONS: Array<{
   value: Target;
-  label: string;
+  labelKey: string;
   section: TargetSection;
   supportedFormats: Format[];
   supportsDryRun: boolean;
@@ -56,12 +60,12 @@ const TARGET_OPTIONS: Array<{
   jsonEndpoint?: (spiralCode: string | null) => string;
   xlsxEndpoint?: (fileName: string, spiralCode: string | null) => string;
   xmlEndpoint?: (fileName: string, spiralCode: string | null, dryRun?: boolean) => string;
-  hints: Partial<Record<Format, string>>;
+  hints: Partial<Record<Format, FormatHint>>;
 }> = [
   // ── Service Catalogue ──────────────────────────────────────────────────────
   {
     value: 'services',
-    label: 'NCIA Service Catalogue',
+    labelKey: 'import.upload.target.services',
     section: 'service-catalogue',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -70,13 +74,13 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName) => `/api/v1/import/services/csv?source_name=${encodeURIComponent(fileName)}`,
     jsonEndpoint: () => '/api/v1/import/services',
     hints: {
-      csv: 'CSV s oddělovačem ; nebo ,. Povinné sloupce: service_id, title, service_type_code.',
-      json: 'JSON pole objektů, { "items": [...] }, nebo 3-table payload se ServiceCatalog/ServiceFlavours/ServiceRelations.',
+      csv: { key: 'import.upload.hint.services_csv' },
+      json: { key: 'import.upload.hint.services_json' },
     },
   },
   {
     value: 'services-narodni',
-    label: 'Národní Service Catalogue',
+    labelKey: 'import.upload.target.services_narodni',
     section: 'service-catalogue',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -85,14 +89,14 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName) => `/api/v1/import/services/csv?source_name=${encodeURIComponent(fileName)}&source_type=narodni`,
     jsonEndpoint: () => '/api/v1/import/services',
     hints: {
-      csv: 'CSV s oddělovačem ; nebo ,. Povinné sloupce: service_id, title, service_type_code. Zdroj: Národní SC.',
-      json: 'JSON pole objektů nebo { "items": [...] }. Zdroj: Národní SC.',
+      csv: { key: 'import.upload.hint.services_narodni_csv' },
+      json: { key: 'import.upload.hint.services_narodni_json' },
     },
   },
   // ── C3 Taxonomy ────────────────────────────────────────────────────────────
   {
     value: 'c3',
-    label: 'C3 Taxonomie',
+    labelKey: 'nav.c3_taxonomy',
     section: 'c3-taxonomy',
     supportedFormats: ['csv', 'json', 'xlsx'],
     supportsDryRun: false,
@@ -102,14 +106,14 @@ const TARGET_OPTIONS: Array<{
     jsonEndpoint: (sc) => `/api/v1/taxonomy/c3/sync${sc ? `?spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     hints: {
-      csv: 'CSV s oddělovačem ; nebo ,. Povinné sloupce: uuid, title.',
-      json: 'JSON pole objektů nebo { "items": [...] }. Každý objekt musí mít uuid a title.',
-      xlsx: 'XLSX report s jedním listem. List i Page prefix určují typ C3 taxonomy záznamů.',
+      csv: { key: 'import.upload.hint.c3_csv' },
+      json: { key: 'import.upload.hint.c3_json' },
+      xlsx: { key: 'import.upload.hint.c3_xlsx' },
     },
   },
   {
     value: 'c3-application',
-    label: 'C3 Application',
+    labelKey: 'nav.c3_applications',
     section: 'c3-taxonomy',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -118,13 +122,13 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3-application/csv?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     jsonEndpoint: (sc) => `/api/v1/taxonomy/c3-application/sync${sc ? `?spiral_code=${encodeURIComponent(sc)}` : ''}`,
     hints: {
-      csv: 'CSV dle Applications.csv. Klíčové sloupce: Application, UUID, Title.',
-      json: 'JSON pole objektů nebo { "items": [...] } s poli odpovídajícími Applications.csv.',
+      csv: { key: 'import.upload.hint.entity_csv_columns', file: 'Applications.csv', columns: 'Application, UUID, Title' },
+      json: { key: 'import.upload.hint.entity_json', file: 'Applications.csv' },
     },
   },
   {
     value: 'c3-data-objects',
-    label: 'C3 Data Object',
+    labelKey: 'nav.c3_data_objects',
     section: 'c3-taxonomy',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -133,13 +137,13 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3-data-objects/csv?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     jsonEndpoint: (sc) => `/api/v1/taxonomy/c3-data-objects/sync${sc ? `?spiral_code=${encodeURIComponent(sc)}` : ''}`,
     hints: {
-      csv: 'CSV dle Data Objects.csv. Klíčové sloupce: Data Object, UUID, Title.',
-      json: 'JSON pole objektů nebo { "items": [...] } s poli odpovídajícími Data Objects.csv.',
+      csv: { key: 'import.upload.hint.entity_csv_columns', file: 'Data Objects.csv', columns: 'Data Object, UUID, Title' },
+      json: { key: 'import.upload.hint.entity_json', file: 'Data Objects.csv' },
     },
   },
   {
     value: 'c3-services',
-    label: 'C3 Services',
+    labelKey: 'nav.c3_services',
     section: 'c3-taxonomy',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -148,13 +152,13 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3-services/csv?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     jsonEndpoint: (sc) => `/api/v1/taxonomy/c3-services/sync${sc ? `?spiral_code=${encodeURIComponent(sc)}` : ''}`,
     hints: {
-      csv: 'CSV dle Services.csv. Klíčové sloupce: Service, UUID, Title.',
-      json: 'JSON pole objektů nebo { "items": [...] } s poli odpovídajícími Services.csv.',
+      csv: { key: 'import.upload.hint.entity_csv_columns', file: 'Services.csv', columns: 'Service, UUID, Title' },
+      json: { key: 'import.upload.hint.entity_json', file: 'Services.csv' },
     },
   },
   {
     value: 'c3-technology-interactions',
-    label: 'C3 Technology Interactions',
+    labelKey: 'nav.c3_technology_interactions',
     section: 'c3-taxonomy',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -163,14 +167,14 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3-technology-interactions/csv?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     jsonEndpoint: (sc) => `/api/v1/taxonomy/c3-technology-interactions/sync${sc ? `?spiral_code=${encodeURIComponent(sc)}` : ''}`,
     hints: {
-      csv: 'CSV dle Technology Interactions.csv včetně duplicitních hlaviček Services/Applications/Technology Interactions.',
-      json: 'JSON pole objektů nebo { "items": [...] } s poli odpovídajícími Technology Interactions.csv.',
+      csv: { key: 'import.upload.hint.technology_interactions_csv' },
+      json: { key: 'import.upload.hint.entity_json', file: 'Technology Interactions.csv' },
     },
   },
   // ── FMN Spirals ────────────────────────────────────────────────────────────
   {
     value: 'c3-capability-builder',
-    label: 'C3 Capability Map',
+    labelKey: 'nav.c3_capability_map',
     section: 'fmn-spirals',
     supportedFormats: ['csv', 'json'],
     supportsDryRun: true,
@@ -179,13 +183,13 @@ const TARGET_OPTIONS: Array<{
     csvEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3-capability-builder/csv?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     jsonEndpoint: (sc) => `/api/v1/taxonomy/c3-capability-builder/sync${sc ? `?spiral_code=${encodeURIComponent(sc)}` : ''}`,
     hints: {
-      csv: 'CSV se sloupci Page ID, UUID, Title, Parent ID, Level, State, Domain. Snapshot: shared/c3/import-csv/c3-capability-map-import.csv.',
-      json: 'JSON pole objektů nebo { "items": [...] } s poli pageId/page_id, uuid, title, parentId/parent_id, level, state, domain/domain_code.',
+      csv: { key: 'import.upload.hint.capability_map_csv' },
+      json: { key: 'import.upload.hint.capability_map_json' },
     },
   },
   {
     value: 'c3-taxonomy-business-processes',
-    label: 'C3 Business Processes',
+    labelKey: 'import.upload.target.business_processes',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx', 'xml'],
     supportsDryRun: true,
@@ -193,11 +197,11 @@ const TARGET_OPTIONS: Array<{
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=business-processes&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/business-processes/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
-    hints: { xml: 'ArchiMate XML: 20221208_Business_Processes_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Business Processes.xlsx' },
+    hints: { xml: { key: 'import.upload.hint.archimate_xml', file: '20221208_Business_Processes_Taxonomy.xml' }, xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 Business Processes.xlsx' } },
   },
   {
     value: 'c3-taxonomy-business-roles',
-    label: 'C3 Business Roles',
+    labelKey: 'import.upload.target.business_roles',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx', 'xml'],
     supportsDryRun: true,
@@ -205,22 +209,22 @@ const TARGET_OPTIONS: Array<{
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=business-roles&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/business-roles/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
-    hints: { xml: 'ArchiMate XML: 20221208_Business_Roles_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Business Roles.xlsx' },
+    hints: { xml: { key: 'import.upload.hint.archimate_xml', file: '20221208_Business_Roles_Taxonomy.xml' }, xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 Business Roles.xlsx' } },
   },
   {
     value: 'c3-taxonomy-capabilities',
-    label: 'C3 Capabilities',
+    labelKey: 'import.upload.target.capabilities',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx'],
     supportsDryRun: false,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=capabilities&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 Capabilities.xlsx' },
+    hints: { xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 Capabilities.xlsx' } },
   },
   {
     value: 'c3-taxonomy-coi-services',
-    label: 'C3 COI Services',
+    labelKey: 'import.upload.target.coi_services',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx', 'xml'],
     supportsDryRun: true,
@@ -228,11 +232,11 @@ const TARGET_OPTIONS: Array<{
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=coi-services&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/coi-services/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
-    hints: { xml: 'ArchiMate XML: 20221208_COI_Services_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 COI Services.xlsx' },
+    hints: { xml: { key: 'import.upload.hint.archimate_xml', file: '20221208_COI_Services_Taxonomy.xml' }, xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 COI Services.xlsx' } },
   },
   {
     value: 'c3-taxonomy-communications-services',
-    label: 'C3 Communication Services',
+    labelKey: 'import.upload.target.communications_services',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx', 'xml'],
     supportsDryRun: true,
@@ -240,11 +244,11 @@ const TARGET_OPTIONS: Array<{
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=communications-services&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/communications-services/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
-    hints: { xml: 'ArchiMate XML: 20221208_Communications_Services_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Communications Services.xlsx' },
+    hints: { xml: { key: 'import.upload.hint.archimate_xml', file: '20221208_Communications_Services_Taxonomy.xml' }, xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 Communications Services.xlsx' } },
   },
   {
     value: 'c3-taxonomy-core-services',
-    label: 'C3 Core Services',
+    labelKey: 'import.upload.target.core_services',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx', 'xml'],
     supportsDryRun: true,
@@ -252,22 +256,22 @@ const TARGET_OPTIONS: Array<{
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=core-services&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/core-services/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
-    hints: { xml: 'ArchiMate XML: 20221208_Core_Services_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 Core Services.xlsx' },
+    hints: { xml: { key: 'import.upload.hint.archimate_xml', file: '20221208_Core_Services_Taxonomy.xml' }, xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 Core Services.xlsx' } },
   },
   {
     value: 'c3-taxonomy-information-products',
-    label: 'C3 Information Products',
+    labelKey: 'import.upload.target.information_products',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx'],
     supportsDryRun: false,
     redirectToImport: false,
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=information-products&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
-    hints: { xlsx: 'Taxonomy Report for C3 Information Products.xlsx' },
+    hints: { xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 Information Products.xlsx' } },
   },
   {
     value: 'c3-taxonomy-user-applications',
-    label: 'C3 User Application',
+    labelKey: 'import.upload.target.user_applications',
     section: 'fmn-spirals',
     supportedFormats: ['xlsx', 'xml'],
     supportsDryRun: true,
@@ -275,7 +279,7 @@ const TARGET_OPTIONS: Array<{
     usesSpiral: true,
     xlsxEndpoint: (fileName, sc) => `/api/v1/taxonomy/c3/xlsx?target_key=user-applications&source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}`,
     xmlEndpoint: (fileName, sc, dryRun = false) => `/api/v1/taxonomy/c3/user-applications/xml-archimate?source_name=${encodeURIComponent(fileName)}${sc ? `&spiral_code=${encodeURIComponent(sc)}` : ''}${dryRun ? '&dry_run=true' : ''}`,
-    hints: { xml: 'ArchiMate XML: 20221208_User_Applications_Taxonomy.xml', xlsx: 'Taxonomy Report for C3 User Applications.xlsx' },
+    hints: { xml: { key: 'import.upload.hint.archimate_xml', file: '20221208_User_Applications_Taxonomy.xml' }, xlsx: { key: 'import.upload.hint.taxonomy_report_xlsx', file: 'Taxonomy Report for C3 User Applications.xlsx' } },
   },
 ];
 
@@ -360,10 +364,17 @@ interface ImportResult {
   target_label?: string;
 }
 
-const SECTION_LABELS: Record<TargetSection, string> = {
-  'service-catalogue': 'Katalog služeb',
-  'c3-taxonomy': 'C3 baseline',
-  'fmn-spirals': 'Capability map',
+const SECTION_LABEL_KEYS: Record<TargetSection, string> = {
+  'service-catalogue': 'import.upload.section.service_catalogue',
+  'c3-taxonomy': 'import.upload.section.c3_baseline',
+  'fmn-spirals': 'import.upload.section.capability_map',
+};
+
+const SEVERITY_LABEL_KEYS: Record<string, string> = {
+  error: 'import.workspace.severity.error',
+  warn: 'import.workspace.severity.warn',
+  warning: 'import.workspace.severity.warn',
+  info: 'import.workspace.severity.info',
 };
 
 const SECTION_ORDER: TargetSection[] = ['service-catalogue', 'c3-taxonomy', 'fmn-spirals'];
@@ -387,6 +398,7 @@ function activeSpiralCode(data: SpiralResponse | undefined) {
 }
 
 export default function ImportUploadPage() {
+  const t = useT();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const { c3Visible } = useInstallStatus();
@@ -507,15 +519,15 @@ export default function ImportUploadPage() {
   const validateFile = (f: File): string | null => {
     const name = f.name.toLowerCase();
     if (format === 'csv' && !name.endsWith('.csv') && !name.endsWith('.txt'))
-      return 'Pouze .csv nebo .txt soubory.';
+      return t('import.upload.error.only_csv');
     if (format === 'json' && !name.endsWith('.json'))
-      return 'Pouze .json soubory.';
+      return t('import.upload.error.only_json');
     if (format === 'xlsx' && !name.endsWith('.xlsx'))
-      return 'Pouze .xlsx soubory.';
+      return t('import.upload.error.only_xlsx');
     if (format === 'xml' && !name.endsWith('.xml'))
-      return 'Pouze .xml soubory.';
+      return t('import.upload.error.only_xml');
     if (f.size > MAX_SIZE_BYTES)
-      return `Soubor je příliš velký. Maximum je ${MAX_SIZE_MB} MB.`;
+      return t('import.upload.error.too_large', { max: MAX_SIZE_MB });
     return null;
   };
 
@@ -574,7 +586,7 @@ export default function ImportUploadPage() {
       if (format === 'json') {
         const text = await file.text();
         let parsed: unknown;
-        try { parsed = JSON.parse(text); } catch { throw new Error('Soubor není platný JSON.'); }
+        try { parsed = JSON.parse(text); } catch { throw new Error(t('import.upload.error.invalid_json')); }
 
         const body = (Array.isArray(parsed) || (parsed && typeof parsed === 'object'))
           ? { ...(Array.isArray(parsed) ? { items: parsed } : parsed as Record<string, unknown>), source_name: file.name }
@@ -594,7 +606,7 @@ export default function ImportUploadPage() {
       } else if (format === 'xml') {
         const text = await file.text();
         const endpoint = targetConfig.xmlEndpoint?.(file.name, spiral, true);
-        if (!endpoint) throw new Error('Pro zvolený cíl není XML dry-run dostupný.');
+        if (!endpoint) throw new Error(t('import.upload.error.xml_dry_run_unavailable'));
 
         res = await fetch(endpoint, {
           method: 'POST',
@@ -621,9 +633,9 @@ export default function ImportUploadPage() {
 
       const data = await res.json() as DryRunSummary;
       setPreflight(data);
-      setProgress('Dry-run hotov. Souhrn je níže.');
+      setProgress(t('import.upload.dry_run_done'));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Dry-run selhal');
+      setError(e instanceof Error ? e.message : t('import.upload.error.dry_run_failed'));
     } finally {
       setPreflighting(false);
     }
@@ -632,7 +644,7 @@ export default function ImportUploadPage() {
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
-    setProgress('Nahrávám…');
+    setProgress(t('import.upload.uploading'));
     setError(null);
     setResult(null);
 
@@ -640,7 +652,7 @@ export default function ImportUploadPage() {
       if (format === 'csv') {
         const text = await file.text();
         const endpoint = targetConfig.csvEndpoint?.(file.name, spiral);
-        if (!endpoint) throw new Error('Pro zvolený cíl není CSV import dostupný.');
+        if (!endpoint) throw new Error(t('import.upload.error.import_unavailable', { format: 'CSV' }));
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -663,7 +675,7 @@ export default function ImportUploadPage() {
       } else if (format === 'json') {
         const text = await file.text();
         let parsed: unknown;
-        try { parsed = JSON.parse(text); } catch { throw new Error('Soubor není platný JSON.'); }
+        try { parsed = JSON.parse(text); } catch { throw new Error(t('import.upload.error.invalid_json')); }
 
         const parsedObject = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
         const isThreeTablePayload = !!parsedObject && Array.isArray(parsedObject.ServiceCatalog);
@@ -672,10 +684,10 @@ export default function ImportUploadPage() {
           : parsedObject?.items ?? parsedObject?.data ?? null;
 
         if (!Array.isArray(rawItems) && !isThreeTablePayload)
-          throw new Error('JSON musí být pole objektů, objekt s klíčem "items", nebo 3-table payload se ServiceCatalog.');
+          throw new Error(t('import.upload.error.json_shape'));
 
         const endpoint = targetConfig.jsonEndpoint?.(spiral);
-        if (!endpoint) throw new Error('Pro zvolený cíl není JSON import dostupný.');
+        if (!endpoint) throw new Error(t('import.upload.error.import_unavailable', { format: 'JSON' }));
 
         const isServices = target === 'services' || target === 'services-narodni';
         const requestBody = isServices
@@ -702,7 +714,7 @@ export default function ImportUploadPage() {
 
       } else if (format === 'xml') {
         const endpoint = targetConfig.xmlEndpoint?.(file.name, spiral, false);
-        if (!endpoint) throw new Error('Pro zvolený cíl není XML import dostupný.');
+        if (!endpoint) throw new Error(t('import.upload.error.import_unavailable', { format: 'XML' }));
 
         const text = await file.text();
         const res = await fetch(endpoint, {
@@ -720,7 +732,7 @@ export default function ImportUploadPage() {
 
       } else {
         const endpoint = targetConfig.xlsxEndpoint?.(file.name, spiral);
-        if (!endpoint) throw new Error('Pro zvolený cíl není XLSX import dostupný.');
+        if (!endpoint) throw new Error(t('import.upload.error.import_unavailable', { format: 'XLSX' }));
 
         const arrayBuffer = await file.arrayBuffer();
         const res = await fetch(endpoint, {
@@ -740,7 +752,7 @@ export default function ImportUploadPage() {
         setProgress(null);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Upload selhal');
+      setError(e instanceof Error ? e.message : t('import.upload.error.upload_failed'));
       setProgress(null);
     } finally {
       setUploading(false);
@@ -765,28 +777,22 @@ export default function ImportUploadPage() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Import dat</h1>
-        <Link href="/import" className={styles.backLink}>← Zpět na historii importů</Link>
-      </div>
+      <header className={styles.pageHeader}>
+        <Link href="/import" className={styles.backLink}>← {t('nav.import')}</Link>
+        <h1 className={styles.pageTitle}>{t('import.upload.title')}</h1>
+        <p
+          className={styles.pageLead}
+          title={[t('import.upload.guidance.step_dry_run'), t('import.upload.guidance.step_commit'), t('import.upload.guidance.step_rollback')].join('\n')}
+        >
+          {t('import.upload.lead')}
+        </p>
+      </header>
 
       <div className={styles.body}>
-        <section className={styles.guidancePanel}>
-          <div>
-            <h2>Bezpečný import katalogu</h2>
-            <p>Nahrajte CSV nebo JSON katalog služeb, nejdřív spusťte dry-run a teprve po kontrole issues potvrďte import.</p>
-          </div>
-          <ol>
-            <li>Dry-run ukáže chyby před zápisem.</li>
-            <li>Commit vytvoří dávku, issues a auditní stopu.</li>
-            <li>Rollback: použijte export bundle/manifest z historie importů.</li>
-          </ol>
-        </section>
-
         {/* ── Spiral selector ─────────────────────────────────────────────── */}
         {c3Visible && (
           <div className={styles.spiralStrip}>
-            <span className={styles.spiralLabel}>C3 baseline:</span>
+            <span className={styles.spiralLabel}>{t('import.upload.spiral.label')}</span>
             <div className={styles.spiralToggleGroup}>
               {availableSpirals.map((sp) => (
                 <button
@@ -797,12 +803,12 @@ export default function ImportUploadPage() {
                   title={sp.notes ?? sp.spiral_label}
                 >
                   {sp.spiral_label}
-                  {sp.is_active && <span className={styles.spiralActiveDot} title="Aktuální aktivní baseline" />}
+                  {sp.is_active && <span className={styles.spiralActiveDot} title={t('import.upload.spiral.active_title')} />}
                 </button>
               ))}
             </div>
             <span className={styles.spiralHint}>
-              Hodnota se zapíše do C3/FMN evidence u importů, které baseline používají.
+              {t('import.upload.spiral.hint')}
             </span>
           </div>
         )}
@@ -810,14 +816,14 @@ export default function ImportUploadPage() {
         {/* ── Seed status ──────────────────────────────────────────────────── */}
         {seedStatus && (
           <div className={styles.seedInfo}>
-            <div className={styles.seedInfoTitle}>Expert C3 evidence</div>
+            <div className={styles.seedInfoTitle}>{t('import.upload.seed.title')}</div>
             <div className={styles.seedInfoGrid}>
-              <span className={styles.seedPill}>Taxonomy {seedStatus.taxonomy.total}</span>
-              <span className={styles.seedPill}>Services {seedStatus.entities.services}</span>
-              <span className={styles.seedPill}>Applications {seedStatus.entities.applications}</span>
-              <span className={styles.seedPill}>Data Objects {seedStatus.entities.data_objects}</span>
-              <span className={styles.seedPill}>TI {seedStatus.entities.technology_interactions}</span>
-              <span className={styles.seedPill}>Capability Map {seedStatus.capability_map.total_rows}</span>
+              <span className={styles.seedPill}>{t('import.upload.seed.taxonomy', { count: seedStatus.taxonomy.total })}</span>
+              <span className={styles.seedPill}>{t('import.upload.seed.services', { count: seedStatus.entities.services })}</span>
+              <span className={styles.seedPill}>{t('import.upload.seed.applications', { count: seedStatus.entities.applications })}</span>
+              <span className={styles.seedPill}>{t('import.upload.seed.data_objects', { count: seedStatus.entities.data_objects })}</span>
+              <span className={styles.seedPill}>{t('import.upload.seed.technology_interactions', { count: seedStatus.entities.technology_interactions })}</span>
+              <span className={styles.seedPill}>{t('import.upload.seed.capability_map', { count: seedStatus.capability_map.total_rows })}</span>
             </div>
             {seedStatus.taxonomy.by_item_type.length > 0 && (
               <div className={styles.seedInfoMeta}>
@@ -837,7 +843,7 @@ export default function ImportUploadPage() {
           if (sectionTargets.length === 0) return null;
           return (
             <div key={section} className={styles.targetSection}>
-              <div className={styles.targetSectionLabel}>{SECTION_LABELS[section]}</div>
+              <div className={styles.targetSectionLabel}>{t(SECTION_LABEL_KEYS[section])}</div>
               <div className={styles.toggleGroup}>
                 {sectionTargets.map((option) => (
                   <button
@@ -846,7 +852,7 @@ export default function ImportUploadPage() {
                     className={`${styles.toggleBtn} ${target === option.value ? styles.toggleBtnActive : ''}`}
                     onClick={() => handleTargetChange(option.value)}
                   >
-                    {option.label}
+                    {t(option.labelKey)}
                   </button>
                 ))}
               </div>
@@ -858,17 +864,17 @@ export default function ImportUploadPage() {
           <section className={styles.expertPanel}>
             <div className={styles.expertHeader}>
               <div>
-                <h2>Expert C3/FMNs import</h2>
-                <p>Jen pro administrační a taxonomy práci. Běžný katalogový import výše zůstává hlavní cesta.</p>
+                <h2>{t('import.upload.expert.title')}</h2>
+                <p>{t('import.upload.expert.lead')}</p>
               </div>
-              <span className={styles.expertBadge}>admin</span>
+              <span className={styles.expertBadge}>{t('import.upload.expert.badge')}</span>
             </div>
             {SECTION_ORDER.map((section) => {
               const sectionTargets = expertTargetOptions.filter((t) => t.section === section);
               if (sectionTargets.length === 0) return null;
               return (
                 <div key={`expert-${section}`} className={styles.targetSection}>
-                  <div className={styles.targetSectionLabel}>{SECTION_LABELS[section]}</div>
+                  <div className={styles.targetSectionLabel}>{t(SECTION_LABEL_KEYS[section])}</div>
                   <div className={styles.toggleGroup}>
                     {sectionTargets.map((option) => (
                       <button
@@ -877,7 +883,7 @@ export default function ImportUploadPage() {
                         className={`${styles.toggleBtn} ${target === option.value ? styles.toggleBtnActive : ''}`}
                         onClick={() => handleTargetChange(option.value)}
                       >
-                        {option.label}
+                        {t(option.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -890,13 +896,13 @@ export default function ImportUploadPage() {
         {/* ── Active spiral indicator for C3/FMN ──────────────────────────── */}
         {c3Visible && targetConfig.usesSpiral && (
           <div className={styles.spiralActiveIndicator}>
-            Import bude označen jako <strong>{effectiveSpiral}</strong>
+            {t('import.upload.spiral.tagged_as')} <strong>{effectiveSpiral}</strong>
           </div>
         )}
 
         {/* ── Format ──────────────────────────────────────────────────────── */}
         <div className={styles.toggleRow}>
-          <span className={styles.toggleLabel}>Formát:</span>
+          <span className={styles.toggleLabel}>{t('import.upload.format_label')}</span>
           <div className={styles.toggleGroup}>
             {targetConfig.supportedFormats.includes('csv') && (
               <button
@@ -946,7 +952,7 @@ export default function ImportUploadPage() {
           onClick={() => !file && fileRef.current?.click()}
           role="button"
           tabIndex={0}
-          aria-label={`Přetáhněte ${format.toUpperCase()} soubor nebo klikněte pro výběr`}
+          aria-label={t('import.upload.drop.aria', { format: format.toUpperCase() })}
           onKeyDown={e => e.key === 'Enter' && fileRef.current?.click()}
         >
           <input
@@ -959,8 +965,8 @@ export default function ImportUploadPage() {
           {!file ? (
             <>
               <div className={styles.dropIcon}>{format === 'json' ? '{ }' : format === 'xlsx' ? '📊' : format === 'xml' ? '<>' : '📄'}</div>
-              <div className={styles.dropTitle}>Přetáhněte {format.toUpperCase()} soubor</div>
-              <div className={styles.dropSubtitle}>nebo klikněte pro výběr — max {MAX_SIZE_MB} MB</div>
+              <div className={styles.dropTitle}>{t('import.upload.drop.title', { format: format.toUpperCase() })}</div>
+              <div className={styles.dropSubtitle}>{t('import.upload.drop.subtitle', { max: MAX_SIZE_MB })}</div>
             </>
           ) : (
             <>
@@ -968,51 +974,51 @@ export default function ImportUploadPage() {
               <div className={styles.dropTitle}>{file.name}</div>
               <div className={styles.dropSubtitle}>{(file.size / 1024).toFixed(1)} KB</div>
               <button className={styles.clearBtn} onClick={e => { e.stopPropagation(); setFile(null); setError(null); setResult(null); }}>
-                Odebrat
+                {t('common.remove')}
               </button>
             </>
           )}
         </div>
 
-        {/* ── Status / chyby ───────────────────────────────────────────────── */}
+        {/* ── Status / errors ──────────────────────────────────────────────── */}
         {error    && <div className={styles.errorBanner}>{error}</div>}
         {progress && <div className={styles.progressBanner}>{progress}</div>}
 
         {/* ── Import result (diff indicator) ──────────────────────────────── */}
         {result && (
           <div className={styles.resultBox}>
-            <div className={styles.resultTitle}>Import dokončen</div>
+            <div className={styles.resultTitle}>{t('import.upload.result.title')}</div>
             <div className={styles.resultGrid}>
               <div className={`${styles.resultStat} ${styles.resultInserted}`}>
                 <span className={styles.resultNum}>{result.inserted}</span>
-                <span className={styles.resultStatLabel}>vloženo</span>
+                <span className={styles.resultStatLabel}>{t('import.upload.result.inserted')}</span>
               </div>
               <div className={`${styles.resultStat} ${result.updated > 0 ? styles.resultUpdated : styles.resultUpdatedZero}`}>
                 <span className={styles.resultNum}>{result.updated}</span>
                 <span className={styles.resultStatLabel}>
-                  aktualizováno
+                  {t('import.upload.result.updated')}
                   {result.updated > 0 && targetConfig.usesSpiral && (
-                    <span className={styles.diffBadge} title={`${result.updated} záznamů bylo přepsáno z ${effectiveSpiral}`}>
-                      diff {effectiveSpiral}
+                    <span className={styles.diffBadge} title={t(resolveCountForm(result.updated, { one: 'import.upload.result.overwritten.one', few: 'import.upload.result.overwritten.few', many: 'import.upload.result.overwritten.many' }), { count: result.updated, spiral: effectiveSpiral })}>
+                      {t('import.upload.result.diff', { spiral: effectiveSpiral })}
                     </span>
                   )}
                 </span>
               </div>
               <div className={`${styles.resultStat} ${result.failed > 0 ? styles.resultFailed : styles.resultFailedZero}`}>
                 <span className={styles.resultNum}>{result.failed}</span>
-                <span className={styles.resultStatLabel}>chyb</span>
+                <span className={styles.resultStatLabel}>{t('import.upload.result.failed')}</span>
               </div>
               {result.rowsParsed != null && (
                 <div className={styles.resultStat}>
                   <span className={styles.resultNum}>{result.rowsParsed}</span>
-                  <span className={styles.resultStatLabel}>řádků celkem</span>
+                  <span className={styles.resultStatLabel}>{t('import.upload.result.rows_total')}</span>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ── Akce ─────────────────────────────────────────────────────────── */}
+        {/* ── Actions ──────────────────────────────────────────────────────── */}
         <div className={styles.actions}>
           {targetConfig.supportsDryRun && format !== 'xlsx' && (
             <button
@@ -1020,7 +1026,7 @@ export default function ImportUploadPage() {
               disabled={!file || uploading || preflighting}
               onClick={handleDryRun}
             >
-              {preflighting ? 'Počítám…' : 'Dry-run (zkontrolovat)'}
+              {preflighting ? t('import.upload.action.dry_running') : t('import.upload.action.dry_run')}
             </button>
           )}
           <button
@@ -1028,42 +1034,42 @@ export default function ImportUploadPage() {
             disabled={!file || uploading}
             onClick={handleUpload}
           >
-            {uploading ? 'Nahrávám…' : 'Nahrát a importovat'}
+            {uploading ? t('import.upload.uploading') : t('import.upload.action.upload')}
           </button>
         </div>
 
         {/* ── Preflight result ─────────────────────────────────────────────── */}
         {preflight && (
           <div className={styles.preflightBox}>
-            <strong>Výsledek dry-run</strong>
+            <strong>{t('import.upload.preflight.title')}</strong>
             <div className={styles.preflightMeta}>
               <span>{isServicePreflight(preflight) ? preflight.source_name : preflight.label}</span>
               {isServicePreflight(preflight) && preflight.source_hash_sha256 && (
                 <code className={styles.mono}>{preflight.source_hash_sha256}</code>
               )}
               <button type="button" className={styles.secondaryBtn} onClick={handleDownloadPreflight}>
-                Stáhnout JSON
+                {t('import.upload.preflight.download')}
               </button>
             </div>
             {isServicePreflight(preflight) ? (
               <>
                 <div className={styles.preflightGrid}>
-                  <span className={styles.preflightPill}>Služby {preflight.item_count}</span>
-                  <span className={styles.preflightPill}>Varianty {preflight.flavour_count}</span>
-                  <span className={styles.preflightPill}>Vazby {preflight.explicit_relation_count}</span>
-                  <span className={styles.preflightPill}>Zdrojové vazby k dořešení {preflight.raw_prerequisite_count}</span>
-                  <span className={styles.preflightPill}>Chybějící služby {preflight.missing_target_count}</span>
-                  <span className={styles.preflightPill}>Dočasné záznamy {preflight.stub_count}</span>
-                  <span className={styles.preflightPill}>Nejasné reference {preflight.unresolved_ref_count}</span>
+                  <span className={styles.preflightPill}>{t('import.workspace.preflight.services', { count: preflight.item_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.workspace.preflight.legacy_variants', { count: preflight.flavour_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.workspace.preflight.relations', { count: preflight.explicit_relation_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.upload.preflight.raw_prerequisites', { count: preflight.raw_prerequisite_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.upload.preflight.missing_targets', { count: preflight.missing_target_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.workspace.preflight.stubs', { count: preflight.stub_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.workspace.preflight.unresolved_refs', { count: preflight.unresolved_ref_count })}</span>
                 </div>
                 <div className={styles.preflightSection}>
-                  <div className={styles.preflightSectionTitle}>Chybějící služby</div>
+                  <div className={styles.preflightSectionTitle}>{t('import.upload.preflight.missing_targets_title')}</div>
                   {preflight.missing_targets.length === 0 ? (
-                    <div className={styles.emptyNote}>Žádné chybějící target služby.</div>
+                    <div className={styles.emptyNote}>{t('import.upload.preflight.missing_targets_empty')}</div>
                   ) : (
                     <div className={styles.preflightTable}>
                       <div className={`${styles.preflightRowSingle} ${styles.preflightHead}`}>
-                        <span>Service ID</span>
+                        <span>{t('administration.import.column_service_id')}</span>
                       </div>
                       {preflight.missing_targets.map((serviceId) => (
                         <div key={serviceId} className={styles.preflightRowSingle}>
@@ -1074,13 +1080,13 @@ export default function ImportUploadPage() {
                   )}
                 </div>
                 <div className={styles.preflightSection}>
-                  <div className={styles.preflightSectionTitle}>Nejasné reference</div>
+                  <div className={styles.preflightSectionTitle}>{t('import.upload.preflight.unresolved_refs_title')}</div>
                   {preflight.unresolved_refs.length === 0 ? (
-                    <div className={styles.emptyNote}>Žádné nerozpoznané reference.</div>
+                    <div className={styles.emptyNote}>{t('import.upload.preflight.unresolved_refs_empty')}</div>
                   ) : (
                     <div className={styles.preflightTable}>
                       <div className={`${styles.preflightRow} ${styles.preflightHead}`}>
-                        <span>Typ</span><span>Service ID</span><span>Raw value</span>
+                        <span>{t('import.upload.preflight.column.type')}</span><span>{t('administration.import.column_service_id')}</span><span>{t('administration.import.column_raw_value')}</span>
                       </div>
                       {preflight.unresolved_refs.map((ref, index) => (
                         <div key={`${ref.kind}-${ref.service_id ?? 'n-a'}-${index}`} className={styles.preflightRow}>
@@ -1096,25 +1102,25 @@ export default function ImportUploadPage() {
             ) : (
               <>
                 <div className={styles.preflightGrid}>
-                  <span className={styles.preflightPill}>Rows {preflight.rowsParsed}</span>
-                  <span className={styles.preflightPill}>Valid {preflight.valid_row_count}</span>
-                  <span className={styles.preflightPill}>Warnings {preflight.warn_count}</span>
-                  <span className={styles.preflightPill}>Errors {preflight.error_count}</span>
-                  <span className={styles.preflightPill}>Issues {preflight.issue_count}</span>
+                  <span className={styles.preflightPill}>{t('import.workspace.pill.rows', { count: preflight.rowsParsed })}</span>
+                  <span className={styles.preflightPill}>{t('import.upload.preflight.valid', { count: preflight.valid_row_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.upload.preflight.warnings', { count: preflight.warn_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.upload.preflight.errors', { count: preflight.error_count })}</span>
+                  <span className={styles.preflightPill}>{t('import.upload.preflight.issues', { count: preflight.issue_count })}</span>
                 </div>
                 <div className={styles.preflightSection}>
-                  <div className={styles.preflightSectionTitle}>Validační issues</div>
+                  <div className={styles.preflightSectionTitle}>{t('import.upload.preflight.validation_title')}</div>
                   {preflight.issues.length === 0 ? (
-                    <div className={styles.emptyNote}>Dry-run nenašel žádné validační problémy.</div>
+                    <div className={styles.emptyNote}>{t('import.upload.preflight.validation_empty')}</div>
                   ) : (
                     <div className={styles.preflightTable}>
                       <div className={`${styles.preflightRow} ${styles.preflightHead}`}>
-                        <span>Row</span><span>Severity</span><span>Issue</span>
+                        <span>{t('import.workspace.issues.row')}</span><span>{t('administration.import.column_severity')}</span><span>{t('import.upload.preflight.column.issue')}</span>
                       </div>
                       {preflight.issues.map((issue, index) => (
                         <div key={`${issue.issue_code}-${issue.row_number}-${index}`} className={styles.preflightRow}>
                           <span className={styles.mono}>{issue.row_number}</span>
-                          <span>{issue.severity}</span>
+                          <span>{SEVERITY_LABEL_KEYS[issue.severity] ? t(SEVERITY_LABEL_KEYS[issue.severity]) : issue.severity}</span>
                           <span>{issue.message ?? issue.issue_code}</span>
                         </div>
                       ))}
@@ -1129,7 +1135,7 @@ export default function ImportUploadPage() {
         {/* ── Format hint ──────────────────────────────────────────────────── */}
         {formatHint && (
           <div className={styles.hint}>
-            <strong>Očekávaný formát:</strong> {formatHint}
+            <strong>{t('import.upload.expected_format')}</strong> {t(formatHint.key, { file: formatHint.file ?? '', columns: formatHint.columns ?? '' })}
           </div>
         )}
       </div>

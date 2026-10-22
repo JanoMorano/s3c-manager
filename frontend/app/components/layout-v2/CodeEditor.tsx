@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useEffect, useMemo, useState, type ChangeEvent, type TextareaHTMLAttributes } from 'react';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './CodeEditor.module.css';
 
 interface CodeEditorProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
@@ -15,7 +16,7 @@ interface CodeEditorProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElemen
 
 const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(function CodeEditor(
   {
-    label = 'Code',
+    label,
     language = 'json',
     onChange,
     onValueChange,
@@ -29,6 +30,7 @@ const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(function Cod
   },
   ref,
 ) {
+  const t = useT();
   const initialValue = useMemo(() => String(value ?? defaultValue ?? ''), [defaultValue, value]);
   const [editorValue, setEditorValue] = useState(initialValue);
   const editorHeight = height ?? Math.max(180, Number(rows) * 28);
@@ -50,8 +52,8 @@ const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(function Cod
   return (
     <div className={styles.wrap}>
       <span className={styles.header}>
-        <strong>{label}</strong>
-        <span>Text · {language}</span>
+        <strong>{label ?? t('layout.code_editor.label')}</strong>
+        <span>{t('layout.code_editor.mode', { language })}</span>
       </span>
       <textarea
         {...props}

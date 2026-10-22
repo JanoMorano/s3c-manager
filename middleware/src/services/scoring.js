@@ -11,7 +11,7 @@
  *   has_sla          → sla_availability + sla_delivery oba != null (governance signal)
  *   description      → aliased as detailed_description in SC_COLUMNS ✓
  *   short_description → aliased as summary in SC_COLUMNS ✓
- *   price_value      → aliased as serviceRateEUR in flavours.repo ✓
+ *   price_value      → flavours.repo returns price_value (serviceRateEUR kept for older callers)
  *   portfolio_group_code → aliased as portfolio_group in SC_COLUMNS ✓
  *   status           → service_status
  *   has_owner        → ServiceRoleAssignment subquery AS service_owner in SC_COLUMNS
@@ -35,7 +35,7 @@ const CHECKPOINTS = [
     [5,  'unit_of_measure',    s => s.unit_of_measure && String(s.unit_of_measure).trim().length > 0],
     [5,  'has_rate',           (s, flavours) =>
         Array.isArray(flavours) &&
-        flavours.some(f => f.serviceRateEUR != null)  // price_value AS serviceRateEUR
+        flavours.some(f => f.serviceRateEUR != null || f.price_value != null)
     ],
     [15, 'has_sla',            s => s.sla_availability != null && s.sla_delivery != null],
     [5,  'available_on',       s => Array.isArray(s.available_on) ? s.available_on.length > 0 : (s.available_on != null && String(s.available_on).trim().length > 2)],

@@ -6,10 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { C3EntityWorkspace, CodeEditor } from '@/app/components/layout-v2';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './entity-list.module.css';
 
 type SortDirection = 'asc' | 'desc';
 
+// title, subtitle and column/field labels are i18n keys (plain text also works, t() returns unknown keys unchanged).
 export interface ColumnDef {
   key: string;
   label: string;
@@ -48,6 +50,7 @@ export function C3EntityListPage({
   embedded = false,
   rowEditHref,
 }: C3EntityListPageProps) {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const exactSearch = searchParams?.get('exact') ?? '';
@@ -170,8 +173,8 @@ export function C3EntityListPage({
     return editFields
       .filter((field) => field.required)
       .filter((field) => isEmptyValue(editDraft[field.key], field.type))
-      .map((field) => `${field.label} je povinné.`);
-  }, [editDraft, editFields, editingId]);
+      .map((field) => t('c3_entities.validation.required', { field: t(field.label) }));
+  }, [editDraft, editFields, editingId, t]);
 
   function handleSort(column: ColumnDef) {
     if (column.sortable === false) return;
@@ -227,13 +230,13 @@ export function C3EntityListPage({
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || `Uložení selhalo (${res.status})`);
+        throw new Error(text || t('c3_entities.save_failed_status', { status: res.status }));
       }
       await globalMutate(endpoint);
       resetEdit(false);
-      setSaveOk('Záznam byl upraven.');
+      setSaveOk(t('c3_entities.saved'));
     } catch (saveErrorValue: unknown) {
-      setSaveError(saveErrorValue instanceof Error ? saveErrorValue.message : 'Uložení selhalo');
+      setSaveError(saveErrorValue instanceof Error ? saveErrorValue.message : t('c3_entities.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -243,14 +246,14 @@ export function C3EntityListPage({
     <section className={styles.card}>
       <div className={styles.cardHeader}>
         <div>
-          <div className={styles.cardTitle}>{title}</div>
-          {subtitle && <div className={styles.cardSubtitle}>{subtitle}</div>}
+          <div className={styles.cardTitle}>{t(title)}</div>
+          {subtitle && <div className={styles.cardSubtitle}>{t(subtitle)}</div>}
         </div>
         <div className={styles.filterBar}>
           <input
             className={styles.filterInput}
             type="search"
-            placeholder="Filtrovat tabulku"
+            placeholder={t('c3_entities.filter_placeholder')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -260,13 +263,13 @@ export function C3EntityListPage({
       {editingId != null && (
         <div ref={editPanelRef} className={styles.editPanel}>
           <div className={styles.editHeader}>
-            <div className={styles.editTitle}>Editace záznamu ID {editingId}</div>
+            <div className={styles.editTitle}>{t('c3_entities.edit_title', { id: editingId })}</div>
             <div className={styles.editActions}>
               <button type="button" className={styles.buttonPrimary} onClick={handleSave} disabled={saving}>
-                {saving ? 'Ukládám…' : 'Uložit'}
+                {saving ? t('c3_entities.saving') : t('common.save')}
               </button>
               <button type="button" className={styles.buttonSecondary} onClick={() => resetEdit()} disabled={saving}>
-                Zrušit
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -283,28 +286,28 @@ export function C3EntityListPage({
                       : styles.editField
                 }
               >
-                <span className={styles.fieldLabel}>{field.label}</span>
-                {renderEditControl(field, editDraft, setEditDraft)}
+                <span className={styles.fieldLabel}>{t(field.label)}</span>
+                {renderEditControl({ ...field, label: t(field.label) }, editDraft, setEditDraft)}
               </label>
             ))}
           </div>
           <div className={styles.validationCard}>
-            <div className={styles.validationTitle}>Validation</div>
+            <div className={styles.validationTitle}>{t('c3_entities.validation.title')}</div>
             {validationErrors.length > 0 ? (
               validationErrors.map((errorText) => (
                 <div key={errorText} className={styles.stateError}>{errorText}</div>
               ))
             ) : (
-              <div className={styles.stateSuccess}>No errors</div>
+              <div className={styles.stateSuccess}>{t('c3_entities.validation.no_errors')}</div>
             )}
           </div>
         </div>
       )}
 
       {saveOk && editingId == null && <div className={styles.stateSuccess}>{saveOk}</div>}
-      {isLoading && <div className={styles.state}>Načítám…</div>}
-      {error && <div className={styles.stateError}>Načtení selhalo.</div>}
-      {!isLoading && !error && sortedData.length === 0 && <div className={styles.empty}>Žádné záznamy.</div>}
+      {isLoading && <div className={styles.state}>{t('common.loading')}</div>}
+      {error && <div className={styles.stateError}>{t('c3_entities.load_failed')}</div>}
+      {!isLoading && !error && sortedData.length === 0 && <div className={styles.empty}>{t('c3_entities.empty')}</div>}
       {!!data && sortedData.length > 0 && (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
@@ -318,7 +321,7 @@ export function C3EntityListPage({
                       onClick={() => handleSort(column)}
                       disabled={column.sortable === false}
                     >
-                      <span>{column.label}</span>
+                      <span>{t(column.label)}</span>
                       {column.sortable === false ? null : (
                         <span className={styles.sortIndicator}>
                           {sortKey === column.key ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
@@ -327,7 +330,7 @@ export function C3EntityListPage({
                     </button>
                   </th>
                 ))}
-                {showActionColumn && <th>Akce</th>}
+                {showActionColumn && <th>{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -345,13 +348,13 @@ export function C3EntityListPage({
                           const href = rowEditHref?.(row) ?? null;
                           return href ? (
                             <Link href={href} className={styles.buttonSecondary}>
-                              Edit
+                              {t('common.edit')}
                             </Link>
                           ) : '—';
                         })()
                       ) : hasInlineEdit ? (
                         <button type="button" className={styles.buttonSecondary} onClick={() => startEdit(row)}>
-                          Edit
+                          {t('common.edit')}
                         </button>
                       ) : '—'}
                     </td>
@@ -370,7 +373,7 @@ export function C3EntityListPage({
   return (
     <C3EntityWorkspace className={styles.shell}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>{title}</h1>
+        <h1 className={styles.pageTitle}>{t(title)}</h1>
       </div>
       <div className={styles.body}>{content}</div>
     </C3EntityWorkspace>

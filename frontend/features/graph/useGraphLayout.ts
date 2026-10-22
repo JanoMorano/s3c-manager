@@ -64,7 +64,7 @@ interface LocalState {
 }
 
 export function useGraphLayout(viewKey: string | null) {
-  const { data, mutate } = useSWR<GraphLayoutResponse>(
+  const { data, mutate, isLoading } = useSWR<GraphLayoutResponse>(
     viewKey ? graphLayoutUrl(viewKey) : null,
     apiFetch,
     { revalidateOnFocus: false },
@@ -123,6 +123,8 @@ export function useGraphLayout(viewKey: string | null) {
     canSave,
     saveError,
     hasCustomLayout: positions.size > 0,
+    /** True until saved positions are fetched, so the canvas can wait before framing the view. */
+    loading: isLoading,
     onNodeDragStop,
     resetLayout,
   };

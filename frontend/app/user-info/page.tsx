@@ -20,6 +20,7 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import type { ServiceListResponse, ServiceListItem } from '@/features/services/model/service.types';
 import { useRouter } from 'next/navigation';
 import type { Locale } from '@/app/i18n/messages';
+import { formatCountLabel } from '@/app/lib/counts';
 
 // ── Avatar colour palette ─────────────────────────────────────────────────────
 const PALETTE = [
@@ -274,10 +275,6 @@ export default function UserInfoPage() {
       <PageHeader
         title={t('user_info.title')}
         purpose={t('user_info.account_security_purpose')}
-        chips={[
-          { label: me?.role ?? 'role', tone: 'info' },
-          { label: me?.auth_provider ?? 'local', tone: 'neutral' },
-        ]}
       />
 
       {/* ── Account card ─────────────────────────────────────────────────── */}
@@ -531,7 +528,11 @@ export default function UserInfoPage() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>{t('user_info.owned_services_title')}</span>
             {ownedSvcResp && (
-              <span className={styles.sectionMeta}>{t('user_info.owned_services_count', { count: String(ownedSvcResp.total) })}</span>
+              <span className={styles.sectionMeta}>{formatCountLabel(ownedSvcResp.total, {
+                one: t('user_info.owned_services_count.one'),
+                few: t('user_info.owned_services_count.few'),
+                many: t('user_info.owned_services_count.many'),
+              })}</span>
             )}
           </div>
 

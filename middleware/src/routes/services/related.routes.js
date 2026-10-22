@@ -9,6 +9,7 @@ const relRepo = require('../../db/relations.repo');
 const audit = require('../../db/audit.repo');
 const { canEdit } = require('../../middleware/rbac');
 const { getPool } = require('../../db/pool');
+const { refreshServiceScoreSafely } = require('../../services/completeness');
 
 const router = express.Router();
 
@@ -84,6 +85,7 @@ router.put('/:id/domains', canEdit, async (req, res, next) => {
 
         await repo.setDomains(serviceId, domains);
         await audit.log({ tableName: 'ServiceAvailableOn', recordId: null, recordLabel: serviceId, action: 'UPDATE', newValues: { domains }, performedBy: req.user.username, clientIp: req.ip });
+        await refreshServiceScoreSafely(serviceId);
 
         const updated = await repo.findByServiceId(serviceId);
         res.json({ service_id: serviceId, available_on: updated.available_on });
@@ -129,6 +131,7 @@ router.put('/:id/roles', canEdit, async (req, res, next) => {
 
         await repo.setRole(serviceId, roleCode, displayName || null, email || null, orgName || null);
         await audit.log({ tableName: 'ServiceRoleAssignment', recordId: null, recordLabel: serviceId, action: 'UPDATE', newValues: { roleCode, displayName, email }, performedBy: req.user.username, clientIp: req.ip });
+        await refreshServiceScoreSafely(serviceId);
 
         const updated = await repo.findByServiceId(serviceId);
         res.json({

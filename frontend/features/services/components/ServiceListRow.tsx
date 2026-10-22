@@ -8,6 +8,7 @@ import { ProgressBar } from '@/design-system/controls';
 import { cn } from '@/shared/utils/cn';
 import type { ServiceListItem } from '../model/service.types';
 import type { SortField, SortOrder } from '../api/services.api';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './ServiceListRow.module.css';
 
 function hasC3Mapping(service: ServiceListItem) {
@@ -15,17 +16,25 @@ function hasC3Mapping(service: ServiceListItem) {
   return (service.c3_mapping_count ?? 0) > 0;
 }
 
-function readinessTone(score: number): 'success' | 'warning' | 'danger' {
+type ReadinessTone = 'success' | 'warning' | 'danger';
+
+// Colour and label follow the readiness rules (the readiness gate); the bar
+// shows completeness. Older payloads without readiness_state fall back to
+// completeness bands.
+function readinessTone(score: number, state: ServiceListItem['readiness_state']): ReadinessTone {
+  if (state === 'blocked') return 'danger';
+  if (state === 'warning') return 'warning';
+  if (state === 'ready') return 'success';
   if (score >= 80) return 'success';
   if (score >= 50) return 'warning';
   return 'danger';
 }
 
-function readinessLabel(score: number, service: ServiceListItem) {
-  if (score < 50) return `${score}% · blocker`;
-  if (score < 80) return `${score}% · warning`;
-  if (!service.short_description) return `${score}% · summary`;
-  return `${score}% · ready`;
+function readinessStateKey(service: ServiceListItem) {
+  if (service.readiness_state === 'blocked') return 'service_list.row.state.blocked';
+  if (service.readiness_state === 'warning') return 'service_list.row.state.warning';
+  if (service.readiness_state === 'ready') return 'service_list.row.state.ready';
+  return null;
 }
 
 function ownerLabel(service: ServiceListItem) {
@@ -33,17 +42,17 @@ function ownerLabel(service: ServiceListItem) {
 }
 
 function capabilityLabel(service: ServiceListItem) {
-  return service.primary_capability_title ?? service.primary_capability_code ?? (hasC3Mapping(service) ? 'Mapped capability' : null);
+  return service.primary_capability_title ?? service.primary_capability_code ?? null;
 }
 
-function nextAction(service: ServiceListItem) {
+function nextActionKey(service: ServiceListItem) {
   const score = service.completeness_score ?? 0;
-  if (!ownerLabel(service)) return 'Přiřadit ownera';
-  if (!hasC3Mapping(service)) return 'Doplnit capability';
-  if (score < 50) return 'Doplnit readiness';
-  if (score < 80) return 'Spustit review';
-  if (service.lifecycle_state === 'deprecated') return 'Ověřit náhradu';
-  return 'Otevřít';
+  if (!ownerLabel(service)) return 'service_list.row.action.assign_owner';
+  if (!hasC3Mapping(service)) return 'service_list.row.action.map_capability';
+  if (service.readiness_state === 'blocked') return 'service_list.row.action.fix_readiness';
+  if (service.readiness_state === 'warning' || score < 80) return 'service_list.row.action.start_review';
+  if (service.lifecycle_state === 'deprecated') return 'service_list.row.action.verify_replacement';
+  return 'service_list.row.action.open';
 }
 
 interface ServiceListRowProps {
@@ -52,9 +61,17 @@ interface ServiceListRowProps {
 }
 
 export function ServiceListRow({ service, selected }: ServiceListRowProps) {
+  const t = useT();
   const score = service.completeness_score ?? 0;
   const owner = ownerLabel(service);
-  const capability = capabilityLabel(service);
+  const stateKey = readinessStateKey(service);
+  const capabilityMapped = hasC3Mapping(service);
+  const issueCount = service.readiness_state === 'blocked'
+    ? service.readiness_blocker_count ?? 0
+    : service.readiness_state === 'warning'
+      ? service.readiness_warning_count ?? 0
+      : 0;
+  const capability = capabilityLabel(service) ?? (capabilityMapped ? t('service_list.row.mapped_capability') : null);
 
   return (
     <Link
@@ -64,9 +81,9 @@ export function ServiceListRow({ service, selected }: ServiceListRowProps) {
       <div className={styles.colService}>
         <span className={styles.titleLine}>
           <span className={styles.title}>{service.title}</span>
-          {service.requestable && <span className={styles.requestableChip}>Requestable</span>}
+          {service.requestable && <span className={styles.requestableChip}>{t('service_list.row.requestable')}</span>}
         </span>
-        <span className={styles.serviceMeta}>{service.service_id} · {service.service_type ?? 'untyped'} · {service.portfolio_group ?? 'no portfolio'}</span>
+        <span className={styles.serviceMeta}>{service.service_id} · {service.service_type ?? t('service_list.row.untyped')} · {service.portfolio_group ?? t('service_list.row.no_portfolio')}</span>
         {service.short_description && <span className={styles.desc}>{service.short_description}</span>}
       </div>
 
@@ -81,25 +98,29 @@ export function ServiceListRow({ service, selected }: ServiceListRowProps) {
             {service.manager && service.manager !== owner && <span className={styles.ownerOrg}>{service.manager}</span>}
           </>
         ) : (
-          <span className={styles.ownerMissing}>— bez ownera</span>
+          <span className={styles.ownerMissing}>— {t('service_list.row.no_owner')}</span>
         )}
       </div>
 
       <div className={styles.colReadiness}>
-        <ProgressBar value={score} tone={readinessTone(score)} label={`${service.title} readiness`} />
-        <span className={styles.readinessText}>{readinessLabel(score, service)}</span>
+        <ProgressBar value={score} tone={readinessTone(score, service.readiness_state)} label={t('service_list.row.completeness_aria', { title: service.title })} />
+        <span className={styles.readinessText} title={t('service_list.row.readiness_title')}>
+          {score} %
+          {stateKey && <> · <span className={styles[`readiness_${service.readiness_state}`]}>{t(stateKey)}</span></>}
+          {issueCount > 0 && <> ({issueCount})</>}
+        </span>
       </div>
 
       <div className={styles.colCapability}>
         {capability ? (
           <span className={styles.capability}>{capability}</span>
         ) : (
-          <span className={styles.capabilityMissing}>— nemapováno</span>
+          <span className={styles.capabilityMissing}>— {t('service_list.row.not_mapped')}</span>
         )}
       </div>
 
       <div className={styles.colNextAction}>
-        <span>{nextAction(service)} →</span>
+        <span>{t(nextActionKey(service))} →</span>
       </div>
     </Link>
   );
@@ -115,6 +136,7 @@ export function ServiceListHeader({
   order: SortOrder;
   onSort: (field: SortField) => void;
 }) {
+  const t = useT();
   const label = (field: SortField, text: string) => {
     const active = sort === field;
     const suffix = active ? (order === 'ASC' ? ' ↑' : ' ↓') : '';
@@ -131,12 +153,12 @@ export function ServiceListHeader({
 
   return (
     <div className={cn(styles.row, styles.header)}>
-      <div className={styles.colService}>{label('title', 'Service')}</div>
-      <div className={styles.colLifecycle}>{label('service_status', 'Lifecycle')}</div>
-      <div className={styles.colOwner}>Owner</div>
-      <div className={styles.colReadiness}>Readiness</div>
-      <div className={styles.colCapability}>Capability</div>
-      <div className={styles.colNextAction}>Next action</div>
+      <div className={styles.colService}>{label('title', t('service_list.column.service'))}</div>
+      <div className={styles.colLifecycle}>{label('service_status', t('service_list.column.lifecycle'))}</div>
+      <div className={styles.colOwner}>{t('service_list.column.owner')}</div>
+      <div className={styles.colReadiness}>{t('service_list.column.readiness')}</div>
+      <div className={styles.colCapability}>{t('service_list.column.capability')}</div>
+      <div className={styles.colNextAction}>{t('service_list.column.next_action')}</div>
     </div>
   );
 }

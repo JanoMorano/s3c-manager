@@ -17,7 +17,7 @@ import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { CapabilityLinksPanel } from '@/features/c3/components/CapabilityLinksPanel';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useLocale, useT } from '@/app/i18n/useI18n';
 import { formatCapabilityTimestamp, sortCapabilityParentItems } from '../locale-utils';
 import styles from '../../../app/admin/c3/c3.module.css';
 import editorStyles from '../../../app/services/[id]/edit/editor.module.css';
@@ -135,6 +135,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
   const uuid = initialUuid ?? resolvedParams?.uuid ?? '';
   const isEdit = mode === 'edit';
   const locale = useLocale();
+  const t = useT();
   const [role]                    = useState<string | null>(() => getAuthSnapshot()?.role ?? null);
   const [form, setForm]           = useState<FormState | null>(null);
   const [saving, setSaving]       = useState(false);
@@ -177,13 +178,13 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
     if (!source) return [];
     const externalId = isEdit ? source.external_id : item?.external_id;
     return [
-      !String(source.title ?? '').trim() ? 'Title je povinný.' : null,
-      !String(source.item_type ?? '').trim() ? 'Item Type by měl být vyplněný.' : null,
-      !String(externalId ?? '').trim() ? 'External ID / Page zatím není vyplněné.' : null,
+      !String(source.title ?? '').trim() ? t('capability_detail.c3.validation.title_required') : null,
+      !String(source.item_type ?? '').trim() ? t('capability_detail.c3.validation.item_type_missing') : null,
+      !String(externalId ?? '').trim() ? t('capability_detail.c3.validation.external_id_missing') : null,
       item?.level_num && item.level_num > 1 && !String(source.parent_uuid ?? source.parent_code ?? '').trim()
-        ? 'Capability nad kořenem by měla mít vyplněný Parent.' : null,
+        ? t('capability_detail.c3.validation.parent_missing') : null,
     ].filter(Boolean) as string[];
-  }, [form, isEdit, item]);
+  }, [form, isEdit, item, t]);
 
   // ── Save / discard ────────────────────────────────────────────────────
   async function doSave() {
@@ -203,7 +204,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || 'Uložení selhalo');
+        throw new Error(text || t('capability_detail.c3.save_failed'));
       }
       await Promise.all([
         globalMutate(`${BASE}/c3/${encodeURIComponent(uuid)}`),
@@ -212,7 +213,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
       setSaved(true);
       setIsDirty(false);
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Chyba při ukládání');
+      setSaveError(err instanceof Error ? err.message : t('capability_detail.c3.save_error'));
     } finally {
       setSaving(false);
     }
@@ -231,10 +232,10 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
   }
 
   // ── Guards ────────────────────────────────────────────────────────────
-  if (isLoading) return <div className={editorStyles.state}>Načítám…</div>;
-  if (error)     return <div className={editorStyles.state}>Chyba: {error.message}</div>;
+  if (isLoading) return <div className={editorStyles.state}>{t('common.loading')}</div>;
+  if (error)     return <div className={editorStyles.state}>{t('capability_detail.c3.load_error', { message: error.message })}</div>;
   if (!item)     return null;
-  if (isEdit && !form) return <div className={editorStyles.state}>Načítám formulář…</div>;
+  if (isEdit && !form) return <div className={editorStyles.state}>{t('capability_detail.c3.loading_form')}</div>;
 
   const displayCode  = item.external_id ?? item.uuid;
   const editForm     = form ?? itemToForm(item);
@@ -245,12 +246,12 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
   const saveState: SaveState = saving ? 'saving' : saved ? 'saved' : saveError ? 'error' : isDirty ? 'dirty' : 'clean';
 
   const editorSections: EditorSubNavSection[] = [
-    { id: 'classification', label: '0. Klasifikace & hierarchie' },
-    { id: 'identity',       label: '1. Identifikace' },
-    { id: 'description',    label: '2. Popis' },
-    { id: 'source',         label: '3. Zdroj & kvalita dat' },
-    { id: 'links',          label: '4. Vazby & úplnost', badge: undefined },
-    { id: 'raw',            label: '5. Raw JSON / text' },
+    { id: 'classification', label: t('capability_detail.c3.section.classification') },
+    { id: 'identity',       label: t('capability_detail.c3.section.identity') },
+    { id: 'description',    label: t('capability_detail.c3.section.description') },
+    { id: 'source',         label: t('capability_detail.c3.section.source') },
+    { id: 'links',          label: t('capability_detail.c3.section.links_nav'), badge: undefined },
+    { id: 'raw',            label: t('capability_detail.c3.section.raw_nav') },
   ];
 
   return (
@@ -258,19 +259,12 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
       {/* ── PageHeader (spec v2 §8) ───────────────────────────────────── */}
       <PageHeader
         title={item.title}
-        purpose={`C3 Capability · ${item.item_type ?? 'CP'} · ${displayCode}`}
-        chips={[
-          { label: isEdit ? 'Edit' : 'View',        tone: isEdit ? 'warn' : 'neutral' },
-          { label: item.item_status ?? 'unknown',   tone: 'neutral' },
-          ...(validationIssues.length > 0
-            ? [{ label: `${validationIssues.length} chyb`, tone: 'bad' as const }]
-            : [{ label: 'Valid', tone: 'ok' as const }]),
-        ]}
+        purpose={t('capability_detail.c3.purpose', { type: item.item_type ?? 'CP', code: displayCode })}
         primaryAction={
           isEdit
-            ? { label: 'Náhled', href: `/c3/${encodeURIComponent(uuid)}` }
+            ? { label: t('capability_detail.c3.preview'), href: `/c3/${encodeURIComponent(uuid)}` }
             : canEdit
-              ? { label: 'Edit', href: `/c3/${encodeURIComponent(uuid)}/edit` }
+              ? { label: t('common.edit'), href: `/c3/${encodeURIComponent(uuid)}/edit` }
               : undefined
         }
       />
@@ -279,7 +273,7 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
         {/* ── Summary strip ─────────────────────────────────────────── */}
         <div className={detailStyles.summaryStrip}>
           <div className={detailStyles.summaryItem}>
-            <span className={detailStyles.summaryLabel}>External ID</span>
+            <span className={detailStyles.summaryLabel}>{t('capability_detail.c3.field.external_id')}</span>
             <span className={detailStyles.summaryValue}>{displayCode}</span>
           </div>
           {isAdmin && (
@@ -289,11 +283,11 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
             </div>
           )}
           <div className={detailStyles.summaryItem}>
-            <span className={detailStyles.summaryLabel}>Parent</span>
+            <span className={detailStyles.summaryLabel}>{t('capability_detail.c3.field.parent')}</span>
             <span className={detailStyles.summaryValue}>{parentItem?.title ?? item.parent_title ?? item.parent_code ?? '—'}</span>
           </div>
           <div className={detailStyles.summaryItem}>
-            <span className={detailStyles.summaryLabel}>Modified</span>
+            <span className={detailStyles.summaryLabel}>{t('capability_detail.c3.field.modified')}</span>
             <span className={detailStyles.summaryValue}>{formatCapabilityTimestamp(locale, item.modification_date)}</span>
           </div>
         </div>
@@ -301,8 +295,8 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
         {/* ── EditorSubNav + content (spec v2 §8) ──────────────────── */}
         <div className={editorStyles.editorBody}>
           <EditorSubNav
-            title="Capability editor"
-            summary="Přejděte na sekci kliknutím nebo posuňte stránku."
+            title={t('capability_detail.c3.editor_title')}
+            summary={t('capability_detail.c3.editor_summary')}
             sections={editorSections}
             onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
@@ -311,20 +305,20 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
             {isEdit ? (
               <form id="c3-detail-form" onSubmit={handleSave}>
 
-                {/* 0. Klasifikace & hierarchie */}
-                <FormSection id="classification" title="0. Klasifikace & hierarchie">
+                {/* 0. Classification & hierarchy */}
+                <FormSection id="classification" title={t('capability_detail.c3.section.classification')}>
                   <div className={styles.editFieldGrid}>
-                    <FieldBlock label="Item Type">
+                    <FieldBlock label={t('capability_detail.c3.field.item_type')}>
                       <select className={styles.editInput} value={editForm.item_type ?? ''} onChange={(e) => set('item_type', e.target.value)}>
-                        <option value="">— neurčeno —</option>
+                        <option value="">{t('capability_detail.c3.option_unset')}</option>
                         {(c3Types ?? []).map((type) => (
                           <option key={type.code} value={type.code}>{type.code}</option>
                         ))}
                       </select>
                     </FieldBlock>
-                    <FieldBlock label="Nadřazená schopnost (Parent)">
+                    <FieldBlock label={t('capability_detail.c3.field.parent_select')}>
                       <select className={styles.editInput} value={editForm.parent_uuid ?? ''} onChange={(e) => set('parent_uuid', e.target.value)}>
-                        <option value="">— žádný (kořenová schopnost) —</option>
+                        <option value="">{t('capability_detail.c3.option_root')}</option>
                         {sortedParentItems.map((entry) => (
                           <option key={entry.uuid} value={entry.uuid}>
                             {entry.external_id ? `[${entry.external_id}] ` : ''}{entry.title}
@@ -335,96 +329,96 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
                   </div>
                 </FormSection>
 
-                {/* 1. Identifikace */}
-                <FormSection id="identity" title="1. Identifikace">
+                {/* 1. Identification */}
+                <FormSection id="identity" title={t('capability_detail.c3.section.identity')}>
                   <div className={styles.editFieldGrid}>
-                    <FieldBlock label="Title *">
+                    <FieldBlock label={t('capability_detail.c3.field.title_required')}>
                       <input className={styles.editInput} required value={editForm.title} onChange={(e) => set('title', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Application (domain)">
+                    <FieldBlock label={t('capability_detail.c3.field.application')}>
                       <input className={styles.editInput} value={editForm.application ?? ''} onChange={(e) => set('application', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Item status">
+                    <FieldBlock label={t('capability_detail.c3.field.item_status')}>
                       <select className={styles.editInput} value={editForm.item_status ?? ''} onChange={(e) => set('item_status', e.target.value)}>
-                        <option value="">— neurčeno —</option>
+                        <option value="">{t('capability_detail.c3.option_unset')}</option>
                         {(c3Statuses ?? []).map((status) => (
                           <option key={status} value={status}>{status}</option>
                         ))}
                       </select>
                     </FieldBlock>
-                    <FieldBlock label="External ID">
+                    <FieldBlock label={t('capability_detail.c3.field.external_id')}>
                       <input className={styles.editInput} value={editForm.external_id ?? ''} onChange={(e) => set('external_id', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Order #">
+                    <FieldBlock label={t('capability_detail.c3.field.order')}>
                       <input className={styles.editInput} type="number" value={editForm.order_num ?? ''} onChange={(e) => set('order_num', e.target.value ? parseInt(e.target.value, 10) : null)} />
                     </FieldBlock>
-                    <FieldBlock label="Abbreviation">
+                    <FieldBlock label={t('capability_detail.c3.field.abbreviation')}>
                       <input className={styles.editInput} value={editForm.abbreviation ?? ''} onChange={(e) => set('abbreviation', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Synonym">
+                    <FieldBlock label={t('capability_detail.c3.field.synonym')}>
                       <input className={styles.editInput} value={editForm.synonym ?? ''} onChange={(e) => set('synonym', e.target.value)} />
                     </FieldBlock>
                   </div>
                 </FormSection>
 
-                {/* 2. Popis */}
-                <FormSection id="description" title="2. Popis">
+                {/* 2. Description */}
+                <FormSection id="description" title={t('capability_detail.c3.section.description')}>
                   <div className={styles.editFieldStack}>
-                    <FieldBlock label="Description">
+                    <FieldBlock label={t('capability_detail.c3.field.description')}>
                       <textarea className={styles.editTextarea} rows={4} value={editForm.description ?? ''} onChange={(e) => set('description', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Source description">
+                    <FieldBlock label={t('capability_detail.c3.field.source_description')}>
                       <textarea className={styles.editTextarea} rows={3} value={editForm.source_description ?? ''} onChange={(e) => set('source_description', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Revised description">
+                    <FieldBlock label={t('capability_detail.c3.field.revised_description')}>
                       <textarea className={styles.editTextarea} rows={3} value={editForm.revised_description ?? ''} onChange={(e) => set('revised_description', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Revised (note)">
+                    <FieldBlock label={t('capability_detail.c3.field.revised_note')}>
                       <input className={styles.editInput} value={editForm.revised ?? ''} onChange={(e) => set('revised', e.target.value)} />
                     </FieldBlock>
                   </div>
                 </FormSection>
 
-                {/* 3. Zdroj & kvalita dat */}
-                <FormSection id="source" title="3. Zdroj & kvalita dat">
+                {/* 3. Source & data quality */}
+                <FormSection id="source" title={t('capability_detail.c3.section.source')}>
                   <div className={styles.editFieldGrid}>
-                    <FieldBlock label="Data qualifier">
+                    <FieldBlock label={t('capability_detail.c3.field.data_qualifier')}>
                       <input className={styles.editInput} value={editForm.data_qualifier ?? ''} onChange={(e) => set('data_qualifier', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="Data source">
+                    <FieldBlock label={t('capability_detail.c3.field.data_source')}>
                       <input className={styles.editInput} value={editForm.data_source ?? ''} onChange={(e) => set('data_source', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="SS overall status">
+                    <FieldBlock label={t('capability_detail.c3.field.ss_overall_status')}>
                       <input className={styles.editInput} value={editForm.ss_overall_status ?? ''} onChange={(e) => set('ss_overall_status', e.target.value)} />
                     </FieldBlock>
-                    <FieldBlock label="SS baseline status">
+                    <FieldBlock label={t('capability_detail.c3.field.ss_baseline_status')}>
                       <input className={styles.editInput} value={editForm.ss_baseline_status ?? ''} onChange={(e) => set('ss_baseline_status', e.target.value)} />
                     </FieldBlock>
                   </div>
                 </FormSection>
 
-                {/* 4. Vazby & úplnost capability */}
-                <FormSection id="links" title="4. Vazby & úplnost capability">
+                {/* 4. Capability links & completeness */}
+                <FormSection id="links" title={t('capability_detail.c3.section.links')}>
                   <CapabilityLinksPanel capabilityUuid={uuid} />
                 </FormSection>
 
                 {/* 5. Raw JSON / text */}
-                <FormSection id="raw" title="5. Strukturovaná data (raw JSON/text)">
+                <FormSection id="raw" title={t('capability_detail.c3.section.raw')}>
                   <div className={styles.editFieldStack}>
-                    <FieldBlock label="Script (raw)">
-                      <CodeEditor label="Script (raw)" language={rawLanguage(editForm.script_raw)} rows={5} value={editForm.script_raw ?? ''} onValueChange={(v) => set('script_raw', v)} />
+                    <FieldBlock label={t('capability_detail.c3.field.script_raw')}>
+                      <CodeEditor label={t('capability_detail.c3.field.script_raw')} language={rawLanguage(editForm.script_raw)} rows={5} value={editForm.script_raw ?? ''} onValueChange={(v) => set('script_raw', v)} />
                     </FieldBlock>
-                    <FieldBlock label="Datasets (raw)">
-                      <CodeEditor label="Datasets (raw)" language={rawLanguage(editForm.datasets_raw)} rows={5} value={editForm.datasets_raw ?? ''} onValueChange={(v) => set('datasets_raw', v)} />
+                    <FieldBlock label={t('capability_detail.c3.field.datasets_raw')}>
+                      <CodeEditor label={t('capability_detail.c3.field.datasets_raw')} language={rawLanguage(editForm.datasets_raw)} rows={5} value={editForm.datasets_raw ?? ''} onValueChange={(v) => set('datasets_raw', v)} />
                     </FieldBlock>
-                    <FieldBlock label="Standards (raw)">
-                      <CodeEditor label="Standards (raw)" language={rawLanguage(editForm.standards_raw)} rows={5} value={editForm.standards_raw ?? ''} onValueChange={(v) => set('standards_raw', v)} />
+                    <FieldBlock label={t('capability_detail.c3.field.standards_raw')}>
+                      <CodeEditor label={t('capability_detail.c3.field.standards_raw')} language={rawLanguage(editForm.standards_raw)} rows={5} value={editForm.standards_raw ?? ''} onValueChange={(v) => set('standards_raw', v)} />
                     </FieldBlock>
-                    <FieldBlock label="References (raw)">
-                      <CodeEditor label="References (raw)" language={rawLanguage(editForm.references_raw)} rows={5} value={editForm.references_raw ?? ''} onValueChange={(v) => set('references_raw', v)} />
+                    <FieldBlock label={t('capability_detail.c3.field.references_raw')}>
+                      <CodeEditor label={t('capability_detail.c3.field.references_raw')} language={rawLanguage(editForm.references_raw)} rows={5} value={editForm.references_raw ?? ''} onValueChange={(v) => set('references_raw', v)} />
                     </FieldBlock>
-                    <FieldBlock label="Provenance (raw)">
-                      <CodeEditor label="Provenance (raw)" language={rawLanguage(editForm.provenance_raw)} rows={5} value={editForm.provenance_raw ?? ''} onValueChange={(v) => set('provenance_raw', v)} />
+                    <FieldBlock label={t('capability_detail.c3.field.provenance_raw')}>
+                      <CodeEditor label={t('capability_detail.c3.field.provenance_raw')} language={rawLanguage(editForm.provenance_raw)} rows={5} value={editForm.provenance_raw ?? ''} onValueChange={(v) => set('provenance_raw', v)} />
                     </FieldBlock>
                   </div>
                 </FormSection>
@@ -433,59 +427,59 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
             ) : (
               /* ── Read-only view ────────────────────────────────────── */
               <div>
-                <FormSection id="classification" title="0. Klasifikace & hierarchie">
+                <FormSection id="classification" title={t('capability_detail.c3.section.classification')}>
                   <div className={styles.editFieldGrid}>
-                    <ReadonlyField label="Item Type"          value={item.item_type} />
-                    <ReadonlyField label="Application / doména" value={item.application} />
-                    <ReadonlyField label="Level"              value={item.level_num} />
-                    <ReadonlyField label="Item status"        value={item.item_status} />
-                    <ReadonlyField label="Parent capability"  value={parentDisplay} />
-                    {isAdmin && <ReadonlyField label="Parent UUID" value={item.parent_uuid} mono />}
+                    <ReadonlyField label={t('capability_detail.c3.field.item_type')}          value={item.item_type} />
+                    <ReadonlyField label={t('capability_detail.c3.field.application')} value={item.application} />
+                    <ReadonlyField label={t('capability_detail.c3.field.level')}              value={item.level_num} />
+                    <ReadonlyField label={t('capability_detail.c3.field.item_status')}        value={item.item_status} />
+                    <ReadonlyField label={t('capability_detail.c3.field.parent_capability')}  value={parentDisplay} />
+                    {isAdmin && <ReadonlyField label={t('capability_detail.c3.field.parent_uuid')} value={item.parent_uuid} mono />}
                   </div>
                 </FormSection>
 
-                <FormSection id="identity" title="1. Identifikace">
+                <FormSection id="identity" title={t('capability_detail.c3.section.identity')}>
                   <div className={styles.editFieldGrid}>
                     {isAdmin && <ReadonlyField label="UUID"           value={item.uuid} mono />}
-                    <ReadonlyField label="Page / External ID"         value={item.external_id} mono />
-                    <ReadonlyField label="Source External ID"         value={item.source_external_id} mono />
-                    <ReadonlyField label="Order"                      value={item.order_num} />
-                    <ReadonlyField label="Abbreviation"               value={item.abbreviation} />
-                    <ReadonlyField label="Synonym"                    value={item.synonym} />
+                    <ReadonlyField label={t('capability_detail.c3.field.page_external_id')}         value={item.external_id} mono />
+                    <ReadonlyField label={t('capability_detail.c3.field.source_external_id')}         value={item.source_external_id} mono />
+                    <ReadonlyField label={t('capability_detail.c3.field.order')}                      value={item.order_num} />
+                    <ReadonlyField label={t('capability_detail.c3.field.abbreviation')}               value={item.abbreviation} />
+                    <ReadonlyField label={t('capability_detail.c3.field.synonym')}                    value={item.synonym} />
                   </div>
                 </FormSection>
 
-                <FormSection id="description" title="2. Popis">
+                <FormSection id="description" title={t('capability_detail.c3.section.description')}>
                   <div className={styles.editFieldStack}>
-                    <ReadonlyArea label="Description"         value={item.description} />
-                    <ReadonlyArea label="Source description"  value={item.source_description} />
-                    <ReadonlyArea label="Revised description" value={item.revised_description} />
-                    <ReadonlyField label="Revised"            value={item.revised} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.description')}         value={item.description} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.source_description')}  value={item.source_description} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.revised_description')} value={item.revised_description} />
+                    <ReadonlyField label={t('capability_detail.c3.field.revised')}            value={item.revised} />
                   </div>
                 </FormSection>
 
-                <FormSection id="source" title="3. Zdroj & kvalita dat">
+                <FormSection id="source" title={t('capability_detail.c3.section.source')}>
                   <div className={styles.editFieldGrid}>
-                    <ReadonlyField label="Data qualifier"     value={item.data_qualifier} />
-                    <ReadonlyField label="Data source"        value={item.data_source} />
-                    <ReadonlyField label="SS overall status"  value={item.ss_overall_status} />
-                    <ReadonlyField label="SS baseline status" value={item.ss_baseline_status} />
-                    <ReadonlyField label="Modification date"  value={formatCapabilityTimestamp(locale, item.modification_date)} />
-                    <ReadonlyField label="Synced at"          value={formatCapabilityTimestamp(locale, item.synced_at)} />
+                    <ReadonlyField label={t('capability_detail.c3.field.data_qualifier')}     value={item.data_qualifier} />
+                    <ReadonlyField label={t('capability_detail.c3.field.data_source')}        value={item.data_source} />
+                    <ReadonlyField label={t('capability_detail.c3.field.ss_overall_status')}  value={item.ss_overall_status} />
+                    <ReadonlyField label={t('capability_detail.c3.field.ss_baseline_status')} value={item.ss_baseline_status} />
+                    <ReadonlyField label={t('capability_detail.c3.field.modification_date')}  value={formatCapabilityTimestamp(locale, item.modification_date)} />
+                    <ReadonlyField label={t('capability_detail.c3.field.synced_at')}          value={formatCapabilityTimestamp(locale, item.synced_at)} />
                   </div>
                 </FormSection>
 
-                <FormSection id="links" title="4. Vazby & úplnost capability">
+                <FormSection id="links" title={t('capability_detail.c3.section.links')}>
                   <CapabilityLinksPanel capabilityUuid={uuid} readOnly />
                 </FormSection>
 
-                <FormSection id="raw" title="5. Strukturovaná data (raw JSON/text)">
+                <FormSection id="raw" title={t('capability_detail.c3.section.raw')}>
                   <div className={styles.editFieldStack}>
-                    <ReadonlyArea label="Script (raw)"     value={item.script_raw} />
-                    <ReadonlyArea label="Datasets (raw)"   value={item.datasets_raw} />
-                    <ReadonlyArea label="Standards (raw)"  value={item.standards_raw} />
-                    <ReadonlyArea label="References (raw)" value={item.references_raw} />
-                    <ReadonlyArea label="Provenance (raw)" value={item.provenance_raw} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.script_raw')}     value={item.script_raw} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.datasets_raw')}   value={item.datasets_raw} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.standards_raw')}  value={item.standards_raw} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.references_raw')} value={item.references_raw} />
+                    <ReadonlyArea label={t('capability_detail.c3.field.provenance_raw')} value={item.provenance_raw} />
                   </div>
                 </FormSection>
               </div>
@@ -495,18 +489,18 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
           {/* ── Right rail: validation only ────────────────────────── */}
           <aside className={editorStyles.rail}>
             <div className={editorStyles.railCard}>
-              <div className={editorStyles.railTitle}>Validation</div>
+              <div className={editorStyles.railTitle}>{t('capability_detail.c3.validation_title')}</div>
               {validationIssues.length > 0 ? (
                 validationIssues.map((issue) => (
                   <div key={issue} className={editorStyles.validationError}>{issue}</div>
                 ))
               ) : (
-                <div className={editorStyles.validOk}>No errors</div>
+                <div className={editorStyles.validOk}>{t('capability_detail.c3.no_errors')}</div>
               )}
             </div>
             {!isEdit && canEdit && (
               <div className={editorStyles.railCard}>
-                <Link href={`/c3/${encodeURIComponent(uuid)}/edit`} className={detailStyles.editBtn}>Edit</Link>
+                <Link href={`/c3/${encodeURIComponent(uuid)}/edit`} className={detailStyles.editBtn}>{t('common.edit')}</Link>
               </div>
             )}
           </aside>
@@ -518,8 +512,8 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
         <StickySaveBar
           state={saveState}
           message={saveError ?? undefined}
-          primaryLabel="Uložit změny"
-          secondaryLabel="Zahodit"
+          primaryLabel={t('layout.save_bar.save_changes')}
+          secondaryLabel={t('layout.save_bar.discard')}
           disabled={!isDirty || validationIssues.length > 0}
           onSave={() => void doSave()}
           onDiscard={handleReset}

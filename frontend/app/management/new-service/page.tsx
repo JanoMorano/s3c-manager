@@ -2,29 +2,30 @@
 /**
  * Service Onboarding Wizard — /management/new-service/page.tsx
  *
- * Multi-step průvodce založením služby do katalogu.
+ * Multi-step wizard for adding a service to the catalogue.
  *
  * Kroky:
  *   1  Identita           — Service ID, Title, Type, Lifecycle
  *   2  Popis a hodnota    — summary, consumer_value
- *   3  Přístup & Audience — requestable, request model, target audience
+ *   3  Access & audience — requestable, request model, target audience
  *   4  Klasifikace        — portfolio, service_line, org_element, security
- *   5  Vlastnictví        — service_owner, vlastnik, manager
- *   6  SLA & Domény       — availability, SLA, domains
- *   7  C3 mapování        — (podmíněno instalací modulu C3_TAXONOMY)
- *   8  Přehled & Vytvoření
+ *   5  Ownership          — service_owner, vlastnik, manager
+ *   6  SLA & domains      — availability, SLA, domains
+ *   7  C3 mapping         — (only when the C3_TAXONOMY module is installed)
+ *   8  Review & create
  *
- * Každé pole má:
- *   - krátkou produktovou nápovědu inline (italic, muted)
- *   - ? tlačítko s delším vysvětlením (Radix Tooltip)
- *   - placeholder v modré kurzívě (ukázkové hodnoty)
+ * Every field has:
+ *   - a short inline hint (italic, muted)
+ *   - a ? button with a longer explanation (Radix Tooltip)
+ *   - a placeholder in blue italics (example values)
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { cloneElement, isValidElement, useState, useCallback, useEffect, useId, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { optionalNumber } from '@/shared/utils/zodFields';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
 import Link from '@/app/components/AppLink';
@@ -38,123 +39,53 @@ import { authHeaders } from '@/features/services/api/services.api';
 import { updateDomains, updateRole } from '@/features/services/api/editor.api';
 import { useInstallStatus } from '@/features/install/installStatus';
 import { Button } from '@/design-system/controls/Button';
+import { useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 
 import styles from './wizard.module.css';
 
 // ── Product help text per field ──────────────────────────────────────────────
 
-const HELP: Record<string, { short: string; long: string }> = {
-  service_id: {
-    short: 'Unikátní kód, max 20 znaků (doporučení: PREFIX + číslice)',
-    long: 'Stabilní identifikátor služby. Doporučená konvence: 3-4 písmena prefixu + číselný kód, např. WPS001 = Workplace Services #001. Kód se nemění a používá se v reportech, importech a URL.',
-  },
-  title: {
-    short: 'Celý název srozumitelný pro uživatele — bez zkratek',
-    long: 'Název má být jasný pro konzumenta, ne pro implementační tým. Popište hodnotu, kterou služba přináší, ne způsob implementace. Příklad: "Firemní mobilní zařízení" místo "MDM Provisioning".',
-  },
-  service_type: {
-    short: 'Kategorie dle interní taxonomie typů služeb',
-    long: 'Typ služby definuje charakter dodávky. CF = Core Function (primární IT služby), EF = Enabling Function (podpůrné služby), EP = External Provider (3. strana). Správné zařazení je klíčové pro portfolio management a reporting.',
-  },
-  lifecycle_state: {
-    short: 'Aktuální stav v životním cyklu — určuje viditelnost v katalogu',
-    long: 'Životní cyklus služby: Draft (návrh), Live (publikováno), Deprecated (zastaralé) nebo Retired (staženo). Review a schvalování se řeší samostatně v governance workflow.',
-  },
-  summary: {
-    short: 'Krátký popis pro zobrazení v katalogu — 1–2 věty',
-    long: 'Service Summary je první věc, kterou konzument v katalogu vidí. Piš z pohledu uživatele: co dostane a proč mu to pomůže. Doporučená délka: 1–2 věty, max 200 znaků. Vyhni se technickému žargonu.',
-  },
-  consumer_value: {
-    short: 'Konkrétní hodnota nebo přínos, který konzument získá',
-    long: 'Popište konkrétní výsledek nebo přínos pro konzumenta. Příklad: "Přístup k emailu a kalendáři z jakéhokoli zařízení, spolehlivý provoz s 99,9 % SLA a bezpečným šifrováním."',
-  },
-  requestable: {
-    short: 'Může konzument tuto službu objednat z katalogu?',
-    long: 'Zapněte jen tehdy, když existuje jasný kanál, přes který si konzument službu vyžádá. Pokud není zapnuto, služba je pouze informativní nebo se přiděluje mimo katalog.',
-  },
-  request_channel_type: {
-    short: 'Jak konzumenti podávají žádost o tuto službu',
-    long: 'Vyberte vstupní bod pro objednání služby. Příklady kanálů: ITSM portál, e-mail, self-service portál, Teams nebo telefon.',
-  },
-  request_channel_url: {
-    short: 'Přímý odkaz na portál nebo formulář pro objednávky',
-    long: 'Přímý URL odkaz na portál nebo formulář, přes který konzumenti podávají žádosti. Zjednodušuje cestu konzumenta — z detailu služby může rovnou přejít k objednávce bez hledání správného místa.',
-  },
-  approval_required: {
-    short: 'Vyžaduje žádost schválení před zahájením fulfillmentu?',
-    long: 'Některé služby vyžadují formální schválení před fulfillmentem — rozpočtová autorizace, bezpečnostní posouzení nebo souhlas nadřízeného. Pokud zapnuto, žádost vstupuje do approval workflow před spuštěním dodávky.',
-  },
-  fulfillment_lead_time_text: {
-    short: 'Očekávaná doba od podání žádosti do dodání služby',
-    long: 'Uveďte realistickou dobu dodání včetně případného schválení. Příklady: "Tentýž pracovní den", "1–2 pracovní dny", "2–4 týdny (včetně schválení)". Konzumenti tuto dobu vidí v katalogu.',
-  },
-  target_audience_summary: {
-    short: 'Komu je tato služba určena — oprávněná skupina uživatelů',
-    long: 'Popište oprávněnou skupinu konzumentů, aby uživatel hned poznal, zda má na službu nárok. Příklady: "Všichni zaměstnanci", "Pouze IT personál", "Projektoví manažeři ve schválených cost centrech".',
-  },
-  portfolio_group_code: {
-    short: 'Portfolio, do kterého tato služba patří — governance a reporting',
-    long: 'Služby jsou seskupeny do portfolií pro governance, rozpočtování a reporting. Portfolio group určuje vlastnický řetězec, alokaci rozpočtu a který portfolio review board službu spravuje.',
-  },
-  service_line_code: {
-    short: 'Service line pro sdružení příbuzných služeb',
-    long: 'Service Line je logické seskupení příbuzných služeb pod společné provozní a finanční řízení. Pomáhá při horizontálním srovnávání nákladů a kapacity mezi službami stejného charakteru.',
-  },
-  organizational_element_code: {
-    short: 'Útvar nebo tým zodpovědný za provoz a financování',
-    long: 'Organizační element identifikuje útvar (oddělení, tým, business unit), který je zodpovědný za financování a provoz služby. Používá se pro charge-back/show-back reporting a governance.',
-  },
-  global_service_group_code: {
-    short: 'Globální seskupení pro cross-portfolio reporting',
-    long: 'Global Service Group seskupuje služby napříč portfolii pro reporting, srovnání a strategické hodnocení. Vyplňte jen tehdy, když organizace tento řez skutečně používá.',
-  },
-  security_classification: {
-    short: 'Nejvyšší úroveň citlivosti dat zpracovávaných touto službou',
-    long: 'Indikuje nejvyšší úroveň citlivosti dat, která tato služba zpracovává. Používá se pro řízení přístupu, compliance reporting a eligibility konzumentů. Navazuje na interní klasifikační schéma (ISO 27001 nebo NIST).',
-  },
-  service_owner: {
-    short: 'Jméno primárně zodpovědné osoby za tuto službu end-to-end',
-    long: 'Service Owner odpovídá za službu end-to-end, zastupuje ji v governance fórech a schvaluje významné změny. Toto pole se zobrazuje na detailu služby.',
-  },
-  service_owner_email: {
-    short: 'Email Service Ownera — konzumenti jej mohou kontaktovat',
-    long: 'Email Service Ownera se zobrazuje na detailu služby jako kontakt pro eskalace nebo otázky k definici služby. Liší se od support kontaktu — Service Owner odpovídá za strategii, ne provoz.',
-  },
-  vlastnik: {
-    short: 'Vlastník oblasti — odpovědný za portfolio nebo doménu',
-    long: 'Vlastník oblasti odpovídá za skupinu příbuzných služeb nebo celou doménu. Hlídá sladění portfolia a je kontaktem pro business stakeholdery na vyšší úrovni.',
-  },
-  manager: {
-    short: 'Delivery Manager — zodpovídá za provozní dodávku',
-    long: 'Service Delivery Manager koordinuje každodenní provoz, SLA plnění a eskalace. Liší se od Service Ownera (strategie) — Delivery Manager řeší operativní problémy a komunikaci s resolver groups.',
-  },
-  sla_availability: {
-    short: 'Cílový uptime v % (např. 99,9 = max 8,7 h výpadku ročně)',
-    long: 'SLA Availability definuje % času, po které má být služba funkční. 99,9 % = max 8,7 h/rok. 99,5 % = max 43,8 h/rok. Zvolte realistický cíl odpovídající skutečné infrastrukturní kapacitě, ne aspiraci.',
-  },
-  domains: {
-    short: 'Síťové domény / zóny dostupnosti pro tuto službu',
-    long: 'Network Domains reprezentují fyzické nebo logické zóny dostupnosti. Mapování říká konzumentům, odkud mohou službu čerpat. Služby na více doménách mohou mít různé endpointy nebo support kontakty per doména.',
-  },
-  c3_mapping: {
-    short: 'Volitelné — namapujte službu na C3 capability taxonomii',
-    long: 'C3 (Capability, Capacity, Coverage) taxonomie mapuje IT služby na business capabilities. Mapování umožňuje reporting pokrytí capabilities, analýzu mezer a racionalizaci portfolia. Plné mapování dostupné v editoru po vytvoření.',
-  },
-};
+const HELP_FIELDS = new Set([
+  'service_id',
+  'title',
+  'service_type',
+  'lifecycle_state',
+  'summary',
+  'consumer_value',
+  'requestable',
+  'request_channel_type',
+  'request_channel_url',
+  'approval_required',
+  'fulfillment_lead_time_text',
+  'target_audience_summary',
+  'portfolio_group_code',
+  'service_line_code',
+  'organizational_element_code',
+  'global_service_group_code',
+  'security_classification',
+  'service_owner',
+  'service_owner_email',
+  'vlastnik',
+  'manager',
+  'sla_availability',
+  'domains',
+  'c3_mapping',
+]);
 
 // ── Zod schema ────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  service_id:                   z.string().min(1, 'Service ID je povinné').max(20, 'Max 20 znaků'),
-  title:                        z.string().min(1, 'Název je povinný'),
-  service_type:                 z.string().min(1, 'Typ služby je povinný'),
+  service_id:                   z.string().min(1, 'new_service_wizard.validation.service_id_required').max(20, 'new_service_wizard.validation.service_id_max'),
+  title:                        z.string().min(1, 'new_service_wizard.validation.title_required'),
+  service_type:                 z.string().min(1, 'new_service_wizard.validation.service_type_required'),
   service_status:               z.string().optional(),
   lifecycle_state:              z.string().optional(),
   summary:                      z.string().optional(),
   consumer_value:               z.string().optional(),
   requestable:                  z.boolean().optional(),
   request_channel_type:         z.string().optional(),
-  request_channel_url:          z.string().url('Musí být platná URL').optional().or(z.literal('')),
+  request_channel_url:          z.string().url('new_service_wizard.validation.url_invalid').optional().or(z.literal('')),
   approval_required:            z.boolean().optional(),
   fulfillment_lead_time_text:   z.string().optional(),
   target_audience_summary:      z.string().optional(),
@@ -164,13 +95,13 @@ const schema = z.object({
   global_service_group_code:    z.string().optional(),
   security_classification:      z.string().optional(),
   service_owner:                z.string().optional(),
-  service_owner_email:          z.string().email('Neplatný email').optional().or(z.literal('')),
+  service_owner_email:          z.string().email('new_service_wizard.validation.email_invalid').optional().or(z.literal('')),
   service_owner_org:            z.string().optional(),
   vlastnik:                     z.string().optional(),
   manager:                      z.string().optional(),
-  sla_availability:             z.coerce.number().min(0).max(100).optional().nullable(),
-  sla_restoration:              z.coerce.number().min(0).optional().nullable(),
-  sla_delivery:                 z.coerce.number().min(0).optional().nullable(),
+  sla_availability:             optionalNumber(0, 100),
+  sla_restoration:              optionalNumber(0),
+  sla_delivery:                 optionalNumber(0),
   domains:                      z.array(z.string()).optional(),
   notes_json:                   z.string().optional(),
 });
@@ -209,11 +140,12 @@ function compactPayload<T extends Record<string, unknown>>(obj: T): Partial<T> {
 // ── WizardTooltip ─────────────────────────────────────────────────────────────
 
 function WizardTooltip({ content }: { content: string }) {
+  const t = useT();
   return (
     <TooltipPrimitive.Provider delayDuration={200}>
       <TooltipPrimitive.Root>
         <TooltipPrimitive.Trigger asChild>
-          <button type="button" className={styles.tooltipTrigger} aria-label="Více informací">
+          <button type="button" className={styles.tooltipTrigger} aria-label={t('new_service_wizard.more_info')}>
             ?
           </button>
         </TooltipPrimitive.Trigger>
@@ -244,23 +176,30 @@ interface WizardFieldProps {
 }
 
 function WizardField({ fieldKey, label, required, error, children }: WizardFieldProps) {
-  const help = fieldKey ? HELP[fieldKey] : undefined;
+  const t = useT();
+  const generatedId = useId();
+  // Tie the visible label to the control so clicking it focuses the field and
+  // screen readers announce it.
+  const childId = isValidElement<{ id?: string }>(children) ? children.props.id ?? generatedId : undefined;
+  const control = childId && isValidElement<{ id?: string }>(children) ? cloneElement(children, { id: childId }) : children;
+  const help = fieldKey && HELP_FIELDS.has(fieldKey)
+    ? {
+        short: t(`new_service_wizard.help.${fieldKey}.short`),
+        long: t(`new_service_wizard.help.${fieldKey}.long`),
+      }
+    : undefined;
   return (
     <div className={styles.fieldWrapper}>
-      <label className={styles.visuallyHidden}>
-        {label}
-        {required ? ' *' : ''}
-      </label>
       <div className={styles.fieldLabelRow}>
-        <span className={styles.fieldLabel}>
+        <label className={styles.fieldLabel} htmlFor={childId}>
           {label}
           {required && <span className={styles.fieldRequired}> *</span>}
-        </span>
+        </label>
         {help?.long && <WizardTooltip content={help.long} />}
       </div>
       {help?.short && <div className={styles.fieldHint}>{help.short}</div>}
-      {children}
-      {error && <div className={styles.fieldError}>{error}</div>}
+      {control}
+      {error && <div className={styles.fieldError}>{t(error)}</div>}
     </div>
   );
 }
@@ -285,13 +224,21 @@ function StepProgress({ current, steps }: { current: number; steps: StepDef[] })
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const LIFECYCLE_OPTIONS = [
-  { value: 'draft',        label: 'Draft — návrh, neviditelný v katalogu' },
-  { value: 'live',         label: 'Live — aktivní, viditelný v katalogu' },
-  { value: 'deprecated',   label: 'Deprecated — zastaralá, plánované stažení' },
-  { value: 'retired',      label: 'Retired — stažena z provozu' },
+  { value: 'draft',        labelKey: 'new_service_wizard.lifecycle.draft' },
+  { value: 'live',         labelKey: 'new_service_wizard.lifecycle.live' },
+  { value: 'deprecated',   labelKey: 'new_service_wizard.lifecycle.deprecated' },
+  { value: 'retired',      labelKey: 'new_service_wizard.lifecycle.retired' },
 ];
 
-const CHANNEL_OPTIONS = ['ITSM Portal', 'E-mail', 'Teams', 'Self-service portál', 'Telefon', 'API'];
+// Values are stored as request_channel_type; only the visible labels are translated.
+const CHANNEL_OPTIONS = [
+  { value: 'ITSM Portal',        labelKey: 'new_service_wizard.channel.itsm_portal' },
+  { value: 'E-mail',             labelKey: 'new_service_wizard.channel.email' },
+  { value: 'Teams',              labelKey: 'new_service_wizard.channel.teams' },
+  { value: 'Self-service portál', labelKey: 'new_service_wizard.channel.self_service' },
+  { value: 'Telefon',            labelKey: 'new_service_wizard.channel.phone' },
+  { value: 'API',                labelKey: 'new_service_wizard.channel.api' },
+];
 
 // ── Step props type ───────────────────────────────────────────────────────────
 
@@ -307,24 +254,25 @@ interface StepFormProps {
 function Step1Identity({ register, watch, errors, serviceTypes }: StepFormProps & {
   serviceTypes: Array<{ code: string; name: string }> | undefined;
 }) {
+  const t = useT();
   const watchedId    = watch('service_id');
   const watchedTitle = watch('title');
 
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Identita služby</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.identity.title')}</h2>
         <p className={styles.stepDescription}>
-          Základní identifikace — tyto údaje jsou klíčové a nelze je snadno změnit po vytvoření.
+          {t('new_service_wizard.identity.description')}
         </p>
       </div>
 
       <div className={styles.fieldRow2}>
-        <WizardField fieldKey="service_id" label="Service ID" required error={errors.service_id?.message}>
+        <WizardField fieldKey="service_id" label={t('new_service_wizard.field.service_id')} required error={errors.service_id?.message}>
           <input
             {...register('service_id', { setValueAs: (v) => String(v ?? '').toUpperCase() })}
             className={[styles.input, errors.service_id ? styles.inputError : ''].filter(Boolean).join(' ')}
-            placeholder="např. WPS001"
+            placeholder={t('new_service_wizard.placeholder.example', { value: 'WPS001' })}
             maxLength={20}
             style={{ textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}
           />
@@ -335,33 +283,33 @@ function Step1Identity({ register, watch, errors, serviceTypes }: StepFormProps 
           )}
         </WizardField>
 
-        <WizardField fieldKey="title" label="Název služby" required error={errors.title?.message}>
+        <WizardField fieldKey="title" label={t('new_service_wizard.field.title')} required error={errors.title?.message}>
           <input
             {...register('title')}
             className={[styles.input, errors.title ? styles.inputError : ''].filter(Boolean).join(' ')}
-            placeholder="např. Firemní mobilní zařízení"
+            placeholder={t('new_service_wizard.placeholder.title')}
           />
         </WizardField>
       </div>
 
       <div className={styles.fieldRow2}>
-        <WizardField fieldKey="service_type" label="Typ služby" required error={errors.service_type?.message}>
+        <WizardField fieldKey="service_type" label={t('new_service_wizard.field.service_type')} required error={errors.service_type?.message}>
           <select
             {...register('service_type')}
             className={[styles.input, errors.service_type ? styles.inputError : ''].filter(Boolean).join(' ')}
           >
-            <option value="">— vyberte typ —</option>
-            {serviceTypes?.map((t) => (
-              <option key={t.code} value={t.code}>{t.code} — {t.name}</option>
+            <option value="">{t('new_service_wizard.identity.select_type')}</option>
+            {serviceTypes?.map((type) => (
+              <option key={type.code} value={type.code}>{type.code} — {type.name}</option>
             ))}
           </select>
         </WizardField>
 
-        <WizardField fieldKey="lifecycle_state" label="Lifecycle stav">
+        <WizardField fieldKey="lifecycle_state" label={t('new_service_wizard.field.lifecycle_state')}>
           <select {...register('lifecycle_state')} className={styles.input}>
-            <option value="">— vyberte stav —</option>
+            <option value="">{t('new_service_wizard.identity.select_state')}</option>
             {LIFECYCLE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
             ))}
           </select>
         </WizardField>
@@ -375,7 +323,7 @@ function Step1Identity({ register, watch, errors, serviceTypes }: StepFormProps 
           borderRadius: 'var(--radius-md)',
           font: 'var(--text-body-sm)', color: 'var(--color-text-secondary)',
         }}>
-          ✓ Identita: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>
+          ✓ {t('new_service_wizard.identity.preview')} <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>
             {watchedId.trim().toUpperCase()}
           </strong> — {watchedTitle}
         </div>
@@ -387,39 +335,41 @@ function Step1Identity({ register, watch, errors, serviceTypes }: StepFormProps 
 // ═══ STEP 2 — Popis a hodnota ═════════════════════════════════════════════════
 
 function Step2Description({ register }: StepFormProps) {
+  const t = useT();
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Popis a hodnota</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.description.title')}</h2>
         <p className={styles.stepDescription}>
-          Vysvětlete co služba dělá a jakou hodnotu přináší — pro katalog a pro konzumenty.
+          {t('new_service_wizard.description.description')}
         </p>
       </div>
 
-      <WizardField fieldKey="summary" label="Stručný popis (pro katalogový seznam)">
+      <WizardField fieldKey="summary" label={t('new_service_wizard.field.summary')}>
         <textarea
           {...register('summary')}
           rows={2}
           className={styles.textarea}
-          placeholder="např. Plně spravovaná emailová služba pro všechny zaměstnance s dostupností 24/7."
+          placeholder={t('new_service_wizard.placeholder.summary')}
         />
       </WizardField>
 
-      <WizardField fieldKey="consumer_value" label="Hodnota pro konzumenta">
+      <WizardField fieldKey="consumer_value" label={t('new_service_wizard.field.consumer_value')}>
         <textarea
           {...register('consumer_value')}
           rows={2}
           className={styles.textarea}
-          placeholder="např. Přístup k emailu a kalendáři z jakéhokoli zařízení, spolehlivý provoz s 99,9 % SLA."
+          placeholder={t('new_service_wizard.placeholder.consumer_value')}
         />
       </WizardField>
     </div>
   );
 }
 
-// ═══ STEP 3 — Přístup & audience ══════════════════════════════════════════════
+// ═══ STEP 3 — Access & audience ══════════════════════════════════════════════
 
 function Step3Access({ register, watch, setValue, errors }: StepFormProps) {
+  const t = useT();
   const isRequestable = watch('requestable') === true;
   const channelType   = watch('request_channel_type') ?? '';
   const isApproval    = watch('approval_required') === true;
@@ -427,13 +377,13 @@ function Step3Access({ register, watch, setValue, errors }: StepFormProps) {
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Přístup & objednávání</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.access.title')}</h2>
         <p className={styles.stepDescription}>
-          Definujte kdo může službu využívat a jak ji může objednat.
+          {t('new_service_wizard.access.description')}
         </p>
       </div>
 
-      <WizardField fieldKey="requestable" label="Objednatelnost">
+      <WizardField fieldKey="requestable" label={t('new_service_wizard.field.requestable')}>
         <div
           className={[styles.toggleRow, isRequestable ? styles.toggleRowActive : ''].filter(Boolean).join(' ')}
           onClick={() => setValue('requestable', !isRequestable, { shouldDirty: true })}
@@ -444,12 +394,12 @@ function Step3Access({ register, watch, setValue, errors }: StepFormProps) {
         >
           <div className={styles.toggleRowText}>
             <div className={styles.toggleRowLabel}>
-              {isRequestable ? 'Služba je objednatelná z katalogu' : 'Služba není objednatelná (jen informativní)'}
+              {isRequestable ? t('new_service_wizard.access.requestable_on') : t('new_service_wizard.access.requestable_off')}
             </div>
             <div className={styles.toggleRowSub}>
               {isRequestable
-                ? 'Konzumenti mohou podat Service Request přes definovaný kanál'
-                : 'Služba je konzumována automaticky nebo přidělením — bez žádosti'}
+                ? t('new_service_wizard.access.requestable_on_hint')
+                : t('new_service_wizard.access.requestable_off_hint')}
             </div>
           </div>
           <div className={[styles.toggleCheckmark, isRequestable ? styles.toggleCheckmarkActive : ''].filter(Boolean).join(' ')}>
@@ -460,59 +410,59 @@ function Step3Access({ register, watch, setValue, errors }: StepFormProps) {
 
       {isRequestable && (
         <div className={styles.conditionalBlock}>
-          <div className={styles.conditionalBlockTitle}>Request Model — vyplňte jak lze tuto službu objednat</div>
+          <div className={styles.conditionalBlockTitle}>{t('new_service_wizard.access.request_model_title')}</div>
 
-          <WizardField fieldKey="request_channel_type" label="Kanál pro objednávky">
+          <WizardField fieldKey="request_channel_type" label={t('new_service_wizard.field.request_channel_type')}>
             <div className={styles.channelOptions}>
               {CHANNEL_OPTIONS.map((ch) => (
                 <button
-                  key={ch}
+                  key={ch.value}
                   type="button"
-                  className={[styles.channelChip, channelType === ch ? styles.channelChipActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => setValue('request_channel_type', channelType === ch ? '' : ch, { shouldDirty: true })}
+                  className={[styles.channelChip, channelType === ch.value ? styles.channelChipActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => setValue('request_channel_type', channelType === ch.value ? '' : ch.value, { shouldDirty: true })}
                 >
-                  {ch}
+                  {t(ch.labelKey)}
                 </button>
               ))}
             </div>
           </WizardField>
 
-          <WizardField fieldKey="request_channel_url" label="URL odkaz na objednávkový portál" error={errors.request_channel_url?.message}>
+          <WizardField fieldKey="request_channel_url" label={t('new_service_wizard.field.request_channel_url')} error={errors.request_channel_url?.message}>
             <input
               {...register('request_channel_url')}
               className={[styles.input, errors.request_channel_url ? styles.inputError : ''].filter(Boolean).join(' ')}
-              placeholder="např. https://itsm.company.com/catalog/email-service"
+              placeholder={t('new_service_wizard.placeholder.example', { value: 'https://itsm.company.com/catalog/email-service' })}
               type="url"
             />
           </WizardField>
 
-          <WizardField fieldKey="fulfillment_lead_time_text" label="Dodací lhůta">
+          <WizardField fieldKey="fulfillment_lead_time_text" label={t('new_service_wizard.field.fulfillment_lead_time_text')}>
             <input
               {...register('fulfillment_lead_time_text')}
               className={styles.input}
-              placeholder="např. 1–2 pracovní dny (po schválení)"
+              placeholder={t('new_service_wizard.placeholder.fulfillment_lead_time_text')}
             />
           </WizardField>
 
-          <WizardField fieldKey="approval_required" label="Schválení žádosti">
+          <WizardField fieldKey="approval_required" label={t('new_service_wizard.field.approval_required')}>
             <label className={styles.approvalRow}>
               <input
                 type="checkbox"
                 checked={isApproval}
                 onChange={(e) => setValue('approval_required', e.target.checked, { shouldDirty: true })}
               />
-              <span>Žádost vyžaduje schválení před zahájením fulfillmentu</span>
+              <span>{t('new_service_wizard.access.approval_checkbox')}</span>
             </label>
           </WizardField>
         </div>
       )}
 
-      <WizardField fieldKey="target_audience_summary" label="Cílová skupina">
+      <WizardField fieldKey="target_audience_summary" label={t('new_service_wizard.field.target_audience_summary')}>
         <textarea
           {...register('target_audience_summary')}
           rows={2}
           className={styles.textarea}
-          placeholder="např. Všichni zaměstnanci s platnou pracovní smlouvou a aktivním AD účtem."
+          placeholder={t('new_service_wizard.placeholder.target_audience_summary')}
         />
       </WizardField>
     </div>
@@ -528,53 +478,55 @@ function Step4Classification({ register, portfolioGroups, serviceLines, orgEleme
   globalServiceGroups?:   Array<{ code: string; name: string }>;
   securityClassifications?: Array<{ code: string; name: string }>;
 }) {
+  const t = useT();
   const SEC_FALLBACK = [
     { code: 'OPEN', name: 'Open' }, { code: 'STANDARD', name: 'Standard' },
     { code: 'ELEVATED', name: 'Elevated' }, { code: 'RESTRICTED', name: 'Restricted' },
     { code: 'PROTECTED', name: 'Protected' }, { code: 'CLASSIFIED', name: 'Classified' },
   ];
   const secOptions = (securityClassifications?.length ? securityClassifications : SEC_FALLBACK);
+  const selectPlaceholder = t('new_service_wizard.select_placeholder');
 
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Klasifikace</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.classification.title')}</h2>
         <p className={styles.stepDescription}>
-          Zařaďte službu do organizační struktury — pro governance, reporting a portfolio management.
+          {t('new_service_wizard.classification.description')}
         </p>
       </div>
 
       <div className={styles.fieldRow2}>
-        <WizardField fieldKey="portfolio_group_code" label="Portfolio skupina">
+        <WizardField fieldKey="portfolio_group_code" label={t('new_service_wizard.field.portfolio_group_code')}>
           <select {...register('portfolio_group_code')} className={styles.input}>
-            <option value="">— vyberte —</option>
+            <option value="">{selectPlaceholder}</option>
             {portfolioGroups?.map((g) => (
               <option key={g.code} value={g.code}>{g.name}</option>
             ))}
           </select>
         </WizardField>
 
-        <WizardField fieldKey="global_service_group_code" label="Global Service Group">
+        <WizardField fieldKey="global_service_group_code" label={t('new_service_wizard.field.global_service_group_code')}>
           <select {...register('global_service_group_code')} className={styles.input}>
-            <option value="">— vyberte —</option>
+            <option value="">{selectPlaceholder}</option>
             {globalServiceGroups?.map((g) => (
               <option key={g.code} value={g.code}>{g.name}</option>
             ))}
           </select>
         </WizardField>
 
-        <WizardField fieldKey="service_line_code" label="Service Line">
+        <WizardField fieldKey="service_line_code" label={t('new_service_wizard.field.service_line_code')}>
           <select {...register('service_line_code')} className={styles.input}>
-            <option value="">— vyberte —</option>
+            <option value="">{selectPlaceholder}</option>
             {serviceLines?.map((l) => (
               <option key={l.code} value={l.code}>{l.name}</option>
             ))}
           </select>
         </WizardField>
 
-        <WizardField fieldKey="organizational_element_code" label="Organizační element">
+        <WizardField fieldKey="organizational_element_code" label={t('new_service_wizard.field.organizational_element_code')}>
           <select {...register('organizational_element_code')} className={styles.input}>
-            <option value="">— vyberte —</option>
+            <option value="">{selectPlaceholder}</option>
             {orgElements?.map((e) => (
               <option key={e.code} value={e.code}>{e.name}</option>
             ))}
@@ -582,9 +534,9 @@ function Step4Classification({ register, portfolioGroups, serviceLines, orgEleme
         </WizardField>
       </div>
 
-      <WizardField fieldKey="security_classification" label="Bezpečnostní klasifikace">
+      <WizardField fieldKey="security_classification" label={t('new_service_wizard.field.security_classification')}>
         <select {...register('security_classification')} className={styles.input}>
-          <option value="">— vyberte klasifikaci —</option>
+          <option value="">{t('new_service_wizard.classification.select_classification')}</option>
           {secOptions.map((c) => (
             <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
           ))}
@@ -594,59 +546,60 @@ function Step4Classification({ register, portfolioGroups, serviceLines, orgEleme
   );
 }
 
-// ═══ STEP 5 — Vlastnictví ══════════════════════════════════════════════════════
+// ═══ STEP 5 — Ownership ══════════════════════════════════════════════════════
 
 function Step5Ownership({ register, errors }: StepFormProps) {
+  const t = useT();
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Vlastnictví</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.ownership.title')}</h2>
         <p className={styles.stepDescription}>
-          Určete odpovědné osoby — konzumenti i provoz potřebují vědět, kdo je za službu zodpovědný.
+          {t('new_service_wizard.ownership.description')}
         </p>
       </div>
 
       <div className={styles.fieldRow2}>
-        <WizardField fieldKey="service_owner" label="Service Owner">
+        <WizardField fieldKey="service_owner" label={t('new_service_wizard.field.service_owner')}>
           <input
             {...register('service_owner')}
             className={styles.input}
-            placeholder="např. Jana Nováková"
+            placeholder={t('new_service_wizard.placeholder.service_owner')}
           />
         </WizardField>
 
-        <WizardField fieldKey="service_owner_email" label="Email Service Ownera" error={errors.service_owner_email?.message}>
+        <WizardField fieldKey="service_owner_email" label={t('new_service_wizard.field.service_owner_email')} error={errors.service_owner_email?.message}>
           <input
             {...register('service_owner_email')}
             type="email"
             className={[styles.input, errors.service_owner_email ? styles.inputError : ''].filter(Boolean).join(' ')}
-            placeholder="např. j.novakova@company.com"
+            placeholder={t('new_service_wizard.placeholder.service_owner_email')}
           />
         </WizardField>
       </div>
 
-      <WizardField label="Organizace / útvar Service Ownera">
+      <WizardField label={t('new_service_wizard.field.service_owner_org')}>
         <input
           {...register('service_owner_org')}
           className={styles.input}
-          placeholder="např. IT Infrastructure & Operations"
+          placeholder={t('new_service_wizard.placeholder.service_owner_org')}
         />
       </WizardField>
 
       <div className={styles.fieldRow2}>
-        <WizardField fieldKey="vlastnik" label="Vlastník oblasti">
+        <WizardField fieldKey="vlastnik" label={t('new_service_wizard.field.vlastnik')}>
           <input
             {...register('vlastnik')}
             className={styles.input}
-            placeholder="např. Petr Svoboda"
+            placeholder={t('new_service_wizard.placeholder.vlastnik')}
           />
         </WizardField>
 
-        <WizardField fieldKey="manager" label="Delivery Manager">
+        <WizardField fieldKey="manager" label={t('new_service_wizard.field.manager')}>
           <input
             {...register('manager')}
             className={styles.input}
-            placeholder="např. Martin Krejčí"
+            placeholder={t('new_service_wizard.placeholder.manager')}
           />
         </WizardField>
       </div>
@@ -654,12 +607,13 @@ function Step5Ownership({ register, errors }: StepFormProps) {
   );
 }
 
-// ═══ STEP 6 — SLA & Domény ════════════════════════════════════════════════════
+// ═══ STEP 6 — SLA & domains ════════════════════════════════════════════════════
 
 function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: StepFormProps & {
   domainOptions: string[];
   domainColorMap: Map<string, string | undefined>;
 }) {
+  const t = useT();
   const watchedDomains = watch('domains');
   const selectedDomains = useMemo(() => watchedDomains ?? [], [watchedDomains]);
 
@@ -673,14 +627,14 @@ function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: 
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>SLA & Dostupnost</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.sla.title')}</h2>
         <p className={styles.stepDescription}>
-          Definujte závazky dostupnosti a síťové domény — konzumenti je vidí na detailu služby.
+          {t('new_service_wizard.sla.description')}
         </p>
       </div>
 
       <div className={styles.slaGrid}>
-        <WizardField fieldKey="sla_availability" label="Dostupnost (%)">
+        <WizardField fieldKey="sla_availability" label={t('new_service_wizard.field.sla_availability')}>
           <input
             {...register('sla_availability')}
             type="number"
@@ -688,37 +642,37 @@ function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: 
             max={100}
             step={0.01}
             className={styles.input}
-            placeholder="např. 99.9"
+            placeholder={t('new_service_wizard.placeholder.example', { value: '99.9' })}
           />
-          <div className={styles.slaUnit}>% uptime ročně</div>
+          <div className={styles.slaUnit}>{t('new_service_wizard.sla.availability_unit')}</div>
         </WizardField>
 
-        <WizardField label="Obnova (h)">
+        <WizardField label={t('new_service_wizard.field.sla_restoration')}>
           <input
             {...register('sla_restoration')}
             type="number"
             min={0}
             step={0.5}
             className={styles.input}
-            placeholder="např. 4"
+            placeholder={t('new_service_wizard.placeholder.example', { value: '4' })}
           />
-          <div className={styles.slaUnit}>hodin do obnovy</div>
+          <div className={styles.slaUnit}>{t('new_service_wizard.sla.restoration_unit')}</div>
         </WizardField>
 
-        <WizardField label="Dodávka (dny)">
+        <WizardField label={t('new_service_wizard.field.sla_delivery')}>
           <input
             {...register('sla_delivery')}
             type="number"
             min={0}
             step={0.5}
             className={styles.input}
-            placeholder="např. 2"
+            placeholder={t('new_service_wizard.placeholder.example', { value: '2' })}
           />
-          <div className={styles.slaUnit}>pracovní dny</div>
+          <div className={styles.slaUnit}>{t('new_service_wizard.sla.delivery_unit')}</div>
         </WizardField>
       </div>
 
-      <WizardField fieldKey="domains" label="Dostupné domény">
+      <WizardField fieldKey="domains" label={t('new_service_wizard.field.domains')}>
         <div className={styles.domainGrid}>
           {domainOptions.map((code) => {
             const active = selectedDomains.includes(code);
@@ -743,7 +697,7 @@ function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: 
         </div>
         {selectedDomains.length > 0 && (
           <div style={{ marginTop: 6, font: 'var(--text-label-sm)', color: 'var(--color-text-muted)' }}>
-            Vybráno: {selectedDomains.join(', ')}
+            {t('new_service_wizard.sla.selected_domains', { items: selectedDomains.join(', ') })}
           </div>
         )}
       </WizardField>
@@ -751,7 +705,7 @@ function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: 
   );
 }
 
-// ═══ STEP 7 — C3 Mapování ═════════════════════════════════════════════════════
+// ═══ STEP 7 — C3 mapping ═════════════════════════════════════════════════════
 
 function Step7C3({
   selectedUuids,
@@ -760,6 +714,7 @@ function Step7C3({
   selectedUuids: string[];
   onToggle: (uuid: string) => void;
 }) {
+  const t = useT();
   const { data: c3Items } = useC3Taxonomy();
   const [query, setQuery] = useState('');
 
@@ -775,24 +730,22 @@ function Step7C3({
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>C3 Mapování</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.c3.title')}</h2>
         <p className={styles.stepDescription}>
-          Propojte službu s C3 capability taxonomií. Volitelné — plné mapování dostupné v editoru.
+          {t('new_service_wizard.c3.description')}
         </p>
       </div>
 
-      <WizardField fieldKey="c3_mapping" label="Vyberte relevantní C3 capabilities">
+      <WizardField fieldKey="c3_mapping" label={t('new_service_wizard.field.c3_mapping')}>
         <div className={styles.c3InfoBanner}>
-          Mapování na C3 taxonomii umožňuje coverage reporting a gap analýzu portfolia.
-          Vyberte capabilities, se kterými tato služba přímo souvisí.
-          Plné technické mapování dokončíte v editoru po vytvoření služby.
+          {t('new_service_wizard.c3.info')}
         </div>
 
         <div className={styles.c3SearchInput}>
           <input
             type="search"
             className={styles.input}
-            placeholder="Hledat v C3 capabilities…"
+            placeholder={t('new_service_wizard.c3.search_placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -801,7 +754,7 @@ function Step7C3({
         <div className={styles.c3List}>
           {filtered.length === 0 && (
             <div className={styles.c3EmptyState}>
-              {c3Items ? 'Žádné výsledky pro daný výraz' : 'Načítám C3 taxonomii…'}
+              {c3Items ? t('new_service_wizard.c3.no_results') : t('new_service_wizard.c3.loading')}
             </div>
           )}
           {filtered.map((item) => {
@@ -830,14 +783,18 @@ function Step7C3({
 
         {selectedUuids.length > 0 && (
           <div className={styles.c3SelectedSummary}>
-            ✓ Vybráno {selectedUuids.length}{' '}
-            {selectedUuids.length === 1 ? 'capability' : 'capabilities'} — budou zaznamenány k zavedení
+            {t(resolveCountForm(selectedUuids.length, {
+              one: 'new_service_wizard.c3.selected.one',
+              few: 'new_service_wizard.c3.selected.few',
+              many: 'new_service_wizard.c3.selected.many',
+            }), { count: selectedUuids.length })}
           </div>
         )}
 
         <div className={styles.c3PostNote}>
-          Po vytvoření přejdete do editoru, kde lze plné technické C3 mapování dokončit
-          v sekci <strong>C3 Mappings</strong>.
+          {t('new_service_wizard.c3.post_note_before')}{' '}
+          <strong>{t('service_editor.section.c3_governance')}</strong>
+          {t('new_service_wizard.c3.post_note_after')}
         </div>
       </WizardField>
     </div>
@@ -847,6 +804,7 @@ function Step7C3({
 // ═══ STEP REVIEW ══════════════════════════════════════════════════════════════
 
 function RRow({ label, value }: { label: string; value: unknown }) {
+  const t = useT();
   const isEmpty = value === '' || value === null || value === undefined ||
     (Array.isArray(value) && (value as unknown[]).length === 0);
   return (
@@ -856,7 +814,7 @@ function RRow({ label, value }: { label: string; value: unknown }) {
         ? <span className={styles.reviewValEmpty}>—</span>
         : <span className={styles.reviewVal}>
             {typeof value === 'boolean'
-              ? (value ? '✓ Ano' : '✗ Ne')
+              ? (value ? t('new_service_wizard.review.yes') : t('new_service_wizard.review.no'))
               : Array.isArray(value)
                 ? (value as string[]).join(', ')
                 : String(value)}
@@ -867,63 +825,71 @@ function RRow({ label, value }: { label: string; value: unknown }) {
 }
 
 function StepReview({ watch, c3Selected }: { watch: StepFormProps['watch']; c3Selected: string[] }) {
+  const t = useT();
   const v = watch();
   return (
     <div className={styles.stepCard}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Přehled a vytvoření</h2>
+        <h2 className={styles.stepTitle}>{t('new_service_wizard.review.title')}</h2>
         <p className={styles.stepDescription}>
-          Zkontrolujte zadané údaje. Vše ostatní lze doplnit v editoru po vytvoření.
+          {t('new_service_wizard.review.description')}
         </p>
       </div>
 
       <div className={styles.reviewGrid}>
         <div className={styles.reviewSection}>
-          <div className={styles.reviewSectionHead}>Identita</div>
-          <RRow label="Service ID"  value={v.service_id} />
-          <RRow label="Název"       value={v.title} />
-          <RRow label="Typ služby"  value={v.service_type} />
-          <RRow label="Lifecycle"   value={v.lifecycle_state} />
+          <div className={styles.reviewSectionHead}>{t('new_service_wizard.review.section.identity')}</div>
+          <RRow label={t('new_service_wizard.field.service_id')}   value={v.service_id} />
+          <RRow label={t('new_service_wizard.review.title_label')} value={v.title} />
+          <RRow label={t('new_service_wizard.field.service_type')} value={v.service_type} />
+          <RRow label={t('new_service_wizard.review.lifecycle')}   value={v.lifecycle_state} />
         </div>
 
         <div className={styles.reviewSection}>
-          <div className={styles.reviewSectionHead}>Popis</div>
-          <RRow label="Stručný popis"        value={v.summary} />
-          <RRow label="Hodnota konzumenta"   value={v.consumer_value} />
+          <div className={styles.reviewSectionHead}>{t('new_service_wizard.review.section.description')}</div>
+          <RRow label={t('new_service_wizard.review.summary')}        value={v.summary} />
+          <RRow label={t('new_service_wizard.field.consumer_value')} value={v.consumer_value} />
         </div>
 
         <div className={styles.reviewSection}>
-          <div className={styles.reviewSectionHead}>Přístup & objednávání</div>
-          <RRow label="Objednatelná"   value={v.requestable} />
+          <div className={styles.reviewSectionHead}>{t('new_service_wizard.review.section.access')}</div>
+          <RRow label={t('new_service_wizard.review.requestable')} value={v.requestable} />
           {v.requestable && (
             <>
-              <RRow label="Kanál"          value={v.request_channel_type} />
-              <RRow label="URL"            value={v.request_channel_url} />
-              <RRow label="Schválení"      value={v.approval_required} />
-              <RRow label="Dodací lhůta"   value={v.fulfillment_lead_time_text} />
+              <RRow label={t('new_service_wizard.review.channel')}                  value={v.request_channel_type} />
+              <RRow label="URL"                                                       value={v.request_channel_url} />
+              <RRow label={t('new_service_wizard.review.approval')}                 value={v.approval_required} />
+              <RRow label={t('new_service_wizard.field.fulfillment_lead_time_text')} value={v.fulfillment_lead_time_text} />
             </>
           )}
-          <RRow label="Cílová skupina" value={v.target_audience_summary} />
+          <RRow label={t('new_service_wizard.field.target_audience_summary')} value={v.target_audience_summary} />
         </div>
 
         <div className={styles.reviewSection}>
-          <div className={styles.reviewSectionHead}>Klasifikace & Vlastnictví</div>
-          <RRow label="Portfolio"        value={v.portfolio_group_code} />
-          <RRow label="Bezp. klasifikace" value={v.security_classification} />
-          <RRow label="Service Owner"    value={v.service_owner} />
-          <RRow label="Vlastník oblasti" value={v.vlastnik} />
+          <div className={styles.reviewSectionHead}>{t('new_service_wizard.review.section.classification_ownership')}</div>
+          <RRow label={t('new_service_wizard.review.portfolio')}               value={v.portfolio_group_code} />
+          <RRow label={t('new_service_wizard.field.security_classification')} value={v.security_classification} />
+          <RRow label={t('new_service_wizard.field.service_owner')}           value={v.service_owner} />
+          <RRow label={t('new_service_wizard.field.vlastnik')}                value={v.vlastnik} />
         </div>
 
         <div className={styles.reviewSection}>
-          <div className={styles.reviewSectionHead}>SLA & Dostupnost</div>
-          <RRow label="Dostupnost" value={v.sla_availability != null ? `${v.sla_availability} %` : null} />
-          <RRow label="Domény"     value={v.domains} />
+          <div className={styles.reviewSectionHead}>{t('new_service_wizard.review.section.sla')}</div>
+          <RRow label={t('new_service_wizard.review.availability')} value={v.sla_availability != null ? `${v.sla_availability} %` : null} />
+          <RRow label={t('new_service_wizard.review.domains')}      value={v.domains} />
         </div>
 
         {c3Selected.length > 0 && (
           <div className={styles.reviewSection}>
-            <div className={styles.reviewSectionHead}>C3 Mapování</div>
-            <RRow label="Capabilities" value={`${c3Selected.length} vybrány (dokončit v editoru)`} />
+            <div className={styles.reviewSectionHead}>{t('new_service_wizard.review.section.c3')}</div>
+            <RRow
+              label={t('new_service_wizard.review.capabilities')}
+              value={t(resolveCountForm(c3Selected.length, {
+                one: 'new_service_wizard.review.c3_selected.one',
+                few: 'new_service_wizard.review.c3_selected.few',
+                many: 'new_service_wizard.review.c3_selected.many',
+              }), { count: c3Selected.length })}
+            />
           </div>
         )}
       </div>
@@ -935,6 +901,7 @@ function StepReview({ watch, c3Selected }: { watch: StepFormProps['watch']; c3Se
 
 export default function NewServiceWizard() {
   const router = useRouter();
+  const t = useT();
   const { c3Visible } = useInstallStatus();
 
   const { data: serviceTypes }          = useServiceTypes();
@@ -964,15 +931,15 @@ export default function NewServiceWizard() {
   const totalSteps = reviewStep;
 
   const stepDefs: StepDef[] = useMemo(() => [
-    { id: 1, label: 'Identita' },
-    { id: 2, label: 'Popis' },
-    { id: 3, label: 'Přístup' },
-    { id: 4, label: 'Klasifikace' },
-    { id: 5, label: 'Vlastnictví' },
-    { id: 6, label: 'SLA' },
-    ...(c3Visible ? [{ id: 7, label: 'C3' }] : []),
-    { id: reviewStep, label: 'Přehled' },
-  ], [c3Visible, reviewStep]);
+    { id: 1, label: t('new_service_wizard.steps.identity') },
+    { id: 2, label: t('new_service_wizard.steps.description') },
+    { id: 3, label: t('new_service_wizard.steps.access') },
+    { id: 4, label: t('new_service_wizard.steps.classification') },
+    { id: 5, label: t('new_service_wizard.steps.ownership') },
+    { id: 6, label: t('new_service_wizard.steps.sla') },
+    ...(c3Visible ? [{ id: 7, label: t('new_service_wizard.steps.c3') }] : []),
+    { id: reviewStep, label: t('new_service_wizard.steps.review') },
+  ], [c3Visible, reviewStep, t]);
 
   const {
     register, handleSubmit, watch, setValue, trigger, reset,
@@ -1117,7 +1084,7 @@ export default function NewServiceWizard() {
       if (typeof window !== 'undefined') window.localStorage.removeItem(DRAFT_KEY);
       router.push(`/services/${createdId}/edit`);
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Vytvoření selhalo — zkuste znovu');
+      setSaveError(err instanceof Error ? err.message : t('new_service_wizard.error.create_failed'));
     } finally {
       setSaving(false);
     }
@@ -1130,18 +1097,17 @@ export default function NewServiceWizard() {
     <div className={styles.wizardShell}>
       {/* Breadcrumb */}
       <div className={styles.breadcrumb}>
-        <Link href="/services/list">Services</Link>
+        <Link href="/services/list">{t('new_service_wizard.breadcrumb.services')}</Link>
         <span>›</span>
-        <span>Nová služba</span>
+        <span>{t('new_service_wizard.breadcrumb.current')}</span>
       </div>
 
       {/* Header */}
       <div className={styles.wizardHeader}>
-        <h1 className={styles.wizardTitle}>Průvodce zavedením služby</h1>
+        <h1 className={styles.wizardTitle}>{t('new_service_wizard.title')}</h1>
         <p className={styles.wizardSubtitle}>
-          Projděte kroky pro srozumitelný katalogový záznam služby. Každé pole má krátkou nápovědu
-          — detailní vysvětlení otevřete tlačítkem <strong>?</strong>.
-          Placeholdery (modrá kurzíva) ukazují příklady hodnot.
+          {t('new_service_wizard.subtitle_before')} <strong>?</strong>
+          {t('new_service_wizard.subtitle_after')}
         </p>
       </div>
 
@@ -1181,15 +1147,15 @@ export default function NewServiceWizard() {
         <div className={styles.navLeft}>
           {step > 1 && (
             <Button variant="ghost" size="sm" onClick={handleBack} type="button">
-              ← Zpět
+              {t('new_service_wizard.nav.back')}
             </Button>
           )}
-          <span className={styles.stepCounter}>Krok {step} z {totalSteps}</span>
+          <span className={styles.stepCounter}>{t('new_service_wizard.nav.step_counter', { step, total: totalSteps })}</span>
         </div>
         <div className={styles.navRight}>
           {!isReview && (
             <Button variant="secondary" size="sm" onClick={() => { void handleNext(); }} type="button">
-              Další →
+              {t('new_service_wizard.nav.next')}
             </Button>
           )}
           {isReview && (
@@ -1201,7 +1167,7 @@ export default function NewServiceWizard() {
               loading={saving}
               type="button"
             >
-              ✓ Vytvořit službu
+              {t('new_service_wizard.nav.create')}
             </Button>
           )}
         </div>

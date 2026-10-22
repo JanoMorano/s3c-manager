@@ -32,6 +32,7 @@ const importRepo = require('../db/import.repo');
 const flRepo = require('../db/flavours.repo');
 const relRepo = require('../db/relations.repo');
 const audit = require('../db/audit.repo');
+const { refreshServiceScoreSafely } = require('../services/completeness');
 const { parseFlavours } = require('../parsers/flavourParser');
 const { parseSla }      = require('../parsers/slaParser');
 const { getProfile, listProfiles } = require('../utils/service-catalogue-profile');
@@ -1449,6 +1450,7 @@ async function _runImport(items, username, options = {}) {
       await audit.log({ tableName: 'ServiceCatalog', recordId: item.service_id,
         recordLabel: item.title, action: exists ? 'UPDATE' : 'INSERT',
         newValues: item, performedBy: username });
+      await refreshServiceScoreSafely(item.service_id);
       if (rowId) await importRepo.updateRowStatus(rowId, 'ok').catch(() => {});
     } catch (e) {
       failed++;

@@ -87,16 +87,10 @@ export default function AdministrationPage() {
           icon: '📋',
         },
         {
-          href: '/administration/import',
+          href: '/import',
           title: t('administration.card.import_audit.title'),
           desc: t('administration.card.import_audit.desc'),
           icon: '📥',
-        },
-        {
-          href: '/administration/logs',
-          title: t('administration.card.audit_logs.title'),
-          desc: t('administration.card.audit_logs.desc'),
-          icon: '📜',
         },
       ],
     },

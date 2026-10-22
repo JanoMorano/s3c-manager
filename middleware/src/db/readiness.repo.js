@@ -133,6 +133,10 @@ async function listRules({ includeDisabled = false } = {}) {
             enabled,
             blocking,
             applies_to_lifecycle_stage,
+            title_text,
+            why_text,
+            howto_text,
+            evidence_hint,
             created_at,
             updated_at
         FROM data.readiness_rule
@@ -181,16 +185,25 @@ async function listServiceStates(filters = {}) {
         )`);
     }
 
-    params.push(normalizeLimit(filters.limit));
-    const limitPlaceholder = `$${params.length}`;
-    params.push(normalizeOffset(filters.offset));
-    const offsetPlaceholder = `$${params.length}`;
+    if (Array.isArray(filters.servicePks)) {
+        params.push(filters.servicePks);
+        where.push(`sc.id = ANY($${params.length}::bigint[])`);
+    }
+
+    // `all: true` evaluates the whole catalogue (counts, filters); otherwise page.
+    let pagination = '';
+    if (!filters.all) {
+        params.push(normalizeLimit(filters.limit));
+        const limitPlaceholder = `$${params.length}`;
+        params.push(normalizeOffset(filters.offset));
+        pagination = `LIMIT ${limitPlaceholder} OFFSET $${params.length}`;
+    }
 
     const result = await getPool().query(`
         ${SERVICE_STATE_SELECT}
         WHERE ${where.join(' AND ')}
         ORDER BY sc.title ASC
-        LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}
+        ${pagination}
     `, params);
     return result.rows;
 }
@@ -213,6 +226,30 @@ async function listExceptionsForService(servicePk) {
         WHERE re.service_id = $1
         ORDER BY re.rule_key ASC
     `, [servicePk]);
+    return result.rows;
+}
+
+// Exceptions for many services in one query (null = all services).
+async function listExceptionsForServices(servicePks = null) {
+    const params = [];
+    let where = '';
+    if (Array.isArray(servicePks)) {
+        params.push(servicePks);
+        where = 'WHERE re.service_id = ANY($1::bigint[])';
+    }
+    const result = await getPool().query(`
+        SELECT
+            re.id,
+            re.service_id,
+            re.rule_key,
+            re.reason,
+            re.expires_at,
+            re.approved_by,
+            re.created_at
+        FROM data.readiness_exception re
+        ${where}
+        ORDER BY re.service_id ASC, re.rule_key ASC
+    `, params);
     return result.rows;
 }
 
@@ -273,6 +310,7 @@ module.exports = {
     getServiceStateByCatalogId,
     listServiceStates,
     listExceptionsForService,
+    listExceptionsForServices,
     createException,
     deleteException,
 };

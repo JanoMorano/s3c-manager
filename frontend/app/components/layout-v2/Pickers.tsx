@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { apiFetch } from '@/features/services/api/services.api';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './Picker.module.css';
 
 export interface PickerOption {
@@ -88,14 +89,15 @@ function mapOption(kind: EntityPickerProps['kind'], row: Record<string, unknown>
   return optionFromC3(row);
 }
 
-function defaultLabel(kind: EntityPickerProps['kind']) {
-  if (kind === 'user') return 'User';
-  if (kind === 'service') return 'Service';
-  if (kind === 'capability') return 'Capability';
-  return 'C3 entity';
+function defaultLabelKey(kind: EntityPickerProps['kind']) {
+  if (kind === 'user') return 'common.user';
+  if (kind === 'service') return 'layout.pickers.service';
+  if (kind === 'capability') return 'layout.pickers.capability';
+  return 'layout.pickers.c3_entity';
 }
 
 function EntityPicker({ kind, value, onChange, label, placeholder, required }: EntityPickerProps) {
+  const t = useT();
   const [options, setOptions] = useState<PickerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const listId = `${kind}-picker-${useId().replaceAll(':', '')}`;
@@ -123,7 +125,7 @@ function EntityPicker({ kind, value, onChange, label, placeholder, required }: E
 
   return (
     <label className={styles.field}>
-      <span className={styles.label}>{label ?? defaultLabel(kind)}{required ? ' *' : ''}</span>
+      <span className={styles.label}>{label ?? t(defaultLabelKey(kind))}{required ? ' *' : ''}</span>
       <input
         className={styles.input}
         value={value}
@@ -139,7 +141,7 @@ function EntityPicker({ kind, value, onChange, label, placeholder, required }: E
           </option>
         ))}
       </datalist>
-      {loading ? <span className={styles.hint}>Searching...</span> : null}
+      {loading ? <span className={styles.hint}>{t('layout.pickers.searching')}</span> : null}
     </label>
   );
 }
@@ -157,5 +159,6 @@ export function CapabilityPicker(props: PickerProps) {
 }
 
 export function C3Picker(props: PickerProps) {
-  return <EntityPicker kind="c3" placeholder="C3 UUID or code" {...props} />;
+  const t = useT();
+  return <EntityPicker kind="c3" placeholder={t('layout.pickers.c3_placeholder')} {...props} />;
 }

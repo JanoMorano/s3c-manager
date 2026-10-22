@@ -130,7 +130,7 @@ function c3PortfolioCte({ activeSpiralOnly = false, selectedOnly = false } = {})
     `;
 }
 
-function portfolioSelect() {
+function portfolioSelect(blockedPks) {
     return `
         SELECT
             p.id,
@@ -171,7 +171,7 @@ function portfolioSelect() {
                 WHERE ${missingOwnerCondition('sc')}
             )::integer AS missing_owner_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE ${readinessBlockedCondition('sc')}
+                WHERE ${readinessBlockedCondition('sc', blockedPks)}
             )::integer AS readiness_blocker_count,
             COUNT(DISTINCT d.node_page_id) FILTER (
                 WHERE ${capabilityGapCondition('d')}
@@ -246,8 +246,19 @@ function missingOwnerCondition(alias = 'sc') {
             )`;
 }
 
-function readinessBlockedCondition(alias = 'sc') {
-    return `COALESCE(${alias}.completeness_score, 0) < 50`;
+// "Readiness blocked" means at least one failing blocking readiness rule, the
+// same definition as the readiness gate. The rules run in JS, so callers pass
+// the blocked service ids (validated digits, inlined as an array literal).
+function readinessBlockedCondition(alias, blockedPks) {
+    const ids = (blockedPks ?? []).map(String).filter((id) => /^\d+$/.test(id));
+    if (!ids.length) return 'FALSE';
+    return `${alias}.id = ANY(ARRAY[${ids.join(',')}]::bigint[])`;
+}
+
+async function blockedServicePks() {
+    // Required lazily: the readiness service is not needed by every caller.
+    const { servicePksForReadinessFilter } = require('../services/readiness');
+    return servicePksForReadinessFilter('blocked');
 }
 
 function capabilityGapCondition(alias = 'd') {
@@ -264,6 +275,7 @@ function capabilityGapCondition(alias = 'd') {
 }
 
 async function list({ status, ownerGroupId, lifecycle } = {}) {
+    const blockedPks = await blockedServicePks();
     const filters = [];
     const values = [];
 
@@ -300,7 +312,7 @@ async function list({ status, ownerGroupId, lifecycle } = {}) {
 
     const result = await getPool().query(`
         ${c3PortfolioCte()}
-        ${portfolioSelect()}
+        ${portfolioSelect(blockedPks)}
         ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}
         ${portfolioGroupBy()}
         HAVING
@@ -312,7 +324,7 @@ async function list({ status, ownerGroupId, lifecycle } = {}) {
     return result.rows;
 }
 
-function portfolioServiceScopeCte() {
+function portfolioServiceScopeCte(blockedPks) {
     return `
         ${c3PortfolioCte()},
         portfolio_services AS (
@@ -359,7 +371,7 @@ function portfolioServiceScopeCte() {
                     LIMIT 1
                 ) AS service_owner,
                 (${missingOwnerCondition('sc')}) AS owner_missing,
-                (${readinessBlockedCondition('sc')}) AS readiness_blocked,
+                (${readinessBlockedCondition('sc', blockedPks)}) AS readiness_blocked,
                 (${dueSoonReviewCondition('sc')}) AS review_due_soon,
                 (
                     SELECT COUNT(*)::integer
@@ -407,11 +419,12 @@ function portfolioServiceFilter(filter) {
 }
 
 async function listServices({ filter } = {}) {
+    const blockedPks = await blockedServicePks();
     const normalizedFilter = normalizeText(filter);
     const filterClause = portfolioServiceFilter(normalizedFilter);
 
     const totalsResult = await getPool().query(`
-        ${portfolioServiceScopeCte()}
+        ${portfolioServiceScopeCte(blockedPks)}
         SELECT
             COUNT(*)::integer AS service_count,
             COUNT(*) FILTER (WHERE ${activeServiceCondition('portfolio_services')})::integer AS active_service_count,
@@ -430,7 +443,7 @@ async function listServices({ filter } = {}) {
     `);
 
     const servicesResult = await getPool().query(`
-        ${portfolioServiceScopeCte()}
+        ${portfolioServiceScopeCte(blockedPks)}
         SELECT *
         FROM portfolio_services
         WHERE ${filterClause}
@@ -455,6 +468,7 @@ async function listServices({ filter } = {}) {
 }
 
 async function listCapabilities() {
+    const blockedPks = await blockedServicePks();
     const result = await getPool().query(`
         ${c3PortfolioCte()}
         SELECT
@@ -491,7 +505,7 @@ async function listCapabilities() {
                 WHERE ${missingOwnerCondition('sc')}
             )::integer AS missing_owner_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE ${readinessBlockedCondition('sc')}
+                WHERE ${readinessBlockedCondition('sc', blockedPks)}
             )::integer AS readiness_blocker_count,
             COALESCE((
                 SELECT jsonb_agg(
@@ -534,7 +548,7 @@ async function listCapabilities() {
                             LIMIT 1
                         ) AS service_owner,
                         (${missingOwnerCondition('sc_service')}) AS owner_missing,
-                        (${readinessBlockedCondition('sc_service')}) AS readiness_blocked,
+                        (${readinessBlockedCondition('sc_service', blockedPks)}) AS readiness_blocked,
                         (${dueSoonReviewCondition('sc_service')}) AS review_due_soon
                     FROM data.service_c3_mapping scm_service
                     JOIN data.service_catalog sc_service
@@ -588,12 +602,13 @@ async function listCapabilities() {
 }
 
 async function getByCode(code) {
+    const blockedPks = await blockedServicePks();
     const portfolioCode = normalizeText(code);
     if (!portfolioCode) return null;
 
     const portfolioResult = await getPool().query(`
         ${c3PortfolioCte({ selectedOnly: true })}
-        ${portfolioSelect()}
+        ${portfolioSelect(blockedPks)}
         ${portfolioGroupBy()}
         LIMIT 1
     `, [portfolioCode]);
@@ -626,7 +641,7 @@ async function getByCode(code) {
                 LIMIT 1
             ) AS service_owner,
             (${missingOwnerCondition('sc')}) AS owner_missing,
-            (${readinessBlockedCondition('sc')}) AS readiness_blocked,
+            (${readinessBlockedCondition('sc', blockedPks)}) AS readiness_blocked,
             (${dueSoonReviewCondition('sc')}) AS review_due_soon,
             (
                 SELECT COUNT(*)::integer
@@ -698,7 +713,7 @@ async function getByCode(code) {
                 WHERE ${missingOwnerCondition('sc')}
             )::integer AS missing_owner_count,
             COUNT(DISTINCT sc.id) FILTER (
-                WHERE ${readinessBlockedCondition('sc')}
+                WHERE ${readinessBlockedCondition('sc', blockedPks)}
             )::integer AS readiness_blocker_count
         FROM l2_portfolios p
         JOIN portfolio_descendants d

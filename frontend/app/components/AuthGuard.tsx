@@ -2,15 +2,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { restoreAuthSession } from '@/features/auth/authStore';
-import { hasRoleAccess, requiredRoleForPath, ROLE_LABELS, type AppRole } from '@/features/auth/roles';
+import { hasRoleAccess, requiredRoleForPath, type AppRole } from '@/features/auth/roles';
+import { useT } from '@/app/i18n/useI18n';
 import {
   fetchInstallStatusSnapshot,
   isModuleUiVisible,
   invalidateInstallStatusCache,
   markInstallReady,
 } from '@/features/install/installStatus';
-import { MODULE_CODES, moduleForPath } from '@/features/modules/manifest';
+import { MODULE_CODES, moduleForPath, type ModuleDefinition } from '@/features/modules/manifest';
 import { PermissionGate } from './layout-v2';
+import ModuleInactive from './ModuleInactive';
 
 // Install wizard route: always available without authentication.
 const INSTALL_PATH = '/install';
@@ -18,16 +20,19 @@ const INSTALL_PATH = '/install';
 export { invalidateInstallStatusCache, markInstallReady };
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router   = useRouter();
   const pathname = usePathname() ?? '/';
   const [ready, setReady] = useState(false);
   const [forbiddenRole, setForbiddenRole] = useState<AppRole | null>(null);
+  const [inactiveModule, setInactiveModule] = useState<ModuleDefinition | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- U5: auth guard synchronizes local access state from install/auth checks and redirects. */
   useEffect(() => {
     // The install page is always available.
     if (pathname.startsWith(INSTALL_PATH)) {
       setForbiddenRole(null);
+      setInactiveModule(null);
       setReady(true);
       return;
     }
@@ -35,6 +40,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     setReady(false);
     setForbiddenRole(null);
+    setInactiveModule(null);
 
     async function check() {
       // Check install status first; systems that are not READY go back to the wizard.
@@ -61,7 +67,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         routeModule.code !== MODULE_CODES.CORE &&
         !isModuleUiVisible(installStatus, routeModule.code)
       ) {
-        router.replace('/');
+        // Explain instead of silently sending the user home.
+        setInactiveModule(routeModule);
+        setReady(true);
         return;
       }
 
@@ -95,12 +103,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!ready) return null;
+  if (inactiveModule) return <ModuleInactive module={inactiveModule} />;
   if (forbiddenRole) {
     return (
       <PermissionGate
         allowed={false}
-        title="Nemáte oprávnění"
-        message={`Tato stránka vyžaduje roli ${ROLE_LABELS[forbiddenRole]}. Pokud ji potřebujete spravovat, požádejte administrátora o přiřazení role.`}
+        title={t('layout.permission_gate.title')}
+        message={t('shell.auth_guard.forbidden_message', {
+          role: t(`administration.users.role.${forbiddenRole}.label`),
+        })}
       >
         {children}
       </PermissionGate>

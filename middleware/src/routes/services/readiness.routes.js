@@ -12,6 +12,7 @@ const { getServiceReadiness } = require('../../services/readiness');
 const { serviceScoreDetailed } = require('../../services/scoring');
 const { getPool } = require('../../db/pool');
 const { listLevel3Capabilities } = require('../../utils/capability-slug');
+const { resolveRequestLocale } = require('../../utils/i18n');
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ router.get('/:id/readiness', async (req, res, next) => {
         const svc = await repo.findByServiceId(serviceId);
         if (!svc) return res.status(404).json({ error: 'Služba nenalezena' });
 
-        const readiness = await getServiceReadiness(serviceId);
+        const readiness = await getServiceReadiness(serviceId, { locale: resolveRequestLocale(req) });
         if (!readiness) {
             return res.status(404).json({ error: 'Readiness pro službu nebyla nalezena' });
         }

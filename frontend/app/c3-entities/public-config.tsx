@@ -14,7 +14,8 @@ type LinkTargetKind = 'services' | 'applications' | 'data-objects';
 
 interface LinkFieldDef {
   key: string;
-  label: string;
+  /** i18n key of the field label. */
+  labelKey: string;
   target: LinkTargetKind;
 }
 
@@ -25,14 +26,16 @@ export interface PublicC3EntityConfig {
   exactSearchKeys: string[];
   columns: ColumnDef[];
   codeKey: string;
-  codeLabel: string;
+  /** i18n key of the entity code label. */
+  codeLabelKey: string;
   listPath: string;
   detailBasePath: string;
   editBasePath: string;
   detailEndpointBase: string;
   editEndpoint: string;
   editable?: boolean;
-  readOnlyReason?: string;
+  /** i18n key explaining why the entity is read-only. */
+  readOnlyReasonKey?: string;
   metadataKeys: string[];
   descriptionKeys: string[];
   rawKeys: string[];
@@ -105,7 +108,7 @@ export function buildEntityEditHref(config: PublicC3EntityConfig, row: Record<st
   return `${config.editBasePath}/${encodeURIComponent(code)}/edit`;
 }
 
-export function renderLinkedJsonList(value: unknown, target: LinkTargetKind) {
+export function renderLinkedJsonList(value: unknown, target: LinkTargetKind, fallbackLabel: (position: number) => string) {
   const basePath = target === 'services'
     ? '/c3/services'
     : target === 'applications'
@@ -121,7 +124,7 @@ export function renderLinkedJsonList(value: unknown, target: LinkTargetKind) {
         {parsed.map((item, index) => {
           const code = normalize(item.code);
           const title = normalize(item.title);
-          const label = code && title ? `${code} — ${title}` : code || title || `Link ${index + 1}`;
+          const label = code && title ? `${code} — ${title}` : code || title || fallbackLabel(index + 1);
           return code ? (
             <Link key={`${code}-${index}`} href={`${basePath}/${encodeURIComponent(code)}`} className={styles.cellLink}>
               {label}
@@ -139,9 +142,9 @@ export function renderLinkedJsonList(value: unknown, target: LinkTargetKind) {
 
 export const publicC3DataObjectsConfig = buildPublicConfig(c3DataObjectsConfig, {
   editable: false,
-  readOnlyReason: 'Data Objects are maintained from expert import evidence. Update them by importing a corrected C3 Data Objects source file.',
+  readOnlyReasonKey: 'c3_entity.read_only_reason.data_objects',
   codeKey: 'data_object_code',
-  codeLabel: 'Data Object',
+  codeLabelKey: 'c3_entity.code_label.data_object',
   listPath: '/c3/data-objects',
   detailBasePath: '/c3/data-objects',
   editBasePath: '/c3/data-objects',
@@ -154,7 +157,7 @@ export const publicC3DataObjectsConfig = buildPublicConfig(c3DataObjectsConfig, 
 
 export const publicC3ApplicationsConfig = buildPublicConfig(c3ApplicationsConfig, {
   codeKey: 'application_code',
-  codeLabel: 'Application',
+  codeLabelKey: 'c3_entity.code_label.application',
   listPath: '/c3/applications',
   detailBasePath: '/c3/applications',
   editBasePath: '/c3/applications',
@@ -178,7 +181,7 @@ export const publicC3ApplicationsConfig = buildPublicConfig(c3ApplicationsConfig
 
 export const publicC3ServicesConfig = buildPublicConfig(c3ServicesConfig, {
   codeKey: 'service_code',
-  codeLabel: 'Service',
+  codeLabelKey: 'c3_entity.code_label.service',
   listPath: '/c3/services',
   detailBasePath: '/c3/services',
   editBasePath: '/c3/services',
@@ -202,7 +205,7 @@ export const publicC3ServicesConfig = buildPublicConfig(c3ServicesConfig, {
 
 export const publicC3TechnologyInteractionsConfig = buildPublicConfig(c3TechnologyInteractionsConfig, {
   codeKey: 'technology_interaction_code',
-  codeLabel: 'Technology Interaction',
+  codeLabelKey: 'c3_entity.code_label.technology_interaction',
   listPath: '/c3/technology-interactions',
   detailBasePath: '/c3/technology-interactions',
   editBasePath: '/c3/technology-interactions',
@@ -233,8 +236,8 @@ export const publicC3TechnologyInteractionsConfig = buildPublicConfig(c3Technolo
     'data_objects_raw',
   ],
   linkFields: [
-    { key: 'linked_services_json', label: 'Linked C3 Services', target: 'services' },
-    { key: 'linked_applications_json', label: 'Linked C3 Applications', target: 'applications' },
-    { key: 'linked_data_objects_json', label: 'Linked C3 Data Objects', target: 'data-objects' },
+    { key: 'linked_services_json', labelKey: 'c3_entity.link_field.services', target: 'services' },
+    { key: 'linked_applications_json', labelKey: 'c3_entity.link_field.applications', target: 'applications' },
+    { key: 'linked_data_objects_json', labelKey: 'c3_entity.link_field.data_objects', target: 'data-objects' },
   ],
 });

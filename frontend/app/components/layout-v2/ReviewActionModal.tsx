@@ -1,6 +1,8 @@
 'use client';
 
 import { type FormEvent, useState } from 'react';
+import { useT } from '@/app/i18n/useI18n';
+import { formatCountLabel } from '@/app/lib/counts';
 import styles from './DecisionRecordModal.module.css';
 
 export type ReviewActionStatus = 'in_review' | 'approved' | 'rejected' | 'deferred' | 'cancelled';
@@ -42,12 +44,12 @@ function isTerminalStatus(status: ReviewActionStatus) {
   return ['approved', 'rejected', 'deferred', 'cancelled'].includes(status);
 }
 
-function statusLabel(status: ReviewActionStatus) {
-  if (status === 'in_review') return 'Start review';
-  if (status === 'approved') return 'Approve';
-  if (status === 'rejected') return 'Reject';
-  if (status === 'deferred') return 'Defer';
-  return 'Cancel';
+function statusLabelKey(status: ReviewActionStatus) {
+  if (status === 'in_review') return 'layout.review_action_modal.status.in_review';
+  if (status === 'approved') return 'layout.review_action_modal.status.approved';
+  if (status === 'rejected') return 'layout.review_action_modal.status.rejected';
+  if (status === 'deferred') return 'layout.review_action_modal.status.deferred';
+  return 'common.cancel';
 }
 
 export default function ReviewActionModal({
@@ -59,21 +61,38 @@ export default function ReviewActionModal({
   onClose,
   onSubmit,
 }: ReviewActionModalProps) {
+  const t = useT();
   const [rationale, setRationale] = useState('');
   const [evidence, setEvidence] = useState('');
   const [deferExpiry, setDeferExpiry] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const requiresRationale = status === 'rejected' || status === 'deferred';
+  const actionLabel = t(statusLabelKey(status));
+  const reviewType = item.review_type ?? 'governance_review';
+  const target = item.service_title ?? item.service_id;
+  const affectedService = t('layout.decision_log_preview.affects_service', { service_id: item.service_id });
+  const readinessScore = readiness?.score != null ? `${readiness.score}%` : t('layout.review_action_modal.not_available');
+  const blockersLabel = formatCountLabel(readiness?.blockers ?? 0, {
+    one: t('layout.review_action_modal.blockers.one'),
+    few: t('layout.review_action_modal.blockers.few'),
+    many: t('layout.review_action_modal.blockers.many'),
+  });
+  const warningsLabel = formatCountLabel(readiness?.warnings ?? 0, {
+    one: t('layout.review_action_modal.warnings.one'),
+    few: t('layout.review_action_modal.warnings.few'),
+    many: t('layout.review_action_modal.warnings.many'),
+  });
+  const requiredBeforeSubmit = t('layout.decision_log_preview.required_before_submit');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLocalError(null);
     if (requiresRationale && !rationale.trim()) {
-      setLocalError('Rationale is required for rejected or deferred reviews.');
+      setLocalError(t('layout.review_action_modal.error.rationale_required'));
       return;
     }
     if (status === 'deferred' && !deferExpiry) {
-      setLocalError('Defer until date is required for deferred reviews.');
+      setLocalError(t('layout.review_action_modal.error.defer_date_required'));
       return;
     }
     await onSubmit({
@@ -89,37 +108,37 @@ export default function ReviewActionModal({
       <form className={styles.modal} onSubmit={handleSubmit}>
         <div className={styles.header}>
           <div>
-            <h2 className={styles.title}>Review action</h2>
-            <p className={styles.hint}>{item.service_id} · {item.review_type ?? 'governance_review'} · {statusLabel(status)}</p>
+            <h2 className={styles.title}>{t('layout.review_action_modal.title')}</h2>
+            <p className={styles.hint}>{item.service_id} · {reviewType} · {actionLabel}</p>
           </div>
-          <button type="button" className={styles.close} onClick={onClose}>Close</button>
+          <button type="button" className={styles.close} onClick={onClose}>{t('layout.decision_record_modal.close')}</button>
         </div>
 
         <div className={styles.form}>
           {(error || localError) ? <div className={styles.error}>{error ?? localError}</div> : null}
 
           <div className={styles.preview}>
-            <strong>Pre-flight readiness</strong>
-            <span>Review: {item.review_type ?? 'governance_review'} · {item.service_title ?? item.service_id}</span>
-            <span>Requested by: {item.requested_by ?? 'Unknown'}{item.requested_at ? ` · ${item.requested_at}` : ''}</span>
-            <span>Readiness: {readiness?.score != null ? `${readiness.score}%` : 'Not available'} · {readiness?.blockers ?? 0} blockers · {readiness?.warnings ?? 0} warnings</span>
-            <span>Affected: Service · {item.service_id}</span>
+            <strong>{t('layout.review_action_modal.preflight.title')}</strong>
+            <span>{t('layout.review_action_modal.preflight.review', { review_type: reviewType, target })}</span>
+            <span>{t('layout.review_action_modal.preflight.requested_by', { name: item.requested_by ?? t('layout.review_action_modal.unknown_requester') })}{item.requested_at ? ` · ${item.requested_at}` : ''}</span>
+            <span>{t('layout.review_action_modal.preflight.readiness', { score: readinessScore, blockers: blockersLabel, warnings: warningsLabel })}</span>
+            <span>{t('layout.review_action_modal.preflight.affected', { value: affectedService })}</span>
           </div>
 
           <label className={styles.field}>
-            <span>Rationale {requiresRationale ? '*' : ''}</span>
+            <span>{t('layout.decision_record_modal.rationale')} {requiresRationale ? '*' : ''}</span>
             <textarea
               rows={4}
               maxLength={1000}
               value={rationale}
               onChange={(event) => setRationale(event.target.value)}
-              placeholder="Why is this action valid?"
+              placeholder={t('layout.review_action_modal.rationale_placeholder')}
             />
           </label>
 
           {status === 'deferred' && (
             <label className={styles.field}>
-              <span>Defer until *</span>
+              <span>{t('layout.review_action_modal.defer_until')} *</span>
               <input
                 type="date"
                 value={deferExpiry}
@@ -130,23 +149,29 @@ export default function ReviewActionModal({
           )}
 
           <label className={styles.field}>
-            <span>Evidence</span>
-            <input value={evidence} onChange={(event) => setEvidence(event.target.value)} placeholder="Link, document ID or short evidence note" />
+            <span>{t('layout.decision_record_modal.evidence')}</span>
+            <input value={evidence} onChange={(event) => setEvidence(event.target.value)} placeholder={t('layout.review_action_modal.evidence_placeholder')} />
           </label>
 
           <div className={styles.preview}>
-            <strong>Decision log preview</strong>
-            <span>What: {statusLabel(status)} {item.review_type ?? 'review'} of {item.service_title ?? item.service_id}</span>
-            <span>Why: {rationale.trim() || (requiresRationale ? 'Required before submit' : 'Optional for this action')}</span>
-            <span>Affects: Service · {item.service_id}</span>
-            <span>Expires: {status === 'deferred' ? (deferExpiry || 'Required before submit') : 'Not set'}</span>
-            <span>Evidence: {evidence.trim() || 'Not provided'}</span>
-            {!isTerminalStatus(status) && <span>Status update only; no decision record will be created.</span>}
+            <strong>{t('layout.decision_log_preview.title')}</strong>
+            <span>{t('layout.decision_log_preview.what', {
+              value: t('layout.review_action_modal.what_value', {
+                action: actionLabel,
+                review_type: item.review_type ?? t('layout.review_action_modal.review_fallback'),
+                target,
+              }),
+            })}</span>
+            <span>{t('layout.decision_log_preview.why', { value: rationale.trim() || (requiresRationale ? requiredBeforeSubmit : t('layout.review_action_modal.optional_for_action')) })}</span>
+            <span>{t('layout.decision_log_preview.affects', { value: affectedService })}</span>
+            <span>{t('layout.decision_log_preview.expires', { value: status === 'deferred' ? (deferExpiry || requiredBeforeSubmit) : t('layout.decision_log_preview.not_set') })}</span>
+            <span>{t('layout.decision_log_preview.evidence', { value: evidence.trim() || t('layout.decision_log_preview.not_provided') })}</span>
+            {!isTerminalStatus(status) && <span>{t('layout.review_action_modal.status_only_note')}</span>}
           </div>
 
           <div className={styles.actions}>
-            <button type="button" className={styles.secondary} onClick={onClose}>Cancel</button>
-            <button type="submit" className={styles.primary} disabled={busy}>Confirm action</button>
+            <button type="button" className={styles.secondary} onClick={onClose}>{t('common.cancel')}</button>
+            <button type="submit" className={styles.primary} disabled={busy}>{t('layout.review_action_modal.confirm')}</button>
           </div>
         </div>
       </form>

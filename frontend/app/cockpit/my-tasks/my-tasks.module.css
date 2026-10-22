@@ -175,3 +175,21 @@
     margin: 0 14px 12px;
   }
 }
+
+.state {
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  font: var(--text-body-md);
+}
+
+.emptyAction {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font: var(--text-label-md);
+  text-decoration: none;
+}
+.emptyAction:hover { border-color: var(--color-border-strong); }

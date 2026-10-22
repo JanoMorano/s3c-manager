@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { optionalNumber } from '@/shared/utils/zodFields';
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
 export const schema = z.object({
-  title:                  z.string().min(1, 'Title is required'),
-  service_type:           z.string().min(1, 'Service type is required'),
+  title:                  z.string().min(1, 'service_editor.validation.title_required'),
+  service_type:           z.string().min(1, 'service_editor.validation.service_type_required'),
   portfolio_group_code:           z.string().optional(),
   global_service_group_code:      z.string().optional(),
   service_line_code:              z.string().optional(),
@@ -19,7 +20,7 @@ export const schema = z.object({
   exclusions:             z.string().optional(),
   service_area:           z.string().optional(),
   security_classification:z.string().optional(),
-  source_url:             z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  source_url:             z.string().url('service_editor.validation.invalid_url').optional().or(z.literal('')),
   unit_of_measure:        z.string().optional(),
   charging_basis:         z.string().optional(),
   rate_note:              z.string().optional(),
@@ -31,17 +32,17 @@ export const schema = z.object({
   lifecycle_stage_code:   z.string().optional(),
   target_audience_summary:z.string().optional(),
   request_channel_type:   z.string().optional(),
-  request_channel_url:    z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  request_channel_url:    z.string().url('service_editor.validation.invalid_url').optional().or(z.literal('')),
   approval_required:      z.boolean().optional(),
   fulfillment_lead_time_text: z.string().optional(),
   // Item 13: notes_json
   notes_json:             z.string().optional(),
-  sla_availability:       z.coerce.number().min(0).max(100).optional().nullable(),
-  sla_restoration:        z.coerce.number().min(0).optional().nullable(),
-  sla_delivery:           z.coerce.number().min(0).optional().nullable(),
+  sla_availability:       optionalNumber(0, 100),
+  sla_restoration:        optionalNumber(0),
+  sla_delivery:           optionalNumber(0),
   // Ownership (separate API calls)
   service_owner:          z.string().optional(),
-  service_owner_email:    z.string().email().optional().or(z.literal('')),
+  service_owner_email:    z.string().email('service_editor.validation.invalid_email').optional().or(z.literal('')),
   vlastnik:               z.string().optional(),
   manager:                z.string().optional(),
   service_owner_org:      z.string().optional(),

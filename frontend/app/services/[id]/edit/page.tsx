@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { use, useEffect, useState, useCallback, useMemo } from 'react';
+import { use, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/app/components/PageHeader';
 import { CodeEditor, ConflictModal, EditorSubNav, StickySaveBar, UserPicker, type EditorSubNavSection, type SaveState } from '@/app/components/layout-v2';
@@ -16,6 +16,7 @@ import { AUTH_STATE_EVENT, getAuthSnapshot } from '@/features/auth/authStore';
 import { useServiceSla } from '@/features/services/hooks/useServices';
 import type { SlaRecord } from '@/features/services/model/service.types';
 import { useT } from '@/app/i18n/useI18n';
+import { formatCountLabel } from '@/app/lib/counts';
 import styles from './editor.module.css';
 import { LIFECYCLE_TRANSITIONS, lifecycleStageLabelKey, selectableLifecycleStages, toLifecycleStage } from '@/features/services/lifecycle';
 
@@ -38,6 +39,7 @@ interface Props { params: Promise<{ id: string }> }
 export default function ServiceEditorPage({ params }: Props) {
   const { id } = use(params);
   const t = useT();
+  const readinessPrefix = t('service_editor.readiness_prefix');
   const router  = useRouter();
   const { data: svc, mutate } = useService(id);
   const { data: portfolioGroups } = usePortfolioGroups();
@@ -118,8 +120,7 @@ export default function ServiceEditorPage({ params }: Props) {
     c3Mappings,
   } = c3Editor;
 
-
-  const { register, handleSubmit, reset, watch, setValue,
+  const { register, handleSubmit, reset, watch, setValue, setFocus,
           formState: { errors, isDirty, dirtyFields } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {},
@@ -229,7 +230,7 @@ export default function ServiceEditorPage({ params }: Props) {
       blockers.push(t('service_editor.text.requestable_service_needs_a_support_model'));
     }
     if (readiness && !readiness.is_publishable) {
-      blockers.push(...readiness.blockers.map((blocker) => `Readiness: ${blocker}`));
+      blockers.push(...readiness.blockers.map((blocker) => `${readinessPrefix}: ${blocker}`));
     }
     return Array.from(new Set(blockers));
   }, [
@@ -237,6 +238,7 @@ export default function ServiceEditorPage({ params }: Props) {
     hasRequestChannel,
     offerings.length,
     readiness,
+    readinessPrefix,
     supportModels.length,
     t,
     watchedRequestable,
@@ -249,12 +251,19 @@ export default function ServiceEditorPage({ params }: Props) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // On submit with field errors, open the first tab that contains one.
+  // On submit with field errors, open the first tab that contains one and
+  // focus the first invalid field once that tab has rendered.
   const handleInvalidSubmit = useCallback((fieldErrors: Record<string, unknown>) => {
     const errorKeys = Object.keys(fieldErrors);
     const sectionId = Object.keys(SECTION_FIELD_MAP).find((section) => SECTION_FIELD_MAP[section].some((field) => errorKeys.includes(field)));
     if (sectionId) setActiveTab(editorTabOfSection(sectionId));
-  }, []);
+    const firstKey = errorKeys[0] as keyof FormData | undefined;
+    if (firstKey) {
+      window.requestAnimationFrame(() => {
+        try { setFocus(firstKey, { shouldSelect: false }); } catch { /* field not registered as an input */ }
+      });
+    }
+  }, [setFocus]);
 
   const editorSections: EditorSubNavSection[] = useMemo(() => {
     const errorKeys = new Set(Object.keys(errors));
@@ -281,20 +290,33 @@ export default function ServiceEditorPage({ params }: Props) {
     });
   }, [c3Mappings.length, defaultOffering, errors, hasRequestChannel, offerings.length, readiness, supportModels.length, t, visibleEditorTabs, watchedRequestable]);
 
+  // New edits after a save must read as unsaved again, so dirty wins over saved.
   const saveState: SaveState = saving
     ? 'saving'
     : saveError
       ? 'error'
-      : saved || phase4Saved
-        ? 'saved'
-        : isDirty
-          ? 'dirty'
+      : isDirty
+        ? 'dirty'
+        : saved || phase4Saved
+          ? 'saved'
           : 'clean';
 
   const saveMessage = saveError
     ?? (phase4Saved && !saving ? phase4Saved : null)
-    ?? (!saving && publishBlockers.length > 0 ? `${publishBlockers.length} publish blockers` : null)
-    ?? (isDirty ? `${dirtyCount} změněných polí` : t('service_editor.text.manual_saving_according_to_v2_design'));
+    ?? (!saving && publishBlockers.length > 0
+      ? formatCountLabel(publishBlockers.length, {
+          one: t('service_editor.save_bar.publish_blockers.one'),
+          few: t('service_editor.save_bar.publish_blockers.few'),
+          many: t('service_editor.save_bar.publish_blockers.many'),
+        })
+      : null)
+    ?? (isDirty
+      ? formatCountLabel(dirtyCount, {
+          one: t('service_editor.save_bar.changed_fields.one'),
+          few: t('service_editor.save_bar.changed_fields.few'),
+          many: t('service_editor.save_bar.changed_fields.many'),
+        })
+      : t('service_editor.text.manual_saving_according_to_v2_design'));
 
   const onSubmit = async (data: FormData) => {
     setSaving(true); setSaveError(null); setSaveConflict(null); setSaved(false);
@@ -358,6 +380,9 @@ export default function ServiceEditorPage({ params }: Props) {
         await updateRole(id, { roleCode: 'service_delivery_manager', displayName: data.manager || null, orgName: data.manager_org || undefined });
       }
 
+      // Make the saved values the new baseline so the form is clean again
+      // (leave guard, change counter and save state all read isDirty).
+      reset(data);
       await mutate();
       await mutateReadiness();
       setSaved(true);
@@ -372,10 +397,32 @@ export default function ServiceEditorPage({ params }: Props) {
     }
   };
 
+  const saveDraft = () => {
+    void handleSubmit(onSubmit, handleInvalidSubmit)();
+  };
+
+  // Ctrl/Cmd+S saves the draft instead of opening the browser's "Save page".
+  // The listener reads the latest saveDraft through a ref so it binds once.
+  const saveShortcutRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    saveShortcutRef.current = () => {
+      if (isDirty && !saving) saveDraft();
+    };
+  });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
+      event.preventDefault();
+      saveShortcutRef.current();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const handlePublish = () => {
     if (publishBlockers.length > 0) {
       setSaveError(publishBlockers[0]);
-      const targetSection = publishBlockers[0].startsWith('Readiness')
+      const targetSection = publishBlockers[0].startsWith(`${readinessPrefix}:`)
         ? 'readiness-governance'
         : publishBlockers[0].includes('offering')
           ? 'request-access'
@@ -388,7 +435,7 @@ export default function ServiceEditorPage({ params }: Props) {
       return;
     }
     setValue('lifecycle_stage_code', 'active', { shouldDirty: true, shouldValidate: true });
-    void handleSubmit((data) => onSubmit({ ...data, lifecycle_stage_code: 'active' }))();
+    void handleSubmit((data) => onSubmit({ ...data, lifecycle_stage_code: 'active' }), handleInvalidSubmit)();
   };
 
   if (!svc) return <div className={styles.state}>{t('common.loading')}</div>;
@@ -398,13 +445,8 @@ export default function ServiceEditorPage({ params }: Props) {
     <form className={styles.shell} onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}>
       <div className={styles.stickyHeader}>
         <PageHeader
-          title={`Editor služby — ${svc.title}`}
+          title={t('service_editor.heading', { title: svc.title })}
           purpose={t('service_editor.tab.purpose')}
-          chips={[
-            { label: `ID ${id}`, tone: 'neutral' },
-            { label: `Lifecycle: ${currentLifecycle ? t(lifecycleStageLabelKey(currentLifecycle)) : '—'}`, tone: currentLifecycle === 'active' ? 'ok' : 'info' },
-            { label: `Completeness ${svc.completeness_score ?? '—'}%`, tone: (svc.completeness_score ?? 0) >= 80 ? 'ok' : 'warn' },
-          ]}
           primaryAction={{ label: t('service_editor.text.back_to_detail'), href: `/services/${id}` }}
         />
       </div>
@@ -438,7 +480,7 @@ export default function ServiceEditorPage({ params }: Props) {
               {Object.entries(errors).length > 0
                 ? Object.entries(errors).slice(0, 3).map(([field, error]) => (
                     <div key={field} className={styles.validationError}>
-                      {field}: {(error as { message?: string }).message}
+                      {t((error as { message?: string }).message ?? '')}
                     </div>
                   ))
                 : <div className={styles.validOk}>{t('service_editor.text.no_field_errors')}</div>
@@ -585,7 +627,7 @@ export default function ServiceEditorPage({ params }: Props) {
             </p>
           </EditorSection>
 
-          {/* §4 Vlastnictví a support */}
+          {/* §4 Ownership and support */}
           <EditorSection id="ownership-support" title={t('service_editor.section.ownership')}>
             <span id="ownership" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
@@ -600,7 +642,7 @@ export default function ServiceEditorPage({ params }: Props) {
                   onChange={(value) => setValue('service_owner_email', value, { shouldDirty: true, shouldValidate: true })}
                   required={false}
                 />
-                {errors.service_owner_email?.message && <span className={styles.fieldError}>{errors.service_owner_email.message}</span>}
+                {errors.service_owner_email?.message && <span className={styles.fieldError}>{t(errors.service_owner_email.message)}</span>}
               </div>
               <Field label={t('service_editor.text.service_delivery_manager')} hint={t('service_editor.text.fill_in_only_if_a_delivery_process_exists_for_th')}>
                 <input {...register('manager')} className={styles.input} placeholder={t('service_editor.text.display_name')} />
@@ -851,10 +893,10 @@ export default function ServiceEditorPage({ params }: Props) {
         message={saveMessage}
         disabled={!isDirty || saving}
         publishDisabled={saving || publishBlockers.length > 0}
-        primaryLabel="Save draft"
-        publishLabel="Save & publish"
-        secondaryLabel="Zahodit a zpět"
-        onSave={() => void handleSubmit(onSubmit)()}
+        primaryLabel={t('service_editor.save_bar.save_draft')}
+        publishLabel={t('service_editor.save_bar.save_and_publish')}
+        secondaryLabel={t('service_editor.save_bar.discard_and_back')}
+        onSave={saveDraft}
         onPublish={handlePublish}
         onDiscard={() => {
           if (isDirty && !confirm(t('service_editor.text.you_have_unsaved_changes_leave_anyway'))) return;

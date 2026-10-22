@@ -1,113 +1,86 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './GraphWorkspace.module.css';
 
 export interface GraphWorkspaceProps {
   title?: string;
+  /** One short sentence about the view; shown as the title's tooltip. */
   purpose?: string;
-  toolbar: ReactNode;
+  /** Short facts next to the title (counts, badges). */
+  meta?: ReactNode;
+  /** Compact controls in the bar above the canvas (filters, view switch, options). */
+  toolbar?: ReactNode;
+  /** Right-aligned actions in the bar (e.g. export). */
+  actions?: ReactNode;
   canvas: ReactNode;
   detail?: ReactNode;
   detailPanelContent?: ReactNode;
-  onDetailPanelClose?: () => void;
+  /** Heading of the detail panel. */
+  detailTitle?: string;
+  /** The detail panel is shown only while open; the canvas uses the full width otherwise. */
   detailOpen?: boolean;
-  onDetailOpenChange?: (open: boolean) => void;
-  canvasOnly?: boolean;
-  canvasOnlyLabel?: string;
-  restoreWorkspaceLabel?: string;
-  onCanvasOnlyChange?: (canvasOnly: boolean) => void;
-  showWorkspaceActions?: boolean;
+  /** Shows a close button in the detail panel. */
+  onDetailPanelClose?: () => void;
 }
 
+/**
+ * Graph page shell: a one-row header with title and compact toolbar above a
+ * full-width canvas, and a detail panel that opens beside the canvas on demand.
+ */
 export default function GraphWorkspace({
-  title = 'Graph workspace',
+  title: titleProp,
   purpose,
+  meta,
   toolbar,
+  actions,
   canvas,
   detail,
   detailPanelContent,
+  detailTitle,
+  detailOpen: detailOpenProp,
   onDetailPanelClose,
-  detailOpen: controlledDetailOpen,
-  onDetailOpenChange,
-  canvasOnly = false,
-  canvasOnlyLabel = 'Jen graf',
-  restoreWorkspaceLabel = 'Zobrazit panely',
-  onCanvasOnlyChange,
-  showWorkspaceActions = true,
 }: GraphWorkspaceProps) {
+  const t = useT();
+  const title = titleProp ?? t('layout.graph_workspace.title');
   const detailContent = detailPanelContent ?? detail;
-  const [internalDetailOpen, setInternalDetailOpen] = useState(true);
-  const detailOpen = controlledDetailOpen ?? internalDetailOpen;
-  const canUseCanvasOnly = Boolean(onCanvasOnlyChange);
-
-  function updateDetailOpen(open: boolean) {
-    if (controlledDetailOpen == null) setInternalDetailOpen(open);
-    onDetailOpenChange?.(open);
-    if (!open) onDetailPanelClose?.();
-  }
+  const detailOpen = (detailOpenProp ?? Boolean(detailContent)) && Boolean(detailContent);
 
   return (
     <section
-      className={`${styles.workspace} ${detailOpen ? '' : styles.workspaceDetailClosed} ${canvasOnly ? styles.workspaceCanvasOnly : ''}`}
+      className={`${styles.workspace} ${detailOpen ? styles.workspaceDetailOpen : ''}`}
       aria-label={title}
     >
-      {!canvasOnly && (
-      <aside className={styles.toolbar}>
-        {(title || purpose) && (
-          <div className={styles.toolbarHeader}>
-            <div>
-              {title ? <strong>{title}</strong> : null}
-              {purpose ? <span>{purpose}</span> : null}
-            </div>
-            <div className={styles.toolbarActions}>
-              {showWorkspaceActions && canUseCanvasOnly ? (
-                <button
-                  type="button"
-                  className={styles.detailToggle}
-                  aria-pressed={canvasOnly}
-                  onClick={() => onCanvasOnlyChange?.(true)}
-                >
-                  {canvasOnlyLabel}
-                </button>
-              ) : null}
-              {showWorkspaceActions ? (
-                <button
-                  type="button"
-                  className={styles.detailToggle}
-                  aria-expanded={detailOpen}
-                  onClick={() => updateDetailOpen(!detailOpen)}
-                >
-                  Detail
-                </button>
-              ) : null}
-            </div>
-          </div>
-        )}
-        {toolbar}
-      </aside>
-      )}
+      <header className={styles.bar}>
+        <div className={styles.heading}>
+          <h1 className={styles.title} title={purpose}>{title}</h1>
+          {meta ? <div className={styles.meta}>{meta}</div> : null}
+        </div>
+        {toolbar ? <div className={styles.toolbar}>{toolbar}</div> : null}
+        {actions ? <div className={styles.actions}>{actions}</div> : null}
+      </header>
       <div className={styles.canvas}>
-        {showWorkspaceActions && canvasOnly ? (
-          <button type="button" className={styles.floatingDetailToggle} onClick={() => onCanvasOnlyChange?.(false)}>
-            {restoreWorkspaceLabel}
-          </button>
-        ) : null}
-        {showWorkspaceActions && !canvasOnly && !detailOpen && (
-          <button type="button" className={styles.floatingDetailToggle} onClick={() => updateDetailOpen(true)}>
-            Detail panel
-          </button>
-        )}
         {canvas}
       </div>
-      {!canvasOnly && detailOpen && (
-        <aside className={styles.detail}>
-          {showWorkspaceActions ? (
-            <button type="button" className={styles.closeButton} onClick={() => updateDetailOpen(false)}>
-              Collapse
-            </button>
-          ) : null}
-          {detailContent}
+      {detailOpen && (
+        <aside className={styles.detail} aria-label={detailTitle ?? t('layout.graph_workspace.detail')}>
+          <div className={styles.detailHeader}>
+            <h2 className={styles.detailTitle}>{detailTitle ?? t('layout.graph_workspace.detail')}</h2>
+            {onDetailPanelClose ? (
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={onDetailPanelClose}
+                aria-label={t('layout.graph_workspace.close_detail')}
+                title={t('layout.graph_workspace.close_detail')}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+          <div className={styles.detailBody}>{detailContent}</div>
         </aside>
       )}
     </section>

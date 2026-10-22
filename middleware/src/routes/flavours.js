@@ -6,6 +6,7 @@ const audit   = require('../db/audit.repo');
 const { requireAuth } = require('../middleware/auth');
 const { canEdit, canAdmin } = require('../middleware/rbac');
 const { validateFlavour } = require('../services/validation');
+const { refreshServiceScoreSafely } = require('../services/completeness');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -80,6 +81,7 @@ router.post('/', canEdit, async (req, res, next) => {
         const newId = await flRepo.upsert(serviceId, body);
         const item  = await flRepo.findById(newId);
         await audit.log({ tableName: 'ServiceFlavours', recordId: newId, action: 'INSERT', newValues: req.body, performedBy: req.user.username });
+        await refreshServiceScoreSafely(serviceId);
         res.status(201).json(item);
     } catch (err) { next(err); }
 });
@@ -97,6 +99,7 @@ router.put('/:id', canEdit, async (req, res, next) => {
 
         const updated = await flRepo.update(id, body);
         await audit.log({ tableName: 'ServiceFlavours', recordId: id, action: 'UPDATE', performedBy: req.user.username });
+        await refreshServiceScoreSafely(existing.service_id);
         res.json(updated);
     } catch (err) { next(err); }
 });
@@ -110,6 +113,7 @@ router.delete('/:id', canAdmin, async (req, res, next) => {
 
         await flRepo.remove(id);
         await audit.log({ tableName: 'ServiceFlavours', recordId: id, action: 'DELETE', performedBy: req.user.username });
+        await refreshServiceScoreSafely(existing.service_id);
         res.json({ message: 'Varianta smazána' });
     } catch (err) { next(err); }
 });

@@ -173,8 +173,10 @@ async function mockAdminImportExport(page: Page, role: MockRole = 'admin') {
 test('admin import page exposes governance profiles and export options', async ({ page }) => {
   await mockAdminImportExport(page);
 
-  await page.goto('/administration/import');
-  await expect(page.getByRole('heading', { name: /import history/i })).toBeVisible();
+  await page.goto('/import');
+  await expect(page.getByRole('heading', { name: /^import$/i })).toBeVisible();
+  // Exports and profiles live in the header's Export menu.
+  await page.locator('summary', { hasText: /export/i }).click();
   await expect(page.getByLabel('Catalogue import/export profile')).toBeVisible();
   await page.getByLabel('Catalogue import/export profile').selectOption('backstage-catalog-info');
   await expect(page.getByText('metadata.name')).toBeVisible();

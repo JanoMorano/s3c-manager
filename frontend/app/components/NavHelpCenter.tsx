@@ -22,7 +22,9 @@ export default function NavHelpCenter() {
         <BookOpen size={16} />
         <span>{t('nav.help')}</span>
       </Link>
-      <span className={styles.versionBadge}>v.1.2</span>
+      {process.env.NEXT_PUBLIC_APP_VERSION ? (
+        <span className={styles.versionBadge}>v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+      ) : null}
     </div>
   );
 }

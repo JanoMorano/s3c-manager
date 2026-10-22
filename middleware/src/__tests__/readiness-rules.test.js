@@ -20,12 +20,16 @@ jest.mock('../middleware/rbac', () => ({
     },
 }));
 
+jest.mock('../middleware/module-gates', () => ({
+    isModuleApiEnabled: jest.fn(async () => true),
+}));
 jest.mock('../db/readiness.repo', () => ({
     listRules: jest.fn(),
     getServiceState: jest.fn(),
     getServiceStateByCatalogId: jest.fn(),
     listServiceStates: jest.fn(),
     listExceptionsForService: jest.fn(),
+    listExceptionsForServices: jest.fn(),
     createException: jest.fn(),
     deleteException: jest.fn(),
 }));
@@ -208,7 +212,7 @@ describe('readiness routes', () => {
             state({ service_id: 'SVC-WARN', dependency_relation_count: 0 }),
             state({ service_id: 'SVC-READY' }),
         ]);
-        repo.listExceptionsForService.mockResolvedValue([]);
+        repo.listExceptionsForServices.mockResolvedValue([]);
 
         const response = await request(buildApp()).get('/api/v1/readiness/summary');
 

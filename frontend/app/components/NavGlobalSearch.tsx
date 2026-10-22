@@ -83,7 +83,7 @@ export default function NavGlobalSearch() {
   }
 
   function groupHeading(group: GlobalSearchGroup) {
-    if (group.kind === 'help') return 'Help';
+    if (group.kind === 'help') return t('nav.help');
     if (group.module_label && group.module_label !== group.label) return `${group.module_label} - ${group.label}`;
     return group.label;
   }
@@ -96,7 +96,7 @@ export default function NavGlobalSearch() {
           ref={inputRef}
           className={styles.navSearchInput}
           type="search"
-          placeholder="Search any word across the application..."
+          placeholder={t('nav.global_search_placeholder_any_word')}
           value={query}
           onFocus={() => setPaletteOpen(true)}
           onChange={(event) => {
@@ -111,8 +111,8 @@ export default function NavGlobalSearch() {
         </button>
       </form>
       {paletteOpen && query.trim().length >= 2 && (
-        <div className={styles.commandPalette} role="dialog" aria-label="Global search suggestions">
-          {paletteBusy && <div className={styles.commandState}>Searching...</div>}
+        <div className={styles.commandPalette} role="dialog" aria-label={t('nav.global_search_suggestions_aria')}>
+          {paletteBusy && <div className={styles.commandState}>{t('nav.global_search_searching')}</div>}
           {!paletteBusy && palette && palette.total === 0 && <div className={styles.commandState}>{t('nav.global_search_no_results_service_list')}</div>}
           {!paletteBusy && palette && palette.total > 0 && palette.groups.map((group) => (
             <section key={group.key} className={styles.commandGroup}>
@@ -127,7 +127,7 @@ export default function NavGlobalSearch() {
             </section>
           ))}
           <button type="button" className={styles.commandFooter} onMouseDown={(event) => event.preventDefault()} onClick={openSearchPage}>
-            Open grouped results for “{query.trim()}”
+            {t('nav.global_search_open_grouped', { query: query.trim() })}
           </button>
         </div>
       )}

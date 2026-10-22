@@ -14,6 +14,9 @@ type GeneratedEntry = {
 const ATTRIBUTE_NAMES = ['aria-label', 'alt', 'placeholder', 'title'];
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE', 'TEXTAREA', 'NOSCRIPT']);
 const TEXT_SOURCE = new WeakMap<Text, string>();
+// Last value the bridge wrote into each node, to tell its own writes apart
+// from React updating the text in place.
+const TEXT_WRITTEN = new WeakMap<Text, string>();
 
 function normalizeUiText(value: string | null | undefined): string {
   return String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -52,6 +55,16 @@ function translateTextNode(node: Text, locale: Locale) {
   const leading = current.match(/^\s*/)?.[0] ?? '';
   const trailing = current.match(/\s*$/)?.[0] ?? '';
   node.nodeValue = `${leading}${translated}${trailing}`;
+  TEXT_WRITTEN.set(node, node.nodeValue);
+}
+
+// React re-rendered the text (e.g. "Hide filters" → "Show filters"): the
+// cached source is stale, so translate from the new value.
+function handleTextChange(node: Text, locale: Locale) {
+  if (TEXT_WRITTEN.get(node) === node.nodeValue) return;
+  TEXT_SOURCE.delete(node);
+  TEXT_WRITTEN.delete(node);
+  translateTextNode(node, locale);
 }
 
 function translateAttributes(element: Element, locale: Locale) {
@@ -100,6 +113,9 @@ export default function LegacyTextBridge() {
             applyTranslations(node as Element, locale);
           }
         });
+        if (mutation.type === 'characterData' && mutation.target.nodeType === Node.TEXT_NODE) {
+          handleTextChange(mutation.target as Text, locale);
+        }
         if (mutation.type === 'attributes' && mutation.target instanceof Element) {
           translateAttributes(mutation.target, locale);
         }
@@ -109,6 +125,7 @@ export default function LegacyTextBridge() {
     observer.observe(document.body, {
       attributes: true,
       attributeFilter: ATTRIBUTE_NAMES,
+      characterData: true,
       childList: true,
       subtree: true,
     });

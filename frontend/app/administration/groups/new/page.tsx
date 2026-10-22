@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createGroup } from '@/features/admin/api/groups.api'
+import { useT } from '@/app/i18n/useI18n'
 import styles from '../groups.module.css'
 
 function slugify(str: string): string {
@@ -15,6 +16,7 @@ function slugify(str: string): string {
 }
 
 export default function NewGroupPage() {
+  const t = useT()
   const router = useRouter()
   const [groupName,   setGroupName]   = useState('')
   const [groupCode,   setGroupCode]   = useState('')
@@ -42,7 +44,7 @@ export default function NewGroupPage() {
       const group = await createGroup({ group_code: groupCode, group_name: groupName, description })
       router.push(`/administration/groups/${group.id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chyba při vytváření skupiny')
+      setError(err instanceof Error ? err.message : t('administration.groups.create_failed'))
       setSaving(false)
     }
   }
@@ -50,31 +52,31 @@ export default function NewGroupPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.breadcrumb}>
-        <Link href="/administration/groups">Group Management</Link>
+        <Link href="/administration/groups">{t('administration.card.groups.title')}</Link>
         <span>›</span>
-        <span>New Group</span>
+        <span>{t('administration.groups.new_button')}</span>
       </div>
 
       <div className={styles.header}>
-        <h1 className={styles.title}>Create Group</h1>
+        <h1 className={styles.title}>{t('administration.groups.create_title')}</h1>
       </div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
       <form className={styles.infoPanel} onSubmit={handleSubmit}>
         <div className={styles.formGroup}>
-          <label>Group Name *</label>
+          <label>{t('administration.groups.field.name')} *</label>
           <input
             type="text"
             value={groupName}
             onChange={e => handleNameChange(e.target.value)}
-            placeholder="Např. IT Operations"
+            placeholder={t('administration.groups.field.name_placeholder')}
             required
             autoFocus
           />
         </div>
         <div className={styles.formGroup}>
-          <label>Group Code *</label>
+          <label>{t('administration.groups.field.code')} *</label>
           <input
             type="text"
             value={groupCode}
@@ -83,15 +85,15 @@ export default function NewGroupPage() {
             required
           />
           <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-            Slug, automaticky generovaný z Name. Nelze změnit po uložení.
+            {t('administration.groups.field.code_hint')}
           </span>
         </div>
         <div className={styles.formGroup}>
-          <label>Description</label>
+          <label>{t('administration.groups.field.description')}</label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
-            placeholder="Volitelný popis skupiny…"
+            placeholder={t('administration.groups.field.description_placeholder')}
           />
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -100,10 +102,10 @@ export default function NewGroupPage() {
             className={styles.btnSave}
             disabled={saving || !groupCode || !groupName}
           >
-            {saving ? 'Vytvářím…' : 'Create Group'}
+            {saving ? t('administration.groups.creating') : t('administration.groups.create_title')}
           </button>
           <Link href="/administration/groups" className={styles.btnSecondary}>
-            Cancel
+            {t('common.cancel')}
           </Link>
         </div>
       </form>

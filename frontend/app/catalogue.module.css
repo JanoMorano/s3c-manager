@@ -11,6 +11,45 @@
   background: var(--color-bg-canvas);
 }
 
+/* Filter rail hidden: the list gets the full width. */
+.shellRailCollapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.shellRailCollapsed .rail {
+  display: none;
+}
+
+.railToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+.railToggle:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+
+.railToggleCount {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-info);
+  color: var(--color-bg-surface);
+  font: var(--text-label-sm);
+  text-align: center;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
 /* ── Filter rail ─────────────────────────────────────────────────────────── */
 .rail {
   background: var(--color-bg-surface);
@@ -427,6 +466,8 @@
   flex: 1;
   overflow-y: auto;
   background: var(--color-bg-surface);
+  /* ServiceListRow adapts its columns to this width, not the viewport. */
+  container: service-list / inline-size;
 }
 
 /* Pagination */

@@ -6,10 +6,11 @@ interface GraphLegendProps {
   items: GraphLegendItem[];
 }
 
+/** One-line legend of edge styles, shown in the strip under the canvas. */
 export function GraphLegend({ title, items }: GraphLegendProps) {
   return (
     <div className={styles.legend} role="group" aria-label={title}>
-      <div className={styles.title}>{title}</div>
+      <span className={styles.title}>{title}</span>
       <ul className={styles.list}>
         {items.map((item) => (
           <li key={item.key} className={styles.item}>

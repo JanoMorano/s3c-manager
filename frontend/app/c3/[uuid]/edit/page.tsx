@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CapabilityDetailPage } from '@/features/c3/components/CapabilityDetailPage';
 import { authHeaders } from '@/features/services/api/services.api';
+import { useT } from '@/app/i18n/useI18n';
 
 interface Props {
   params: Promise<{ uuid: string }>;
@@ -14,7 +15,16 @@ type ResolveState =
   | { kind: 'capability' }
   | { kind: 'redirecting' }
   | { kind: 'missing' }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; message: string | null; lookup?: LookupKind; status?: number };
+
+type LookupKind = 'capability' | 'entity';
+
+/** Lookup failure without a server message; translated at render time. */
+class LookupFailure extends Error {
+  constructor(readonly lookup: LookupKind, readonly status: number) {
+    super('');
+  }
+}
 
 interface PickerRow {
   id: number;
@@ -59,6 +69,7 @@ function buildEntityEditHref(editBasePath: string, row: PickerRow) {
 export default function C3ItemEditPage({ params }: Props) {
   const { uuid } = use(params);
   const router = useRouter();
+  const t = useT();
   const [state, setState] = useState<ResolveState>({ kind: 'resolving' });
 
   useEffect(() => {
@@ -73,14 +84,16 @@ export default function C3ItemEditPage({ params }: Props) {
         }
         if (capabilityResponse.status !== 404) {
           const text = await capabilityResponse.text().catch(() => '');
-          throw new Error(text || `Capability lookup selhal (${capabilityResponse.status}).`);
+          if (text) throw new Error(text);
+          throw new LookupFailure('capability', capabilityResponse.status);
         }
 
         for (const target of ENTITY_EDIT_TARGETS) {
           const response = await fetchEditTarget(target.endpoint);
           if (!response.ok) {
             const text = await response.text().catch(() => '');
-            throw new Error(text || `Entity lookup selhal (${response.status}).`);
+            if (text) throw new Error(text);
+            throw new LookupFailure('entity', response.status);
           }
 
           const rows = (await response.json()) as PickerRow[];
@@ -97,10 +110,9 @@ export default function C3ItemEditPage({ params }: Props) {
         if (!cancelled) setState({ kind: 'missing' });
       } catch (error) {
         if (!cancelled) {
-          setState({
-            kind: 'error',
-            message: error instanceof Error ? error.message : 'Nepodařilo se rozpoznat správný editor C3 položky.',
-          });
+          setState(error instanceof LookupFailure
+            ? { kind: 'error', message: null, lookup: error.lookup, status: error.status }
+            : { kind: 'error', message: error instanceof Error ? error.message : null });
         }
       }
     }
@@ -115,10 +127,16 @@ export default function C3ItemEditPage({ params }: Props) {
     return <CapabilityDetailPage uuid={uuid} mode="edit" />;
   }
   if (state.kind === 'redirecting' || state.kind === 'resolving') {
-    return <div style={{ padding: '2rem' }}>Načítám správný editor…</div>;
+    return <div style={{ padding: '2rem' }}>{t('c3.edit.resolving')}</div>;
   }
   if (state.kind === 'missing') {
-    return <div style={{ padding: '2rem' }}>Chyba: C3 položka nenalezena.</div>;
+    return <div style={{ padding: '2rem' }}>{t('c3.edit.not_found')}</div>;
   }
-  return <div style={{ padding: '2rem' }}>Chyba: {state.message}</div>;
+  const message = state.message
+    ?? (state.lookup === 'capability'
+      ? t('c3.edit.capability_lookup_failed', { status: state.status ?? '' })
+      : state.lookup === 'entity'
+        ? t('c3.edit.entity_lookup_failed', { status: state.status ?? '' })
+        : t('c3.edit.resolve_failed'));
+  return <div style={{ padding: '2rem' }}>{t('c3.edit.error', { message })}</div>;
 }

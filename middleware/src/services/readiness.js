@@ -1,6 +1,48 @@
 'use strict';
 
 const repo = require('../db/readiness.repo');
+const { isModuleApiEnabled } = require('../middleware/module-gates');
+const { MODULE_CODES } = require('../modules/manifest');
+const { translate } = require('../../../shared/i18n/locales');
+
+// Rules that check C3 capability mappings; they only apply while the optional
+// C3 taxonomy module is on, since without it no mapping can be recorded.
+const C3_RULE_KEYS = new Set([
+    'service_has_primary_capability_mapping',
+    'service_has_complete_primary_capability',
+]);
+
+// Rule texts are stored once in the database (English). Known rules carry
+// translations in the shared i18n catalog under readiness_rule.<rule_key>.*;
+// rules without a catalog entry keep their database text.
+const LOCALIZED_RULE_FIELDS = {
+    title: 'title',
+    title_text: 'title',
+    description: 'description',
+    why_text: 'description',
+    howto_text: 'howto',
+};
+
+function localizeRule(rule, locale) {
+    if (!locale || !rule?.rule_key) return rule;
+    const localized = { ...rule };
+    for (const [field, suffix] of Object.entries(LOCALIZED_RULE_FIELDS)) {
+        const key = `readiness_rule.${rule.rule_key}.${suffix}`;
+        const text = translate(locale, key);
+        if (text !== key && rule[field] != null) localized[field] = text;
+    }
+    return localized;
+}
+
+async function listLocalizedRules(locale) {
+    const [allRules, c3Enabled] = await Promise.all([
+        repo.listRules(),
+        // If the module registry cannot be read, keep enforcing every rule.
+        isModuleApiEnabled(MODULE_CODES.C3).catch(() => true),
+    ]);
+    const rules = c3Enabled ? allRules : allRules.filter((rule) => !C3_RULE_KEYS.has(rule.rule_key));
+    return locale ? rules.map((rule) => localizeRule(rule, locale)) : rules;
+}
 
 function isActiveServiceStatus(status) {
     return String(status ?? '').toLowerCase() === 'active';
@@ -224,50 +266,131 @@ function buildServiceReadiness(row, rules = {}) {
     return evaluateServiceReadinessState(adaptedRow, legacyRules, []);
 }
 
-async function getServiceReadiness(serviceId) {
+// options.locale: language for rule texts (see localizeRule).
+async function getServiceReadiness(serviceId, { locale } = {}) {
     const row = await repo.getServiceState(serviceId);
     if (!row) return null;
     const [rules, exceptions] = await Promise.all([
-        repo.listRules(),
+        listLocalizedRules(locale),
         repo.listExceptionsForService(row.service_pk),
     ]);
     return evaluateServiceReadinessState(row, rules, exceptions);
 }
 
-async function getServiceReadinessByCatalogId(catalogId) {
+async function getServiceReadinessByCatalogId(catalogId, { locale } = {}) {
     const row = await repo.getServiceStateByCatalogId(catalogId);
     if (!row) return null;
     const [rules, exceptions] = await Promise.all([
-        repo.listRules(),
+        listLocalizedRules(locale),
         repo.listExceptionsForService(row.service_pk),
     ]);
     return evaluateServiceReadinessState(row, rules, exceptions);
 }
 
-async function getReadinessSummary(filters = {}) {
-    const [rules, rows] = await Promise.all([
-        repo.listRules(),
-        repo.listServiceStates(filters),
-    ]);
+// Readiness state of one evaluated service: the single definition behind
+// "blocked", "warning" and "ready" on every screen.
+function readinessStateOf(readiness) {
+    if (!readiness) return null;
+    if (readiness.blockers.length > 0) return 'blocked';
+    if (readiness.warnings.length > 0) return 'warning';
+    return 'ready';
+}
 
+// Evaluates readiness rules for many services with three queries in total.
+// filters: { servicePks?, lifecycle?, owner? } — without servicePks the whole
+// catalogue (non-deleted, non-stub services) is evaluated.
+async function evaluateReadiness(filters = {}) {
+    const [rules, rows] = await Promise.all([
+        listLocalizedRules(filters.locale),
+        repo.listServiceStates({ ...filters, all: true }),
+    ]);
+    const exceptions = await repo.listExceptionsForServices(
+        Array.isArray(filters.servicePks) ? filters.servicePks : null,
+    );
+    const exceptionsByService = new Map();
+    for (const exception of exceptions) {
+        const key = String(exception.service_id);
+        if (!exceptionsByService.has(key)) exceptionsByService.set(key, []);
+        exceptionsByService.get(key).push(exception);
+    }
     const items = [];
     for (const row of rows) {
-        const exceptions = await repo.listExceptionsForService(row.service_pk);
-        const readiness = evaluateServiceReadinessState(row, rules, exceptions);
+        const readiness = evaluateServiceReadinessState(row, rules, exceptionsByService.get(String(row.service_pk)) ?? []);
         if (readiness) items.push(readiness);
     }
+    return items;
+}
+
+async function buildReadinessIndex(filters) {
+    const items = await evaluateReadiness(filters);
+    return new Map(items.map((item) => [String(item.service_pk), {
+        state: readinessStateOf(item),
+        blocker_count: item.blockers.length,
+        warning_count: item.warnings.length,
+    }]));
+}
+
+// A whole-catalogue evaluation in progress. Concurrent callers (the home page
+// asks for several readiness KPIs at once) share it instead of each re-reading
+// every service; nothing is kept once it settles.
+let fullIndexInFlight = null;
+
+// Map of service catalog id (as string) → { state, blocker_count, warning_count }.
+async function getReadinessIndex(filters = {}) {
+    const wholeCatalogue = !filters.servicePks && !filters.lifecycle && !filters.owner;
+    if (!wholeCatalogue) return buildReadinessIndex(filters);
+    if (!fullIndexInFlight) {
+        fullIndexInFlight = buildReadinessIndex({}).finally(() => {
+            fullIndexInFlight = null;
+        });
+    }
+    return fullIndexInFlight;
+}
+
+const READINESS_STATE_FILTERS = {
+    blocked: ['blocked'],
+    warning: ['warning'],
+    ready: ['ready'],
+    attention: ['blocked', 'warning'],
+    // No blocking failure: what "ready for publish" counts.
+    publishable: ['ready', 'warning'],
+};
+
+function isReadinessStateFilter(value) {
+    return Object.prototype.hasOwnProperty.call(READINESS_STATE_FILTERS, value);
+}
+
+// Service catalog ids whose readiness state matches a list filter value
+// (blocked | warning | ready | attention | publishable), or null otherwise.
+async function servicePksForReadinessFilter(value) {
+    if (!isReadinessStateFilter(value)) return null;
+    const wanted = new Set(READINESS_STATE_FILTERS[value]);
+    const index = await getReadinessIndex();
+    return [...index.entries()].filter(([, entry]) => wanted.has(entry.state)).map(([pk]) => pk);
+}
+
+async function getReadinessSummary(filters = {}) {
+    // Counts always cover every matching service; only the item lists are paged.
+    const all = await evaluateReadiness({ lifecycle: filters.lifecycle, owner: filters.owner, locale: filters.locale });
+    const offset = Math.max(0, Number.parseInt(filters.offset ?? 0, 10) || 0);
+    const limit = Math.max(1, Number.parseInt(filters.limit ?? 100, 10) || 100);
+    const page = (list) => list.slice(offset, offset + limit);
 
     const groups = {
-        blockers: items.filter((item) => item.blockers.length > 0),
-        warnings: items.filter((item) => item.blockers.length === 0 && item.warnings.length > 0),
-        ready: items.filter((item) => item.blockers.length === 0 && item.warnings.length === 0),
+        blockers: all.filter((item) => readinessStateOf(item) === 'blocked'),
+        warnings: all.filter((item) => readinessStateOf(item) === 'warning'),
+        ready: all.filter((item) => readinessStateOf(item) === 'ready'),
     };
 
     return {
-        items,
-        groups,
+        items: page(all),
+        groups: {
+            blockers: page(groups.blockers),
+            warnings: page(groups.warnings),
+            ready: page(groups.ready),
+        },
         counts: {
-            total: items.length,
+            total: all.length,
             blockers: groups.blockers.length,
             warnings: groups.warnings.length,
             ready: groups.ready.length,
@@ -285,6 +408,11 @@ module.exports = {
     getServiceReadiness,
     getServiceReadinessByCatalogId,
     getReadinessSummary,
+    getReadinessIndex,
     getServiceStateByCatalogId,
     isActiveServiceStatus,
+    isReadinessStateFilter,
+    localizeRule,
+    readinessStateOf,
+    servicePksForReadinessFilter,
 };

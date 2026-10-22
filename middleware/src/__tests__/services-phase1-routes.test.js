@@ -228,6 +228,27 @@ describe('services phase 1 routes', () => {
         );
     });
 
+    test('PUT /services/:id scores the service after saving its domains', async () => {
+        const servicesRepo = require('../db/services.repo');
+        const offeringsRepo = require('../db/offerings.repo');
+        const scoring = require('../services/scoring');
+        const reread = { id: 101, service_id: 'SVC-1', service_status: 'draft', available_on: ['NEXUS'] };
+        servicesRepo.update.mockResolvedValue({ service_id: 'SVC-1', service_status: 'draft', available_on: [] });
+        offeringsRepo.listByService.mockResolvedValue([]);
+        servicesRepo.setDomains.mockImplementation(async () => {
+            servicesRepo.findByServiceId.mockResolvedValue(reread);
+        });
+
+        const response = await request(buildApp())
+            .put('/api/v1/services/SVC-1')
+            .send({ available_on: ['NEXUS'] });
+
+        expect(response.status).toBe(200);
+        expect(servicesRepo.setDomains).toHaveBeenCalledWith('SVC-1', ['NEXUS']);
+        expect(scoring.serviceScore).toHaveBeenCalledWith(reread, expect.anything());
+        expect(response.body.available_on).toEqual(['NEXUS']);
+    });
+
     test('PUT /services/:id does not re-run the live transition gate when editing a live service', async () => {
         const servicesRepo = require('../db/services.repo');
         const offeringsRepo = require('../db/offerings.repo');
