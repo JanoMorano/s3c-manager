@@ -27,7 +27,7 @@ export default function C3Breadcrumbs() {
   const t = useT();
   const searchParams = useSearchParams();
   const filteredTypeLabel = pathname === C3_ROUTES.list
-    ? getC3TaxonomyTypeLabel(searchParams?.get('item_type') ?? null, t)
+    ? getC3TaxonomyTypeLabel(searchParams?.get('item_type') ?? null)
     : null;
   const label = filteredTypeLabel ?? labelForPath(pathname, t) ?? 'C3';
 
