@@ -107,6 +107,8 @@ function computeDependencyPositions(items: GraphOverviewNode[], relations: Graph
   return layoutByDependency(
     ordered.map((node) => ({ id: node.id, width: LAYOUT_NODE_WIDTH, height: LAYOUT_NODE_HEIGHT })),
     relations,
+    // Tight rank spacing keeps typical catalogues within one screen.
+    { rankSep: 70, nodeSep: 28 },
   );
 }
 

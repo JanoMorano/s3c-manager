@@ -37,15 +37,18 @@ interface Props {
 
 type ServiceGraphViewMode = 'graph' | 'text';
 
-const COLUMN_X: Record<ServiceGraphV2Node['node_kind'], number> = {
-  service: 0,
-  flavour: 260,
-  c3_capability: 560,
-  c3_tin: 860,
-  c3_application: 1160,
-  c3_data_object: 1460,
-  c3_service: 1760,
-};
+// Left-to-right column order; only kinds present in the graph get a column.
+const COLUMN_ORDER: ServiceGraphV2Node['node_kind'][] = [
+  'service',
+  'flavour',
+  'c3_capability',
+  'c3_tin',
+  'c3_application',
+  'c3_data_object',
+  'c3_service',
+];
+const COLUMN_STEP = 250;
+const ROW_STEP = 136;
 
 // i18n keys; translated with t() at render time.
 const NODE_KIND_LABEL: Record<ServiceGraphV2Node['node_kind'], string> = {
@@ -125,8 +128,10 @@ function layoutNodes(
     grouped.get(item.node_kind)!.push(item);
   });
 
-  return Object.entries(COLUMN_X).flatMap(([kind, x]) => {
-    const rows = (grouped.get(kind as ServiceGraphV2Node['node_kind']) ?? []).slice().sort((a, b) => {
+  const presentKinds = COLUMN_ORDER.filter((kind) => (grouped.get(kind)?.length ?? 0) > 0);
+  return presentKinds.flatMap((kind, column) => {
+    const x = column * COLUMN_STEP;
+    const rows = (grouped.get(kind) ?? []).slice().sort((a, b) => {
       if (a.node_kind === 'service' && a.is_root !== b.is_root) return a.is_root ? -1 : 1;
       return compareText(locale, `${a.code ?? ''} ${a.label}`, `${b.code ?? ''} ${b.label}`, { numeric: true, sensitivity: 'base' });
     });
@@ -136,7 +141,7 @@ function layoutNodes(
       type: GRAPH_NODE_TYPE,
       position: {
         x,
-        y: index * 110,
+        y: index * ROW_STEP,
       },
       data: {
         ...item,

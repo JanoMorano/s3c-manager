@@ -31,8 +31,10 @@ export function isLargeGraph(nodeCount: number, edgeCount: number): boolean {
   return nodeCount > 250 || edgeCount > 500;
 }
 
-/** The first view never zooms out below this, so node text stays readable. */
+/** Zoom used when a graph is too large to show whole at a legible size. */
 export const READABLE_MIN_ZOOM = 0.85;
+/** The first view shows the whole graph whenever that needs no more zoom-out than this. */
+const FIT_MIN_ZOOM = 0.5;
 const INITIAL_MAX_ZOOM = 1.1;
 /** The fit control and manual zoom may go further out, to see the whole graph. */
 const OVERVIEW_MIN_ZOOM = 0.1;
@@ -58,10 +60,11 @@ interface GraphCanvasProps<N extends Node, E extends Edge> {
 }
 
 /**
- * Frames the graph once per node set: fits it when that keeps text readable,
- * otherwise shows it at a readable zoom from its top-left corner.
+ * Frames the graph once per node set: shows the whole graph centred when it
+ * fits at FIT_MIN_ZOOM or closer; only very large graphs open at a readable
+ * zoom from their top-left corner (the fit control still shows everything).
  */
-function ReadableInitialView({ fitKey, padding, ready }: { fitKey: string; padding: number; ready: boolean }) {
+function ReadableInitialView({ fitKey, ready }: { fitKey: string; ready: boolean }) {
   const { getNodes, getNodesBounds, setViewport } = useReactFlow();
   const initialized = useNodesInitialized();
   const width = useStore((state) => state.width);
@@ -73,22 +76,26 @@ function ReadableInitialView({ fitKey, padding, ready }: { fitKey: string; paddi
     const bounds = getNodesBounds(getNodes());
     if (bounds.width === 0 || bounds.height === 0) return;
     framedKey.current = fitKey;
-    const fitZoom = Math.min(
-      width / (bounds.width * (1 + 2 * padding)),
-      height / (bounds.height * (1 + 2 * padding)),
-    );
-    const zoom = Math.max(READABLE_MIN_ZOOM, Math.min(INITIAL_MAX_ZOOM, fitZoom));
-    const place = (size: number, start: number, extent: number, inset: number) => (
-      extent * zoom + 2 * inset <= size
-        ? (size - extent * zoom) / 2 - start * zoom
-        : inset - start * zoom
+    // Usable area: a fixed pixel margin (wider on the left, where the zoom
+    // controls sit) rather than the proportional fit padding, so the first
+    // view spends the canvas on the graph itself.
+    const areaWidth = width - VIEW_LEFT_PX - VIEW_EDGE_PX;
+    const areaHeight = height - 2 * VIEW_EDGE_PX;
+    const fitZoom = Math.min(areaWidth / bounds.width, areaHeight / bounds.height);
+    const fits = fitZoom >= FIT_MIN_ZOOM;
+    const zoom = fits ? Math.min(INITIAL_MAX_ZOOM, fitZoom) : READABLE_MIN_ZOOM;
+    // Centre within the usable area when the graph fits; otherwise start at its top-left corner.
+    const place = (offset: number, area: number, start: number, extent: number) => (
+      extent * zoom <= area
+        ? offset + (area - extent * zoom) / 2 - start * zoom
+        : offset - start * zoom
     );
     setViewport({
-      x: place(width, bounds.x, bounds.width, VIEW_LEFT_PX),
-      y: place(height, bounds.y, bounds.height, VIEW_EDGE_PX),
+      x: place(VIEW_LEFT_PX, areaWidth, bounds.x, bounds.width),
+      y: place(VIEW_EDGE_PX, areaHeight, bounds.y, bounds.height),
       zoom,
     });
-  }, [fitKey, getNodes, getNodesBounds, height, initialized, padding, ready, setViewport, width]);
+  }, [fitKey, getNodes, getNodesBounds, height, initialized, ready, setViewport, width]);
 
   return null;
 }
@@ -135,7 +142,7 @@ export function GraphCanvas<N extends Node = Node, E extends Edge = Edge>({
         className={legendStyles.flow}
         style={{ flex: '1 1 0', minHeight: 0, height: 'auto' }}
       >
-        <ReadableInitialView fitKey={fitKey} padding={fitViewPadding} ready={!layout?.loading} />
+        <ReadableInitialView fitKey={fitKey} ready={!layout?.loading} />
         <Background gap={24} size={1} />
         <Controls position="bottom-left" fitViewOptions={{ padding: fitViewPadding, minZoom: OVERVIEW_MIN_ZOOM }}>
           {layout && (
