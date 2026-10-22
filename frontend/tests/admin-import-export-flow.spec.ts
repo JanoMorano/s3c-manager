@@ -17,8 +17,11 @@ test('admin import/export flow: review page renders and protected exports respon
   expect([401, 403]).toContain(unauthorizedBundle.status());
 
   await loginWithConfiguredAdmin(page, credentials);
+  // The old admin import history now redirects to the single Import page.
   await page.goto('/administration/import');
-  await expect(page.getByRole('heading', { name: /import history/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveURL(/\/import(\?|$)/, { timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: /^import$/i })).toBeVisible({ timeout: 15_000 });
+  await page.locator('summary', { hasText: /export/i }).click();
   await expect(page.getByRole('link', { name: /export manifest/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('link', { name: /export bundle/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: /raw relace|raw relations/i })).toHaveCount(0);

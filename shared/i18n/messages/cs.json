@@ -3614,5 +3614,8 @@
   "home.getting_started.capabilities.title": "Namapujte schopnosti",
   "home.getting_started.capabilities.todo": "Bez schopnosti: {{count}}.",
   "home.getting_started.capabilities.done": "Každá služba má hlavní schopnost.",
-  "home.getting_started.capabilities.action": "Doplnit schopnosti"
+  "home.getting_started.capabilities.action": "Doplnit schopnosti",
+  "import.hub.lead": "Nahrané soubory, jejich výsledek a problémy k opravě.",
+  "import.hub.upload": "Nahrát soubor",
+  "import.upload.lead": "Nejdřív spusťte dry-run, po kontrole import potvrďte."
 }

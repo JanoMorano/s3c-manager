@@ -1,54 +1,44 @@
-.shell { min-height: 100vh; background: var(--color-bg-canvas); }
+.shell {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  min-height: 100vh;
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-bg-canvas);
+}
 
 .pageHeader {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: var(--space-4) var(--space-6);
+  display: grid;
+  gap: 4px;
+  padding: 16px 24px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
-  border-bottom: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-low);
 }
-.pageTitle { font: var(--text-title-lg); color: var(--color-text-primary); }
-.backLink  { font: var(--text-label-md); color: var(--color-action-primary); text-decoration: none; }
+.pageTitle { margin: 0; font: var(--text-display); letter-spacing: 0; color: var(--color-text-primary); }
+.pageLead { margin: 0; max-width: 760px; font: var(--text-body-sm); color: var(--color-text-secondary); }
+.backLink  { width: fit-content; font: var(--text-label-md); color: var(--color-action-primary); text-decoration: none; }
 .backLink:hover { text-decoration: underline; }
 
 .body {
+  width: 100%;
   max-width: 920px;
-  margin: var(--space-7) auto;
-  padding: 0 var(--space-5);
+  margin: 0 auto;
   display: flex; flex-direction: column; gap: var(--space-4);
 }
 
-.guidancePanel {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
-  gap: var(--space-4);
-  align-items: start;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-}
-
-.guidancePanel h2,
 .expertHeader h2 {
   margin: 0;
   font: var(--text-title-sm);
   color: var(--color-text-primary);
 }
 
-.guidancePanel p,
 .expertHeader p {
   margin: var(--space-1) 0 0;
   font: var(--text-body-sm);
   color: var(--color-text-secondary);
   line-height: 1.55;
-}
-
-.guidancePanel ol {
-  margin: 0;
-  padding-left: var(--space-5);
-  color: var(--color-text-secondary);
-  font: var(--text-body-sm);
-  line-height: 1.65;
 }
 
 .seedInfo {
@@ -449,10 +439,6 @@
 }
 
 @media (max-width: 720px) {
-  .guidancePanel {
-    grid-template-columns: 1fr;
-  }
-
   .targetSection {
     flex-direction: column;
     gap: var(--space-2);

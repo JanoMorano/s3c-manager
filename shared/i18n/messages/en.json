@@ -3614,5 +3614,8 @@
   "home.getting_started.capabilities.title": "Map capabilities",
   "home.getting_started.capabilities.todo": "Without a capability: {{count}}.",
   "home.getting_started.capabilities.done": "Every service has a primary capability.",
-  "home.getting_started.capabilities.action": "Map capabilities"
+  "home.getting_started.capabilities.action": "Map capabilities",
+  "import.hub.lead": "Uploaded files, their results and issues to fix.",
+  "import.hub.upload": "Upload file",
+  "import.upload.lead": "Run a dry run first, then confirm the import."
 }

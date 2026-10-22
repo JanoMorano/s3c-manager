@@ -110,6 +110,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(nextUrl, 308);
   }
 
+  // Import history now lives in one place: /import.
+  if (normalizedPath === '/administration/import' || normalizedPath.startsWith('/administration/import/')) {
+    const nextUrl = request.nextUrl.clone();
+    nextUrl.pathname = '/import';
+    return NextResponse.redirect(nextUrl, 308);
+  }
+
   if (isProtectedPath(normalizedPath)) {
     const hasValidSessionToken = await isValidSessionToken(
       request.cookies.get('sc_access_token')?.value,

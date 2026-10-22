@@ -366,7 +366,7 @@ export default function InstallationPage() {
           {t('administration.installation.section.management')}
         </h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-          <Link href="/administration/import" style={{
+          <Link href="/import" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
             background: 'var(--color-action-secondary)', border: '1px solid var(--color-border-default)',
             borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-primary)', textDecoration: 'none',

@@ -777,24 +777,18 @@ export default function ImportUploadPage() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.pageHeader}>
+      <header className={styles.pageHeader}>
+        <Link href="/import" className={styles.backLink}>← {t('nav.import')}</Link>
         <h1 className={styles.pageTitle}>{t('import.upload.title')}</h1>
-        <Link href="/import" className={styles.backLink}>← {t('import.upload.back')}</Link>
-      </div>
+        <p
+          className={styles.pageLead}
+          title={[t('import.upload.guidance.step_dry_run'), t('import.upload.guidance.step_commit'), t('import.upload.guidance.step_rollback')].join('\n')}
+        >
+          {t('import.upload.lead')}
+        </p>
+      </header>
 
       <div className={styles.body}>
-        <section className={styles.guidancePanel}>
-          <div>
-            <h2>{t('import.upload.guidance.title')}</h2>
-            <p>{t('import.upload.guidance.lead')}</p>
-          </div>
-          <ol>
-            <li>{t('import.upload.guidance.step_dry_run')}</li>
-            <li>{t('import.upload.guidance.step_commit')}</li>
-            <li>{t('import.upload.guidance.step_rollback')}</li>
-          </ol>
-        </section>
-
         {/* ── Spiral selector ─────────────────────────────────────────────── */}
         {c3Visible && (
           <div className={styles.spiralStrip}>

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T20:38:15.930Z",
+  "generated_at": "2026-10-22T20:41:04.022Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -136,12 +136,12 @@
       "files": [
         "frontend/app/admin/c3-capability-builder/C3CapabilityBuilderPage.tsx",
         "frontend/app/admin/c3-entities/C3EntityListPage.tsx",
-        "frontend/app/administration/import/page.tsx",
         "frontend/app/administration/installation/page.tsx",
         "frontend/app/administration/users/page.tsx",
         "frontend/app/administration/web/page.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/app/favicon.ico/route.ts",
+        "frontend/app/import/ImportExpertTools.tsx",
         "frontend/app/import/upload/page.tsx",
         "frontend/app/install/page.tsx",
         "frontend/app/login/page.tsx",
@@ -168,7 +168,6 @@
       "files": [
         "frontend/app/admin/c3-entities/config.tsx",
         "frontend/app/administration/groups/[id]/page.tsx",
-        "frontend/app/administration/import/page.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/app/catalogue/page.tsx",
         "frontend/app/cockpit/my-tasks/MyWork.tsx",
@@ -216,15 +215,6 @@
       ]
     },
     {
-      "key": "ui.generated.dd_mmm_yyyy_hh_mm.nk4xnx",
-      "source": "dd MMM yyyy HH:mm",
-      "cs": "dd MMM yyyy HH:mm",
-      "en": "dd MMM yyyy HH:mm",
-      "files": [
-        "frontend/app/import/page.tsx"
-      ]
-    },
-    {
       "key": "ui.generated.en_gb.1liflr",
       "source": "en-GB",
       "cs": "en-GB",
@@ -253,7 +243,6 @@
       "en": "Enter",
       "files": [
         "frontend/app/administration/groups/[id]/page.tsx",
-        "frontend/app/administration/import/page.tsx",
         "frontend/app/import/upload/page.tsx",
         "frontend/app/operations/readiness/page.tsx"
       ]
@@ -265,7 +254,8 @@
       "en": "Escape",
       "files": [
         "frontend/app/c3/capability-map/CapabilityMapPage.tsx",
-        "frontend/app/components/NavGlobalSearch.tsx"
+        "frontend/app/components/NavGlobalSearch.tsx",
+        "frontend/app/import/ImportExportMenu.tsx"
       ]
     },
     {
@@ -792,7 +782,6 @@
         "frontend/app/administration/groups/[id]/page.tsx",
         "frontend/app/administration/groups/new/page.tsx",
         "frontend/app/administration/groups/page.tsx",
-        "frontend/app/administration/import/page.tsx",
         "frontend/app/administration/installation/page.tsx",
         "frontend/app/administration/page.tsx",
         "frontend/app/administration/users/page.tsx",
@@ -843,6 +832,8 @@
         "frontend/app/components/layout-v2/ReviewActionModal.tsx",
         "frontend/app/components/layout-v2/StickySaveBar.tsx",
         "frontend/app/components/layout-v2/WizardStepTracker.tsx",
+        "frontend/app/import/ImportExpertTools.tsx",
+        "frontend/app/import/ImportExportMenu.tsx",
         "frontend/app/import/page.tsx",
         "frontend/app/import/upload/page.tsx",
         "frontend/app/install/page.tsx",
