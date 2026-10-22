@@ -1,3 +1,6 @@
+'use client';
+
+import { useT } from '@/app/i18n/useI18n';
 import styles from './EditorSubNav.module.css';
 
 export type EditorSubNavTone = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'purple' | 'orange';
@@ -21,10 +24,13 @@ interface EditorSubNavProps {
 export default function EditorSubNav({
   sections,
   activeId,
-  title = 'Editor',
-  summary = 'Vyplňte části v pořadí, ve kterém rozhodují o připravenosti.',
+  title: titleProp,
+  summary: summaryProp,
   onSelect,
 }: EditorSubNavProps) {
+  const t = useT();
+  const title = titleProp ?? t('layout.editor_sub_nav.title');
+  const summary = summaryProp ?? t('layout.editor_sub_nav.summary');
   return (
     <aside className={styles.nav} aria-label={title}>
       <div className={styles.header}>

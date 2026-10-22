@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './GraphWorkspace.module.css';
 
 export interface GraphWorkspaceProps {
@@ -21,7 +22,7 @@ export interface GraphWorkspaceProps {
 }
 
 export default function GraphWorkspace({
-  title = 'Graph workspace',
+  title: titleProp,
   purpose,
   toolbar,
   canvas,
@@ -31,11 +32,15 @@ export default function GraphWorkspace({
   detailOpen: controlledDetailOpen,
   onDetailOpenChange,
   canvasOnly = false,
-  canvasOnlyLabel = 'Jen graf',
-  restoreWorkspaceLabel = 'Zobrazit panely',
+  canvasOnlyLabel: canvasOnlyLabelProp,
+  restoreWorkspaceLabel: restoreWorkspaceLabelProp,
   onCanvasOnlyChange,
   showWorkspaceActions = true,
 }: GraphWorkspaceProps) {
+  const t = useT();
+  const title = titleProp ?? t('layout.graph_workspace.title');
+  const canvasOnlyLabel = canvasOnlyLabelProp ?? t('layout.graph_workspace.canvas_only');
+  const restoreWorkspaceLabel = restoreWorkspaceLabelProp ?? t('layout.graph_workspace.restore_panels');
   const detailContent = detailPanelContent ?? detail;
   const [internalDetailOpen, setInternalDetailOpen] = useState(true);
   const detailOpen = controlledDetailOpen ?? internalDetailOpen;
@@ -78,7 +83,7 @@ export default function GraphWorkspace({
                   aria-expanded={detailOpen}
                   onClick={() => updateDetailOpen(!detailOpen)}
                 >
-                  Detail
+                  {t('layout.graph_workspace.detail')}
                 </button>
               ) : null}
             </div>
@@ -95,7 +100,7 @@ export default function GraphWorkspace({
         ) : null}
         {showWorkspaceActions && !canvasOnly && !detailOpen && (
           <button type="button" className={styles.floatingDetailToggle} onClick={() => updateDetailOpen(true)}>
-            Detail panel
+            {t('layout.graph_workspace.detail_panel')}
           </button>
         )}
         {canvas}
@@ -104,7 +109,7 @@ export default function GraphWorkspace({
         <aside className={styles.detail}>
           {showWorkspaceActions ? (
             <button type="button" className={styles.closeButton} onClick={() => updateDetailOpen(false)}>
-              Collapse
+              {t('layout.graph_workspace.collapse')}
             </button>
           ) : null}
           {detailContent}

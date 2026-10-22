@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { restoreAuthSession } from '@/features/auth/authStore';
-import { hasRoleAccess, requiredRoleForPath, ROLE_LABELS, type AppRole } from '@/features/auth/roles';
+import { hasRoleAccess, requiredRoleForPath, type AppRole } from '@/features/auth/roles';
+import { useT } from '@/app/i18n/useI18n';
 import {
   fetchInstallStatusSnapshot,
   isModuleUiVisible,
@@ -18,6 +19,7 @@ const INSTALL_PATH = '/install';
 export { invalidateInstallStatusCache, markInstallReady };
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router   = useRouter();
   const pathname = usePathname() ?? '/';
   const [ready, setReady] = useState(false);
@@ -99,8 +101,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <PermissionGate
         allowed={false}
-        title="Nemáte oprávnění"
-        message={`Tato stránka vyžaduje roli ${ROLE_LABELS[forbiddenRole]}. Pokud ji potřebujete spravovat, požádejte administrátora o přiřazení role.`}
+        title={t('layout.permission_gate.title')}
+        message={t('shell.auth_guard.forbidden_message', {
+          role: t(`administration.users.role.${forbiddenRole}.label`),
+        })}
       >
         {children}
       </PermissionGate>

@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './PermissionGate.module.css';
 
 interface PermissionGateProps {
@@ -10,18 +13,19 @@ interface PermissionGateProps {
 
 export default function PermissionGate({
   allowed,
-  title = 'Nemáte oprávnění',
-  message = 'Tato část vyžaduje vyšší oprávnění nebo přiřazení role.',
+  title,
+  message,
   children,
 }: PermissionGateProps) {
+  const t = useT();
   if (allowed) {
     return <>{children}</>;
   }
 
   return (
     <section className={styles.panel} role="alert" aria-live="polite">
-      <strong>{title}</strong>
-      <p>{message}</p>
+      <strong>{title ?? t('layout.permission_gate.title')}</strong>
+      <p>{message ?? t('layout.permission_gate.message')}</p>
     </section>
   );
 }

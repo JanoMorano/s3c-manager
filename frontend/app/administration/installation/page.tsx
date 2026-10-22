@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from '../../admin/admin.module.css';
 import Link from '@/app/components/AppLink';
-import { useI18n } from '../../i18n/useI18n';
+import { useI18n, useT } from '../../i18n/useI18n';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +79,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function ModuleBadge({ enabled }: { enabled: boolean }) {
+  const t = useT();
   return (
     <span style={{
       display: 'inline-block', padding: '2px 8px',
@@ -87,7 +88,7 @@ function ModuleBadge({ enabled }: { enabled: boolean }) {
       border: `1px solid ${enabled ? 'color-mix(in srgb, var(--color-success) 30%, transparent)' : 'var(--color-border-default)'}`,
       borderRadius: 'var(--radius-pill)', fontSize: 11,
     }}>
-      {enabled ? 'Aktivní' : 'Neaktivní'}
+      {enabled ? t('common.active') : t('administration.installation.module_inactive')}
     </span>
   );
 }
@@ -100,6 +101,7 @@ export default function InstallationPage() {
   const { t } = useI18n();
   const [summary, setSummary] = useState<InstallSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  // Holds an i18n message key so the error follows the active locale.
   const [error, setError] = useState<string | null>(null);
   const [repairing, setRepairing] = useState(false);
   const [repairResult, setRepairResult] = useState<string | null>(null);
@@ -123,7 +125,7 @@ export default function InstallationPage() {
         modules: summaryData.modules || statusData.modules || [],
       });
     } catch {
-      setError('Nepodařilo se načíst stav instalace. Ověřte, že middleware běží.');
+      setError('install.page.status_load_failed');
     } finally {
       setLoading(false);
     }
@@ -148,19 +150,19 @@ export default function InstallationPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setSeedResult({ ok: true, msg: data.message || (action === 'seed' ? 'Testovací data obnovena.' : 'Testovací data smazána.') });
+        setSeedResult({ ok: true, msg: data.message || (action === 'seed' ? t('administration.installation.demo_restored') : t('administration.installation.demo_removed')) });
       } else {
-        setSeedResult({ ok: false, msg: data.error || 'Neznámá chyba.' });
+        setSeedResult({ ok: false, msg: data.error || t('administration.installation.unknown_error') });
       }
     } catch {
-      setSeedResult({ ok: false, msg: 'Chyba při komunikaci s middleware.' });
+      setSeedResult({ ok: false, msg: t('administration.installation.middleware_error') });
     } finally {
       setSeeding(false);
     }
   }
 
   async function handleRepair() {
-    if (!confirm('Opravdu chcete spustit repair flow? Systém přejde do stavu REPAIR_REQUIRED a bude nutné projít instalačním průvodcem.')) return;
+    if (!confirm(t('administration.installation.repair_confirm'))) return;
     setRepairing(true);
     setRepairResult(null);
     try {
@@ -173,13 +175,13 @@ export default function InstallationPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setRepairResult('Repair flow spuštěn. Přesměrování na instalační průvodce...');
+        setRepairResult(t('administration.installation.repair_started'));
         setTimeout(() => { window.location.href = '/install'; }, 2000);
       } else {
-        setRepairResult(`Chyba: ${data.error || 'Neznámá chyba'}`);
+        setRepairResult(t('administration.installation.repair_error', { error: data.error || t('administration.installation.unknown_error') }));
       }
     } catch {
-      setRepairResult('Chyba při komunikaci s middleware.');
+      setRepairResult(t('administration.installation.middleware_error'));
     } finally {
       setRepairing(false);
     }
@@ -188,7 +190,7 @@ export default function InstallationPage() {
   if (loading) {
     return (
       <div className={styles.shell}>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Načítám stav instalace…</p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>{t('install.page.loading_status')}</p>
       </div>
     );
   }
@@ -197,10 +199,10 @@ export default function InstallationPage() {
     return (
       <div className={styles.shell}>
         <div style={{ padding: 'var(--space-4)', background: 'color-mix(in srgb, var(--color-danger) 10%, var(--color-bg-surface))', border: '1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)', borderRadius: 'var(--radius-md)', color: 'var(--color-danger)', marginBottom: 'var(--space-4)' }}>
-          {error}
+          {t(error)}
         </div>
         <button onClick={load} style={{ fontSize: 13, padding: '6px 14px', cursor: 'pointer' }}>
-          Zkusit znovu
+          {t('administration.installation.retry')}
         </button>
       </div>
     );
@@ -211,11 +213,11 @@ export default function InstallationPage() {
       {/* ── Page header ──────────────────────────────────────────────── */}
       <div style={{ marginBottom: 'var(--space-5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-          <h1 className={styles.pageTitle} style={{ margin: 0 }}>Installation &amp; Modules</h1>
+          <h1 className={styles.pageTitle} style={{ margin: 0 }}>{t('administration.card.installation.title')}</h1>
           {summary?.status && <StatusPill status={summary.status} />}
         </div>
         <p className={styles.pageSubtitle} style={{ marginBottom: 0 }}>
-          Stav instalace, aktivní moduly, správa release a oprava instalace.
+          {t('administration.installation.subtitle')}
         </p>
       </div>
 
@@ -232,7 +234,7 @@ export default function InstallationPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span>{seedResult.ok ? '✓ ' : '✗ '}{seedResult.msg}</span>
-          <button onClick={() => setSeedResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
+          <button onClick={() => setSeedResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>&times;</button>
         </div>
       )}
 
@@ -245,16 +247,16 @@ export default function InstallationPage() {
       {/* ── Installation overview ─────────────────────────────────── */}
       <section style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
         <h2 style={{ font: 'var(--text-title-sm)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-4)' }}>
-          Instalace
+          {t('administration.installation.section.installation')}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
           {[
-            { label: 'Stav', value: summary?.status ?? '—' },
-            { label: 'Verze aplikace', value: summary?.app_version ?? '—' },
-            { label: 'Schema verze', value: summary?.schema_version ?? '—' },
-            { label: 'Instalováno v', value: summary?.installed_at ? new Date(summary.installed_at).toLocaleString('cs') : '—' },
-            { label: 'Instalováno uživatelem', value: summary?.installed_by ?? '—' },
-            { label: 'Admin účet', value: summary?.admin_exists ? '✓ Existuje' : '✗ Chybí' },
+            { label: t('common.status'), value: summary?.status ?? '—' },
+            { label: t('install.page.execute.application_version'), value: summary?.app_version ?? '—' },
+            { label: t('administration.installation.schema_version'), value: summary?.schema_version ?? '—' },
+            { label: t('administration.installation.installed_at'), value: summary?.installed_at ? new Date(summary.installed_at).toLocaleString('cs') : '—' },
+            { label: t('administration.installation.installed_by'), value: summary?.installed_by ?? '—' },
+            { label: t('administration.installation.admin_account'), value: summary?.admin_exists ? `✓ ${t('administration.installation.admin_exists')}` : `✗ ${t('administration.installation.admin_missing')}` },
           ].map(({ label, value }) => (
             <div key={label} style={{ borderLeft: '2px solid var(--color-border-strong)', paddingLeft: 'var(--space-3)' }}>
               <div style={{ font: 'var(--text-label-sm)', color: 'var(--color-text-muted)', marginBottom: 2 }}>{label}</div>
@@ -269,10 +271,10 @@ export default function InstallationPage() {
       {/* ── Modules ──────────────────────────────────────────────────── */}
       <section style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
         <h2 style={{ font: 'var(--text-title-sm)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-4)' }}>
-          Moduly
+          {t('administration.installation.section.modules')}
         </h2>
         {(!summary?.modules || summary.modules.length === 0) ? (
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Žádné moduly nejsou registrovány.</p>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{t('administration.installation.no_modules')}</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {summary.modules.map(mod => (
@@ -287,22 +289,22 @@ export default function InstallationPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ font: 'var(--text-label-md)', color: 'var(--color-text-primary)' }}>{mod.label || mod.code}</span>
                     {mod.is_mandatory && (
-                      <span style={{ font: 'var(--text-label-sm)', color: 'var(--color-text-muted)', fontSize: 11 }}>Povinný</span>
+                      <span style={{ font: 'var(--text-label-sm)', color: 'var(--color-text-muted)', fontSize: 11 }}>{t('common.mandatory')}</span>
                     )}
                   </div>
                   <div style={{ font: 'var(--text-label-sm)', color: 'var(--color-text-muted)', fontFamily: 'monospace', fontSize: 11 }}>{mod.code}</div>
                   {(mod.kind || (mod.depends_on?.length ?? 0) > 0) && (
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                      {mod.kind && <span>Typ: {mod.kind}</span>}
+                      {mod.kind && <span>{t('administration.installation.module_kind', { kind: mod.kind })}</span>}
                       {mod.kind && (mod.depends_on?.length ?? 0) > 0 && <span> · </span>}
-                      {(mod.depends_on?.length ?? 0) > 0 && <span>Zavislosti: {mod.depends_on?.join(', ')}</span>}
+                      {(mod.depends_on?.length ?? 0) > 0 && <span>{t('administration.installation.module_dependencies', { dependencies: mod.depends_on?.join(', ') })}</span>}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                     {[
-                      { label: 'Schema', val: mod.schema_installed },
-                      { label: 'Seed', val: mod.seed_installed ?? mod.reference_seed_installed },
-                      { label: 'API', val: mod.api_enabled },
+                      { label: t('administration.installation.flag.schema'), val: mod.schema_installed },
+                      { label: t('administration.installation.flag.seed'), val: mod.seed_installed ?? mod.reference_seed_installed },
+                      { label: t('administration.installation.flag.api'), val: mod.api_enabled },
                     ].map(({ label, val }) => (
                       <span key={label} style={{ fontSize: 11, color: val ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
                         {val ? '✓' : '○'} {label}
@@ -322,7 +324,7 @@ export default function InstallationPage() {
       {summary?.status === 'READY' && (
         <section style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
           <h2 style={{ font: 'var(--text-title-sm)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>
-            Testovací data
+            {t('install.page.modules.demo_data')}
           </h2>
           <p style={{ font: 'var(--text-body-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
             {t('install.page.demo_data_management_description')}
@@ -339,7 +341,7 @@ export default function InstallationPage() {
                 color: 'var(--color-success)', opacity: seeding ? 0.6 : 1, fontWeight: 500,
               }}
             >
-              {seeding ? '⏳ Probíhá…' : '🔁 Obnovit testovací data'}
+              {seeding ? `⏳ ${t('common.running')}` : `🔁 ${t('administration.installation.demo_restore')}`}
             </button>
             <button
               onClick={() => handleSeedDemo('remove')}
@@ -352,7 +354,7 @@ export default function InstallationPage() {
                 color: 'var(--color-text-secondary)', opacity: seeding ? 0.6 : 1,
               }}
             >
-              🗑 Odstranit testovací data
+              🗑 {t('administration.installation.demo_remove')}
             </button>
           </div>
         </section>
@@ -361,7 +363,7 @@ export default function InstallationPage() {
       {/* ── Actions ──────────────────────────────────────────────────── */}
       <section style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', padding: 'var(--space-5)' }}>
         <h2 style={{ font: 'var(--text-title-sm)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-4)' }}>
-          Správa
+          {t('administration.installation.section.management')}
         </h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
           <Link href="/administration/import" style={{
@@ -370,7 +372,7 @@ export default function InstallationPage() {
             borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-primary)', textDecoration: 'none',
             cursor: 'pointer',
           }}>
-            📥 Reimport dat
+            📥 {t('administration.installation.reimport')}
           </Link>
 
           <button
@@ -381,7 +383,7 @@ export default function InstallationPage() {
               borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text-primary)',
             }}
           >
-            🔄 Obnovit stav
+            🔄 {t('administration.installation.refresh_status')}
           </button>
 
           {summary?.status !== 'READY' && (
@@ -391,7 +393,7 @@ export default function InstallationPage() {
               border: '1px solid color-mix(in srgb, var(--color-info) 30%, transparent)',
               borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-info)', textDecoration: 'none',
             }}>
-              🧙 Otevřít instalační průvodce
+              🧙 {t('administration.installation.open_wizard')}
             </a>
           )}
 
@@ -406,13 +408,12 @@ export default function InstallationPage() {
               opacity: repairing ? 0.6 : 1,
             }}
           >
-            🔧 Spustit repair flow
+            🔧 {t('administration.installation.run_repair')}
           </button>
         </div>
 
         <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3) var(--space-4)', background: 'var(--color-bg-surface-raised)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--color-text-muted)' }}>
-          ⚠️ Repair flow přepne systém do stavu REPAIR_REQUIRED a přesměruje na instalační průvodce.
-          Existující data nebudou smazána. Použijte pouze v případě poruchy instalačního stavu.
+          ⚠️ {t('administration.installation.repair_note')}
         </div>
       </section>
     </div>

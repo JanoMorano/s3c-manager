@@ -1,3 +1,6 @@
+'use client';
+
+import { useT } from '@/app/i18n/useI18n';
 import styles from './WizardStepTracker.module.css';
 
 export type WizardStepState = 'done' | 'active' | 'blocked' | 'todo';
@@ -15,8 +18,9 @@ interface WizardStepTrackerProps {
 }
 
 export default function WizardStepTracker({ steps, activeId }: WizardStepTrackerProps) {
+  const t = useT();
   return (
-    <ol className={styles.steps} aria-label="Wizard steps">
+    <ol className={styles.steps} aria-label={t('layout.wizard_step_tracker.aria_label')}>
       {steps.map((step, index) => {
         const state = step.id === activeId ? 'active' : step.state ?? 'todo';
         return (

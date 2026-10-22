@@ -15,6 +15,7 @@ import SidebarNav from './SidebarNav';
 import NavUser from './NavUser';
 import NavHelpCenter from './NavHelpCenter';
 import TopBar from './TopBar';
+import { useT } from '@/app/i18n/useI18n';
 
 // ── Brand mark SVG ─────────────────────────────────────────────────────────
 function BrandMark() {
@@ -31,6 +32,7 @@ function BrandMark() {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
+  const t = useT();
 
   // Install wizard must always remain reachable, even before auth exists.
   if (pathname.startsWith('/install')) {
@@ -54,16 +56,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Skip navigation for keyboard users */}
-      <a href="#main-content" className={styles.skipLink}>Skip to content</a>
+      <a href="#main-content" className={styles.skipLink}>{t('shell.skip_to_content')}</a>
 
       <div className={styles.appShell}>
 
         {/* ── Left sidebar ────────────────────────────────────────────── */}
-        <aside className={styles.sidebar} aria-label="Main navigation">
+        <aside className={styles.sidebar} aria-label={t('shell.main_navigation')}>
 
           {/* Brand */}
           <div className={styles.sidebarBrand}>
-            <Link href="/" className={styles.sidebarBrandLink} aria-label="Service Catalogue home">
+            <Link href="/" className={styles.sidebarBrandLink} aria-label={t('shell.brand_home')}>
               <span className={styles.sidebarBrandMark}>
                 <BrandMark />
               </span>

@@ -12,6 +12,7 @@
 
 import { useState } from 'react';
 import Link from '@/app/components/AppLink';
+import { useT } from '@/app/i18n/useI18n';
 import { RefTableEditor } from '@/features/admin/components/RefTableEditor';
 import { C3EntityListPage } from '../../admin/c3-entities/C3EntityListPage';
 import {
@@ -37,33 +38,33 @@ const C3_REF_TABLES = [
 
 type C3Table = typeof C3_REF_TABLES[number];
 
-const TABLE_LABELS: Record<C3Table, string> = {
-  ref_C3MappingType: 'C3 Mapping Type',
-  ref_C3CapabilityDomain: 'C3 Capability Domain',
+const TABLE_LABEL_KEYS: Record<C3Table, string> = {
+  ref_C3MappingType: 'administration.c3_ref.table.mapping_type',
+  ref_C3CapabilityDomain: 'administration.c3_ref.table.capability_domain',
 };
 
 // Inline (hardcoded) enumerations — not stored in ref tables, displayed for reference only
 const INLINE_ENUMS = [
   {
-    key:   'item_type',
-    label: 'C3 Item Type',
-    desc:  'Typ C3 schopnosti. Definovaný jako CHECK constraint v DB — nelze editovat bez změny schématu.',
+    key:      'item_type',
+    labelKey: 'administration.c3_ref.inline.item_type.label',
+    descKey:  'administration.c3_ref.inline.item_type.desc',
     values: [
-      { code: 'BusinessProcess',    desc: 'Byznys proces' },
-      { code: 'CapabilityRequirement', desc: 'Byznys požadavek' },
-      { code: 'UserActivity',       desc: 'Uživatelská aktivita' },
-      { code: 'CIOrComponent',      desc: 'CI nebo komponenta' },
-      { code: 'ComplianceControl',  desc: 'Compliance kontrola' },
+      { code: 'BusinessProcess',       descKey: 'administration.c3_ref.inline.item_type.business_process' },
+      { code: 'CapabilityRequirement', descKey: 'administration.c3_ref.inline.item_type.capability_requirement' },
+      { code: 'UserActivity',          descKey: 'administration.c3_ref.inline.item_type.user_activity' },
+      { code: 'CIOrComponent',         descKey: 'administration.c3_ref.inline.item_type.ci_or_component' },
+      { code: 'ComplianceControl',     descKey: 'administration.c3_ref.inline.item_type.compliance_control' },
     ],
   },
   {
-    key:   'item_status',
-    label: 'C3 Item Status',
-    desc:  'Stav C3 položky. Definovaný jako CHECK constraint v DB — nelze editovat bez změny schématu.',
+    key:      'item_status',
+    labelKey: 'administration.c3_ref.inline.item_status.label',
+    descKey:  'administration.c3_ref.inline.item_status.desc',
     values: [
-      { code: 'active',      desc: 'Aktivní' },
-      { code: 'deprecated',  desc: 'Zastaralý' },
-      { code: 'proposed',    desc: 'Navrhovaný' },
+      { code: 'active',      descKey: 'administration.c3_ref.inline.item_status.active' },
+      { code: 'deprecated',  descKey: 'administration.c3_ref.inline.item_status.deprecated' },
+      { code: 'proposed',    descKey: 'administration.c3_ref.inline.item_status.proposed' },
     ],
   },
 ];
@@ -71,19 +72,17 @@ const INLINE_ENUMS = [
 type C3RefTab = C3Table | 'data_objects' | 'applications' | 'services' | 'technology_interactions' | 'inline';
 
 export default function C3RefPage() {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<C3RefTab>(C3_REF_TABLES[0]);
 
   return (
     <div className={styles.shell}>
       <div className={styles.pageHeader}>
-        <Link href="/administration" className={styles.pageBack}>← Administration</Link>
-        <h1 className={styles.pageTitle}>C3 Column Edit</h1>
+        <Link href="/administration" className={styles.pageBack}>← {t('nav.administration')}</Link>
+        <h1 className={styles.pageTitle}>{t('administration.card.c3_ref.title')}</h1>
       </div>
       <p className={styles.pageSub}>
-        Editace referenčních číselníků databáze C3 Taxonomy stejným způsobem jako v Catalogue Column Edit.
-        Záložky C3 entit (Data Objects, Applications, Services, Technology Interactions) umožňují prohlížet
-        a spravovat entity importované do katalogu přes plný editor. Inline enumerace `item_type` a `item_status` zůstávají
-        read-only, protože jsou definované DB constrainty.
+        {t('administration.c3_ref.subtitle')}
       </p>
 
       {/* Tabs */}
@@ -94,38 +93,38 @@ export default function C3RefPage() {
             className={`${styles.tab} ${activeTab === table ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(table)}
           >
-            {TABLE_LABELS[table]}
+            {t(TABLE_LABEL_KEYS[table])}
           </button>
         ))}
         <button
           className={`${styles.tab} ${activeTab === 'data_objects' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('data_objects')}
         >
-          Data Objects
+          {t('administration.c3_ref.tab.data_objects')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'applications' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('applications')}
         >
-          Applications
+          {t('administration.c3_ref.tab.applications')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'services' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('services')}
         >
-          Services
+          {t('administration.c3_ref.tab.services')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'technology_interactions' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('technology_interactions')}
         >
-          Technology Interactions
+          {t('administration.c3_ref.tab.technology_interactions')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'inline' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('inline')}
         >
-          Inline enumerace (read-only)
+          {t('administration.c3_ref.tab.inline')}
         </button>
       </div>
 
@@ -143,13 +142,14 @@ export default function C3RefPage() {
 
 // ── Inline enum overview (read-only) ─────────────────────────────────────────
 function InlineEnumView() {
+  const t = useT();
   return (
     <div>
       {INLINE_ENUMS.map(en => (
         <div key={en.key} className={styles.editorPanel} style={{ marginBottom: 'var(--space-5)' }}>
           <div className={styles.editorToolbar}>
-            <span className={styles.editorTitle}>{en.label}</span>
-            <span className={styles.editorMeta}>CHECK constraint · read-only</span>
+            <span className={styles.editorTitle}>{t(en.labelKey)}</span>
+            <span className={styles.editorMeta}>{t('administration.c3_ref.inline.check_constraint_meta')}</span>
           </div>
           <div style={{
             padding: 'var(--space-3) var(--space-4)',
@@ -158,21 +158,21 @@ function InlineEnumView() {
             font: 'var(--text-body-sm)',
             color: 'var(--color-text-muted)',
           }}>
-            ⚠ {en.desc}
+            ⚠ {t(en.descKey)}
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.refTable}>
               <thead>
                 <tr>
-                  <th>Kód</th>
-                  <th>Popis</th>
+                  <th>{t('administration.c3_ref.inline.column_code')}</th>
+                  <th>{t('administration.c3_ref.inline.column_description')}</th>
                 </tr>
               </thead>
               <tbody>
                 {en.values.map(v => (
                   <tr key={v.code}>
                     <td className={styles.tdCode}><code>{v.code}</code></td>
-                    <td>{v.desc}</td>
+                    <td>{t(v.descKey)}</td>
                   </tr>
                 ))}
               </tbody>

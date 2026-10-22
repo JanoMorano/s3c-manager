@@ -1,6 +1,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './PageHeader.module.css';
 
 type ChipTone = 'neutral' | 'ok' | 'warn' | 'bad' | 'info';
@@ -24,6 +25,7 @@ interface PageHeaderProps {
 }
 
 export default function PageHeader({ title, purpose, chips = [], primaryAction }: PageHeaderProps) {
+  const t = useT();
   return (
     <header className={styles.header}>
       <div className={styles.titleBlock}>
@@ -44,7 +46,7 @@ export default function PageHeader({ title, purpose, chips = [], primaryAction }
         </div>
       )}
       {chips.length > 0 && (
-        <div className={styles.chips} aria-label="Page signals">
+        <div className={styles.chips} aria-label={t('layout.page_header.signals_aria')}>
           {chips.map((chip) => (
             <span key={chip.label} className={`${styles.chip} ${styles[`chip_${chip.tone ?? 'neutral'}`]}`}>
               {chip.label}

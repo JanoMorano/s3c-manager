@@ -19,7 +19,8 @@ import { authHeaders, buildListCsvExportUrl } from '@/features/services/api/serv
 import type { SortField, SortOrder } from '@/features/services/api/services.api';
 import { AUTH_STATE_EVENT, restoreAuthSession } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
-import { COUNT_LABELS, formatCountLabel } from '../../lib/counts';
+import { formatCountLabel } from '../../lib/counts';
+import { useT } from '@/app/i18n/useI18n';
 import styles from '../../catalogue.module.css';
 
 const LIFECYCLE_OPTIONS = ['draft', 'live', 'deprecated', 'retired'] as const;
@@ -27,66 +28,66 @@ type LifecycleOption = typeof LIFECYCLE_OPTIONS[number];
 type QuickFilterState = { readiness: string; reviewDue: string; lifecycles: LifecycleOption[] };
 type QuickFilter = {
   id: string;
-  label: string;
-  hint: string;
+  labelKey: string;
+  hintKey: string;
   updates: Record<string, string | readonly string[] | undefined>;
   isActive: (state: QuickFilterState) => boolean;
 };
 // blocked / warning / ready follow the readiness rules (readiness gate);
 // completeness bands are a separate, data-quality view.
 const READINESS_OPTIONS = [
-  { value: 'blocked', label: 'Blocked by readiness rules' },
-  { value: 'warning', label: 'Readiness warnings only' },
-  { value: 'attention', label: 'Blocked or warnings' },
-  { value: 'publishable', label: 'Ready for publish' },
-  { value: 'ready', label: 'Ready, no warnings' },
-  { value: 'completeness_low', label: 'Completeness below 50 %' },
-  { value: 'completeness_medium', label: 'Completeness 50–79 %' },
-  { value: 'missing_owner', label: 'Missing owner' },
-  { value: 'missing_request', label: 'Missing request channel' },
-  { value: 'missing_capability', label: 'Missing capability' },
+  { value: 'blocked', labelKey: 'service_list.readiness_option.blocked' },
+  { value: 'warning', labelKey: 'service_list.readiness_option.warning' },
+  { value: 'attention', labelKey: 'service_list.readiness_option.attention' },
+  { value: 'publishable', labelKey: 'service_list.readiness_option.publishable' },
+  { value: 'ready', labelKey: 'service_list.readiness_option.ready' },
+  { value: 'completeness_low', labelKey: 'service_list.readiness_option.completeness_low' },
+  { value: 'completeness_medium', labelKey: 'service_list.readiness_option.completeness_medium' },
+  { value: 'missing_owner', labelKey: 'service_list.readiness_option.missing_owner' },
+  { value: 'missing_request', labelKey: 'service_list.readiness_option.missing_request' },
+  { value: 'missing_capability', labelKey: 'service_list.readiness_option.missing_capability' },
 ];
 
 const QUICK_FILTERS: QuickFilter[] = [
   {
     id: 'missing-owner',
-    label: 'Missing owner',
-    hint: 'Services without an active service owner',
+    labelKey: 'service_list.quick_filter.missing_owner.label',
+    hintKey: 'service_list.quick_filter.missing_owner.hint',
     updates: { readiness: 'missing_owner', review_due: undefined, lifecycle: undefined },
     isActive: ({ readiness }) => readiness === 'missing_owner',
   },
   {
     id: 'blocked',
-    label: 'Readiness blocked',
-    hint: 'At least one blocking readiness rule fails (same as the readiness gate)',
+    labelKey: 'service_list.quick_filter.blocked.label',
+    hintKey: 'service_list.quick_filter.blocked.hint',
     updates: { readiness: 'blocked', review_due: undefined, lifecycle: undefined },
     isActive: ({ readiness }) => readiness === 'blocked',
   },
   {
     id: 'missing-request',
-    label: 'Missing request channel',
-    hint: 'Requestable services with no ordering path',
+    labelKey: 'service_list.quick_filter.missing_request.label',
+    hintKey: 'service_list.quick_filter.missing_request.hint',
     updates: { readiness: 'missing_request', review_due: undefined, lifecycle: undefined },
     isActive: ({ readiness }) => readiness === 'missing_request',
   },
   {
     id: 'reviews-due',
-    label: 'Reviews due',
-    hint: 'Reviews past their due date',
+    labelKey: 'service_list.quick_filter.reviews_due.label',
+    hintKey: 'service_list.quick_filter.reviews_due.hint',
     updates: { review_due: 'overdue', readiness: undefined, lifecycle: undefined },
     isActive: ({ reviewDue }) => reviewDue === 'overdue',
   },
   {
     id: 'deprecated-retired',
-    label: 'Deprecated/retired services',
-    hint: 'Services outside the live catalogue path',
+    labelKey: 'service_list.quick_filter.deprecated_retired.label',
+    hintKey: 'service_list.quick_filter.deprecated_retired.hint',
     updates: { lifecycle: ['deprecated', 'retired'], readiness: undefined, review_due: undefined },
     isActive: ({ lifecycles }) => lifecycles.includes('deprecated') && lifecycles.includes('retired'),
   },
 ];
 
-const LIFECYCLE_LABEL: Record<LifecycleOption, string> = {
-  draft: 'Draft', live: 'Live', deprecated: 'Deprecated', retired: 'Retired',
+const LIFECYCLE_LABEL_KEY: Record<LifecycleOption, string> = {
+  draft: 'service_list.lifecycle.draft', live: 'service_list.lifecycle.live', deprecated: 'service_list.lifecycle.deprecated', retired: 'service_list.lifecycle.retired',
 };
 
 const LIFECYCLE_DOT: Record<LifecycleOption, string> = {
@@ -108,6 +109,7 @@ function normalizeLifecycleFilter(value: string) {
 
 // ── Inner component (needs Suspense boundary for useSearchParams) ─────────────
 function CatalogueInner() {
+  const t            = useT();
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { data: networkDomains }  = useNetworkDomains();
@@ -218,7 +220,7 @@ function CatalogueInner() {
 
   const exportFilteredCsv = useCallback(async () => {
     if (!canExport) {
-      setExportError('CSV export vyžaduje roli Content Admin nebo Admin.');
+      setExportError(t('service_list.export.role_required'));
       return;
     }
     setExportError(null);
@@ -226,7 +228,7 @@ function CatalogueInner() {
       const response = await fetch(buildListCsvExportUrl(params), { credentials: 'include', headers: authHeaders() });
       if (!response.ok) {
         const requestId = response.headers.get('x-request-id');
-        throw new Error(`CSV export selhal: ${response.status}${requestId ? ` (request ${requestId})` : ''}`);
+        throw new Error(t('service_list.export.failed_status', { status: response.status, request: requestId ? ` (request ${requestId})` : '' }));
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -236,9 +238,9 @@ function CatalogueInner() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'CSV export selhal.');
+      setExportError(err instanceof Error ? err.message : t('service_list.export.failed'));
     }
-  }, [canExport, params]);
+  }, [canExport, params, t]);
 
   const quality = qualityData?.item;
 
@@ -246,44 +248,44 @@ function CatalogueInner() {
     <div className={`${styles.shell} ${railCollapsed ? styles.shellRailCollapsed : ''}`}>
 
       {/* ── Filter rail ──────────────────────────────────────────────── */}
-      <aside id="service-filter-rail" className={styles.rail} aria-label="Filters">
+      <aside id="service-filter-rail" className={styles.rail} aria-label={t('service_list.filters_aria')}>
         <div className={styles.railSection}>
           <input
             className={styles.searchInput}
             type="search"
-            placeholder="Search services…"
+            placeholder={t('service_list.search_placeholder')}
             value={searchDraft}
             onChange={e => setSearchDraft(e.target.value)}
-            aria-label="Search services"
+            aria-label={t('service_list.search_aria')}
           />
         </div>
 
-        <FilterGroup label="Portfolio">
+        <FilterGroup label={t('service_list.filter.portfolio')}>
           <Select
             value={portfolio}
             onChange={e => pushParams({ portfolio: e.target.value || undefined, page: undefined })}
-            placeholder="All portfolios"
+            placeholder={t('service_list.all_portfolios')}
             options={portfolioGroups?.map(pg => ({ value: pg.code, label: pg.name })) ?? []}
           />
         </FilterGroup>
 
-        <FilterGroup label="Owner">
+        <FilterGroup label={t('service_list.filter.owner')}>
           <input
             className={styles.searchInput}
             type="search"
-            placeholder="Owner or active role"
+            placeholder={t('service_list.owner_placeholder')}
             value={ownerDraft}
             onChange={e => setOwnerDraft(e.target.value)}
-            aria-label="Filter by owner or active role"
+            aria-label={t('service_list.owner_aria')}
           />
         </FilterGroup>
 
-        <FilterGroup label="Lifecycle">
+        <FilterGroup label={t('service_list.filter.lifecycle')}>
           {LIFECYCLE_OPTIONS.map(lc => (
             <div key={lc} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: LIFECYCLE_DOT[lc], display: 'inline-block', flexShrink: 0 }} />
               <Checkbox
-                label={LIFECYCLE_LABEL[lc]}
+                label={t(LIFECYCLE_LABEL_KEY[lc])}
                 checked={lifecycles.includes(lc)}
                 onChange={() => toggleMulti(lc, lifecycles, 'lifecycle')}
               />
@@ -291,16 +293,16 @@ function CatalogueInner() {
           ))}
         </FilterGroup>
 
-        <FilterGroup label="Readiness">
+        <FilterGroup label={t('service_list.filter.readiness')}>
           <Select
             value={readiness}
             onChange={e => pushParams({ readiness: e.target.value || undefined, page: undefined })}
-            placeholder="Any readiness state"
-            options={READINESS_OPTIONS}
+            placeholder={t('service_list.any_readiness')}
+            options={READINESS_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
           />
         </FilterGroup>
 
-        <FilterGroup label="Domains">
+        <FilterGroup label={t('service_list.filter.domains')}>
           <div className={styles.domainFilterGrid}>
             {domainOptions.map(d => {
               const active = domains.includes(d);
@@ -324,26 +326,26 @@ function CatalogueInner() {
         </FilterGroup>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearAll}>Clear filters</Button>
+          <Button variant="ghost" size="sm" onClick={clearAll}>{t('service_list.clear_filters')}</Button>
         )}
 
       </aside>
 
       {/* ── List area ────────────────────────────────────────────────── */}
-      <main className={styles.content} aria-label="Service list">
+      <main className={styles.content} aria-label={t('service_list.list_aria')}>
         <header className={styles.listPageHeader}>
           <div>
-            <h1 className={styles.listPageTitle}>Services</h1>
-            <p className={styles.listPagePurpose}>Pracovní katalog služeb pro správu, review a export.</p>
+            <h1 className={styles.listPageTitle}>{t('service_list.title')}</h1>
+            <p className={styles.listPagePurpose}>{t('service_list.purpose')}</p>
           </div>
           <div className={styles.headerActions}>
-            <Link href="/services/graph" className={styles.headerSecondaryAction}>Graph view</Link>
-            <Link href="/management/new-service" className={styles.headerPrimaryAction}>New service</Link>
+            <Link href="/services/graph" className={styles.headerSecondaryAction}>{t('service_list.graph_view')}</Link>
+            <Link href="/management/new-service" className={styles.headerPrimaryAction}>{t('service_list.new_service')}</Link>
           </div>
         </header>
 
-        <div className={styles.quickFilterBar} aria-label="Quick service filters">
-          <span className={styles.quickFilterLabel}>Quick filters</span>
+        <div className={styles.quickFilterBar} aria-label={t('service_list.quick_filters_aria')}>
+          <span className={styles.quickFilterLabel}>{t('service_list.quick_filters')}</span>
           {QUICK_FILTERS.map((filter) => {
             const active = filter.isActive({ readiness, reviewDue, lifecycles });
             return (
@@ -352,40 +354,44 @@ function CatalogueInner() {
                 type="button"
                 className={`${styles.quickFilterChip} ${active ? styles.quickFilterChipActive : ''}`}
                 aria-pressed={active}
-                title={filter.hint}
+                title={t(filter.hintKey)}
                 onClick={() => pushParams({ ...filter.updates, page: undefined })}
               >
-                {filter.label}
+                {t(filter.labelKey)}
               </button>
             );
           })}
         </div>
 
         {quality && (
-          <section className={styles.qualityStrip} aria-label="Catalog data quality">
+          <section className={styles.qualityStrip} aria-label={t('service_list.quality.aria')}>
             <div className={styles.qualityIntro}>
-              <strong>Catalog quality</strong>
-              <span>{quality.total_services} services checked</span>
+              <strong>{t('service_list.quality.title')}</strong>
+              <span>{formatCountLabel(quality.total_services, {
+                one: t('service_list.quality.checked.one'),
+                few: t('service_list.quality.checked.few'),
+                many: t('service_list.quality.checked.many'),
+              })}</span>
             </div>
             <Link href="/services/list?readiness=missing_owner" className={styles.qualityCard}>
               <strong>{quality.missing_owner_count}</strong>
-              <span>without owner</span>
+              <span>{t('service_list.quality.without_owner')}</span>
             </Link>
             <Link href="/services/list?readiness=missing_request" className={styles.qualityCard}>
               <strong>{quality.missing_request_channel_count}</strong>
-              <span>missing request path</span>
+              <span>{t('service_list.quality.missing_request_path')}</span>
             </Link>
             <Link href="/services/list?review_due=overdue" className={styles.qualityCard}>
               <strong>{quality.overdue_review_count}</strong>
-              <span>reviews overdue</span>
+              <span>{t('service_list.quality.reviews_overdue')}</span>
             </Link>
             <Link href="/services/list?readiness=missing_capability" className={styles.qualityCard}>
               <strong>{quality.missing_capability_count}</strong>
-              <span>without capability</span>
+              <span>{t('service_list.quality.without_capability')}</span>
             </Link>
             <Link href="/services/graph" className={styles.qualityCard}>
               <strong>{quality.unverified_relation_count}</strong>
-              <span>unverified relations</span>
+              <span>{t('service_list.quality.unverified_relations')}</span>
             </Link>
           </section>
         )}
@@ -400,13 +406,19 @@ function CatalogueInner() {
               aria-expanded={!railCollapsed}
               aria-controls="service-filter-rail"
             >
-              <span>{railCollapsed ? 'Show filters' : 'Hide filters'}</span>
+              {railCollapsed
+                ? <span key="show">{t('service_list.show_filters')}</span>
+                : <span key="hide">{t('service_list.hide_filters')}</span>}
               {railCollapsed && activeFilterCount > 0 && (
-                <span className={styles.railToggleCount} aria-label={`${activeFilterCount} active`}>{activeFilterCount}</span>
+                <span className={styles.railToggleCount} aria-label={t('service_list.active_filters', { count: activeFilterCount })}>{activeFilterCount}</span>
               )}
             </button>
             <span className={styles.resultCount} aria-live="polite">
-              {isLoading ? 'Loading…' : error ? 'Failed to load services' : formatCountLabel(data?.total ?? 0, COUNT_LABELS.services)}
+              {isLoading ? t('common.loading') : error ? t('service_list.state.error_short') : formatCountLabel(data?.total ?? 0, {
+                one: t('service_list.count.one'),
+                few: t('service_list.count.few'),
+                many: t('service_list.count.many'),
+              })}
             </span>
           </div>
           <div className={styles.toolbarRight}>
@@ -414,10 +426,10 @@ function CatalogueInner() {
               className={styles.pageSizeSelect}
               value={String(limit)}
               onChange={(event) => pushParams({ limit: event.target.value, page: '1' })}
-              aria-label="Page size"
+              aria-label={t('service_list.page_size_aria')}
             >
               {[25, 50, 100, 200].map((size) => (
-                <option key={size} value={size}>{size} / page</option>
+                <option key={size} value={size}>{t('service_list.page_size_option', { size })}</option>
               ))}
             </select>
             <Button
@@ -425,9 +437,9 @@ function CatalogueInner() {
               size="sm"
               onClick={() => { void exportFilteredCsv(); }}
               disabled={!data?.total || !canExport}
-              title={canExport ? 'Export filtered services as CSV' : 'CSV export vyžaduje roli Content Admin nebo Admin'}
+              title={canExport ? t('service_list.export.title') : t('service_list.export.role_required')}
             >
-              Export CSV
+              {t('service_list.export.button')}
             </Button>
           </div>
         </div>
@@ -449,16 +461,16 @@ function CatalogueInner() {
             />
           )}
 
-          {isLoading && <div className={styles.state}>Loading services…</div>}
+          {isLoading && <div className={styles.state}>{t('service_list.state.loading')}</div>}
 
           {error && (
             <div className={styles.stateError}>
-              Failed to load services. Check middleware connection.
+              {t('service_list.state.error')}
             </div>
           )}
 
           {!isLoading && !error && (data?.items?.length ?? 0) === 0 && (
-            <div className={styles.state}>No services match the current filters.</div>
+            <div className={styles.state}>{t('service_list.state.empty')}</div>
           )}
 
           {data?.items?.map(svc => (
@@ -469,14 +481,14 @@ function CatalogueInner() {
         {!isLoading && !error && (data?.total ?? 0) > 0 && (
           <div className={styles.paginationBar}>
             <span className={styles.paginationMeta}>
-              Strana {page} z {totalPages}
+              {t('service_list.pagination.page_of', { page, total: totalPages })}
             </span>
             <div className={styles.paginationButtons}>
               <Button variant="ghost" size="sm" onClick={() => pushParams({ page: String(page - 1) })} disabled={page <= 1}>
-                Předchozí
+                {t('service_list.pagination.previous')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => pushParams({ page: String(page + 1) })} disabled={page >= totalPages}>
-                Další
+                {t('service_list.pagination.next')}
               </Button>
             </div>
           </div>
@@ -488,13 +500,18 @@ function CatalogueInner() {
 
 export default function CataloguePage() {
   return (
-    <Suspense fallback={<div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-muted)' }}>Loading…</div>}>
+    <Suspense fallback={<LoadingFallback />}>
       <CatalogueInner />
     </Suspense>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+function LoadingFallback() {
+  const t = useT();
+  return <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-muted)' }}>{t('common.loading')}</div>;
+}
+
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className={styles.railSection}>

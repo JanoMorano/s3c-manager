@@ -12,7 +12,8 @@ import useSWR from 'swr';
 import adminStyles from '../../admin/admin.module.css';
 import styles from './import.module.css';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
-import { useLocale } from '@/app/i18n/useI18n';
+import { useI18n } from '@/app/i18n/useI18n';
+import { formatCountLabel } from '@/app/lib/counts';
 import { helpIndexHref } from '@/app/lib/helpRoutes';
 
 const BASE = '/api/v1/import';
@@ -119,7 +120,7 @@ function parseIssuePayload(rawValue: string | null): unknown {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function ImportReviewPage() {
-  const locale = useLocale();
+  const { locale, t } = useI18n();
   const helpHref = `${helpIndexHref(locale)}#data`;
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedBatch, setSelectedBatch] = useState<number | null>(null);
@@ -193,7 +194,7 @@ export default function ImportReviewPage() {
 
   // Re-parse — single row (specific service_id)
   const handleReparse = async (rawId: number, serviceId: string) => {
-    if (!confirm(`Spustit re-parse pro ${serviceId}?`)) return;
+    if (!confirm(t('administration.import.reparse_confirm_one', { serviceId }))) return;
     setReparseState({ busy: true, result: null });
     try {
       const res = await fetch(`${BASE}/reparse-raw`, {
@@ -202,16 +203,16 @@ export default function ImportReviewPage() {
         body: JSON.stringify({ serviceId, limit: 50 }),
       });
       const json = await res.json();
-      setReparseState({ busy: false, result: `✅ ${serviceId}: zpracováno=${json.processed}, vytvořeno=${json.created}, přeskočeno=${json.skipped}${json.errors?.length ? `, chyby: ${json.errors.slice(0, 3).join('; ')}` : ''}` });
+      setReparseState({ busy: false, result: `✅ ${t('administration.import.reparse_result', { target: serviceId, processed: json.processed, created: json.created, skipped: json.skipped })}${json.errors?.length ? t('administration.import.reparse_errors_suffix', { errors: json.errors.slice(0, 3).join('; ') }) : ''}` });
       mutateRaw();
     } catch (e) {
-      setReparseState({ busy: false, result: `❌ Chyba: ${e instanceof Error ? e.message : String(e)}` });
+      setReparseState({ busy: false, result: `❌ ${t('administration.import.error', { message: e instanceof Error ? e.message : String(e) })}` });
     }
   };
 
   // Re-parse — all (all unparsed records)
   const handleReparseAll = async () => {
-    if (!confirm('Spustit re-parse ALL neparsovaných relací (max 200)?')) return;
+    if (!confirm(t('administration.import.reparse_all_confirm'))) return;
     setReparseState({ busy: true, result: null });
     try {
       const res = await fetch(`${BASE}/reparse-raw`, {
@@ -220,15 +221,15 @@ export default function ImportReviewPage() {
         body: JSON.stringify({ limit: 200 }),
       });
       const json = await res.json();
-      setReparseState({ busy: false, result: `✅ Re-parse ALL: zpracováno=${json.processed}, vytvořeno=${json.created}, přeskočeno=${json.skipped}${json.errors?.length ? `, chyby: ${json.errors.slice(0, 3).join('; ')}` : ''}` });
+      setReparseState({ busy: false, result: `✅ ${t('administration.import.reparse_result', { target: t('administration.import.reparse_all'), processed: json.processed, created: json.created, skipped: json.skipped })}${json.errors?.length ? t('administration.import.reparse_errors_suffix', { errors: json.errors.slice(0, 3).join('; ') }) : ''}` });
       mutateRaw();
     } catch (e) {
-      setReparseState({ busy: false, result: `❌ Chyba: ${e instanceof Error ? e.message : String(e)}` });
+      setReparseState({ busy: false, result: `❌ ${t('administration.import.error', { message: e instanceof Error ? e.message : String(e) })}` });
     }
   };
 
-  if (isLoading) return <div className={styles.state}>Načítám přehled importů…</div>;
-  if (error)     return <div className={`${styles.state} ${styles.stateError}`}>Chyba: {(error as Error).message}</div>;
+  if (isLoading) return <div className={styles.state}>{t('administration.import.loading_overview')}</div>;
+  if (error)     return <div className={`${styles.state} ${styles.stateError}`}>{t('administration.import.error', { message: (error as Error).message })}</div>;
   if (!data)     return null;
 
   const { summary } = data;
@@ -238,31 +239,31 @@ export default function ImportReviewPage() {
     <div className={styles.shell}>
       {/* Breadcrumb */}
       <nav className={adminStyles.breadcrumb}>
-        <Link href="/administration">Administration</Link>
+        <Link href="/administration">{t('nav.administration')}</Link>
         <span className={adminStyles.breadcrumbSep}>/</span>
-        <span>Import history</span>
+        <span>{t('administration.card.import_history.title')}</span>
       </nav>
 
       <div className={styles.pageHeader}>
-        <h1 className={styles.title}>Import history</h1>
+        <h1 className={styles.title}>{t('administration.card.import_history.title')}</h1>
         <div className={styles.headerActions}>
-          {manifest?.contract_version && <span className={styles.tabBtn}>Contract {manifest.contract_version}</span>}
-          {manifest?.schema_version && <span className={styles.tabBtn}>Schema {manifest.schema_version}</span>}
-          <a className={styles.tabBtn} href="/api/v1/export/manifest">Export manifest</a>
-          <a className={styles.tabBtn} href="/api/v1/export/bundle">Export bundle</a>
+          {manifest?.contract_version && <span className={styles.tabBtn}>{t('administration.import.contract_version', { version: manifest.contract_version })}</span>}
+          {manifest?.schema_version && <span className={styles.tabBtn}>{t('administration.import.schema_version', { version: manifest.schema_version })}</span>}
+          <a className={styles.tabBtn} href="/api/v1/export/manifest">{t('administration.import.export_manifest')}</a>
+          <a className={styles.tabBtn} href="/api/v1/export/bundle">{t('administration.import.export_bundle')}</a>
           <button className={styles.tabBtn} onClick={() => { setRawTab(false); setRawFieldsTab(false); setSelectedBatch(null); }}
-            aria-pressed={!rawTab && !rawFieldsTab}>Dávky</button>
+            aria-pressed={!rawTab && !rawFieldsTab}>{t('administration.import.tab_batches')}</button>
           {IMPORT_DEBUG_TOOLS_ENABLED && (
             <button className={styles.tabBtn} onClick={toggleExpertTools} aria-expanded={expertToolsOpen}>
-              Expert/debug tools
+              {t('administration.import.expert_tools')}
             </button>
           )}
           {IMPORT_DEBUG_TOOLS_ENABLED && expertToolsOpen && (
             <>
               <button className={styles.tabBtn} onClick={() => { setRawTab(true); setRawFieldsTab(false); setSelectedBatch(null); }}
-                aria-pressed={rawTab}>Raw relace (re-parse)</button>
+                aria-pressed={rawTab}>{t('administration.import.tab_raw_relations')}</button>
               <button className={styles.tabBtn} onClick={() => { setRawTab(false); setRawFieldsTab(true); setSelectedBatch(null); }}
-                aria-pressed={rawFieldsTab}>Zdrojová evidence služby</button>
+                aria-pressed={rawFieldsTab}>{t('administration.import.tab_source_evidence')}</button>
             </>
           )}
         </div>
@@ -270,9 +271,9 @@ export default function ImportReviewPage() {
 
       <section className={styles.profilePanel}>
         <label className={styles.profileSelector}>
-          <span>Catalogue import/export profile</span>
+          <span>{t('administration.import.profile_label')}</span>
           <select
-            aria-label="Catalogue import/export profile"
+            aria-label={t('administration.import.profile_label')}
             value={selectedProfileKey}
             onChange={(event) => setSelectedProfileKey(event.target.value)}
           >
@@ -282,8 +283,8 @@ export default function ImportReviewPage() {
           </select>
         </label>
         <div className={styles.profileDetail}>
-          <strong>{selectedProfile?.label ?? 'S3C service catalogue JSON'}</strong>
-          <span>{selectedProfile?.description ?? 'Native import/export profile.'}</span>
+          <strong>{selectedProfile?.label ?? t('administration.import.profile_default_label')}</strong>
+          <span>{selectedProfile?.description ?? t('administration.import.profile_default_description')}</span>
           <div className={styles.profileFields}>
             {(selectedProfile?.required_fields ?? ['service_id', 'title']).map((field) => (
               <code key={field}>{field}</code>
@@ -291,10 +292,10 @@ export default function ImportReviewPage() {
           </div>
         </div>
         <div className={styles.profileExports}>
-          <a className={styles.tabBtn} href="/api/v1/export/governance-report">Governance report</a>
-          <a className={styles.tabBtn} href="/api/v1/export/capabilities/coverage">Capability coverage export</a>
-          <a className={styles.tabBtn} href="/api/v1/export/backstage/catalog-info">Backstage catalog-info</a>
-          <Link className={styles.tabBtn} href={helpHref}>Integration mappings</Link>
+          <a className={styles.tabBtn} href="/api/v1/export/governance-report">{t('administration.import.governance_report')}</a>
+          <a className={styles.tabBtn} href="/api/v1/export/capabilities/coverage">{t('administration.import.capability_coverage_export')}</a>
+          <a className={styles.tabBtn} href="/api/v1/export/backstage/catalog-info">{t('administration.import.backstage_catalog_info')}</a>
+          <Link className={styles.tabBtn} href={helpHref}>{t('administration.import.integration_mappings')}</Link>
         </div>
       </section>
 
@@ -303,33 +304,33 @@ export default function ImportReviewPage() {
           {/* Summary KPIs */}
           <div className={styles.kpiRow}>
             <div className={styles.kpiCard}>
-              <div className={styles.kpiLabel}>Dávek celkem</div>
+              <div className={styles.kpiLabel}>{t('administration.import.kpi_total_batches')}</div>
               <div className={styles.kpiValue}>{summary.total_batches ?? 0}</div>
             </div>
             <div className={styles.kpiCard}>
-              <div className={styles.kpiLabel}>OK řádků</div>
+              <div className={styles.kpiLabel}>{t('administration.import.kpi_ok_rows')}</div>
               <div className={styles.kpiValue} style={{ color: 'var(--color-success)' }}>{summary.total_ok ?? 0}</div>
             </div>
             <div className={styles.kpiCard}>
-              <div className={styles.kpiLabel}>S chybou</div>
+              <div className={styles.kpiLabel}>{t('administration.import.kpi_with_errors')}</div>
               <div className={styles.kpiValue} style={{ color: 'var(--color-danger)' }}>{summary.total_error ?? 0}</div>
             </div>
             <div className={styles.kpiCard}>
-              <div className={styles.kpiLabel}>Posledni import</div>
+              <div className={styles.kpiLabel}>{t('administration.import.kpi_last_import')}</div>
               <div className={styles.kpiValue} style={{ fontSize: '0.95rem' }}>{fmt(summary.last_imported_at)}</div>
             </div>
           </div>
 
           {/* Filter */}
           <div className={styles.toolbar}>
-            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Filtr:</span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{t('administration.import.filter_label')}</span>
             {['', 'ok', 'error', 'warn'].map(f => (
               <button key={f} className={`${styles.filterBtn} ${statusFilter === f ? styles.filterBtnActive : ''}`}
                 onClick={() => handleFilterChange(f)}>
-                {f === '' ? 'Vše' : f}
+                {f === '' ? t('administration.import.filter_all') : f}
               </button>
             ))}
-            <button className={styles.refreshBtn} onClick={() => { setBatchOffset(0); setAllBatches([]); mutate(); }}>↻ Obnovit</button>
+            <button className={styles.refreshBtn} onClick={() => { setBatchOffset(0); setAllBatches([]); mutate(); }}>↻ {t('administration.import.refresh')}</button>
           </div>
 
           {/* Batch table */}
@@ -338,20 +339,20 @@ export default function ImportReviewPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Soubor / zdroj</th>
-                  <th>Importoval</th>
-                  <th>Datum</th>
-                  <th>Řádků</th>
-                  <th>OK</th>
-                  <th>Chyby</th>
-                  <th>Status</th>
+                  <th>{t('administration.import.column_file')}</th>
+                  <th>{t('administration.import.column_imported_by')}</th>
+                  <th>{t('administration.import.column_date')}</th>
+                  <th>{t('administration.import.column_rows')}</th>
+                  <th>{t('administration.import.column_ok')}</th>
+                  <th>{t('administration.import.column_errors')}</th>
+                  <th>{t('common.status')}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {allBatches.length === 0 && !isLoading && (
                   <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '32px' }}>
-                    Žádné dávky
+                    {t('administration.import.no_batches')}
                   </td></tr>
                 )}
                 {allBatches.map(b => (
@@ -388,10 +389,10 @@ export default function ImportReviewPage() {
           {(hasMore || isLoading) && (
             <div className={styles.loadMoreBar}>
               {isLoading
-                ? <span className={styles.loadMoreHint}>Načítám…</span>
+                ? <span className={styles.loadMoreHint}>{t('common.loading')}</span>
                 : <button className={styles.loadMoreBtn}
                     onClick={() => setBatchOffset(prev => prev + PAGE_SIZE)}>
-                    Načíst další ({allBatches.length} načteno)
+                    {t('administration.import.load_more', { count: allBatches.length })}
                   </button>
               }
             </div>
@@ -413,36 +414,36 @@ export default function ImportReviewPage() {
             <div className={styles.issuePanel}>
               <div className={styles.issuePanelHeader}>
                 <span className={styles.issuePanelTitle}>
-                  Issues — dávka #{selectedBatch}
+                  {t('administration.import.issues_title', { id: selectedBatch })}
                 </span>
                 <span className={styles.issueBadgeRow}>
-                  <a href="/api/v1/export/bundle" className={styles.detailBtn}>Export bundle</a>
-                  <a href="/api/v1/export/manifest?scope=import" className={styles.detailBtn}>Manifest</a>
+                  <a href="/api/v1/export/bundle" className={styles.detailBtn}>{t('administration.import.export_bundle')}</a>
+                  <a href="/api/v1/export/manifest?scope=import" className={styles.detailBtn}>{t('administration.import.manifest')}</a>
                 </span>
                 {issueTotal > 0 && (
                   <span className={styles.issueBadgeRow}>
-                    {errCnt  > 0 && <span className={`${styles.badge} ${styles.badgeDanger}`}>{errCnt} {errCnt === 1 ? 'chyba' : errCnt < 5 ? 'chyby' : 'chyb'}</span>}
-                    {warnCnt > 0 && <span className={`${styles.badge} ${styles.badgeWarn}`}>{warnCnt} {warnCnt === 1 ? 'varování' : 'varování'}</span>}
-                    {errCnt === 0 && warnCnt === 0 && issueTotal > 0 && <span className={`${styles.badge} ${styles.badgeNeutral}`}>{issueTotal} issues</span>}
+                    {errCnt  > 0 && <span className={`${styles.badge} ${styles.badgeDanger}`}>{formatCountLabel(errCnt, { one: t('administration.import.count.error.one'), few: t('administration.import.count.error.few'), many: t('administration.import.count.error.many') })}</span>}
+                    {warnCnt > 0 && <span className={`${styles.badge} ${styles.badgeWarn}`}>{formatCountLabel(warnCnt, { one: t('administration.import.count.warning.one'), few: t('administration.import.count.warning.few'), many: t('administration.import.count.warning.many') })}</span>}
+                    {errCnt === 0 && warnCnt === 0 && issueTotal > 0 && <span className={`${styles.badge} ${styles.badgeNeutral}`}>{formatCountLabel(issueTotal, { one: t('administration.import.count.issue.one'), few: t('administration.import.count.issue.few'), many: t('administration.import.count.issue.many') })}</span>}
                   </span>
                 )}
                 {issueTotal === 0 && !detailLoading && (
-                  <span className={`${styles.badge} ${styles.badgeOk}`}>vše OK</span>
+                  <span className={`${styles.badge} ${styles.badgeOk}`}>{t('administration.import.all_ok')}</span>
                 )}
               </div>
-              {detailLoading && <div className={styles.state} style={{ height: 80 }}>Načítám…</div>}
+              {detailLoading && <div className={styles.state} style={{ height: 80 }}>{t('common.loading')}</div>}
               {batchDetail && batchDetail.issues.length === 0 && (
-                <div className={styles.state} style={{ height: 80 }}>Žádné problémy ✅</div>
+                <div className={styles.state} style={{ height: 80 }}>{t('administration.import.no_issues')} ✅</div>
               )}
               {batchDetail && batchDetail.issues.length > 0 && (
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Závažnost</th>
-                      <th>Kód</th>
-                      <th>Service ID</th>
-                      <th>Pole</th>
-                      <th>Zpráva</th>
+                      <th>{t('administration.import.column_severity')}</th>
+                      <th>{t('administration.import.column_code')}</th>
+                      <th>{t('administration.import.column_service_id')}</th>
+                      <th>{t('administration.import.column_field')}</th>
+                      <th>{t('administration.import.column_message')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -465,10 +466,10 @@ export default function ImportReviewPage() {
               {batchDetail && (parsedFlavourIssues.length > 0 || parsedSlaIssues.length > 0) && (
                 <div className={styles.parsedPanel}>
                   <div className={styles.parsedPanelHeader}>
-                    <span className={styles.issuePanelTitle}>Parsed legacy variants and SLA</span>
+                    <span className={styles.issuePanelTitle}>{t('administration.import.parsed_title')}</span>
                     <span className={styles.issueBadgeRow}>
-                      {parsedFlavourIssues.length > 0 && <span className={`${styles.badge} ${styles.badgeNeutral}`}>{parsedFlavourCount} legacy variants</span>}
-                      {parsedSlaIssues.length > 0 && <span className={`${styles.badge} ${styles.badgeNeutral}`}>{parsedSlaIssues.length} SLA</span>}
+                      {parsedFlavourIssues.length > 0 && <span className={`${styles.badge} ${styles.badgeNeutral}`}>{formatCountLabel(parsedFlavourCount, { one: t('administration.import.count.legacy_variant.one'), few: t('administration.import.count.legacy_variant.few'), many: t('administration.import.count.legacy_variant.many') })}</span>}
+                      {parsedSlaIssues.length > 0 && <span className={`${styles.badge} ${styles.badgeNeutral}`}>{t('administration.import.sla_count', { count: parsedSlaIssues.length })}</span>}
                     </span>
                   </div>
                   <div className={styles.parsedGrid}>
@@ -478,17 +479,17 @@ export default function ImportReviewPage() {
                       return (
                         <div key={issue.id} className={styles.parsedCard}>
                           <div className={styles.parsedCardTitle}>
-                            {issue.service_id ? <Link href={`/services/${issue.service_id}`} className={styles.serviceLink}>{issue.service_id}</Link> : 'Služba'}
-                            <span className={`${styles.badge} ${styles.badgeNeutral}`}>legacy variant parse</span>
+                            {issue.service_id ? <Link href={`/services/${issue.service_id}`} className={styles.serviceLink}>{issue.service_id}</Link> : t('administration.import.service_fallback')}
+                            <span className={`${styles.badge} ${styles.badgeNeutral}`}>{t('administration.import.badge_legacy_variant_parse')}</span>
                           </div>
                           <div className={styles.parsedMessage}>{issue.message}</div>
                           <div className={styles.parsedList}>
                             {flavours.map((flavour, index) => (
                               <div key={`${issue.id}-${flavour.flavour_code ?? index}`} className={styles.parsedListItem}>
-                                <strong>{flavour.flavour_code ?? 'n/a'}</strong>
-                                <span>{flavour.title ?? 'Bez názvu'}</span>
+                                <strong>{flavour.flavour_code ?? t('administration.import.not_available')}</strong>
+                                <span>{flavour.title ?? t('administration.import.untitled')}</span>
                                 <span>{flavour.service_unit ?? '—'}</span>
-                                <span>{flavour.price_value != null ? `${flavour.price_value} ${flavour.currency_code ?? 'EUR'}` : 'no legacy price'}</span>
+                                <span>{flavour.price_value != null ? `${flavour.price_value} ${flavour.currency_code ?? 'EUR'}` : t('administration.import.no_legacy_price')}</span>
                               </div>
                             ))}
                           </div>
@@ -500,25 +501,25 @@ export default function ImportReviewPage() {
                       return (
                         <div key={issue.id} className={styles.parsedCard}>
                           <div className={styles.parsedCardTitle}>
-                            {issue.service_id ? <Link href={`/services/${issue.service_id}`} className={styles.serviceLink}>{issue.service_id}</Link> : 'Služba'}
-                            <span className={`${styles.badge} ${styles.badgeNeutral}`}>sla parse</span>
+                            {issue.service_id ? <Link href={`/services/${issue.service_id}`} className={styles.serviceLink}>{issue.service_id}</Link> : t('administration.import.service_fallback')}
+                            <span className={`${styles.badge} ${styles.badgeNeutral}`}>{t('administration.import.badge_sla_parse')}</span>
                           </div>
                           <div className={styles.parsedMessage}>{issue.message}</div>
                           <div className={styles.parsedList}>
                             <div className={styles.parsedListItem}>
-                              <strong>availability</strong>
+                              <strong>{t('administration.import.sla.availability')}</strong>
                               <span>{payload?.availability_pct != null ? `${payload.availability_pct}%` : '—'}</span>
                             </div>
                             <div className={styles.parsedListItem}>
-                              <strong>restoration</strong>
+                              <strong>{t('administration.import.sla.restoration')}</strong>
                               <span>{payload?.restoration_hours != null ? `${payload.restoration_hours} h` : '—'}</span>
                             </div>
                             <div className={styles.parsedListItem}>
-                              <strong>delivery</strong>
+                              <strong>{t('administration.import.sla.delivery')}</strong>
                               <span>{payload?.delivery_days != null ? `${payload.delivery_days} d` : '—'}</span>
                             </div>
                             <div className={styles.parsedListItem}>
-                              <strong>support window</strong>
+                              <strong>{t('administration.import.sla.support_window')}</strong>
                               <span>{payload?.support_window_code ?? '—'}</span>
                             </div>
                           </div>
@@ -538,15 +539,15 @@ export default function ImportReviewPage() {
       {IMPORT_DEBUG_TOOLS_ENABLED && rawFieldsTab && (
         <div className={styles.tableWrap}>
           <div className={styles.rawHeader}>
-            <span className={styles.rawTitle}>Import source evidence — zdrojové texty per služba</span>
+            <span className={styles.rawTitle}>{t('administration.import.source_evidence_title')}</span>
             <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
               <a href="/api/v1/export/bundle" className={styles.serviceLink} style={{ fontSize: 12 }}>
-                → Export bundle
+                → {t('administration.import.export_bundle')}
               </a>
               <input
                 className={styles.rawFieldInput ?? styles.rawValue}
                 style={{ padding: '4px 10px', border: '1px solid var(--color-border)', borderRadius: 4, fontSize: 13, width: 200 }}
-                placeholder="Service ID (napr. WPS001)"
+                placeholder={t('administration.import.service_id_placeholder')}
                 value={rawFieldsServiceId}
                 onChange={e => setRawFieldsServiceId(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && setRawFieldsSearch(rawFieldsServiceId.trim())}
@@ -555,28 +556,28 @@ export default function ImportReviewPage() {
                 style={{ padding: '4px 14px', fontSize: 12 }}
                 onClick={() => setRawFieldsSearch(rawFieldsServiceId.trim())}
                 disabled={!rawFieldsServiceId.trim()}>
-                Načíst
+                {t('administration.import.load')}
               </button>
               {rawFieldsSearch && (
                 <Link href={`/services/${rawFieldsSearch}`} className={styles.serviceLink} style={{ fontSize: 12 }}>
-                  → Detail služby
+                  → {t('administration.import.service_detail')}
                 </Link>
               )}
             </div>
           </div>
-          {rawFieldsLoading && <div className={styles.state}>Načítám zdrojovou evidenci…</div>}
+          {rawFieldsLoading && <div className={styles.state}>{t('administration.import.loading_source_evidence')}</div>}
           {rawFieldsSearch && !rawFieldsLoading && rawFieldsData && rawFieldsData.length === 0 && (
-            <div className={styles.state}>Žádná zdrojová evidence pro {rawFieldsSearch}</div>
+            <div className={styles.state}>{t('administration.import.no_source_evidence', { serviceId: rawFieldsSearch })}</div>
           )}
           {rawFieldsData && rawFieldsData.length > 0 && (
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Pole</th>
-                  <th>Parser</th>
-                  <th>Uloženo</th>
-                  <th>Zdrojová hodnota</th>
-                  <th>Poznámky</th>
+                  <th>{t('administration.import.column_field')}</th>
+                  <th>{t('administration.import.column_parser')}</th>
+                  <th>{t('administration.import.column_saved')}</th>
+                  <th>{t('administration.import.column_source_value')}</th>
+                  <th>{t('administration.import.column_notes')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -602,43 +603,43 @@ export default function ImportReviewPage() {
         <div className={styles.tableWrap}>
           <div className={styles.rawHeader}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
-              <span className={styles.rawTitle}>Neparsované relace (ServiceRelationRaw — parsed_ok = 0)</span>
+              <span className={styles.rawTitle}>{t('administration.import.unparsed_relations_title')}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <a href="/api/v1/export/bundle" className={styles.serviceLink} style={{ fontSize: 12 }}>
-                  → Export bundle
+                  → {t('administration.import.export_bundle')}
                 </a>
                 <button
                   className={styles.reparseBtn}
                   style={{ padding: '4px 14px', fontSize: 12, whiteSpace: 'nowrap' }}
                   onClick={handleReparseAll}
                   disabled={reparseState.busy}
-                  title="Re-parse všechny neparsované záznamy (max 200)"
+                  title={t('administration.import.reparse_all_title')}
                 >
-                  {reparseState.busy ? '…' : '↺ Re-parse vše'}
+                  {reparseState.busy ? '…' : `↺ ${t('administration.import.reparse_all')}`}
                 </button>
               </div>
             </div>
             <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-              Zdrojové texty, které nebyly převedeny na typed ServiceRelation. Re-parse pipeline je plánován.
+              {t('administration.import.unparsed_relations_hint')}
             </span>
             {reparseState.result && (
               <div className={styles.reparseResult}>{reparseState.result}</div>
             )}
           </div>
-          {rawLoading && <div className={styles.state}>Načítám raw relace…</div>}
+          {rawLoading && <div className={styles.state}>{t('administration.import.loading_raw_relations')}</div>}
           {rawData && rawData.length === 0 && (
-            <div className={styles.state}>Žádné neparsované relace ✅</div>
+            <div className={styles.state}>{t('administration.import.no_unparsed_relations')} ✅</div>
           )}
           {rawData && rawData.length > 0 && (
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Service ID</th>
-                  <th>Zdrojové pole</th>
-                  <th>Parser</th>
-                  <th>Zachyceno</th>
-                  <th>Raw hodnota</th>
+                  <th>{t('administration.import.column_id')}</th>
+                  <th>{t('administration.import.column_service_id')}</th>
+                  <th>{t('administration.import.column_source_field')}</th>
+                  <th>{t('administration.import.column_parser')}</th>
+                  <th>{t('administration.import.column_captured')}</th>
+                  <th>{t('administration.import.column_raw_value')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -659,7 +660,7 @@ export default function ImportReviewPage() {
                       <button className={styles.reparseBtn}
                         onClick={() => handleReparse(r.id, r.service_id)}
                         disabled={reparseState.busy}
-                        title="Spustit re-parse">
+                        title={t('administration.import.reparse_one_title')}>
                         {reparseState.busy ? '…' : '↺'}
                       </button>
                     </td>
