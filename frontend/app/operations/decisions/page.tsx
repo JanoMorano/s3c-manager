@@ -8,7 +8,6 @@ import { DecisionRecordModal, type DecisionRecordValue } from '@/app/components/
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import { authHeaders } from '@/features/services/api/services.api';
 import { useT } from '@/app/i18n/useI18n';
-import { formatCountLabel } from '@/app/lib/counts';
 import { useGovernanceDecisions } from '@/features/governance/hooks/useGovernance';
 import type { GovernanceDecision } from '@/features/governance/types';
 import styles from '../../dashboard/dashboard.module.css';
@@ -169,13 +168,6 @@ export default function GovernanceDecisionsPage() {
       <PageHeader
         title={t('operations.decisions.title')}
         purpose={t('operations.decisions.purpose')}
-        chips={[
-          { label: formatCountLabel(decisions.length, { one: t('operations.decisions.count.decision.one'), few: t('operations.decisions.count.decision.few'), many: t('operations.decisions.count.decision.many') }), tone: 'info' },
-          { label: formatCountLabel(approved, { one: t('operations.decisions.count.approved.one'), few: t('operations.decisions.count.approved.few'), many: t('operations.decisions.count.approved.many') }), tone: 'ok' },
-          { label: formatCountLabel(deferred, { one: t('operations.decisions.count.deferred.one'), few: t('operations.decisions.count.deferred.few'), many: t('operations.decisions.count.deferred.many') }), tone: deferred ? 'warn' : 'neutral' },
-          ...(decisionFilter !== 'all' ? [{ label: t('operations.decisions.chip.filter', { value: decisionLabel(t, decisionFilter) }), tone: 'info' as const }] : []),
-          ...(serviceFilter ? [{ label: t('layout.decision_record_modal.affects_service', { id: serviceFilter }), tone: 'info' as const }] : []),
-        ]}
         primaryAction={{ label: t('operations.decisions.record'), onClick: () => setRecordOpen(true) }}
       />
 
@@ -194,7 +186,7 @@ export default function GovernanceDecisionsPage() {
         </Link>
       </section>
 
-      <section className={govStyles.workflowGrid}>
+      <section>
         <article className={govStyles.governancePanel}>
           <div className={govStyles.panelHeader}>
             <div>
@@ -210,13 +202,6 @@ export default function GovernanceDecisionsPage() {
           )}
         </article>
 
-        <aside className={govStyles.governancePanel}>
-          <h2 className={govStyles.panelTitle}>{t('operations.decisions.record_title')}</h2>
-          <p className={govStyles.panelHint}>
-            {t('operations.decisions.record_hint')}
-          </p>
-          <button type="button" className={govStyles.primaryAction} onClick={() => setRecordOpen(true)}>{t('operations.decisions.record')}</button>
-        </aside>
       </section>
 
       {recordOpen && (

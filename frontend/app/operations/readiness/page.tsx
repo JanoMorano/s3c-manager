@@ -219,7 +219,6 @@ export default function ReadinessQueuePage() {
   const selectedItem = filteredItems.find((item) => item.service_id === selectedServiceId) ?? filteredItems[0] ?? null;
   const selectedRule = selectedItem ? (primaryFailedRule(selectedItem) ?? actionableRules(selectedItem)[0] ?? selectedItem.rules?.[0] ?? null) as RuleDetail | null : null;
   const allItems = data.items ?? [];
-  const exceptionCount = exceptionItems(allItems).length;
   const expiringCount = exceptionsExpiring(allItems);
 
   return (
@@ -227,13 +226,6 @@ export default function ReadinessQueuePage() {
       <PageHeader
         title={t('nav.sidebar.readiness_gate')}
         purpose={t('operations.readiness.purpose')}
-        chips={[
-          { label: t('operations.readiness.chip.scanned', { count: data.counts.total }), tone: 'info' },
-          { label: t('operations.readiness.chip.blocked', { count: data.counts.blockers }), tone: data.counts.blockers ? 'bad' : 'ok' },
-          { label: t('operations.readiness.chip.ready', { count: data.counts.ready }), tone: 'ok' },
-          { label: t('operations.readiness.chip.exceptions', { count: exceptionCount }), tone: exceptionCount ? 'warn' : 'neutral' },
-          ...(ownerFilter ? [{ label: t('operations.readiness.chip.owner', { owner: ownerFilter }), tone: 'info' as const }] : []),
-        ]}
         primaryAction={{
           label: t('nav.sidebar.service_list'),
           href: ownerFilter ? `/services/list?owner=${encodeURIComponent(ownerFilter)}` : '/services/list',

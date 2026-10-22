@@ -1,0 +1,123 @@
+.panel {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  padding: var(--space-4) var(--space-5);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font: var(--text-title-md);
+  color: var(--color-text-primary);
+}
+
+.progress {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.dismiss {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: var(--text-label-md);
+  cursor: pointer;
+}
+.dismiss:hover { color: var(--color-text-primary); }
+
+.steps {
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.stepNext {
+  background: color-mix(in srgb, var(--color-info) 7%, transparent);
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font: var(--text-label-md);
+}
+
+.stepDone .marker {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-bg-surface);
+}
+
+.stepDone strong {
+  color: var(--color-text-muted);
+}
+
+.stepBody {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font: var(--text-label-md);
+  color: var(--color-text-primary);
+}
+
+.detail {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-sm);
+  font: var(--text-label-md);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primary {
+  background: var(--color-action-primary);
+  color: var(--color-bg-surface);
+}
+
+.secondary {
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+}
+.secondary:hover { border-color: var(--color-border-strong); }
+
+@media (max-width: 760px) {
+  .step {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .actions {
+    grid-column: 2;
+  }
+}

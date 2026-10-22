@@ -1,11 +1,10 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { ArrowRight, Moon, Plus, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AUTH_STATE_EVENT, restoreAuthSession, type AuthSnapshot } from '@/features/auth/authStore';
-import { hasRoleAccess } from '@/features/auth/roles';
 import { useTheme, type ThemeMode } from '@/features/theme/ThemeContext';
 import { useT } from '@/app/i18n/useI18n';
 import NavGlobalSearch from './NavGlobalSearch';
@@ -108,26 +107,6 @@ function buildBreadcrumbs(pathname: string, t: Translate, graphView?: string | n
   return crumbs;
 }
 
-function serviceIdFromPath(pathname: string) {
-  const match = pathname.match(/^\/services\/([^/]+)$/);
-  const id = match?.[1] ?? null;
-  if (id && ['list', 'graph', 'dashboard', 'dependency-flow', 'impact', 'consolidation-matrix'].includes(id)) return null;
-  return id;
-}
-
-function primaryActionFor(pathname: string, isEditor: boolean): { href: string; labelKey: string } | null {
-  const serviceId = serviceIdFromPath(pathname);
-  if (serviceId) return { href: '#request', labelKey: 'nav.topbar.action.how_to_get_service' };
-  if (pathname.startsWith('/operations/readiness')) return { href: `${pathname}?filter=blocked`, labelKey: 'nav.topbar.action.review_blockers' };
-  if (pathname.startsWith('/operations')) return { href: '/operations/decisions', labelKey: 'nav.topbar.action.record_decision' };
-  if (pathname.startsWith('/services/list')) return { href: isEditor ? '/management/new-service' : '/catalogue', labelKey: isEditor ? 'nav.topbar.action.new_service' : 'nav.topbar.action.browse_catalogue' };
-  if (pathname.startsWith('/catalogue')) return { href: '/services/list', labelKey: 'nav.topbar.action.browse_services' };
-  if (pathname.startsWith('/capabilities')) return { href: '/capabilities?view=coverage', labelKey: 'nav.topbar.action.open_coverage' };
-  if (pathname.startsWith('/import')) return { href: '/import/upload', labelKey: 'nav.topbar.action.upload_data' };
-  if (isEditor) return { href: '/management/new-service', labelKey: 'nav.topbar.action.new_service' };
-  return { href: '/catalogue', labelKey: 'nav.topbar.action.browse_catalogue' };
-}
-
 function initials(snapshot: AuthSnapshot | null) {
   const name = snapshot?.display_name || snapshot?.username || 'S3C';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -161,8 +140,8 @@ export default function TopBar() {
   }, []);
 
   const breadcrumbs = useMemo(() => buildBreadcrumbs(pathname, t, graphView), [pathname, t, graphView]);
-  const isEditor = hasRoleAccess(snapshot?.role ?? null, 'editor');
-  const primaryAction = primaryActionFor(pathname, isEditor);
+  // No contextual action here: each page carries its one primary action in
+  // its own header, so the same button doesn't appear twice on a screen.
 
   // Name the browser tab after the page heading so several open tabs (and
   // history entries) can be told apart. Headings often render after data
@@ -202,14 +181,6 @@ export default function TopBar() {
 
       <div className={styles.topBarRight}>
         <NavGlobalSearch />
-        {primaryAction && (
-          <Link href={primaryAction.href} className={styles.topBarPrimaryAction}>
-            {primaryAction.href === '/management/new-service'
-              ? <Plus size={14} aria-hidden="true" />
-              : <ArrowRight size={14} aria-hidden="true" />}
-            <span>{t(primaryAction.labelKey)}</span>
-          </Link>
-        )}
         <button
           type="button"
           className={styles.topBarIconButton}

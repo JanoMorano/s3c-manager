@@ -98,12 +98,6 @@ export default function CataloguePage() {
       <PageHeader
         title={t('nav.sidebar.service_catalogue')}
         purpose={t('catalogue.header.purpose', { total: formatNumber(totalServices), requestable: formatNumber(requestable), due: formatNumber(reviewsDue) })}
-        chips={[
-          { label: t('catalogue.chip.total', { count: formatNumber(totalServices) }), tone: 'info' },
-          { label: t('catalogue.chip.requestable', { count: formatNumber(requestable) }), tone: 'ok' },
-          { label: t('catalogue.chip.warnings', { count: formatNumber(readinessWarnings) }), tone: readinessWarnings ? 'warn' : 'ok' },
-          { label: t('catalogue.chip.review_passed', { count: formatNumber(reviewsDue) }), tone: reviewsDue ? 'warn' : 'ok' },
-        ]}
         primaryAction={{ href: '/services/list?requestable=true', label: t('catalogue.request_service') }}
       />
 

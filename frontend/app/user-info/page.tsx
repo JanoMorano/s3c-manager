@@ -275,10 +275,6 @@ export default function UserInfoPage() {
       <PageHeader
         title={t('user_info.title')}
         purpose={t('user_info.account_security_purpose')}
-        chips={[
-          { label: me?.role ?? t('common.role'), tone: 'info' },
-          { label: me?.auth_provider ?? 'local', tone: 'neutral' },
-        ]}
       />
 
       {/* ── Account card ─────────────────────────────────────────────────── */}

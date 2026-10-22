@@ -447,11 +447,6 @@ export default function ServiceEditorPage({ params }: Props) {
         <PageHeader
           title={t('service_editor.heading', { title: svc.title })}
           purpose={t('service_editor.tab.purpose')}
-          chips={[
-            { label: `ID ${id}`, tone: 'neutral' },
-            { label: `Lifecycle: ${currentLifecycle ? t(lifecycleStageLabelKey(currentLifecycle)) : '—'}`, tone: currentLifecycle === 'active' ? 'ok' : 'info' },
-            { label: `Completeness ${svc.completeness_score ?? '—'}%`, tone: (svc.completeness_score ?? 0) >= 80 ? 'ok' : 'warn' },
-          ]}
           primaryAction={{ label: t('service_editor.text.back_to_detail'), href: `/services/${id}` }}
         />
       </div>

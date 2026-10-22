@@ -375,10 +375,6 @@ export default function OperationsPage() {
       <PageHeader
         title={t('operations.title')}
         purpose={t('operations.lead')}
-        chips={[
-          { label: t('operations.chip.action_queue'), tone: 'neutral' },
-          { label: t('operations.chip.audit_evidence'), tone: 'neutral' },
-        ]}
         primaryAction={{ label: t('operations.action.readiness'), href: '/operations/readiness' }}
       />
 

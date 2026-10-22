@@ -17,7 +17,6 @@ import {
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { useT } from '@/app/i18n/useI18n';
-import { resolveCountForm } from '@/app/lib/counts';
 import { hasRoleAccess } from '@/features/auth/roles';
 import detailStyles from '../services/[id]/detail.module.css';
 import editorStyles from '../services/[id]/edit/editor.module.css';
@@ -435,13 +434,6 @@ export function PublicC3EntityDetailPage({ params, config: rawConfig, mode = 'vi
       <PageHeader
         title={titleValue}
         purpose={t('c3_entity.purpose', { title: config.title, label: codeLabel, code: codeValue })}
-        chips={[
-          { label: isReadOnlyEntity ? t('c3_entity.mode.read_only') : isEdit ? t('c3_entity.mode.edit') : t('c3_entity.mode.view'), tone: isEdit ? 'warn' : 'neutral' },
-          { label: formatValue(item.item_status, t),       tone: 'neutral' },
-          ...(validationIssues.length > 0
-            ? [{ label: t(resolveCountForm(validationIssues.length, { one: 'c3_entity.error_count.one', few: 'c3_entity.error_count.few', many: 'c3_entity.error_count.many' }), { count: validationIssues.length }), tone: 'bad' as const }]
-            : [{ label: t('c3_entity.valid'), tone: 'ok' as const }]),
-        ]}
         primaryAction={
           isEdit
             ? { label: t('c3_entity.preview'), href: `${config.detailBasePath}/${encodeURIComponent(codeValue)}` }

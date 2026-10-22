@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T20:20:24.734Z",
+  "generated_at": "2026-10-22T20:38:15.930Z",
   "description": "Generated corpus of legacy/static frontend UI strings. Translate cs/en values; do not edit source keys manually.",
   "locales": [
     "cs",
@@ -171,7 +171,7 @@
         "frontend/app/administration/import/page.tsx",
         "frontend/app/c3-entities/PublicC3EntityDetailPage.tsx",
         "frontend/app/catalogue/page.tsx",
-        "frontend/app/cockpit/my-tasks/page.tsx",
+        "frontend/app/cockpit/my-tasks/MyWork.tsx",
         "frontend/app/page.tsx",
         "frontend/app/portfolio/[code]/page.tsx",
         "frontend/app/portfolio/page.tsx",
@@ -230,10 +230,11 @@
       "cs": "en-GB",
       "en": "en-GB",
       "files": [
-        "frontend/app/cockpit/my-tasks/page.tsx",
+        "frontend/app/cockpit/my-tasks/MyWork.tsx",
         "frontend/app/operations/decisions/page.tsx",
         "frontend/app/operations/page.tsx",
-        "frontend/app/operations/reviews/page.tsx"
+        "frontend/app/operations/reviews/page.tsx",
+        "frontend/app/page.tsx"
       ]
     },
     {
@@ -394,7 +395,7 @@
       "cs": "pending,in_review,deferred",
       "en": "pending,in_review,deferred",
       "files": [
-        "frontend/app/cockpit/my-tasks/page.tsx",
+        "frontend/app/cockpit/my-tasks/MyWork.tsx",
         "frontend/app/operations/page.tsx",
         "frontend/app/operations/reviews/page.tsx"
       ]
@@ -817,12 +818,13 @@
         "frontend/app/capabilities/[slug]/page.tsx",
         "frontend/app/capabilities/page.tsx",
         "frontend/app/catalogue/page.tsx",
-        "frontend/app/cockpit/my-tasks/page.tsx",
+        "frontend/app/cockpit/my-tasks/MyWork.tsx",
         "frontend/app/components/AppShell.tsx",
         "frontend/app/components/AuthGuard.tsx",
         "frontend/app/components/C3Breadcrumbs.tsx",
         "frontend/app/components/InstallLayoutWrapper.tsx",
         "frontend/app/components/MainNav.tsx",
+        "frontend/app/components/ModuleInactive.tsx",
         "frontend/app/components/NavGlobalSearch.tsx",
         "frontend/app/components/NavHelpCenter.tsx",
         "frontend/app/components/NavRight.tsx",
@@ -879,6 +881,7 @@
         "frontend/features/graph/GraphNodeCard.tsx",
         "frontend/features/graph/exportGraphPdf.ts",
         "frontend/features/graph/useGraphLayout.ts",
+        "frontend/features/home/GettingStarted.tsx",
         "frontend/features/install/installStatus.ts",
         "frontend/features/services/components/AvailabilityBadge.tsx",
         "frontend/features/services/components/ServiceCard.tsx",

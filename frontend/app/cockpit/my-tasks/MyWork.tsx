@@ -1,8 +1,11 @@
 'use client';
 
+/**
+ * Personal work list: assigned reviews, readiness blockers, owned services
+ * and recent decisions. Rendered on the home page ("What needs my attention").
+ */
 import Link from '@/app/components/AppLink';
-import PageHeader from '@/app/components/PageHeader';
-import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
+import { Badge, EmptyState } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
 import { useDashboardInbox } from '@/features/services/hooks/useServices';
 import type {
@@ -14,7 +17,6 @@ import type {
 import { getAuthSnapshot, restoreAuthSession, type AuthSnapshot } from '@/features/auth/authStore';
 import { useState, useCallback, useEffect } from 'react';
 import { useT } from '@/app/i18n/useI18n';
-import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../../operations/governance.module.css';
 import taskStyles from './my-tasks.module.css';
 
@@ -93,9 +95,9 @@ function CollapsibleSection({ title, count, badge, defaultOpen = true, listHref,
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Work list ───────────────────────────────────────────────────────────────
 
-export default function MyTasksPage() {
+export default function MyWork() {
   const t = useT();
   const inbox = useDashboardInbox();
   const [refreshing, setRefreshing] = useState(false);
@@ -122,40 +124,17 @@ export default function MyTasksPage() {
   const myReviews: DashboardReviewAssignment[] = data?.my_reviews ?? [];
   const myBlockers: DashboardInboxItem[] = data?.my_blockers ?? data?.items ?? [];
   const myDecisions: DashboardDecisionItem[] = data?.my_decisions ?? [];
-  const openCount = myReviews.length + myBlockers.length;
   const ownerIdentity = preferredIdentity(authSnapshot);
   const myReviewsHref = `/operations/reviews?mine=1&status=${encodeURIComponent(OPEN_REVIEW_STATUS_FILTER)}`;
   const myBlockersHref = ownerFilteredHref('/operations/readiness', ownerIdentity);
   const ownedServicesHref = ownerFilteredHref('/services/list', ownerIdentity);
   const noDate = t('my_tasks.no_date');
 
-  if (inbox.isLoading) return <div className={styles.state}>{t('my_tasks.loading')}</div>;
-  if (inbox.error) return <div className={styles.stateError}>{t('my_tasks.error')}</div>;
+  if (inbox.isLoading) return <div className={taskStyles.state}>{t('my_tasks.loading')}</div>;
+  if (inbox.error) return <div className={taskStyles.state}>{t('my_tasks.error')}</div>;
 
   return (
-    <div className={styles.shell}>
-      <PageHeader
-        title={t('nav.sidebar.my_tasks')}
-        purpose={t('my_tasks.purpose')}
-        chips={[
-          { label: t('my_tasks.chip.open', { count: openCount }), tone: openCount > 0 ? 'warn' : 'ok' },
-          { label: t('my_tasks.chip.owned', { count: myOwnedServices.length }), tone: 'info' },
-        ]}
-        primaryAction={{ label: t('my_tasks.review_board'), href: '/operations/reviews' }}
-      />
-
-      <section className={styles.kpiThree} aria-label={t('my_tasks.kpi.aria')}>
-        <Link href={myReviewsHref} className={taskStyles.kpiLink} aria-label={t('my_tasks.kpi.reviews.aria')}>
-          <KpiCard label={t('my_tasks.kpi.reviews.label')} value={myReviews.length} hint={t('my_tasks.kpi.reviews.hint')} tone={myReviews.length ? 'warning' : 'success'} />
-        </Link>
-        <Link href={myBlockersHref} className={taskStyles.kpiLink} aria-label={t('my_tasks.kpi.blockers.aria')}>
-          <KpiCard label={t('my_tasks.kpi.blockers.label')} value={myBlockers.length} hint={t('my_tasks.kpi.blockers.hint')} tone={myBlockers.length ? 'danger' : 'success'} />
-        </Link>
-        <Link href={ownedServicesHref} className={taskStyles.kpiLink} aria-label={t('my_tasks.kpi.owned.aria')}>
-          <KpiCard label={t('my_tasks.kpi.owned.label')} value={myOwnedServices.length} hint={t('my_tasks.kpi.owned.hint')} />
-        </Link>
-      </section>
-
+    <div>
       <div className={taskStyles.refreshBar}>
         <button
           type="button"
@@ -171,7 +150,7 @@ export default function MyTasksPage() {
       <div className={taskStyles.sections}>
         {/* 1. Reviews */}
         <CollapsibleSection title={t('my_tasks.section.reviews')} count={myReviews.length} badge={myReviews.length > 0 ? 'warning' : undefined} defaultOpen listHref={myReviewsHref}>
-          {myReviews.length === 0 ? <EmptyState title={t('my_tasks.section.reviews_empty')} /> : (
+          {myReviews.length === 0 ? <EmptyState title={t('my_tasks.section.reviews_empty')} action={<Link href="/operations/reviews" className={taskStyles.emptyAction}>{t('home.empty.open_reviews')}</Link>} /> : (
             <div className={govStyles.governanceList}>
               {myReviews.map((review) => {
                 const over = isOverdue(review.due_at);
@@ -195,7 +174,7 @@ export default function MyTasksPage() {
 
         {/* 2. Blockers / Exceptions */}
         <CollapsibleSection title={t('my_tasks.section.blockers')} count={myBlockers.length} badge={myBlockers.length > 0 ? 'danger' : undefined} defaultOpen listHref={myBlockersHref}>
-          {myBlockers.length === 0 ? <EmptyState title={t('my_tasks.section.blockers_empty')} /> : (
+          {myBlockers.length === 0 ? <EmptyState title={t('my_tasks.section.blockers_empty')} action={<Link href="/operations/readiness" className={taskStyles.emptyAction}>{t('home.empty.open_readiness')}</Link>} /> : (
             <div className={govStyles.governanceList}>
               {myBlockers.map((item) => (
                 <Link key={item.id} href={item.href || '/operations'} className={govStyles.governanceRow}>
@@ -213,7 +192,7 @@ export default function MyTasksPage() {
 
         {/* 3. Owned services (attestation) */}
         <CollapsibleSection title={t('my_tasks.section.owned')} count={myOwnedServices.length} defaultOpen={false} listHref={ownedServicesHref}>
-          {myOwnedServices.length === 0 ? <EmptyState title={t('my_tasks.section.owned_empty')} /> : (
+          {myOwnedServices.length === 0 ? <EmptyState title={t('home.my_owned.empty')} action={<Link href="/services/list?readiness=missing_owner" className={taskStyles.emptyAction}>{t('home.empty.find_unowned')}</Link>} /> : (
             <div className={govStyles.governanceList}>
               {myOwnedServices.map((service) => {
                 const over = isOverdue(service.review_due_at);
@@ -237,7 +216,7 @@ export default function MyTasksPage() {
 
         {/* 4. Recent decisions */}
         <CollapsibleSection title={t('my_tasks.section.decisions')} count={myDecisions.length} defaultOpen={false}>
-          {myDecisions.length === 0 ? <EmptyState title={t('my_tasks.section.decisions_empty')} /> : (
+          {myDecisions.length === 0 ? <EmptyState title={t('my_tasks.section.decisions_empty')} action={<Link href="/operations/decisions" className={taskStyles.emptyAction}>{t('home.empty.open_decisions')}</Link>} /> : (
             <div className={govStyles.governanceList}>
               {myDecisions.slice(0, 10).map((decision) => (
                 <Link key={decision.id} href={`/services/${decision.service_id}`} className={govStyles.governanceRow}>

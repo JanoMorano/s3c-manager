@@ -18,7 +18,6 @@ import { CapabilityLinksPanel } from '@/features/c3/components/CapabilityLinksPa
 import { getAuthSnapshot } from '@/features/auth/authStore';
 import { hasRoleAccess } from '@/features/auth/roles';
 import { useLocale, useT } from '@/app/i18n/useI18n';
-import { resolveCountForm } from '@/app/lib/counts';
 import { formatCapabilityTimestamp, sortCapabilityParentItems } from '../locale-utils';
 import styles from '../../../app/admin/c3/c3.module.css';
 import editorStyles from '../../../app/services/[id]/edit/editor.module.css';
@@ -261,13 +260,6 @@ export function CapabilityDetailPage({ params, uuid: initialUuid, mode }: Props)
       <PageHeader
         title={item.title}
         purpose={t('capability_detail.c3.purpose', { type: item.item_type ?? 'CP', code: displayCode })}
-        chips={[
-          { label: isEdit ? t('capability_detail.c3.mode_edit') : t('capability_detail.c3.mode_view'), tone: isEdit ? 'warn' : 'neutral' },
-          { label: item.item_status ?? t('capability_detail.c3.status_unknown'), tone: 'neutral' },
-          ...(validationIssues.length > 0
-            ? [{ label: t(resolveCountForm(validationIssues.length, { one: 'capability_detail.c3.error_count.one', few: 'capability_detail.c3.error_count.few', many: 'capability_detail.c3.error_count.many' }), { count: validationIssues.length }), tone: 'bad' as const }]
-            : [{ label: t('capability_detail.c3.valid'), tone: 'ok' as const }]),
-        ]}
         primaryAction={
           isEdit
             ? { label: t('capability_detail.c3.preview'), href: `/c3/${encodeURIComponent(uuid)}` }

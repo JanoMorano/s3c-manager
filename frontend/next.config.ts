@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
   },
 
+  // My tasks moved onto the home page.
+  async redirects() {
+    return [
+      { source: '/cockpit/my-tasks', destination: '/', permanent: false },
+    ];
+  },
+
   // API proxy: /api/* -> local middleware inside the app container.
   // Applies to server-side execution (SSR, Route Handlers).
   // The client calls relative /api/* paths; nginx or Next.js rewrites them.

@@ -1,15 +1,7 @@
 'use client';
 
 import Link from '@/app/components/AppLink';
-import { useT } from '@/app/i18n/useI18n';
 import styles from './PageHeader.module.css';
-
-type ChipTone = 'neutral' | 'ok' | 'warn' | 'bad' | 'info';
-
-export interface PageHeaderChip {
-  label: string;
-  tone?: ChipTone;
-}
 
 export interface PageHeaderAction {
   label: string;
@@ -19,13 +11,14 @@ export interface PageHeaderAction {
 
 interface PageHeaderProps {
   title: string;
+  /** One short sentence; longer explanations belong in help. */
   purpose: string;
-  chips?: PageHeaderChip[];
   primaryAction?: PageHeaderAction | null;
 }
 
-export default function PageHeader({ title, purpose, chips = [], primaryAction }: PageHeaderProps) {
-  const t = useT();
+// Status counts are shown once, in the page's KPI tiles — the header carries
+// only the title, a one-line purpose and the page's single primary action.
+export default function PageHeader({ title, purpose, primaryAction }: PageHeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.titleBlock}>
@@ -43,15 +36,6 @@ export default function PageHeader({ title, purpose, chips = [], primaryAction }
               {primaryAction.label}
             </button>
           )}
-        </div>
-      )}
-      {chips.length > 0 && (
-        <div className={styles.chips} aria-label={t('layout.page_header.signals_aria')}>
-          {chips.map((chip) => (
-            <span key={chip.label} className={`${styles.chip} ${styles[`chip_${chip.tone ?? 'neutral'}`]}`}>
-              {chip.label}
-            </span>
-          ))}
         </div>
       )}
     </header>

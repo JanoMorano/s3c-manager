@@ -167,7 +167,6 @@ export default function GovernanceReviewsPage() {
   const openReviewCount = reviews.filter((item) => OPEN_REVIEW_STATUSES.has(item.status)).length;
   const overdue = reviews.filter((item) => item.overdue).length;
   const inReview = reviews.filter((item) => item.status === 'in_review').length;
-  const closed = reviews.filter((item) => ['approved', 'rejected', 'cancelled'].includes(item.status)).length;
   const openReviewsHref = reviewFilterHref({ status: OPEN_REVIEW_STATUS_FILTER });
   const inReviewHref = reviewFilterHref({ status: 'in_review' });
   const overdueHref = reviewFilterHref({ status: OPEN_REVIEW_STATUS_FILTER, overdue: '1' });
@@ -239,16 +238,6 @@ export default function GovernanceReviewsPage() {
       <PageHeader
         title={t('operations.reviews.title')}
         purpose={t('operations.reviews.purpose')}
-        chips={[
-          { label: t('operations.reviews.chip.open', { count: openReviewCount }), tone: 'info' },
-          { label: t('operations.reviews.chip.overdue', { count: overdue }), tone: overdue > 0 ? 'bad' : 'ok' },
-          { label: t('operations.reviews.chip.closed', { count: closed }), tone: 'neutral' },
-          ...(mineFilter ? [{ label: t('operations.reviews.chip.mine'), tone: 'info' as const }] : []),
-          ...(overdueFilter ? [{ label: t('operations.reviews.chip.overdue_only'), tone: 'bad' as const }] : []),
-          ...(serviceFilter ? [{ label: t('operations.reviews.chip.service', { id: serviceFilter }), tone: 'info' as const }] : []),
-          ...(assignedToFilter ? [{ label: t('operations.reviews.chip.assigned', { user: assignedToFilter }), tone: 'info' as const }] : []),
-          ...(statusFilter ? [{ label: t('operations.reviews.chip.status', { status: statusFilter }), tone: 'neutral' as const }] : []),
-        ]}
         primaryAction={{ label: t('nav.topbar.segment.decisions'), href: '/operations/decisions' }}
       />
 

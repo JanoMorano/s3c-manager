@@ -293,11 +293,6 @@ export default function PortfolioPage() {
       <PageHeader
         title={t('portfolio.title')}
         purpose={t('portfolio.purpose')}
-        chips={[
-          { label: t('portfolio.chip.level3', { count: formatNumber(capabilityTotals.level3) }), tone: 'info' },
-          { label: t('portfolio.chip.empty', { count: formatNumber(capabilityTotals.empty) }), tone: capabilityTotals.empty > 0 ? 'neutral' : 'ok' },
-          { label: t('portfolio.chip.overdue', { count: formatNumber(serviceTotals.overdue) }), tone: serviceTotals.overdue > 0 ? 'bad' : 'ok' },
-        ]}
         primaryAction={{ label: t('nav.sidebar.service_catalogue'), href: '/catalogue' }}
       />
 

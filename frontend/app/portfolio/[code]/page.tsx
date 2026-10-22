@@ -154,13 +154,6 @@ export default function PortfolioDetailPage({ params }: Props) {
       <PageHeader
         title={portfolio.title}
         purpose={portfolio.description || t('portfolio.detail.purpose_fallback')}
-        chips={[
-          { label: portfolio.portfolio_code, tone: 'info' },
-          ...(portfolio.spiral_code ? [{ label: portfolio.spiral_code.replace('_', ' '), tone: 'neutral' as const }] : []),
-          { label: portfolio.status_code, tone: statusTone(portfolio.status_code) === 'success' ? 'ok' : 'neutral' },
-          { label: t('portfolio.chip.overdue', { count: formatNumber(portfolio.overdue_review_count) }), tone: portfolio.overdue_review_count > 0 ? 'bad' : 'ok' },
-          { label: t('portfolio.detail.chip.gaps', { count: formatNumber(capabilityGaps) }), tone: capabilityGaps > 0 ? 'neutral' : 'ok' },
-        ]}
         primaryAction={{ label: t('portfolio.detail.back'), href: '/portfolio' }}
       />
 

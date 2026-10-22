@@ -38,7 +38,6 @@ export default function CapabilitiesHubPage() {
         <PageHeader
           title={t('capabilities.hub.workspace_title')}
           purpose={t('capabilities.hub.workspace_purpose')}
-          chips={[{ label: t(`capabilities.view.${activeView}`), tone: 'neutral' }, { label: t(countKey('capabilities.count', capabilities.length), { count: capabilities.length }), tone: capabilities.length ? 'ok' : 'warn' }]}
           primaryAction={{ label: t('capabilities.tabs.overview'), href: '/capabilities' }}
         />
         <nav className={styles.tabs} aria-label={t('capabilities.hub.workspace_tabs_aria')}>
@@ -57,7 +56,6 @@ export default function CapabilitiesHubPage() {
       <PageHeader
         title={t('capabilities.title')}
         purpose={t('capabilities.lead')}
-        chips={[{ label: t(countKey('capabilities.count', capabilities.length), { count: capabilities.length }), tone: capabilities.length ? 'ok' : 'warn' }]}
         primaryAction={{ label: t('capabilities.view.coverage'), href: '/capabilities?view=coverage' }}
       />
 
