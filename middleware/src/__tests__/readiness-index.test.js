@@ -1,5 +1,8 @@
 'use strict';
 
+jest.mock('../middleware/module-gates', () => ({
+    isModuleApiEnabled: jest.fn(async () => true),
+}));
 jest.mock('../db/readiness.repo', () => ({
     listRules: jest.fn(),
     listServiceStates: jest.fn(),
@@ -8,6 +11,7 @@ jest.mock('../db/readiness.repo', () => ({
 }));
 
 const repo = require('../db/readiness.repo');
+const { isModuleApiEnabled } = require('../middleware/module-gates');
 const {
     getReadinessIndex,
     getReadinessSummary,
@@ -64,6 +68,30 @@ describe('readiness index', () => {
         await expect(servicePksForReadinessFilter('publishable')).resolves.toEqual(['2', '3', '4']);
         await expect(servicePksForReadinessFilter('ready')).resolves.toEqual(['3', '4']);
         await expect(servicePksForReadinessFilter('missing_owner')).resolves.toBeNull();
+    });
+
+    test('concurrent whole-catalogue requests share one evaluation', async () => {
+        const [first, second] = await Promise.all([getReadinessIndex(), servicePksForReadinessFilter('blocked')]);
+
+        expect(repo.listServiceStates).toHaveBeenCalledTimes(1);
+        expect(first.get('1').state).toBe('blocked');
+        expect(second).toEqual(['1']);
+
+        await getReadinessIndex();
+        expect(repo.listServiceStates).toHaveBeenCalledTimes(2);
+    });
+
+    test('C3 mapping rules are skipped while the C3 module is off', async () => {
+        repo.listRules.mockResolvedValue([
+            ...RULES,
+            { rule_key: 'service_has_primary_capability_mapping', title: 'Primary C3', enabled: true, blocking: true, severity: 'P1' },
+        ]);
+        isModuleApiEnabled.mockResolvedValueOnce(false);
+        const withoutC3 = await getReadinessIndex();
+        expect(withoutC3.get('3').state).toBe('ready');
+
+        const withC3 = await getReadinessIndex();
+        expect(withC3.get('3').state).toBe('blocked');
     });
 
     test('summary counts cover all services even when the item list is paged', async () => {

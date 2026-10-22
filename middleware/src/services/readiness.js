@@ -1,7 +1,16 @@
 'use strict';
 
 const repo = require('../db/readiness.repo');
+const { isModuleApiEnabled } = require('../middleware/module-gates');
+const { MODULE_CODES } = require('../modules/manifest');
 const { translate } = require('../../../shared/i18n/locales');
+
+// Rules that check C3 capability mappings; they only apply while the optional
+// C3 taxonomy module is on, since without it no mapping can be recorded.
+const C3_RULE_KEYS = new Set([
+    'service_has_primary_capability_mapping',
+    'service_has_complete_primary_capability',
+]);
 
 // Rule texts are stored once in the database (English). Known rules carry
 // translations in the shared i18n catalog under readiness_rule.<rule_key>.*;
@@ -26,7 +35,12 @@ function localizeRule(rule, locale) {
 }
 
 async function listLocalizedRules(locale) {
-    const rules = await repo.listRules();
+    const [allRules, c3Enabled] = await Promise.all([
+        repo.listRules(),
+        // If the module registry cannot be read, keep enforcing every rule.
+        isModuleApiEnabled(MODULE_CODES.C3).catch(() => true),
+    ]);
+    const rules = c3Enabled ? allRules : allRules.filter((rule) => !C3_RULE_KEYS.has(rule.rule_key));
     return locale ? rules.map((rule) => localizeRule(rule, locale)) : rules;
 }
 
@@ -307,14 +321,30 @@ async function evaluateReadiness(filters = {}) {
     return items;
 }
 
-// Map of service catalog id (as string) → { state, blocker_count, warning_count }.
-async function getReadinessIndex(filters = {}) {
+async function buildReadinessIndex(filters) {
     const items = await evaluateReadiness(filters);
     return new Map(items.map((item) => [String(item.service_pk), {
         state: readinessStateOf(item),
         blocker_count: item.blockers.length,
         warning_count: item.warnings.length,
     }]));
+}
+
+// A whole-catalogue evaluation in progress. Concurrent callers (the home page
+// asks for several readiness KPIs at once) share it instead of each re-reading
+// every service; nothing is kept once it settles.
+let fullIndexInFlight = null;
+
+// Map of service catalog id (as string) → { state, blocker_count, warning_count }.
+async function getReadinessIndex(filters = {}) {
+    const wholeCatalogue = !filters.servicePks && !filters.lifecycle && !filters.owner;
+    if (!wholeCatalogue) return buildReadinessIndex(filters);
+    if (!fullIndexInFlight) {
+        fullIndexInFlight = buildReadinessIndex({}).finally(() => {
+            fullIndexInFlight = null;
+        });
+    }
+    return fullIndexInFlight;
 }
 
 const READINESS_STATE_FILTERS = {

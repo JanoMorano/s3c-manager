@@ -20,6 +20,9 @@ jest.mock('../middleware/rbac', () => ({
     },
 }));
 
+jest.mock('../middleware/module-gates', () => ({
+    isModuleApiEnabled: jest.fn(async () => true),
+}));
 jest.mock('../db/readiness.repo', () => ({
     listRules: jest.fn(),
     getServiceState: jest.fn(),
