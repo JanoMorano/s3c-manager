@@ -35,7 +35,20 @@ async function refreshAllServiceScores() {
     return { total: serviceIds.length, updated };
 }
 
+// For write endpoints whose changes feed the score (roles, domains, SLA,
+// flavours, C3 mappings, imports): a failed refresh is logged, never surfaced,
+// and the next refresh repairs it.
+async function refreshServiceScoreSafely(serviceId) {
+    if (!serviceId) return;
+    try {
+        await refreshServiceScore(serviceId);
+    } catch (err) {
+        logger.warn(`completeness refresh failed for ${serviceId}: ${err.message}`);
+    }
+}
+
 module.exports = {
     refreshServiceScore,
     refreshAllServiceScores,
+    refreshServiceScoreSafely,
 };

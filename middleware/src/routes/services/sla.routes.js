@@ -5,6 +5,7 @@
 const express = require('express');
 const repo = require('../../db/services.repo');
 const audit = require('../../db/audit.repo');
+const { refreshServiceScoreSafely } = require('../../services/completeness');
 const { canEdit } = require('../../middleware/rbac');
 const { getPool } = require('../../db/pool');
 
@@ -99,6 +100,7 @@ router.post('/:id/sla', canEdit, async (req, res, next) => {
         const newId = ins.rows[0]?.id;
 
         await audit.log({ tableName: 'ServiceSla', recordId: null, recordLabel: serviceId, action: 'INSERT', newValues: b, performedBy: req.user.username, clientIp: req.ip });
+        await refreshServiceScoreSafely(serviceId);
 
         const row = await pool.query(`
                 SELECT sl.id, sl.support_window_code, sl.availability_pct,
@@ -134,6 +136,7 @@ router.delete('/:id/sla/:slaId', canEdit, async (req, res, next) => {
         await pool.query('DELETE FROM data.service_sla WHERE id = $1', [parseInt(slaId, 10)]);
 
         await audit.log({ tableName: 'ServiceSla', recordId: null, recordLabel: serviceId, action: 'DELETE', performedBy: req.user.username, clientIp: req.ip });
+        await refreshServiceScoreSafely(serviceId);
         res.json({ message: `SLA záznam ${slaId} smazán` });
     } catch (err) { next(err); }
 });

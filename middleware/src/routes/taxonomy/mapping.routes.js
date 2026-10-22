@@ -9,6 +9,7 @@ const { logTaxonomyMappingChange } = require('../../db/audit.repo');
 const { parseTextFilter } = require('../../utils/query-filters');
 const { getServiceStateByCatalogId, isActiveServiceStatus } = require('../../services/readiness');
 const { tReq } = require('../../utils/i18n');
+const { refreshServiceScoreSafely } = require('../../services/completeness');
 const {
     resultRows,
     resultRowCount,
@@ -283,6 +284,7 @@ router.put('/mapping/:serviceId', canAdmin, async (req, res, next) => {
             ORDER BY scm.id DESC
             LIMIT 1
         `, [catalogId, c3Uuid, mapType, paceCode]);
+        await refreshServiceScoreSafely(serviceId);
         res.json(result || {});
     } catch (err) { next(err); }
 });
@@ -317,6 +319,7 @@ router.delete('/mapping/:serviceId/:mappingId', canAdmin, async (req, res, next)
             newValues: null,
             changedBy: req.user?.username || 'system',
         });
+        await refreshServiceScoreSafely(serviceId);
         res.json({ message: tReq(req, 'taxonomy.messages.mapping_deleted'), id: mappingPk });
     } catch (err) { next(err); }
 });
@@ -350,6 +353,7 @@ router.delete('/mapping/:serviceId', canAdmin, async (req, res, next) => {
                 changedBy: req.user?.username || 'system',
             });
         }
+        await refreshServiceScoreSafely(serviceId);
         res.json({ message: tReq(req, 'taxonomy.messages.c3_mappings_deleted'), serviceId });
     } catch (err) { next(err); }
 });

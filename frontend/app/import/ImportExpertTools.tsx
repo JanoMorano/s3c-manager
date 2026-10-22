@@ -63,7 +63,8 @@ export default function ImportExpertTools() {
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
       setReparseState({
         busy: false,
         result: `✅ ${t('administration.import.reparse_result', { target, processed: json.processed, created: json.created, skipped: json.skipped })}${json.errors?.length ? t('administration.import.reparse_errors_suffix', { errors: json.errors.slice(0, 3).join('; ') }) : ''}`,
