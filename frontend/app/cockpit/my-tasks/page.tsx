@@ -13,12 +13,13 @@ import type {
 } from '@/features/services/model/service.types';
 import { getAuthSnapshot, restoreAuthSession, type AuthSnapshot } from '@/features/auth/authStore';
 import { useState, useCallback, useEffect } from 'react';
+import { useT } from '@/app/i18n/useI18n';
 import styles from '../../dashboard/dashboard.module.css';
 import govStyles from '../../operations/governance.module.css';
 import taskStyles from './my-tasks.module.css';
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return 'No date';
+function formatDate(value: string | null | undefined, emptyLabel: string) {
+  if (!value) return emptyLabel;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-GB');
 }
@@ -67,7 +68,8 @@ interface CollapsibleSectionProps {
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, count, badge, defaultOpen = true, listHref, listLabel = 'Otevřít filtrovaný list', children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, count, badge, defaultOpen = true, listHref, listLabel, children }: CollapsibleSectionProps) {
+  const t = useT();
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className={taskStyles.section}>
@@ -84,7 +86,7 @@ function CollapsibleSection({ title, count, badge, defaultOpen = true, listHref,
             {count}
           </span>
         </button>
-        {listHref ? <Link href={listHref} className={taskStyles.sectionListLink}>{listLabel}</Link> : null}
+        {listHref ? <Link href={listHref} className={taskStyles.sectionListLink}>{listLabel ?? t('my_tasks.open_filtered_list')}</Link> : null}
       </div>
       {open && <div className={taskStyles.sectionBody}>{children}</div>}
     </section>
@@ -94,6 +96,7 @@ function CollapsibleSection({ title, count, badge, defaultOpen = true, listHref,
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function MyTasksPage() {
+  const t = useT();
   const inbox = useDashboardInbox();
   const [refreshing, setRefreshing] = useState(false);
   const [authSnapshot, setAuthSnapshot] = useState<AuthSnapshot | null>(() => getAuthSnapshot());
@@ -124,31 +127,32 @@ export default function MyTasksPage() {
   const myReviewsHref = `/operations/reviews?mine=1&status=${encodeURIComponent(OPEN_REVIEW_STATUS_FILTER)}`;
   const myBlockersHref = ownerFilteredHref('/operations/readiness', ownerIdentity);
   const ownedServicesHref = ownerFilteredHref('/services/list', ownerIdentity);
+  const noDate = t('my_tasks.no_date');
 
-  if (inbox.isLoading) return <div className={styles.state}>Loading my tasks...</div>;
-  if (inbox.error) return <div className={styles.stateError}>My tasks are not available.</div>;
+  if (inbox.isLoading) return <div className={styles.state}>{t('my_tasks.loading')}</div>;
+  if (inbox.error) return <div className={styles.stateError}>{t('my_tasks.error')}</div>;
 
   return (
     <div className={styles.shell}>
       <PageHeader
-        title="My Tasks"
-        purpose="Denní pracovní plocha pro vlastníka služby, reviewera a admina. Ukazuje moje reviews, blokátory a rozhodnutí."
+        title={t('nav.sidebar.my_tasks')}
+        purpose={t('my_tasks.purpose')}
         chips={[
-          { label: `${openCount} open`, tone: openCount > 0 ? 'warn' : 'ok' },
-          { label: `${myOwnedServices.length} owned`, tone: 'info' },
+          { label: t('my_tasks.chip.open', { count: openCount }), tone: openCount > 0 ? 'warn' : 'ok' },
+          { label: t('my_tasks.chip.owned', { count: myOwnedServices.length }), tone: 'info' },
         ]}
-        primaryAction={{ label: 'Review board', href: '/operations/reviews' }}
+        primaryAction={{ label: t('my_tasks.review_board'), href: '/operations/reviews' }}
       />
 
-      <section className={styles.kpiThree} aria-label="My task KPIs">
-        <Link href={myReviewsHref} className={taskStyles.kpiLink} aria-label="Otevřít moje revize ve filtrovaném listu">
-          <KpiCard label="My reviews" value={myReviews.length} hint="assigned governance reviews" tone={myReviews.length ? 'warning' : 'success'} />
+      <section className={styles.kpiThree} aria-label={t('my_tasks.kpi.aria')}>
+        <Link href={myReviewsHref} className={taskStyles.kpiLink} aria-label={t('my_tasks.kpi.reviews.aria')}>
+          <KpiCard label={t('my_tasks.kpi.reviews.label')} value={myReviews.length} hint={t('my_tasks.kpi.reviews.hint')} tone={myReviews.length ? 'warning' : 'success'} />
         </Link>
-        <Link href={myBlockersHref} className={taskStyles.kpiLink} aria-label="Otevřít moje blokátory ve filtrovaném listu">
-          <KpiCard label="My blockers" value={myBlockers.length} hint="readiness and evidence gaps" tone={myBlockers.length ? 'danger' : 'success'} />
+        <Link href={myBlockersHref} className={taskStyles.kpiLink} aria-label={t('my_tasks.kpi.blockers.aria')}>
+          <KpiCard label={t('my_tasks.kpi.blockers.label')} value={myBlockers.length} hint={t('my_tasks.kpi.blockers.hint')} tone={myBlockers.length ? 'danger' : 'success'} />
         </Link>
-        <Link href={ownedServicesHref} className={taskStyles.kpiLink} aria-label="Otevřít moje vlastněné služby ve filtrovaném listu">
-          <KpiCard label="Owned services" value={myOwnedServices.length} hint="active role assignments" />
+        <Link href={ownedServicesHref} className={taskStyles.kpiLink} aria-label={t('my_tasks.kpi.owned.aria')}>
+          <KpiCard label={t('my_tasks.kpi.owned.label')} value={myOwnedServices.length} hint={t('my_tasks.kpi.owned.hint')} />
         </Link>
       </section>
 
@@ -159,15 +163,15 @@ export default function MyTasksPage() {
           onClick={handleRefresh}
           disabled={refreshing}
         >
-          {refreshing ? 'Aktualizuji…' : '↻ Obnovit'}
+          {refreshing ? t('my_tasks.refreshing') : t('my_tasks.refresh')}
         </button>
-        {inbox.data && <span className={taskStyles.refreshHint}>Naposledy načteno: {new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}</span>}
+        {inbox.data && <span className={taskStyles.refreshHint}>{t('my_tasks.last_loaded', { time: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) })}</span>}
       </div>
 
       <div className={taskStyles.sections}>
         {/* 1. Reviews */}
-        <CollapsibleSection title="Moje reviews" count={myReviews.length} badge={myReviews.length > 0 ? 'warning' : undefined} defaultOpen listHref={myReviewsHref}>
-          {myReviews.length === 0 ? <EmptyState title="Žádné přiřazené reviews." /> : (
+        <CollapsibleSection title={t('my_tasks.section.reviews')} count={myReviews.length} badge={myReviews.length > 0 ? 'warning' : undefined} defaultOpen listHref={myReviewsHref}>
+          {myReviews.length === 0 ? <EmptyState title={t('my_tasks.section.reviews_empty')} /> : (
             <div className={govStyles.governanceList}>
               {myReviews.map((review) => {
                 const over = isOverdue(review.due_at);
@@ -180,7 +184,7 @@ export default function MyTasksPage() {
                       <span>{review.service_id} · {review.review_type}</span>
                     </span>
                     <span className={`${govStyles.rowMetric} ${over ? taskStyles.dueOverdue : soon ? taskStyles.dueSoon : ''}`}>
-                      {over ? '⚠ ' : ''}{formatDate(review.due_at)}
+                      {over ? '⚠ ' : ''}{formatDate(review.due_at, noDate)}
                     </span>
                   </Link>
                 );
@@ -190,8 +194,8 @@ export default function MyTasksPage() {
         </CollapsibleSection>
 
         {/* 2. Blockers / Exceptions */}
-        <CollapsibleSection title="Readiness blokátory" count={myBlockers.length} badge={myBlockers.length > 0 ? 'danger' : undefined} defaultOpen listHref={myBlockersHref}>
-          {myBlockers.length === 0 ? <EmptyState title="Žádné blokátory." /> : (
+        <CollapsibleSection title={t('my_tasks.section.blockers')} count={myBlockers.length} badge={myBlockers.length > 0 ? 'danger' : undefined} defaultOpen listHref={myBlockersHref}>
+          {myBlockers.length === 0 ? <EmptyState title={t('my_tasks.section.blockers_empty')} /> : (
             <div className={govStyles.governanceList}>
               {myBlockers.map((item) => (
                 <Link key={item.id} href={item.href || '/operations'} className={govStyles.governanceRow}>
@@ -208,8 +212,8 @@ export default function MyTasksPage() {
         </CollapsibleSection>
 
         {/* 3. Owned services (attestation) */}
-        <CollapsibleSection title="Moje služby (attestation)" count={myOwnedServices.length} defaultOpen={false} listHref={ownedServicesHref}>
-          {myOwnedServices.length === 0 ? <EmptyState title="Žádné vlastněné služby." /> : (
+        <CollapsibleSection title={t('my_tasks.section.owned')} count={myOwnedServices.length} defaultOpen={false} listHref={ownedServicesHref}>
+          {myOwnedServices.length === 0 ? <EmptyState title={t('my_tasks.section.owned_empty')} /> : (
             <div className={govStyles.governanceList}>
               {myOwnedServices.map((service) => {
                 const over = isOverdue(service.review_due_at);
@@ -219,10 +223,10 @@ export default function MyTasksPage() {
                     <span aria-hidden="true">•</span>
                     <span className={govStyles.rowMain}>
                       <strong>{service.title}</strong>
-                      <span>{service.service_id} · {service.lifecycle_stage_code ?? service.service_status ?? 'no lifecycle'}</span>
+                      <span>{service.service_id} · {service.lifecycle_stage_code ?? service.service_status ?? t('my_tasks.no_lifecycle')}</span>
                     </span>
                     <span className={`${govStyles.rowMetric} ${over ? taskStyles.dueOverdue : soon ? taskStyles.dueSoon : ''}`}>
-                      {over ? '⚠ ' : ''}{formatDate(service.review_due_at)}
+                      {over ? '⚠ ' : ''}{formatDate(service.review_due_at, noDate)}
                     </span>
                   </Link>
                 );
@@ -232,8 +236,8 @@ export default function MyTasksPage() {
         </CollapsibleSection>
 
         {/* 4. Recent decisions */}
-        <CollapsibleSection title="Poslední rozhodnutí" count={myDecisions.length} defaultOpen={false}>
-          {myDecisions.length === 0 ? <EmptyState title="Žádná rozhodnutí." /> : (
+        <CollapsibleSection title={t('my_tasks.section.decisions')} count={myDecisions.length} defaultOpen={false}>
+          {myDecisions.length === 0 ? <EmptyState title={t('my_tasks.section.decisions_empty')} /> : (
             <div className={govStyles.governanceList}>
               {myDecisions.slice(0, 10).map((decision) => (
                 <Link key={decision.id} href={`/services/${decision.service_id}`} className={govStyles.governanceRow}>
@@ -244,7 +248,7 @@ export default function MyTasksPage() {
                     <strong>{decision.service_title}</strong>
                     <span>{decision.service_id} · {decision.decision_type}</span>
                   </span>
-                  <span className={govStyles.rowMetric}>{formatDate(decision.decided_at)}</span>
+                  <span className={govStyles.rowMetric}>{formatDate(decision.decided_at, noDate)}</span>
                 </Link>
               ))}
             </div>

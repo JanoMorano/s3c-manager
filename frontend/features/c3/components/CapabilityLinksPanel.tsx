@@ -16,6 +16,7 @@ import { useState, useCallback } from 'react';
 import useSWR from 'swr';
 import Link from '@/app/components/AppLink';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './CapabilityLinksPanel.module.css';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -68,15 +69,29 @@ interface PickerItem { id: number; uuid: string; title: string; code: string; it
 
 const LINK_ROLES = ['supports', 'implements', 'uses', 'depends_on', 'produces'];
 
+// Display labels for link role codes; the codes themselves are sent to the API.
+const LINK_ROLE_LABEL_KEYS: Record<string, string> = {
+  supports: 'capability_detail.links.role.supports',
+  implements: 'capability_detail.links.role.implements',
+  uses: 'capability_detail.links.role.uses',
+  depends_on: 'capability_detail.links.role.depends_on',
+  produces: 'capability_detail.links.role.produces',
+};
+
+function linkRoleLabel(t: (key: string) => string, role: string) {
+  return LINK_ROLE_LABEL_KEYS[role] ? t(LINK_ROLE_LABEL_KEYS[role]) : role;
+}
+
 // ── Completeness badge ────────────────────────────────────────────────────────
 function CompleteBadge({ status }: { status: 'complete' | 'partial' | 'incomplete' }) {
+  const t = useT();
   const map = {
-    complete:   { label: '✓ Complete',   cls: styles.badgeComplete   },
-    partial:    { label: '⚠ Partial',    cls: styles.badgePartial    },
-    incomplete: { label: '✕ Incomplete', cls: styles.badgeIncomplete },
+    complete:   { icon: '✓', labelKey: 'capability_detail.links.status.complete',   cls: styles.badgeComplete   },
+    partial:    { icon: '⚠', labelKey: 'capability_detail.links.status.partial',    cls: styles.badgePartial    },
+    incomplete: { icon: '✕', labelKey: 'capability_detail.links.status.incomplete', cls: styles.badgeIncomplete },
   };
-  const { label, cls } = map[status];
-  return <span className={`${styles.badge} ${cls}`}>{label}</span>;
+  const { icon, labelKey, cls } = map[status];
+  return <span className={`${styles.badge} ${cls}`}>{icon} {t(labelKey)}</span>;
 }
 
 // ── Linked entity row ─────────────────────────────────────────────────────────
@@ -91,15 +106,16 @@ function EntityRow({
   onDelete: () => void;
   readOnly?: boolean;
 }) {
+  const t = useT();
   return (
     <div className={styles.entityRow}>
       <div className={styles.entityInfo}>
         <Link href={href} className={styles.entityTitle}>{item.title}</Link>
         <span className={styles.entityCode}>{item.code}</span>
-        {item.link_role && <span className={styles.entityRole}>{item.link_role}</span>}
+        {item.link_role && <span className={styles.entityRole}>{linkRoleLabel(t, item.link_role)}</span>}
         {item.item_status && <span className={styles.entityStatus}>{item.item_status}</span>}
       </div>
-      {!readOnly && <button className={styles.btnRemove} onClick={onDelete} title="Odebrat vazbu">✕</button>}
+      {!readOnly && <button className={styles.btnRemove} onClick={onDelete} title={t('capability_detail.links.remove')} aria-label={t('capability_detail.links.remove')}>✕</button>}
     </div>
   );
 }
@@ -116,6 +132,7 @@ function AddEntityDialog({
   onAdd: (id: number, role: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [selectedId, setSelectedId] = useState<number | ''>('');
   const [role, setRole] = useState('supports');
   const [search, setSearch] = useState('');
@@ -138,11 +155,11 @@ function AddEntityDialog({
       <div className={styles.dialog}>
         <div className={styles.dialogHeader}>
           <span>{title}</span>
-          <button onClick={onClose} className={styles.dialogClose}>✕</button>
+          <button onClick={onClose} className={styles.dialogClose} aria-label={t('common.cancel')}>✕</button>
         </div>
         <input
           className={styles.dialogSearch}
-          placeholder="Hledat…"
+          placeholder={t('capability_detail.links.search_placeholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -161,12 +178,12 @@ function AddEntityDialog({
         </select>
         <div className={styles.dialogFooter}>
           <select value={role} onChange={e => setRole(e.target.value)} className={styles.roleSelect}>
-            {LINK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            {LINK_ROLES.map(r => <option key={r} value={r}>{linkRoleLabel(t, r)}</option>)}
           </select>
           <button className={styles.btnAdd} onClick={handleAdd} disabled={!selectedId || busy}>
-            {busy ? 'Přidávám…' : 'Přidat vazbu'}
+            {busy ? t('capability_detail.links.adding') : t('capability_detail.links.add_link')}
           </button>
-          <button className={styles.btnCancel} onClick={onClose}>Zrušit</button>
+          <button className={styles.btnCancel} onClick={onClose}>{t('common.cancel')}</button>
         </div>
       </div>
     </div>
@@ -195,6 +212,7 @@ function EntitySection({
   pickerTitle: string;
   readOnly?: boolean;
 }) {
+  const t = useT();
   const [showDialog, setShowDialog] = useState(false);
 
   return (
@@ -207,11 +225,11 @@ function EntitySection({
           <button
             className={styles.btnAddSection}
             onClick={() => setShowDialog(true)}
-          >+ Přidat</button>
+          >+ {t('capability_detail.links.add')}</button>
         )}
       </div>
       {items.length === 0 ? (
-        <div className={styles.emptyMsg}>Žádné vazby</div>
+        <div className={styles.emptyMsg}>{t('capability_detail.links.empty')}</div>
       ) : (
         <div className={styles.entityList}>
           {items.map(item => (
@@ -241,15 +259,16 @@ function EntitySection({
 }
 
 function ServiceCatalogueSection({ items }: { items: ServiceCatalogueMapping[] }) {
+  const t = useT();
   return (
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <span className={styles.sectionIcon}>📦</span>
-        <span className={styles.sectionLabel}>Service Catalogue mapování</span>
+        <span className={styles.sectionLabel}>{t('capability_detail.links.catalogue_title')}</span>
         <span className={styles.sectionCount}>{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <div className={styles.emptyMsg}>Žádné mapování ze Service Catalogue</div>
+        <div className={styles.emptyMsg}>{t('capability_detail.links.catalogue_empty')}</div>
       ) : (
         <div className={styles.entityList}>
           {items.map((item) => (
@@ -260,7 +279,7 @@ function ServiceCatalogueSection({ items }: { items: ServiceCatalogueMapping[] }
                 </Link>
                 <span className={styles.entityCode}>{item.service_id}</span>
                 {item.mapping_type_code && <span className={styles.entityRole}>{item.mapping_type_code}</span>}
-                {item.is_primary && <span className={styles.entityRole}>primary</span>}
+                {item.is_primary && <span className={styles.entityRole}>{t('capability_detail.links.primary')}</span>}
                 {item.service_status && <span className={styles.entityStatus}>{item.service_status}</span>}
               </div>
             </div>
@@ -278,6 +297,7 @@ interface Props {
 }
 
 export function CapabilityLinksPanel({ capabilityUuid, readOnly = false }: Props) {
+  const t = useT();
   const cacheKey = `/api/v1/taxonomy/c3/${capabilityUuid}/links`;
   const { data, error, isLoading, mutate } = useSWR<LinksResponse>(cacheKey, apiFetch);
 
@@ -303,7 +323,7 @@ export function CapabilityLinksPanel({ capabilityUuid, readOnly = false }: Props
   }, [capabilityUuid, mutate]);
 
   const deleteLink = useCallback(async (entityType: string, linkId: number) => {
-    if (!confirm('Odebrat tuto vazbu?')) return;
+    if (!confirm(t('capability_detail.links.remove_confirm'))) return;
     setLinkError(null);
     const res = await fetch(
       `/api/v1/taxonomy/c3/${capabilityUuid}/links/${entityType}/${linkId}`,
@@ -315,10 +335,10 @@ export function CapabilityLinksPanel({ capabilityUuid, readOnly = false }: Props
       return;
     }
     await mutate();
-  }, [capabilityUuid, mutate]);
+  }, [capabilityUuid, mutate, t]);
 
-  if (isLoading) return <div className={styles.loading}>Načítám vazby…</div>;
-  if (error)     return <div className={styles.loadError}>⚠ Nelze načíst vazby: {error.message}</div>;
+  if (isLoading) return <div className={styles.loading}>{t('capability_detail.links.loading')}</div>;
+  if (error)     return <div className={styles.loadError}>⚠ {t('capability_detail.links.load_error', { message: error.message })}</div>;
   if (!data)     return null;
 
   const { completeness } = data;
@@ -329,24 +349,24 @@ export function CapabilityLinksPanel({ capabilityUuid, readOnly = false }: Props
       {completeness && (
         <div className={styles.completenessBar}>
           <div className={styles.completenessLeft}>
-            <span className={styles.completenessTitle}>Úplnost capability</span>
+            <span className={styles.completenessTitle}>{t('capability_detail.links.completeness')}</span>
             <CompleteBadge status={completeness.completeness_status} />
           </div>
           <div className={styles.completenessChecks}>
             <span className={completeness.has_app           ? styles.checkOk : styles.checkMiss}>
-              {completeness.has_app ? '✓' : '✕'} Applications ({completeness.app_count})
+              {completeness.has_app ? '✓' : '✕'} {t('capability_detail.links.check.apps', { count: completeness.app_count })}
             </span>
             <span className={completeness.has_data_object   ? styles.checkOk : styles.checkMiss}>
-              {completeness.has_data_object ? '✓' : '✕'} Data Objects ({completeness.data_object_count})
+              {completeness.has_data_object ? '✓' : '✕'} {t('capability_detail.links.check.data_objects', { count: completeness.data_object_count })}
             </span>
             <span className={completeness.has_tin           ? styles.checkOk : styles.checkMiss}>
-              {completeness.has_tin ? '✓' : '✕'} TIN ({completeness.tin_count})
+              {completeness.has_tin ? '✓' : '✕'} {t('capability_detail.links.check.tins', { count: completeness.tin_count })}
             </span>
             <span className={completeness.has_c3_service    ? styles.checkOk : styles.checkMiss}>
-              {completeness.has_c3_service ? '✓' : '✕'} C3 Services ({completeness.c3_service_count})
+              {completeness.has_c3_service ? '✓' : '✕'} {t('capability_detail.links.check.c3_services', { count: completeness.c3_service_count })}
             </span>
             <span className={completeness.has_service_mapping ? styles.checkOk : styles.checkMiss}>
-              {completeness.has_service_mapping ? '✓' : '✕'} SC Mappings ({completeness.service_mapping_count})
+              {completeness.has_service_mapping ? '✓' : '✕'} {t('capability_detail.links.check.sc_mappings', { count: completeness.service_mapping_count })}
             </span>
           </div>
         </div>
@@ -358,43 +378,43 @@ export function CapabilityLinksPanel({ capabilityUuid, readOnly = false }: Props
 
       {/* ── Linked entities ── */}
       <EntitySection
-        label="Applications" icon="🖥"
+        label={t('capability_detail.links.section.apps')} icon="🖥"
         items={data.apps}
         linkPrefix="/c3/applications"
         onDelete={id => deleteLink('app', id)}
         onAdd={(entityId, role) => postLink('app', { c3_application_id: entityId, link_role: role })}
         pickerItems={(appItems ?? []).map(i => ({ ...i, code: (i as PickerItem & { application_code?: string }).application_code ?? i.code }))}
-        pickerTitle="Přidat Application"
+        pickerTitle={t('capability_detail.links.picker.app')}
         readOnly={readOnly}
       />
       <EntitySection
-        label="Data Objects" icon="🗄"
+        label={t('capability_detail.links.section.data_objects')} icon="🗄"
         items={data.data_objects}
         linkPrefix="/c3/data-objects"
         onDelete={id => deleteLink('data-object', id)}
         onAdd={(entityId, role) => postLink('data-object', { c3_data_object_id: entityId, link_role: role })}
         pickerItems={(doItems ?? []).map(i => ({ ...i, code: (i as PickerItem & { data_object_code?: string }).data_object_code ?? i.code }))}
-        pickerTitle="Přidat Data Object"
+        pickerTitle={t('capability_detail.links.picker.data_object')}
         readOnly={readOnly}
       />
       <EntitySection
-        label="Technology Interactions (TIN)" icon="🔗"
+        label={t('capability_detail.links.section.tins')} icon="🔗"
         items={data.tins}
         linkPrefix="/c3/technology-interactions"
         onDelete={id => deleteLink('tin', id)}
         onAdd={(entityId, role) => postLink('tin', { c3_tin_id: entityId, link_role: role })}
         pickerItems={(tinItems ?? []).map(i => ({ ...i, code: (i as PickerItem & { technology_interaction_code?: string }).technology_interaction_code ?? i.code }))}
-        pickerTitle="Přidat Technology Interaction"
+        pickerTitle={t('capability_detail.links.picker.tin')}
         readOnly={readOnly}
       />
       <EntitySection
-        label="C3 Services" icon="⚙"
+        label={t('capability_detail.links.section.c3_services')} icon="⚙"
         items={data.c3_services}
         linkPrefix="/c3/services"
         onDelete={id => deleteLink('c3-service', id)}
         onAdd={(entityId, role) => postLink('c3-service', { c3_service_id: entityId, link_role: role })}
         pickerItems={(svcItems ?? []).map(i => ({ ...i, code: (i as PickerItem & { service_code?: string }).service_code ?? i.code }))}
-        pickerTitle="Přidat C3 Service"
+        pickerTitle={t('capability_detail.links.picker.c3_service')}
         readOnly={readOnly}
       />
       <ServiceCatalogueSection items={data.service_catalogue_mappings ?? []} />

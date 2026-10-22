@@ -4,6 +4,8 @@ import Link from '@/app/components/AppLink';
 import PageHeader from '@/app/components/PageHeader';
 import { KpiCard } from '@/design-system/controls';
 import type { ReactNode } from 'react';
+import { useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 import {
   useCompleteness,
   useDashboard,
@@ -32,10 +34,14 @@ function isStale(item: CompletenessItem) {
   return HOME_REFERENCE_TIME - updatedAt > STALE_RECORD_MS;
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return 'bez data';
+function countKey(base: string, value: number) {
+  return `${base}.${resolveCountForm(value, { one: 'one', few: 'few', many: 'many' })}`;
+}
+
+function formatDateTime(value: string | null | undefined, emptyLabel: string) {
+  if (!value) return emptyLabel;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'bez data';
+  if (Number.isNaN(date.getTime())) return emptyLabel;
   return new Intl.DateTimeFormat('cs-CZ', {
     day: 'numeric',
     month: 'numeric',
@@ -58,6 +64,8 @@ function scoreTone(score: number | null | undefined) {
 }
 
 export default function HomePage() {
+  const t = useT();
+  const noDate = t('home.no_date');
   const inbox = useDashboardInbox();
   const completeness = useCompleteness();
   const decisionSummary = useDashboardSummary();
@@ -109,45 +117,45 @@ export default function HomePage() {
   const isLoading = kpiQueries.some((query) => query.isLoading && !query.data) && !completeness.data;
   const hasError = kpiQueries.every((query) => query.error) && completeness.error && decisionSummary.error;
 
-  if (isLoading) return <div className={styles.state}>Načítám cockpit...</div>;
-  if (hasError) return <div className={styles.stateError}>Cockpit se nepodařilo načíst. Zkontrolujte middleware spojení.</div>;
+  if (isLoading) return <div className={styles.state}>{t('home.state.loading')}</div>;
+  if (hasError) return <div className={styles.stateError}>{t('home.state.error')}</div>;
 
   return (
     <main className={styles.shell}>
       <PageHeader
-        title="Přehled řízení"
-        purpose="Stav portfolia, rizik a rozhodnutí v jednom pohledu."
+        title={t('nav.topbar.governance_overview')}
+        purpose={t('home.header.purpose')}
         chips={[
-          { label: `Services: ${formatNumber(totalServices)}`, tone: 'info' },
-          { label: `Ready for publish: ${formatNumber(readyServices)}`, tone: 'ok' },
-          { label: `Blocked: ${formatNumber(blockedServices)}`, tone: blockedServices ? 'bad' : 'ok' },
-          { label: `Without capability: ${formatNumber(capabilityGaps)}`, tone: capabilityGaps ? 'warn' : 'ok' },
+          { label: t('home.chip.services', { count: formatNumber(totalServices) }), tone: 'info' },
+          { label: t('home.chip.ready', { count: formatNumber(readyServices) }), tone: 'ok' },
+          { label: t('home.chip.blocked', { count: formatNumber(blockedServices) }), tone: blockedServices ? 'bad' : 'ok' },
+          { label: t('home.chip.without_capability', { count: formatNumber(capabilityGaps) }), tone: capabilityGaps ? 'warn' : 'ok' },
         ]}
       />
 
-      <section className={styles.kpiGrid} aria-label="Portfolio governance KPIs">
-        <KpiLinkCard href="/services/list" ariaLabel="Otevřít všechny služby v seznamu">
-          <KpiCard label="Services total" value={formatNumber(totalServices)} tone="info" trendLabel={dashboardSummary?.active_services != null ? `${dashboardSummary.active_services} aktivních` : undefined} />
+      <section className={styles.kpiGrid} aria-label={t('home.kpi.aria')}>
+        <KpiLinkCard href="/services/list" ariaLabel={t('home.kpi.total.aria')}>
+          <KpiCard label={t('home.kpi.total.label')} value={formatNumber(totalServices)} tone="info" trendLabel={dashboardSummary?.active_services != null ? t(countKey('home.kpi.total.trend', dashboardSummary.active_services), { count: dashboardSummary.active_services }) : undefined} />
         </KpiLinkCard>
-        <KpiLinkCard href="/services/list?readiness=publishable" ariaLabel="Otevřít služby připravené k publikaci">
-          <KpiCard label="Ready for publish" value={formatNumber(readyServices)} tone="success" trendLabel={`${totalServices ? Math.round((readyServices / totalServices) * 100) : 0} % portfolia`} />
+        <KpiLinkCard href="/services/list?readiness=publishable" ariaLabel={t('home.kpi.ready.aria')}>
+          <KpiCard label={t('service_list.readiness_option.publishable')} value={formatNumber(readyServices)} tone="success" trendLabel={t('home.kpi.ready.trend', { percent: totalServices ? Math.round((readyServices / totalServices) * 100) : 0 })} />
         </KpiLinkCard>
-        <KpiLinkCard href="/services/list?readiness=blocked" ariaLabel="Otevřít služby blokované readiness kontrolou">
-          <KpiCard label="Blocked by readiness" value={formatNumber(blockedServices)} tone={blockedServices ? 'danger' : 'success'} trendLabel={blockedServices ? 'vyžaduje zásah' : 'bez blokace'} />
+        <KpiLinkCard href="/services/list?readiness=blocked" ariaLabel={t('home.kpi.blocked.aria')}>
+          <KpiCard label={t('home.kpi.blocked.label')} value={formatNumber(blockedServices)} tone={blockedServices ? 'danger' : 'success'} trendLabel={blockedServices ? t('home.kpi.blocked.trend_action') : t('home.kpi.blocked.trend_clear')} />
         </KpiLinkCard>
-        <KpiLinkCard href="/services/list?review_due=overdue" ariaLabel="Otevřít služby s prošlým termínem revize">
-          <KpiCard label="Service review date passed" value={formatNumber(overdueReviews)} tone={overdueReviews ? 'warning' : 'neutral'} trendLabel={overdueReviews ? 'služby po termínu revize' : 'bez prodlení'} />
+        <KpiLinkCard href="/services/list?review_due=overdue" ariaLabel={t('home.kpi.overdue.aria')}>
+          <KpiCard label={t('home.kpi.overdue.label')} value={formatNumber(overdueReviews)} tone={overdueReviews ? 'warning' : 'neutral'} trendLabel={overdueReviews ? t('home.kpi.overdue.trend') : t('home.kpi.overdue.trend_clear')} />
         </KpiLinkCard>
-        <KpiLinkCard href="/services/list?readiness=missing_capability" ariaLabel="Otevřít služby bez capability mapování">
-          <KpiCard label="Services without capability" value={formatNumber(capabilityGaps)} tone={capabilityGaps ? 'warning' : 'success'} trendLabel={`${formatNumber(uncoveredCapabilities)} uncovered · ${formatNumber(capabilityOverlaps)} overlaps`} />
+        <KpiLinkCard href="/services/list?readiness=missing_capability" ariaLabel={t('home.kpi.capability.aria')}>
+          <KpiCard label={t('home.kpi.capability.label')} value={formatNumber(capabilityGaps)} tone={capabilityGaps ? 'warning' : 'success'} trendLabel={t('home.kpi.capability.trend', { uncovered: formatNumber(uncoveredCapabilities), overlaps: formatNumber(capabilityOverlaps) })} />
         </KpiLinkCard>
       </section>
 
-      <section className={styles.decisionGrid} aria-label="Personal work cockpit">
+      <section className={styles.decisionGrid} aria-label={t('home.personal.aria')}>
         <DecisionPanel
-          title="My owned services"
+          title={t('home.my_owned.title')}
           href="/operations#owner-load"
-          linkLabel="Owner load"
+          linkLabel={t('nav.topbar.segment.owner_load')}
         >
           {myOwnedServices.length ? (
             <div className={styles.signalList}>
@@ -155,7 +163,7 @@ export default function HomePage() {
                 <SignalRow
                   key={item.service_id}
                   title={item.title}
-                  meta={`${item.lifecycle_stage_code ?? item.service_status ?? 'bez lifecycle'} · review ${formatDateTime(item.review_due_at)}`}
+                  meta={t('home.my_owned.meta', { lifecycle: item.lifecycle_stage_code ?? item.service_status ?? t('home.my_owned.no_lifecycle'), date: formatDateTime(item.review_due_at, noDate) })}
                   pill={`${item.completeness_score ?? 0}%`}
                   tone={(item.completeness_score ?? 0) < 60 ? 'warn' : 'ok'}
                   href={`/services/${item.service_id}`}
@@ -163,14 +171,14 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <p className={styles.empty}>Nemáte přiřazené služby v service_role_assignment.</p>
+            <p className={styles.empty}>{t('home.my_owned.empty')}</p>
           )}
         </DecisionPanel>
 
         <DecisionPanel
-          title="My reviews"
+          title={t('home.my_reviews.title')}
           href="/operations/reviews"
-          linkLabel="Review queue"
+          linkLabel={t('home.my_reviews.link')}
         >
           {myReviews.length ? (
             <div className={styles.signalList}>
@@ -178,22 +186,22 @@ export default function HomePage() {
                 <SignalRow
                   key={item.id}
                   title={item.service_title}
-                  meta={`${item.review_type} · ${item.status} · due ${formatDateTime(item.due_at)}`}
-                  pill="review"
+                  meta={t('home.my_reviews.meta', { type: item.review_type, status: item.status, date: formatDateTime(item.due_at, noDate) })}
+                  pill={t('home.my_reviews.pill')}
                   tone={item.due_at && new Date(item.due_at).getTime() < HOME_REFERENCE_TIME ? 'bad' : 'info'}
                   href={`/operations/reviews?service_id=${encodeURIComponent(item.service_id)}`}
                 />
               ))}
             </div>
           ) : (
-            <p className={styles.empty}>Žádné review není přiřazené vašemu účtu.</p>
+            <p className={styles.empty}>{t('home.my_reviews.empty')}</p>
           )}
         </DecisionPanel>
 
         <DecisionPanel
-          title="My blockers"
+          title={t('home.my_blockers.title')}
           href="/operations/readiness"
-          linkLabel="Readiness gate"
+          linkLabel={t('nav.sidebar.readiness_gate')}
         >
           {myBlockers.length ? (
             <div className={styles.signalList}>
@@ -208,44 +216,44 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <p className={styles.empty}>Žádný osobní blocker v aktuální frontě.</p>
+            <p className={styles.empty}>{t('home.my_blockers.empty')}</p>
           )}
         </DecisionPanel>
 
         <DecisionPanel
-          title="My decisions"
+          title={t('home.my_decisions.title')}
           href="/operations/decisions"
-          linkLabel="Decision log"
+          linkLabel={t('nav.topbar.segment.decisions')}
         >
           <div className={styles.signalList}>
             {myDecisions.slice(0, 2).map((item) => (
               <SignalRow
                 key={`decision-${item.id}`}
                 title={item.service_title}
-                meta={`${item.decision_type} · ${item.decision} · ${formatDateTime(item.decided_at)}`}
-                pill="decision"
+                meta={`${item.decision_type} · ${item.decision} · ${formatDateTime(item.decided_at, noDate)}`}
+                pill={t('home.my_decisions.pill')}
                 tone={item.decision === 'rejected' ? 'bad' : item.decision === 'deferred' ? 'warn' : 'ok'}
                 href={`/services/${item.service_id}`}
               />
             ))}
             {myDecisions.length === 0 && (
-              <p className={styles.empty}>Zatím nemáte evidované rozhodnutí.</p>
+              <p className={styles.empty}>{t('home.my_decisions.empty')}</p>
             )}
           </div>
         </DecisionPanel>
       </section>
 
       <details className={styles.secondaryDetails}>
-        <summary>Další portfolio signály</summary>
-        <section className={styles.decisionGrid} aria-label="Decision strip">
+        <summary>{t('home.more_signals')}</summary>
+        <section className={styles.decisionGrid} aria-label={t('home.decision_strip.aria')}>
           <DecisionPanel
-            title="Needs decision"
-            lead="Review a výjimky s governance dopadem."
+            title={t('home.needs_decision.title')}
+            lead={t('home.needs_decision.lead')}
             href="/operations/reviews"
-            linkLabel="Otevřít queue"
+            linkLabel={t('home.needs_decision.link')}
           >
             {inboxItems.length === 0 ? (
-              <p className={styles.empty}>Žádné položky nečekají na rozhodnutí.</p>
+              <p className={styles.empty}>{t('home.needs_decision.empty')}</p>
             ) : (
               <div className={styles.signalList}>
                 {inboxItems.slice(0, 4).map((item) => (
@@ -262,71 +270,71 @@ export default function HomePage() {
           </DecisionPanel>
 
           <DecisionPanel
-            title="Operational blockers"
-            lead="Co chybí pro srozumitelnou a provozovatelnou službu."
+            title={t('home.op_blockers.title')}
+            lead={t('home.op_blockers.lead')}
             href="/operations/readiness"
-            linkLabel="Readiness gate"
+            linkLabel={t('nav.sidebar.readiness_gate')}
           >
             <div className={styles.signalList}>
-              <SignalRow title={`${missingOwners.length} služeb bez ownera`} meta="Bez ownera neexistuje eskalace ani odpovědnost." pill="missing owner" tone="bad" href="/operations#owner-load" />
-              <SignalRow title={`${missingSla.length} služeb bez SLA`} meta={missingSla[0]?.title ?? 'SLA je nutné pro service design a support model.'} pill="missing SLA" tone={missingSla.length ? 'warn' : 'ok'} href="/services/list?missing=sla" />
-              <SignalRow title={`${missingCapability.length} služeb bez capability mappingu`} meta={missingCapability[0]?.title ?? 'Capability mapování umožní coverage a dopadové rozhodování.'} pill="missing capability" tone={missingCapability.length ? 'warn' : 'ok'} href="/capabilities?view=gaps" />
+              <SignalRow title={t(countKey('home.op_blockers.missing_owner', missingOwners.length), { count: missingOwners.length })} meta={t('home.op_blockers.missing_owner.meta')} pill={t('home.op_blockers.missing_owner.pill')} tone="bad" href="/operations#owner-load" />
+              <SignalRow title={t(countKey('home.op_blockers.missing_sla', missingSla.length), { count: missingSla.length })} meta={missingSla[0]?.title ?? t('home.op_blockers.missing_sla.meta')} pill={t('home.op_blockers.missing_sla.pill')} tone={missingSla.length ? 'warn' : 'ok'} href="/services/list?missing=sla" />
+              <SignalRow title={t(countKey('home.op_blockers.missing_capability', missingCapability.length), { count: missingCapability.length })} meta={missingCapability[0]?.title ?? t('home.op_blockers.missing_capability.meta')} pill={t('home.op_blockers.missing_capability.pill')} tone={missingCapability.length ? 'warn' : 'ok'} href="/capabilities?view=gaps" />
             </div>
           </DecisionPanel>
 
           <DecisionPanel
-            title="Capability coverage"
-            lead="Mezery, překryvy a slabé mapování."
+            title={t('nav.c3_capability_coverage')}
+            lead={t('home.coverage.lead')}
             href="/capabilities?view=coverage"
-            linkLabel="Coverage"
+            linkLabel={t('nav.topbar.segment.coverage')}
           >
             <div className={styles.signalList}>
-              <SignalRow title={`${formatNumber(capabilityGaps)} capability gaps`} meta={missingCapability[0]?.title ?? 'Žádná významná mezera v aktuálním výběru.'} pill="gap" tone={capabilityGaps ? 'warn' : 'ok'} href="/capabilities?view=gaps" />
-              <SignalRow title={`${formatNumber(capabilityOverlaps)} overlaps`} meta="Více služeb může pokrývat stejnou schopnost podobným způsobem." pill="overlap" tone={capabilityOverlaps ? 'warn' : 'ok'} href="/capabilities?view=overlaps" />
-              <SignalRow title={`${staleRecords.length} stale records`} meta={staleRecords[0]?.title ?? 'Záznamy mají aktuální datum změny.'} pill="freshness" tone={staleRecords.length ? 'warn' : 'ok'} href="/services/list?sort=updated_at&order=ASC" />
+              <SignalRow title={t(countKey('home.coverage.gaps', capabilityGaps), { count: formatNumber(capabilityGaps) })} meta={missingCapability[0]?.title ?? t('home.coverage.gaps.meta')} pill={t('operations.c3_gap.gap')} tone={capabilityGaps ? 'warn' : 'ok'} href="/capabilities?view=gaps" />
+              <SignalRow title={t(countKey('home.coverage.overlaps', capabilityOverlaps), { count: formatNumber(capabilityOverlaps) })} meta={t('home.coverage.overlaps.meta')} pill={t('home.coverage.overlaps.pill')} tone={capabilityOverlaps ? 'warn' : 'ok'} href="/capabilities?view=overlaps" />
+              <SignalRow title={t(countKey('home.coverage.stale', staleRecords.length), { count: staleRecords.length })} meta={staleRecords[0]?.title ?? t('home.coverage.stale.meta')} pill={t('home.coverage.stale.pill')} tone={staleRecords.length ? 'warn' : 'ok'} href="/services/list?sort=updated_at&order=ASC" />
             </div>
           </DecisionPanel>
 
           <DecisionPanel
-            title="Service relationships"
-            lead="Vazby důležité před změnou nebo vyřazením jsou dostupné z detailu služby."
+            title={t('nav.topbar.segment.impact')}
+            lead={t('home.relations.lead')}
             href="/services/list"
-            linkLabel="Vybrat službu"
+            linkLabel={t('home.relations.link')}
           >
             <div className={styles.signalList}>
-              <SignalRow title={`${formatNumber(dashboardSummary?.total_relations ?? 0)} evidovaných vazeb`} meta="Každá významná změna služby má začít kontrolou vztahů na detailu konkrétní služby." pill="dependencies" tone="info" href="/services/list" />
-              <SignalRow title={`${attentionItems.length} služeb s attention signálem`} meta={attentionItems[0]?.title ?? 'Aktuálně nejsou vidět služby vyžadující opravu.'} pill="attention" tone={attentionItems.length ? 'warn' : 'ok'} href="/services/list" />
-              <SignalRow title={`${formatNumber(dashboardSummary?.deprecated_services ?? 0)} deprecated services`} meta="Dosluhující služby potřebují náhradu, výjimku nebo retirement plán." pill="lifecycle" tone={dashboardSummary?.deprecated_services ? 'warn' : 'ok'} href="/services/list?lifecycle=deprecated" />
+              <SignalRow title={t(countKey('home.relations.total', dashboardSummary?.total_relations ?? 0), { count: formatNumber(dashboardSummary?.total_relations ?? 0) })} meta={t('home.relations.total.meta')} pill={t('home.relations.total.pill')} tone="info" href="/services/list" />
+              <SignalRow title={t(countKey('home.relations.attention', attentionItems.length), { count: attentionItems.length })} meta={attentionItems[0]?.title ?? t('home.relations.attention.meta')} pill={t('home.relations.attention.pill')} tone={attentionItems.length ? 'warn' : 'ok'} href="/services/list" />
+              <SignalRow title={t(countKey('home.relations.deprecated', dashboardSummary?.deprecated_services ?? 0), { count: formatNumber(dashboardSummary?.deprecated_services ?? 0) })} meta={t('home.relations.deprecated.meta')} pill={t('home.relations.deprecated.pill')} tone={dashboardSummary?.deprecated_services ? 'warn' : 'ok'} href="/services/list?lifecycle=deprecated" />
             </div>
           </DecisionPanel>
         </section>
 
-        <section className={styles.widePanel} aria-label="Audit and shortcuts">
+        <section className={styles.widePanel} aria-label={t('home.audit.aria')}>
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <h2 className={styles.panelTitle}>Recent decisions</h2>
-                <p className={styles.panelLead}>Nejbližší auditní stopa.</p>
+                <h2 className={styles.panelTitle}>{t('home.audit.title')}</h2>
+                <p className={styles.panelLead}>{t('home.audit.lead')}</p>
               </div>
-              <Link href="/operations/decisions" className={styles.panelLink}>Decision log</Link>
+              <Link href="/operations/decisions" className={styles.panelLink}>{t('nav.topbar.segment.decisions')}</Link>
             </div>
             <div className={styles.timeline}>
               {inboxItems.slice(0, 3).map((item) => (
                 <Link key={`timeline-${item.id}`} href={item.href} className={styles.timelineItem}>
-                  <span className={styles.timelineTime}>{formatDateTime(item.created_at)}</span>
+                  <span className={styles.timelineTime}>{formatDateTime(item.created_at, noDate)}</span>
                   <span className={styles.timelineTitle}>{item.title}</span>
                   <span className={inboxTone(item)}>{item.severity}</span>
                 </Link>
               ))}
               {attentionItems.slice(0, 3).map((item) => (
                 <Link key={`attention-${item.service_id}`} href={`/services/${item.service_id}`} className={styles.timelineItem}>
-                  <span className={styles.timelineTime}>{formatDateTime(item.updated_at)}</span>
+                  <span className={styles.timelineTime}>{formatDateTime(item.updated_at, noDate)}</span>
                   <span className={styles.timelineTitle}>{item.title}</span>
                   <span className={scoreTone(item.completeness_score)}>{item.completeness_score ?? 0}%</span>
                 </Link>
               ))}
               {inboxItems.length === 0 && attentionItems.length === 0 && (
-                <p className={styles.empty}>Žádný auditní nebo attention signál pro dnešní cockpit.</p>
+                <p className={styles.empty}>{t('home.audit.empty')}</p>
               )}
             </div>
           </article>
@@ -334,15 +342,15 @@ export default function HomePage() {
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <h2 className={styles.panelTitle}>Rychlé vstupy</h2>
-                <p className={styles.panelLead}>Nejkratší cesty k časté práci.</p>
+                <h2 className={styles.panelTitle}>{t('home.quick.title')}</h2>
+                <p className={styles.panelLead}>{t('home.quick.lead')}</p>
               </div>
             </div>
             <div className={styles.quickGrid}>
-              <Link href="/catalogue" className={styles.quickLink}><span>Katalog služeb</span><span>Browse</span></Link>
-              <Link href="/services/list" className={styles.quickLink}><span>Service list</span><span>Správa</span></Link>
-              <Link href="/operations/readiness" className={styles.quickLink}><span>Readiness gate</span><span>Blokery</span></Link>
-              <Link href="/services/list" className={styles.quickLink}><span>Service relationships</span><span>Detail služby</span></Link>
+              <Link href="/catalogue" className={styles.quickLink}><span>{t('nav.sidebar.service_catalogue')}</span><span>{t('home.quick.browse')}</span></Link>
+              <Link href="/services/list" className={styles.quickLink}><span>{t('nav.sidebar.service_list')}</span><span>{t('home.quick.manage')}</span></Link>
+              <Link href="/operations/readiness" className={styles.quickLink}><span>{t('nav.sidebar.readiness_gate')}</span><span>{t('home.quick.blockers')}</span></Link>
+              <Link href="/services/list" className={styles.quickLink}><span>{t('nav.topbar.segment.impact')}</span><span>{t('home.quick.service_detail')}</span></Link>
             </div>
           </article>
         </section>

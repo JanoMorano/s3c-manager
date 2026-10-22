@@ -16,6 +16,8 @@ import {
 } from '@/app/components/layout-v2';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { getAuthSnapshot } from '@/features/auth/authStore';
+import { useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 import { hasRoleAccess } from '@/features/auth/roles';
 import detailStyles from '../services/[id]/detail.module.css';
 import editorStyles from '../services/[id]/edit/editor.module.css';
@@ -23,6 +25,7 @@ import entityStyles from '../admin/c3-entities/entity-list.module.css';
 import type { EditFieldDef } from '../admin/c3-entities/C3EntityListPage';
 import type { PublicC3EntityConfig } from './public-config';
 import { buildEntityEditHref, renderLinkedJsonList } from './public-config';
+import { translateC3EntityConfig } from '../admin/c3-entities/config';
 
 interface Props {
   params: Promise<{ code: string }>;
@@ -61,8 +64,8 @@ function formatDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? text : date.toLocaleString('cs-CZ');
 }
 
-function formatValue(value: unknown) {
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+function formatValue(value: unknown, t: (key: string) => string) {
+  if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no');
   const text = normalize(value);
   return text || '—';
 }
@@ -95,10 +98,11 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 }
 
 function ReadonlyField({ label, value, mono = false }: { label: string; value: unknown; mono?: boolean }) {
+  const t = useT();
   return (
     <div className={entityStyles.editField}>
       <span className={entityStyles.fieldLabel}>{label}</span>
-      <div className={mono ? entityStyles.mono : undefined}>{formatValue(value)}</div>
+      <div className={mono ? entityStyles.mono : undefined}>{formatValue(value, t)}</div>
     </div>
   );
 }
@@ -206,8 +210,11 @@ function inferEditorLanguage(field: EditFieldDef, value: string) {
   return 'plaintext';
 }
 
-export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Props) {
+export function PublicC3EntityDetailPage({ params, config: rawConfig, mode = 'view' }: Props) {
   const { code } = use(params);
+  const t = useT();
+  // Config labels are i18n keys (see admin/c3-entities/config.tsx); translate them once here.
+  const config = useMemo(() => translateC3EntityConfig(rawConfig, t), [rawConfig, t]);
   const router = useRouter();
   const decodedCode = decodeURIComponent(code);
   const isReadOnlyEntity = config.editable === false;
@@ -304,11 +311,11 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     const source = isEdit ? draft : item;
     if (!source) return [];
     return [
-      !normalize(source[config.codeKey]) ? `${config.codeLabel} je povinný.` : null,
-      !normalize(source.uuid) ? 'UUID je povinné.' : null,
-      !normalize(source.title) ? 'Title je povinný.' : null,
+      !normalize(source[config.codeKey]) ? t('c3_entity.validation.code_required', { label: t(config.codeLabelKey) }) : null,
+      !normalize(source.uuid) ? t('c3_entity.validation.uuid_required') : null,
+      !normalize(source.title) ? t('c3_entity.validation.title_required') : null,
     ].filter(Boolean) as string[];
-  }, [config.codeKey, config.codeLabel, draft, isEdit, item]);
+  }, [config.codeKey, config.codeLabelKey, draft, isEdit, item, t]);
 
   const linkSections = useMemo(
     () => config.linkFields?.filter((field) => normalize(item?.[field.key])) ?? [],
@@ -330,7 +337,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     if (!item || !draft) return;
     const entityId = Number(item.id);
     if (!entityId || Number.isNaN(entityId)) {
-      setSaveError('Záznam nemá platné interní ID pro uložení.');
+      setSaveError(t('c3_entity.save.invalid_id'));
       return;
     }
     if (validationIssues.length > 0) {
@@ -360,7 +367,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
 
       if (!response.ok) {
         const text = await response.text().catch(() => '');
-        throw new Error(text || `Uložení selhalo (${response.status})`);
+        throw new Error(text || t('c3_entity.save.failed_status', { status: response.status }));
       }
 
       const nextCode = normalize(body[config.codeKey] ?? decodedCode);
@@ -379,7 +386,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
         router.replace(`${config.editBasePath}/${encodeURIComponent(nextCode)}/edit`);
       }
     } catch (saveErrorValue: unknown) {
-      setSaveError(saveErrorValue instanceof Error ? saveErrorValue.message : 'Uložení selhalo');
+      setSaveError(saveErrorValue instanceof Error ? saveErrorValue.message : t('c3_entity.save.failed'));
     } finally {
       setSaving(false);
     }
@@ -402,22 +409,24 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
     setIsDirty(false);
   }
 
-  if (isLoading) return <div className={detailStyles.state}>Načítám…</div>;
-  if (error) return <div className={detailStyles.stateError}>Načtení selhalo.</div>;
-  if (!item) return <div className={detailStyles.stateError}>Položka nebyla nalezena.</div>;
-  if (isEdit && !draft) return <div className={detailStyles.state}>Načítám editor…</div>;
+  if (isLoading) return <div className={detailStyles.state}>{t('common.loading')}</div>;
+  if (error) return <div className={detailStyles.stateError}>{t('c3_entity.load_failed')}</div>;
+  if (!item) return <div className={detailStyles.stateError}>{t('c3_entity.not_found')}</div>;
+  if (isEdit && !draft) return <div className={detailStyles.state}>{t('c3_entity.loading_editor')}</div>;
 
   const codeValue = normalize(item[config.codeKey]) || normalize(item.uuid);
   const titleValue = normalize(item.title) || codeValue;
   const editHref = buildEntityEditHref(config, item);
+  const codeLabel = t(config.codeLabelKey);
+  const linkFallbackLabel = (position: number) => t('c3_entity.link_fallback', { position });
 
   // EditorSubNav sections — same 5 content groups for both view and edit
   const editorSections: EditorSubNavSection[] = [
-    { id: 'classification', label: 'Klasifikace & identifikace' },
-    { id: 'description',    label: 'Popis' },
-    { id: 'source',         label: 'Zdroj & stav' },
-    { id: 'links',          label: 'Vazby & návaznosti', badge: linkSections.length || undefined },
-    { id: 'raw',            label: 'Raw JSON / text',    badge: rawFields.length || undefined },
+    { id: 'classification', label: t('c3_entity.nav.classification') },
+    { id: 'description',    label: t('c3_entity.nav.description') },
+    { id: 'source',         label: t('c3_entity.nav.source') },
+    { id: 'links',          label: t('c3_entity.nav.links'), badge: linkSections.length || undefined },
+    { id: 'raw',            label: t('c3_entity.nav.raw'),   badge: rawFields.length || undefined },
   ];
 
   return (
@@ -425,19 +434,19 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
       {/* ── Standard PageHeader (spec v2 §8) ─────────────────────────── */}
       <PageHeader
         title={titleValue}
-        purpose={`${config.title} · ${config.codeLabel}: ${codeValue}`}
+        purpose={t('c3_entity.purpose', { title: config.title, label: codeLabel, code: codeValue })}
         chips={[
-          { label: isReadOnlyEntity ? 'Read-only import evidence' : isEdit ? 'Edit' : 'View', tone: isEdit ? 'warn' : 'neutral' },
-          { label: formatValue(item.item_status),          tone: 'neutral' },
+          { label: isReadOnlyEntity ? t('c3_entity.mode.read_only') : isEdit ? t('c3_entity.mode.edit') : t('c3_entity.mode.view'), tone: isEdit ? 'warn' : 'neutral' },
+          { label: formatValue(item.item_status, t),       tone: 'neutral' },
           ...(validationIssues.length > 0
-            ? [{ label: `${validationIssues.length} chyb`, tone: 'bad' as const }]
-            : [{ label: 'Valid', tone: 'ok' as const }]),
+            ? [{ label: t(resolveCountForm(validationIssues.length, { one: 'c3_entity.error_count.one', few: 'c3_entity.error_count.few', many: 'c3_entity.error_count.many' }), { count: validationIssues.length }), tone: 'bad' as const }]
+            : [{ label: t('c3_entity.valid'), tone: 'ok' as const }]),
         ]}
         primaryAction={
           isEdit
-            ? { label: 'Náhled', href: `${config.detailBasePath}/${encodeURIComponent(codeValue)}` }
+            ? { label: t('c3_entity.preview'), href: `${config.detailBasePath}/${encodeURIComponent(codeValue)}` }
             : canEdit
-              ? { label: 'Edit', href: editHref }
+              ? { label: t('common.edit'), href: editHref }
               : undefined
         }
       />
@@ -445,10 +454,10 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
       <C3EntityWorkspace className={editorStyles.shell}>
         {/* ── Summary strip ────────────────────────────────────────── */}
         <div className={detailStyles.summaryStrip}>
-          <SummaryItem label={config.codeLabel} value={codeValue} />
-          {isAdmin && <SummaryItem label="UUID" value={formatValue(item.uuid)} />}
-          <SummaryItem label="Status" value={formatValue(item.item_status)} />
-          <SummaryItem label="Modified" value={formatDate(item.modification_date)} />
+          <SummaryItem label={codeLabel} value={codeValue} />
+          {isAdmin && <SummaryItem label="UUID" value={formatValue(item.uuid, t)} />}
+          <SummaryItem label={t('common.status')} value={formatValue(item.item_status, t)} />
+          <SummaryItem label={t('c3_entity.modified')} value={formatDate(item.modification_date)} />
         </div>
 
         {/* ── Editor body: SubNav + content (spec v2 §8 pattern) ────── */}
@@ -456,7 +465,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
           {/* Left-side section navigation — EditorSubNav (spec v2 §8) */}
           <EditorSubNav
             title={config.title}
-            summary="Přejděte na sekci kliknutím nebo posuňte stránku."
+            summary={t('capability_detail.c3.editor_summary')}
             sections={editorSections}
             onSelect={(id) => {
               document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -467,8 +476,8 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
           <div className={editorStyles.formArea}>
             {isEdit ? (
               <form id="c3-entity-detail-form" onSubmit={handleSave}>
-                {/* 0. Klasifikace & identifikace */}
-                <FormSection id="classification" title="0. Klasifikace & identifikace">
+                {/* 0. Classification & identification */}
+                <FormSection id="classification" title={t('c3_entity.section.classification')}>
                   <div className={entityStyles.editGrid}>
                     {classificationFields.map((field) => (
                       <FieldBlock key={field.key} label={field.label} wide={field.type === 'textarea'}>
@@ -478,8 +487,8 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                   </div>
                 </FormSection>
 
-                {/* 1. Popis */}
-                <FormSection id="description" title="1. Popis">
+                {/* 1. Description */}
+                <FormSection id="description" title={t('c3_entity.section.description')}>
                   <div className={entityStyles.cellStack}>
                     {descriptionFields.map((field) => (
                       <FieldBlock key={field.key} label={field.label} wide>
@@ -489,8 +498,8 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                   </div>
                 </FormSection>
 
-                {/* 2. Zdroj & stav */}
-                <FormSection id="source" title="2. Zdroj & stav">
+                {/* 2. Source & status */}
+                <FormSection id="source" title={t('c3_entity.section.source')}>
                   <div className={entityStyles.editGrid}>
                     {sourceFields.map((field) => (
                       <FieldBlock key={field.key} label={field.label} wide={field.type === 'textarea'}>
@@ -500,26 +509,26 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                   </div>
                 </FormSection>
 
-                {/* 3. Vazby & návaznosti */}
-                <FormSection id="links" title="3. Vazby & návaznosti">
+                {/* 3. Links & dependencies */}
+                <FormSection id="links" title={t('c3_entity.section.links')}>
                   {linkSections.length > 0 ? (
                     <div className={entityStyles.cellStack}>
                       {linkSections.map((field) => (
                         <div key={field.key} className={entityStyles.editFieldWide}>
-                          <span className={entityStyles.fieldLabel}>{field.label}</span>
-                          {renderLinkedJsonList(item[field.key], field.target) ?? (
+                          <span className={entityStyles.fieldLabel}>{t(field.labelKey)}</span>
+                          {renderLinkedJsonList(item[field.key], field.target, linkFallbackLabel) ?? (
                             <div className={entityStyles.cellText}>—</div>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className={editorStyles.validOk}>Žádné odvozené vazby nejsou dostupné.</div>
+                    <div className={editorStyles.validOk}>{t('c3_entity.no_links')}</div>
                   )}
                 </FormSection>
 
                 {/* 4. Raw JSON / text */}
-                <FormSection id="raw" title="4. Strukturovaná data (raw JSON/text)">
+                <FormSection id="raw" title={t('c3_entity.section.raw')}>
                   <div className={entityStyles.cellStack}>
                     {rawFields.length > 0 ? (
                       rawFields.map((field) => (
@@ -528,7 +537,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                         </FieldBlock>
                       ))
                     ) : (
-                      <div className={editorStyles.validOk}>Tato entita nemá raw pole k editaci.</div>
+                      <div className={editorStyles.validOk}>{t('c3_entity.no_raw_editable')}</div>
                     )}
                   </div>
                 </FormSection>
@@ -536,7 +545,7 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
             ) : (
               /* ── Read-only view ──────────────────────────────────── */
               <div>
-                <FormSection id="classification" title="0. Klasifikace & identifikace">
+                <FormSection id="classification" title={t('c3_entity.section.classification')}>
                   <div className={entityStyles.editGrid}>
                     {classificationKeys.map((key) => (
                       <ReadonlyField
@@ -549,19 +558,19 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                   </div>
                 </FormSection>
 
-                <FormSection id="description" title="1. Popis">
+                <FormSection id="description" title={t('c3_entity.section.description')}>
                   <div className={entityStyles.cellStack}>
                     {config.descriptionKeys.some((key) => normalize(item[key])) ? (
                       config.descriptionKeys.map((key) => (
                         <ReadonlyArea key={key} label={config.labels[key] ?? key} value={item[key]} />
                       ))
                     ) : (
-                      <div className={editorStyles.validOk}>Žádný popis není dostupný.</div>
+                      <div className={editorStyles.validOk}>{t('c3_entity.no_description')}</div>
                     )}
                   </div>
                 </FormSection>
 
-                <FormSection id="source" title="2. Zdroj & stav">
+                <FormSection id="source" title={t('c3_entity.section.source')}>
                   <div className={entityStyles.editGrid}>
                     {sourceKeys.length > 0 ? (
                       sourceKeys.map((key) => (
@@ -573,36 +582,36 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
                         />
                       ))
                     ) : (
-                      <ReadonlyField label="Status" value={item.item_status} />
+                      <ReadonlyField label={t('common.status')} value={item.item_status} />
                     )}
                   </div>
                 </FormSection>
 
-                <FormSection id="links" title="3. Vazby & návaznosti">
+                <FormSection id="links" title={t('c3_entity.section.links')}>
                   {linkSections.length > 0 ? (
                     <div className={entityStyles.cellStack}>
                       {linkSections.map((field) => (
                         <div key={field.key} className={entityStyles.editFieldWide}>
-                          <span className={entityStyles.fieldLabel}>{field.label}</span>
-                          {renderLinkedJsonList(item[field.key], field.target) ?? (
+                          <span className={entityStyles.fieldLabel}>{t(field.labelKey)}</span>
+                          {renderLinkedJsonList(item[field.key], field.target, linkFallbackLabel) ?? (
                             <div className={entityStyles.cellText}>—</div>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className={editorStyles.validOk}>Žádné odvozené vazby nejsou dostupné.</div>
+                    <div className={editorStyles.validOk}>{t('c3_entity.no_links')}</div>
                   )}
                 </FormSection>
 
-                <FormSection id="raw" title="4. Strukturovaná data (raw JSON/text)">
+                <FormSection id="raw" title={t('c3_entity.section.raw')}>
                   <div className={entityStyles.cellStack}>
                     {config.rawKeys.length > 0 ? (
                       config.rawKeys.map((key) => (
                         <ReadonlyArea key={key} label={config.labels[key] ?? key} value={item[key]} />
                       ))
                     ) : (
-                      <div className={editorStyles.validOk}>Tato entita nemá raw pole.</div>
+                      <div className={editorStyles.validOk}>{t('c3_entity.no_raw')}</div>
                     )}
                   </div>
                 </FormSection>
@@ -613,28 +622,28 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
           {/* ── Right rail: validation summary only (save moved to StickySaveBar) ── */}
           <aside className={editorStyles.rail}>
             <div className={editorStyles.railCard}>
-              <div className={editorStyles.railTitle}>Validation</div>
+              <div className={editorStyles.railTitle}>{t('capability_detail.c3.validation_title')}</div>
               {validationIssues.length > 0 ? (
                 validationIssues.map((issue) => (
                   <div key={issue} className={editorStyles.validationError}>{issue}</div>
                 ))
               ) : (
-                <div className={editorStyles.validOk}>No errors</div>
+                <div className={editorStyles.validOk}>{t('capability_detail.c3.no_errors')}</div>
               )}
             </div>
 
             {isReadOnlyEntity && (
               <div className={editorStyles.railCard}>
-                <div className={editorStyles.railTitle}>Import-only</div>
+                <div className={editorStyles.railTitle}>{t('c3_entity.import_only')}</div>
                 <div className={editorStyles.validOk}>
-                  {config.readOnlyReason ?? 'This C3 entity is maintained by import and is read-only in the UI.'}
+                  {t(config.readOnlyReasonKey ?? 'c3_entity.read_only_reason.default')}
                 </div>
               </div>
             )}
 
             {!isEdit && canEdit && (
               <div className={editorStyles.railCard}>
-                <Link href={editHref} className={detailStyles.editBtn}>Edit</Link>
+                <Link href={editHref} className={detailStyles.editBtn}>{t('common.edit')}</Link>
               </div>
             )}
           </aside>
@@ -646,8 +655,8 @@ export function PublicC3EntityDetailPage({ params, config, mode = 'view' }: Prop
         <StickySaveBar
           state={saveState}
           message={saveError ?? undefined}
-          primaryLabel="Uložit změny"
-          secondaryLabel="Zahodit"
+          primaryLabel={t('layout.save_bar.save_changes')}
+          secondaryLabel={t('layout.save_bar.discard')}
           disabled={!isDirty || validationIssues.length > 0}
           onSave={() => void doSave()}
           onDiscard={handleReset}

@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { apiFetch, authHeaders } from '@/features/services/api/services.api';
 import { RefTableEditor } from '@/features/admin/components/RefTableEditor';
-import { COUNT_LABELS, formatFilteredCountLabel } from '../../lib/counts';
+import { formatFilteredCountLabel } from '../../lib/counts';
+import { useT } from '@/app/i18n/useI18n';
 import refStyles from '../ref.module.css';
 import styles from './c3-capability-builder.module.css';
 
@@ -17,9 +18,12 @@ const SPIRAL_ENDPOINT = '/api/v1/taxonomy/spiral';
 
 type SpiralCode = string;
 
-const FALLBACK_SPIRALS: SpiralBaseline[] = [
-  { id: 6, spiral_code: 'Spiral_6', spiral_label: 'Spiral 6', is_active: false, notes: null },
-  { id: 7, spiral_code: 'Spiral_7', spiral_label: 'Spiral 7', is_active: true, notes: null },
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+// Labels are filled in at render time (spiralLabel) so they follow the UI locale.
+const FALLBACK_SPIRALS: Omit<SpiralBaseline, 'spiral_label'>[] = [
+  { id: 6, spiral_code: 'Spiral_6', is_active: false, notes: null },
+  { id: 7, spiral_code: 'Spiral_7', is_active: true, notes: null },
 ];
 
 function normalizeSpiralCode(value: string) {
@@ -39,9 +43,9 @@ function spiralMapHref(code: string) {
   return `/c3/capability-map-spiral${spiralNumber(code)}`;
 }
 
-function spiralLabel(code: string) {
+function spiralLabel(code: string, t: Translate) {
   const number = spiralNumber(code);
-  return number ? `Spiral ${number}` : code;
+  return number ? t('c3_builder.spiral_label', { number }) : code;
 }
 
 interface CapabilityDomain {
@@ -109,6 +113,7 @@ type SortDirection = 'asc' | 'desc';
 type BuilderTab = 'items' | 'domains';
 
 export default function C3CapabilityBuilderPage() {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<BuilderTab>('items');
   const [spiralCode, setSpiralCode] = useState<SpiralCode>('Spiral_7');
   const { data: spiralData } = useSWR<SpiralResponse>(SPIRAL_ENDPOINT, apiFetch, {
@@ -116,14 +121,14 @@ export default function C3CapabilityBuilderPage() {
   });
   const spiralOptions = useMemo(() => {
     const byCode = new Map<string, SpiralBaseline>();
-    FALLBACK_SPIRALS.forEach((spiral) => byCode.set(spiral.spiral_code, spiral));
+    FALLBACK_SPIRALS.forEach((spiral) => byCode.set(spiral.spiral_code, { ...spiral, spiral_label: spiralLabel(spiral.spiral_code, t) }));
     (spiralData?.all ?? []).forEach((spiral) => byCode.set(spiral.spiral_code, spiral));
     return [...byCode.values()].sort((left, right) => Number(spiralNumber(left.spiral_code)) - Number(spiralNumber(right.spiral_code)));
-  }, [spiralData?.all]);
+  }, [spiralData?.all, t]);
   const activeSpiral = spiralOptions.find((o) => o.spiral_code === spiralCode) ?? {
     id: 0,
     spiral_code: spiralCode,
-    spiral_label: spiralLabel(spiralCode),
+    spiral_label: spiralLabel(spiralCode, t),
     is_active: false,
     notes: null,
   };
@@ -165,7 +170,7 @@ export default function C3CapabilityBuilderPage() {
 
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || `Uložení nastavení selhalo (${res.status})`);
+        throw new Error(text || t('c3_builder.settings_save_failed_status', { status: res.status }));
       }
 
       await globalMutate(settingsEndpoint);
@@ -174,9 +179,9 @@ export default function C3CapabilityBuilderPage() {
         globalMutate('/api/v1/taxonomy/c3/capability-map-spiral7'),
         globalMutate(`/api/v1/taxonomy/c3/capability-map-spiral${spiralNumber(spiralCode)}`),
       ]);
-      setSettingsOk(`Nadpis Capability Map (${activeSpiral.spiral_label}) byl uložen.`);
+      setSettingsOk(t('c3_builder.settings_saved', { label: activeSpiral.spiral_label }));
     } catch (error: unknown) {
-      setSettingsErrorMessage(error instanceof Error ? error.message : 'Uložení nastavení selhalo');
+      setSettingsErrorMessage(error instanceof Error ? error.message : t('c3_builder.settings_save_failed'));
     } finally {
       setSettingsSaving(false);
     }
@@ -186,7 +191,7 @@ export default function C3CapabilityBuilderPage() {
     const normalized = normalizeSpiralCode(newSpiralNumber || newSpiralLabel);
     const number = spiralNumber(normalized);
     if (!number) {
-      setSettingsErrorMessage('Zadej číslo spirály, například 99.');
+      setSettingsErrorMessage(t('c3_builder.spiral_number_required'));
       return;
     }
 
@@ -202,22 +207,23 @@ export default function C3CapabilityBuilderPage() {
         },
         body: JSON.stringify({
           spiral_code: normalized,
+          // Stored data value: default label follows the existing 'Spiral N' convention in the DB.
           spiral_label: newSpiralLabel.trim() || `Spiral ${number}`,
           notes: 'Created from C3 Capability Builder',
         }),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || `Vytvoření spirály selhalo (${res.status})`);
+        throw new Error(text || t('c3_builder.spiral_create_failed_status', { status: res.status }));
       }
       await globalMutate(SPIRAL_ENDPOINT);
       setSpiralCode(normalized);
-      setPageTitleDraft(`C3 Taxonomy Catalogue — Baseline ${number}`);
+      setPageTitleDraft(t('c3_builder.default_page_title', { number }));
       setNewSpiralNumber('');
       setNewSpiralLabel('');
-      setSettingsOk(`Capability mapa ${newSpiralLabel.trim() || `Spiral ${number}`} byla založena. Teď můžeš uložit nadpis a přidat položky.`);
+      setSettingsOk(t('c3_builder.spiral_created', { label: newSpiralLabel.trim() || `Spiral ${number}` }));
     } catch (error: unknown) {
-      setSettingsErrorMessage(error instanceof Error ? error.message : 'Vytvoření spirály selhalo');
+      setSettingsErrorMessage(error instanceof Error ? error.message : t('c3_builder.spiral_create_failed'));
     } finally {
       setSpiralSaving(false);
     }
@@ -226,16 +232,15 @@ export default function C3CapabilityBuilderPage() {
   return (
     <div className={refStyles.shell}>
       <div className={refStyles.pageHeader}>
-        <Link href="/administration" className={refStyles.pageBack}>← Administration</Link>
-        <h1 className={refStyles.pageTitle}>C3 Capability Builder</h1>
+        <Link href="/administration" className={refStyles.pageBack}>{t('c3_builder.back')}</Link>
+        <h1 className={refStyles.pageTitle}>{t('c3_builder.title')}</h1>
       </div>
       <p className={refStyles.pageSub}>
-        Builder pro finální `C3 Capability Map`, který je inicializovaný z legacy `c3_poster_v2.html`.
-        Můžeš tu upravovat jak jednotlivé položky mapy, tak i nadpis stránky zobrazený nad posterem.
+        {t('c3_builder.lead')}
       </p>
 
       <div className={styles.spiralSelectorSection}>
-        <div className={styles.spiralSelectorLabel}>Volba editace Capability Map spirály:</div>
+        <div className={styles.spiralSelectorLabel}>{t('c3_builder.spiral_selector')}</div>
         <div className={styles.spiralSelector}>
           {spiralOptions.map((opt) => (
             <button
@@ -257,25 +262,25 @@ export default function C3CapabilityBuilderPage() {
             className={styles.input}
             value={newSpiralNumber}
             onChange={(event) => setNewSpiralNumber(event.target.value)}
-            placeholder="Nová spirála, např. 99"
+            placeholder={t('c3_builder.new_spiral_placeholder')}
             inputMode="numeric"
           />
           <input
             className={styles.input}
             value={newSpiralLabel}
             onChange={(event) => setNewSpiralLabel(event.target.value)}
-            placeholder="Volitelný název, např. Spiral 99"
+            placeholder={t('c3_builder.new_spiral_label_placeholder')}
           />
           <button type="button" className={styles.button} onClick={handleCreateSpiral} disabled={spiralSaving}>
-            {spiralSaving ? 'Zakládám…' : 'Založit mapu'}
+            {spiralSaving ? t('c3_builder.creating') : t('c3_builder.create_map')}
           </button>
         </div>
       </div>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
-          <div className={styles.panelTitle}>Nastavení mapy</div>
-          <div className={styles.panelMeta}>C3 Capability Map — {activeSpiral.spiral_label}</div>
+          <div className={styles.panelTitle}>{t('c3_builder.map_settings')}</div>
+          <div className={styles.panelMeta}>{t('c3_builder.map_meta', { label: activeSpiral.spiral_label })}</div>
         </div>
         <div className={styles.panelBody}>
           {settingsError && <div className={styles.error}>{settingsError.message}</div>}
@@ -283,12 +288,12 @@ export default function C3CapabilityBuilderPage() {
           {settingsOk && <div className={styles.success}>{settingsOk}</div>}
 
           <div className={styles.fieldGrid}>
-            <Field label={`Nadpis stránky (${activeSpiral.spiral_label})`}>
+            <Field label={t('c3_builder.page_title_label', { label: activeSpiral.spiral_label })}>
               <input
                 className={styles.input}
                 value={pageTitleDraft}
                 onChange={(event) => setPageTitleDraft(event.target.value)}
-                placeholder={`C3 Taxonomy Catalogue — Baseline ${spiralNumber(activeSpiral.spiral_code)}`}
+                placeholder={t('c3_builder.default_page_title', { number: spiralNumber(activeSpiral.spiral_code) })}
               />
             </Field>
           </div>
@@ -300,10 +305,10 @@ export default function C3CapabilityBuilderPage() {
               onClick={handleSaveMapSettings}
               disabled={settingsSaving}
             >
-              {settingsSaving ? 'Ukládám…' : `Uložit nadpis mapy (${activeSpiral.spiral_label})`}
+              {settingsSaving ? t('c3_builder.saving') : t('c3_builder.save_page_title', { label: activeSpiral.spiral_label })}
             </button>
             <Link href={spiralMapHref(activeSpiral.spiral_code)} className={styles.actionLink}>
-              Otevřít C3 Capability Map ({activeSpiral.spiral_label})
+              {t('c3_builder.open_capability_map', { label: activeSpiral.spiral_label })}
             </Link>
           </div>
         </div>
@@ -314,13 +319,13 @@ export default function C3CapabilityBuilderPage() {
           className={`${refStyles.tab} ${activeTab === 'items' ? refStyles.tabActive : ''}`}
           onClick={() => setActiveTab('items')}
         >
-          Položky builderu
+          {t('c3_builder.items')}
         </button>
         <button
           className={`${refStyles.tab} ${activeTab === 'domains' ? refStyles.tabActive : ''}`}
           onClick={() => setActiveTab('domains')}
         >
-          Capability Domains
+          {t('c3_builder.capability_domains')}
         </button>
       </div>
 
@@ -331,9 +336,10 @@ export default function C3CapabilityBuilderPage() {
 }
 
 function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }) {
+  const t = useT();
   const searchParams = useSearchParams();
   const itemEndpointWithSpiral = `${ITEM_ENDPOINT}?spiral=${spiralCode}`;
-  const activeSpiralLabel = spiralLabel(spiralCode);
+  const activeSpiralLabel = spiralLabel(spiralCode, t);
   const { data: items, error: itemsError, isLoading: itemsLoading } = useSWR<CapabilityItem[]>(itemEndpointWithSpiral, apiFetch, {
     revalidateOnFocus: false,
   });
@@ -470,21 +476,21 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || `Uložení selhalo (${res.status})`);
+        throw new Error(text || t('c3_builder.save_failed_status', { status: res.status }));
       }
 
       await globalMutate(itemEndpointWithSpiral);
       resetForm(false);
-      setSaveOk(editingId ? 'Builder položka byla upravena.' : 'Builder položka byla vytvořena.');
+      setSaveOk(editingId ? t('c3_builder.item_updated') : t('c3_builder.item_created'));
     } catch (error: unknown) {
-      setSaveError(error instanceof Error ? error.message : 'Uložení selhalo');
+      setSaveError(error instanceof Error ? error.message : t('c3_builder.save_failed'));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(item: CapabilityItem) {
-    if (!confirm(`Smazat položku ${item.page_id} – ${item.title}?`)) return;
+    if (!confirm(t('c3_builder.delete_confirm', { id: item.page_id, title: item.title }))) return;
     setSaveError(null);
     setSaveOk(null);
     try {
@@ -494,13 +500,13 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(text || `Mazání selhalo (${res.status})`);
+        throw new Error(text || t('c3_builder.delete_failed_status', { status: res.status }));
       }
       await globalMutate(itemEndpointWithSpiral);
       if (editingId === item.id) resetForm();
-      setSaveOk('Builder položka byla smazána.');
+      setSaveOk(t('c3_builder.item_deleted'));
     } catch (error: unknown) {
-      setSaveError(error instanceof Error ? error.message : 'Mazání selhalo');
+      setSaveError(error instanceof Error ? error.message : t('c3_builder.delete_failed'));
     }
   }
 
@@ -508,22 +514,21 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
     <div className={styles.editorShell}>
       <div className={styles.header}>
         <div>
-          <div className={styles.title}>Položky builderu</div>
+          <div className={styles.title}>{t('c3_builder.items')}</div>
           <p className={styles.desc}>
-            Editor položek pro `C3 Capability Map`, které byly jednorázově vygenerované z legacy `c3_poster_v2.html`.
-            Struktura zůstává stejná jako v posteru: `pageId`, `uuid`, `title`, `parentId`, `level`, `state`, `domain`.
+            {t('c3_builder.items_lead')}
           </p>
         </div>
         <div className={styles.headerActions}>
-          <Link href={spiralMapHref(spiralCode)} className={styles.actionLink}>Otevřít mapu ({activeSpiralLabel})</Link>
-          <Link href="/c3/list" className={`${styles.actionLink} ${styles.actionPrimary}`}>C3 Taxonomy</Link>
+          <Link href={spiralMapHref(spiralCode)} className={styles.actionLink}>{t('c3_builder.open_map', { label: activeSpiralLabel })}</Link>
+          <Link href="/c3/list" className={`${styles.actionLink} ${styles.actionPrimary}`}>{t('nav.c3_taxonomy')}</Link>
         </div>
       </div>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
-          <div className={styles.panelTitle}>Domain Palette</div>
-          <div className={styles.panelMeta}>{sortedDomains.length} domén z DB</div>
+          <div className={styles.panelTitle}>{t('c3_builder.domain_palette')}</div>
+          <div className={styles.panelMeta}>{t('c3_builder.domains_from_db', { count: sortedDomains.length })}</div>
         </div>
         <div className={styles.panelBody}>
           <div className={styles.paletteGrid}>
@@ -544,8 +549,8 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
       <div className={styles.layout}>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <div className={styles.panelTitle}>{editingId ? 'Upravit položku' : 'Nová položka'}</div>
-            <div className={styles.panelMeta}>{editingId ? `ID ${editingId}` : 'Create'}</div>
+            <div className={styles.panelTitle}>{editingId ? t('c3_builder.edit_item') : t('c3_builder.new_item')}</div>
+            <div className={styles.panelMeta}>{editingId ? t('c3_builder.item_id', { id: editingId }) : t('c3_builder.create')}</div>
           </div>
           <div className={styles.panelBody}>
             {saveError && <div className={styles.error}>{saveError}</div>}
@@ -553,22 +558,22 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
 
             <div className={styles.fieldGrid}>
               <div className={styles.fieldRow}>
-                <Field label="Page ID">
+                <Field label={t('c3_builder.field.page_id')}>
                   <input className={styles.input} value={draft.page_id} onChange={(event) => updateDraft('page_id', event.target.value)} placeholder="BP-1016" />
                 </Field>
-                <Field label="UUID">
+                <Field label={t('c3_builder.field.uuid')}>
                   <input className={styles.input} value={draft.uuid} onChange={(event) => updateDraft('uuid', event.target.value)} placeholder="4ec1702a-..." />
                 </Field>
               </div>
 
-              <Field label="Title">
-                <input className={styles.input} value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} placeholder="Accounting" />
+              <Field label={t('c3_builder.field.title')}>
+                <input className={styles.input} value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} placeholder={t('c3_builder.field.title_placeholder')} />
               </Field>
 
               <div className={styles.fieldRow}>
-                <Field label="Domain">
+                <Field label={t('c3_builder.field.domain')}>
                   <select className={styles.select} value={draft.domain_code} onChange={(event) => updateDraft('domain_code', event.target.value)}>
-                    <option value="">— vyber domain —</option>
+                    <option value="">{t('c3_builder.select_domain')}</option>
                     {sortedDomains.map((domain) => (
                       <option key={domain.code} value={domain.code}>
                         {domain.code}
@@ -576,13 +581,13 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
                     ))}
                   </select>
                 </Field>
-                <Field label="State">
+                <Field label={t('c3_builder.field.state')}>
                   <input className={styles.input} value={draft.state} onChange={(event) => updateDraft('state', event.target.value)} placeholder="approved" />
                 </Field>
               </div>
 
               <div className={styles.fieldRow}>
-                <Field label="Parent ID">
+                <Field label={t('c3_builder.field.parent_id')}>
                   <select
                     className={styles.select}
                     value={draft.parent_id}
@@ -597,7 +602,7 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
                       }));
                     }}
                   >
-                    <option value="">— bez parenta —</option>
+                    <option value="">{t('c3_builder.no_parent')}</option>
                     {parentOptions.map((item) => (
                       <option key={item.id} value={item.page_id}>
                         {item.page_id} — {item.title}
@@ -605,24 +610,24 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
                     ))}
                   </select>
                 </Field>
-                <Field label="Level">
+                <Field label={t('c3_builder.field.level')}>
                   <input className={styles.input} type="number" min={1} max={20} value={draft.level} onChange={(event) => updateDraft('level', event.target.value)} />
                 </Field>
               </div>
 
               {selectedDomain && (
                 <div className={styles.hint}>
-                  Aktivní doména používá barvy <strong>{selectedDomain.heading_color}</strong> / <strong>{selectedDomain.background_color}</strong>.
+                  {t('c3_builder.domain_colors_hint')} <strong>{selectedDomain.heading_color}</strong> / <strong>{selectedDomain.background_color}</strong>.
                 </div>
               )}
             </div>
 
             <div className={styles.toolbar}>
               <button type="button" className={`${styles.button} ${styles.buttonPrimary}`} onClick={handleSave} disabled={saving}>
-                {saving ? 'Ukládám…' : editingId ? 'Uložit změny' : 'Vytvořit položku'}
+                {saving ? t('c3_builder.saving') : editingId ? t('c3_builder.save_changes') : t('c3_builder.create_item')}
               </button>
               <button type="button" className={styles.button} onClick={() => resetForm()} disabled={saving}>
-                Vyčistit formulář
+                {t('c3_builder.clear_form')}
               </button>
             </div>
           </div>
@@ -630,9 +635,9 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <div className={styles.panelTitle}>Položky builderu</div>
+            <div className={styles.panelTitle}>{t('c3_builder.items')}</div>
             <div className={styles.panelMeta}>
-              {itemsLoading ? 'Načítám…' : formatFilteredCountLabel(filteredItems.length, items?.length ?? 0, COUNT_LABELS.records)}
+              {itemsLoading ? t('common.loading') : formatFilteredCountLabel(filteredItems.length, items?.length ?? 0, { one: t('ref_table.count_records.one'), few: t('ref_table.count_records.few'), many: t('ref_table.count_records.many') })}
             </div>
           </div>
           <div className={styles.searchWrap}>
@@ -641,7 +646,7 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Filtrovat pageId, title, parentId, domain…"
+              placeholder={t('c3_builder.filter_placeholder')}
             />
           </div>
           <div className={styles.tableWrap}>
@@ -650,43 +655,43 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
                 <tr>
                   <th>
                     <button type="button" className={styles.sortButton} onClick={() => handleSort('page_id')}>
-                      Page ID {sortKey === 'page_id' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      {t('c3_builder.field.page_id')} {sortKey === 'page_id' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
                     </button>
                   </th>
                   <th>
                     <button type="button" className={styles.sortButton} onClick={() => handleSort('title')}>
-                      Title {sortKey === 'title' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      {t('c3_builder.field.title')} {sortKey === 'title' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
                     </button>
                   </th>
                   <th>
                     <button type="button" className={styles.sortButton} onClick={() => handleSort('level')}>
-                      Hierarchy {sortKey === 'level' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      {t('c3_builder.col.hierarchy')} {sortKey === 'level' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
                     </button>
                   </th>
                   <th>
                     <button type="button" className={styles.sortButton} onClick={() => handleSort('domain_code')}>
-                      Domain {sortKey === 'domain_code' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      {t('c3_builder.field.domain')} {sortKey === 'domain_code' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
                     </button>
                   </th>
                   <th>
                     <button type="button" className={styles.sortButton} onClick={() => handleSort('state')}>
-                      State {sortKey === 'state' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      {t('c3_builder.field.state')} {sortKey === 'state' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
                     </button>
                   </th>
-                  <th>Akce</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {(itemsError || domainsError) && (
                   <tr>
                     <td colSpan={6} className={styles.error}>
-                      {(itemsError ?? domainsError)?.message ?? 'Načtení selhalo'}
+                      {(itemsError ?? domainsError)?.message ?? t('c3_builder.load_failed')}
                     </td>
                   </tr>
                 )}
                 {!itemsLoading && !itemsError && filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className={styles.muted}>Žádné položky neodpovídají filtru.</td>
+                    <td colSpan={6} className={styles.muted}>{t('c3_builder.empty_filtered')}</td>
                   </tr>
                 )}
                 {sortedItems.map((item) => (
@@ -697,8 +702,8 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
                       <div className={styles.muted}>{item.uuid}</div>
                     </td>
                     <td>
-                      <div>Level {item.level}</div>
-                      <div className={styles.muted}>{item.parent_id ? `${item.parent_id}${item.parent_title ? ` — ${item.parent_title}` : ''}` : 'root'}</div>
+                      <div>{t('c3_builder.level_value', { level: item.level })}</div>
+                      <div className={styles.muted}>{item.parent_id ? `${item.parent_id}${item.parent_title ? ` — ${item.parent_title}` : ''}` : t('c3_builder.root')}</div>
                     </td>
                     <td>
                       <span className={styles.badge}>{item.domain_code}</span>
@@ -706,8 +711,8 @@ function CapabilityBuilderItemsEditor({ spiralCode }: { spiralCode: SpiralCode }
                     <td>{item.state ?? '—'}</td>
                     <td>
                       <div className={styles.rowActions}>
-                        <button type="button" className={styles.button} onClick={() => startEdit(item)}>Edit</button>
-                        <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={() => handleDelete(item)}>Delete</button>
+                        <button type="button" className={styles.button} onClick={() => startEdit(item)}>{t('common.edit')}</button>
+                        <button type="button" className={`${styles.button} ${styles.buttonDanger}`} onClick={() => handleDelete(item)}>{t('common.delete')}</button>
                       </div>
                     </td>
                   </tr>

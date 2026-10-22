@@ -45,14 +45,15 @@ const COLUMN_X: Record<ServiceGraphV2Node['node_kind'], number> = {
   c3_service: 1760,
 };
 
+// i18n keys; translated with t() at render time.
 const NODE_KIND_LABEL: Record<ServiceGraphV2Node['node_kind'], string> = {
-  service: 'Service',
-  flavour: 'Legacy variant',
-  c3_capability: 'Capability',
-  c3_tin: 'Technology Interaction',
-  c3_application: 'Application',
-  c3_data_object: 'Data Object',
-  c3_service: 'C3 Service',
+  service: 'service_graph.node_kind.service',
+  flavour: 'service_graph.node_kind.flavour',
+  c3_capability: 'service_graph.node_kind.c3_capability',
+  c3_tin: 'service_graph.node_kind.c3_tin',
+  c3_application: 'service_graph.node_kind.c3_application',
+  c3_data_object: 'service_graph.node_kind.c3_data_object',
+  c3_service: 'service_graph.node_kind.c3_service',
 };
 
 const NODE_KIND_ORDER: ServiceGraphV2Node['node_kind'][] = [
@@ -335,7 +336,7 @@ export default function GraphPage({ params }: Props) {
         <FilterGroup label={t('service_graph.text.uzly')}>
           {NODE_KIND_ORDER.map((kind) => (
             <div key={kind} className={shellStyles.meta}>
-              {NODE_KIND_LABEL[kind]}: {nodeCounts.get(kind) ?? 0}
+              {t(NODE_KIND_LABEL[kind])}: {nodeCounts.get(kind) ?? 0}
             </div>
           ))}
         </FilterGroup>
@@ -399,7 +400,7 @@ export default function GraphPage({ params }: Props) {
           <button
             type="button"
             className={shellStyles.saveButtonInline}
-            onClick={() => exportGraphToPdf(graphCanvasRef.current, `Service Graph ${graphData.root_service_id}`)}
+            onClick={() => exportGraphToPdf(graphCanvasRef.current, t('service_graph.export_title', { id: graphData.root_service_id }))}
           >
             {t('service_graph.text.export_do_pdf')}
           </button>
@@ -411,7 +412,7 @@ export default function GraphPage({ params }: Props) {
         <div className={shellStyles.header}>
           <div className={shellStyles.title}>{t('service_graph.text.service_graph_2')}</div>
           <div className={shellStyles.meta}>
-            {graphData.root_service_id} · {rootGraph.nodes.length} {t('service_graph.text.blocks_2')}{' '}{rootGraph.edges.length} vazeb
+            {graphData.root_service_id} · {t('service_graph.detail_meta', { blocks: rootGraph.nodes.length, relations: rootGraph.edges.length })}
           </div>
           <select
             className={shellStyles.selectInput}
@@ -461,7 +462,7 @@ export default function GraphPage({ params }: Props) {
             <div className={shellStyles.graphTextHeader}>
               <h2 id="service-detail-graph-text-alt">{t('service_graph.text.text_alternative_for_relations')}</h2>
               <div className={shellStyles.graphTextHeaderActions}>
-                <span>{rootGraph.edges.length} {t('service_graph.text.vazeb_zobrazeno')}{' '}{Math.min(textRelationRows.length, 200)}</span>
+                <span>{t('service_graph.text_alt_count', { total: rootGraph.edges.length, shown: Math.min(textRelationRows.length, 200) })}</span>
               </div>
             </div>
             {textRelationRows.length > 0 ? (
@@ -491,7 +492,7 @@ export default function GraphPage({ params }: Props) {
           <div className={shellStyles.panelBody}>
             {selectedNode ? (
               <>
-                <PanelRow label={t('service_graph.text.typ')}>{NODE_KIND_LABEL[selectedNode.node_kind]}</PanelRow>
+                <PanelRow label={t('service_graph.text.typ')}>{t(NODE_KIND_LABEL[selectedNode.node_kind])}</PanelRow>
                 <PanelRow label={t('service_graph.text.code')}>{selectedNode.code ?? '—'}</PanelRow>
                 <PanelRow label={t('service_graph.text.name')}>{selectedNode.label}</PanelRow>
                 {selectedNode.status && <PanelRow label={t('service_graph.text.status')}>{selectedNode.status}</PanelRow>}

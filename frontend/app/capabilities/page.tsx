@@ -7,11 +7,16 @@ import PageHeader from '@/app/components/PageHeader';
 import { apiFetch } from '@/features/services/api/services.api';
 import { Badge, EmptyState, KpiCard } from '@/design-system/controls';
 import { useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 import { CapabilityGovernancePage } from '@/features/capabilities/CapabilityGovernancePage';
 import styles from '@/features/capabilities/capabilities.module.css';
 
 interface Capability { uuid: string; page_id: string; title: string; slug: string; parent?: { title?: string }; available_spirals: string[] }
 type CapabilityView = 'overview' | 'coverage' | 'gaps' | 'overlaps';
+
+function countKey(base: string, count: number) {
+  return resolveCountForm(count, { one: `${base}.one`, few: `${base}.few`, many: `${base}.many` });
+}
 
 function resolveCapabilityView(value: string | null): CapabilityView {
   return value === 'coverage' || value === 'gaps' || value === 'overlaps' ? value : 'overview';
@@ -31,16 +36,16 @@ export default function CapabilitiesHubPage() {
     return (
       <main className={styles.shell}>
         <PageHeader
-          title="Capability workspace"
-          purpose="Coverage, gaps and overlaps in one capability governance surface."
-          chips={[{ label: activeView, tone: 'neutral' }, { label: `${capabilities.length} capabilities`, tone: capabilities.length ? 'ok' : 'warn' }]}
-          primaryAction={{ label: 'Overview', href: '/capabilities' }}
+          title={t('capabilities.hub.workspace_title')}
+          purpose={t('capabilities.hub.workspace_purpose')}
+          chips={[{ label: t(`capabilities.view.${activeView}`), tone: 'neutral' }, { label: t(countKey('capabilities.count', capabilities.length), { count: capabilities.length }), tone: capabilities.length ? 'ok' : 'warn' }]}
+          primaryAction={{ label: t('capabilities.tabs.overview'), href: '/capabilities' }}
         />
-        <nav className={styles.tabs} aria-label="Capability workspace tabs">
-          <Link href="/capabilities" className={styles.tab}>Overview</Link>
-          <Link href="/capabilities?view=coverage" className={`${styles.tab} ${activeView === 'coverage' ? styles.tabActive : ''}`}>Coverage</Link>
-          <Link href="/capabilities?view=gaps" className={`${styles.tab} ${activeView === 'gaps' ? styles.tabActive : ''}`}>Gaps</Link>
-          <Link href="/capabilities?view=overlaps" className={`${styles.tab} ${activeView === 'overlaps' ? styles.tabActive : ''}`}>Overlaps</Link>
+        <nav className={styles.tabs} aria-label={t('capabilities.hub.workspace_tabs_aria')}>
+          <Link href="/capabilities" className={styles.tab}>{t('capabilities.tabs.overview')}</Link>
+          <Link href="/capabilities?view=coverage" className={`${styles.tab} ${activeView === 'coverage' ? styles.tabActive : ''}`}>{t('capabilities.view.coverage')}</Link>
+          <Link href="/capabilities?view=gaps" className={`${styles.tab} ${activeView === 'gaps' ? styles.tabActive : ''}`}>{t('capabilities.view.gaps')}</Link>
+          <Link href="/capabilities?view=overlaps" className={`${styles.tab} ${activeView === 'overlaps' ? styles.tabActive : ''}`}>{t('capabilities.view.overlaps')}</Link>
         </nav>
         <CapabilityGovernancePage mode={activeView} embedded navigationMode="query" />
       </main>
@@ -52,30 +57,30 @@ export default function CapabilitiesHubPage() {
       <PageHeader
         title={t('capabilities.title')}
         purpose={t('capabilities.lead')}
-        chips={[{ label: `${capabilities.length} capabilities`, tone: capabilities.length ? 'ok' : 'warn' }]}
-        primaryAction={{ label: 'Coverage', href: '/capabilities?view=coverage' }}
+        chips={[{ label: t(countKey('capabilities.count', capabilities.length), { count: capabilities.length }), tone: capabilities.length ? 'ok' : 'warn' }]}
+        primaryAction={{ label: t('capabilities.view.coverage'), href: '/capabilities?view=coverage' }}
       />
 
       <CapabilityStudioHero capabilities={capabilities} spiralCount={spiralCount} />
 
-      <section className={styles.kpiGrid} aria-label="Capability headline KPIs">
-        <Link href="/capabilities#level3-capabilities" className={styles.kpiLink} aria-label="Otevřít Level-3 schopnosti">
-          <KpiCard label={t('capabilities.kpi.level3')} value={capabilities.length} hint="C3 taxonomy" />
+      <section className={styles.kpiGrid} aria-label={t('capabilities.hub.kpi_aria')}>
+        <Link href="/capabilities#level3-capabilities" className={styles.kpiLink} aria-label={t('capabilities.hub.open_level3_aria')}>
+          <KpiCard label={t('capabilities.kpi.level3')} value={capabilities.length} hint={t('capabilities.hub.level3_hint')} />
         </Link>
-        <Link href="/spirals" className={styles.kpiLink} aria-label="Otevřít spirály v datech">
+        <Link href="/spirals" className={styles.kpiLink} aria-label={t('capabilities.hub.open_spirals_aria')}>
           <KpiCard label={t('capabilities.kpi.spirals')} value={spiralCount} hint="FMN" />
         </Link>
-        <Link href="/capabilities?view=coverage" className={styles.kpiLink} aria-label="Otevřít rozhodovací přehledy schopností">
+        <Link href="/capabilities?view=coverage" className={styles.kpiLink} aria-label={t('capabilities.hub.open_dashboards_aria')}>
           <KpiCard label={t('capabilities.kpi.dashboards')} value={capabilities.length} hint={t('capabilities.tabs.overview')} />
         </Link>
       </section>
 
-      <nav className={styles.tabs} aria-label="Capability sections">
+      <nav className={styles.tabs} aria-label={t('capabilities.hub.sections_aria')}>
         <Link href="/capabilities" className={`${styles.tab} ${styles.tabActive}`}>{t('capabilities.tabs.overview')}</Link>
-        <Link href="/capabilities?view=coverage" className={styles.tabLinkButton}>Coverage</Link>
-        <Link href="/capabilities?view=gaps" className={styles.tabLinkButton}>Gaps</Link>
-        <Link href="/capabilities?view=overlaps" className={styles.tabLinkButton}>Overlaps</Link>
-        <Link href="/c3/capability-map-spiral7" className={styles.tabLinkButton}>Spiral 7 map</Link>
+        <Link href="/capabilities?view=coverage" className={styles.tabLinkButton}>{t('capabilities.view.coverage')}</Link>
+        <Link href="/capabilities?view=gaps" className={styles.tabLinkButton}>{t('capabilities.view.gaps')}</Link>
+        <Link href="/capabilities?view=overlaps" className={styles.tabLinkButton}>{t('capabilities.view.overlaps')}</Link>
+        <Link href="/c3/capability-map-spiral7" className={styles.tabLinkButton}>{t('capabilities.hub.spiral7_map')}</Link>
       </nav>
 
       <section className={styles.layout}>
@@ -111,9 +116,10 @@ export default function CapabilitiesHubPage() {
 }
 
 function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Capability[]; spiralCount: number }) {
+  const t = useT();
   const withoutSpiral = capabilities.filter((capability) => capability.available_spirals.length === 0).length;
   const parentCounts = capabilities.reduce<Record<string, number>>((acc, capability) => {
-    const parent = capability.parent?.title ?? 'Unassigned parent';
+    const parent = capability.parent?.title ?? t('capabilities.hub.unassigned_parent');
     acc[parent] = (acc[parent] ?? 0) + 1;
     return acc;
   }, {});
@@ -124,56 +130,54 @@ function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Cap
   const tasks = [
     {
       tone: capabilities.length ? 'success' : 'warning',
-      title: capabilities.length ? 'Capability catalogue is loaded' : 'Capability import missing',
-      detail: capabilities.length ? `${capabilities.length} Level-3 capabilities are available for managers.` : 'Import C3 capabilities before managers can compare service coverage.',
+      title: capabilities.length ? t('capabilities.hub.task.loaded_title') : t('capabilities.hub.task.import_missing_title'),
+      detail: capabilities.length ? t(countKey('capabilities.hub.task.loaded_detail', capabilities.length), { count: capabilities.length }) : t('capabilities.hub.task.import_missing_detail'),
       href: '/import/upload',
-      label: 'Import',
+      label: t('capabilities.hub.task.import_label'),
     },
     {
       tone: withoutSpiral ? 'warning' : 'success',
-      title: withoutSpiral ? 'Capabilities without spiral' : 'Spiral membership visible',
-      detail: withoutSpiral ? `${withoutSpiral} capabilities need FMN spiral context.` : `${spiralCount} spirals are represented in this hub.`,
+      title: withoutSpiral ? t('capabilities.hub.task.without_spiral_title') : t('capabilities.hub.task.spiral_visible_title'),
+      detail: withoutSpiral ? t(countKey('capabilities.hub.task.without_spiral_detail', withoutSpiral), { count: withoutSpiral }) : t(countKey('capabilities.hub.task.spirals_detail', spiralCount), { count: spiralCount }),
       href: '/c3/capability-map-spiral7',
-      label: 'Spiral 7',
+      label: t('capabilities.hub.task.spiral7_label'),
     },
     {
       tone: topParents.length ? 'info' : 'warning',
-      title: 'Largest parent area',
-      detail: topParents[0] ? `${topParents[0][0]} contains ${topParents[0][1]} capabilities.` : 'No parent structure is available yet.',
+      title: t('capabilities.hub.task.largest_parent_title'),
+      detail: topParents[0] ? t(countKey('capabilities.hub.task.largest_parent_detail', topParents[0][1]), { parent: topParents[0][0], count: topParents[0][1] }) : t('capabilities.hub.task.no_parent_detail'),
       href: '/capabilities?view=coverage',
-      label: 'Coverage',
+      label: t('capabilities.view.coverage'),
     },
   ];
 
   return (
-    <section className={styles.studioHero} aria-label="Capability relationship overview">
+    <section className={styles.studioHero} aria-label={t('capabilities.hub.hero_aria')}>
       <div className={styles.studioSummary}>
         <div className={styles.studioTopline}>
           <div>
-            <span className={styles.eyebrow}>Capability map</span>
-            <h1 className={styles.studioTitle}>What NATO capabilities are covered, missing, or duplicated.</h1>
+            <span className={styles.eyebrow}>{t('capabilities.hub.eyebrow_map')}</span>
+            <h1 className={styles.studioTitle}>{t('capabilities.hub.studio_title')}</h1>
           </div>
-          <Badge variant="info">{capabilities.length} Level-3</Badge>
+          <Badge variant="info">{t('capabilities.hub.level3_badge', { count: capabilities.length })}</Badge>
         </div>
         <p className={styles.studioLead}>
-          Use this page as the manager-readable layer above C3. It connects capability names,
-          FMN spirals, service evidence, and admin work queues without forcing people to read
-          raw taxonomy tables first.
+          {t('capabilities.hub.studio_lead')}
         </p>
         <div className={styles.studioMetricGrid}>
-          <StudioMetric value={String(capabilities.length)} label="Capabilities" detail="Level-3 decision areas" tone="success" href="/capabilities#level3-capabilities" />
-          <StudioMetric value={String(spiralCount)} label="Spirals" detail="FMN context available" tone={spiralCount ? 'success' : 'warning'} href="/spirals" />
-          <StudioMetric value={String(withoutSpiral)} label="Needs context" detail="No spiral assigned" tone={withoutSpiral ? 'warning' : 'success'} href="/c3/capability-map-spiral7" />
+          <StudioMetric value={String(capabilities.length)} label={t('capabilities.title')} detail={t('capabilities.hub.metric.capabilities_detail')} tone="success" href="/capabilities#level3-capabilities" />
+          <StudioMetric value={String(spiralCount)} label={t('spirals.kpi.total')} detail={t('capabilities.hub.metric.spirals_detail')} tone={spiralCount ? 'success' : 'warning'} href="/spirals" />
+          <StudioMetric value={String(withoutSpiral)} label={t('capabilities.hub.metric.needs_context')} detail={t('capabilities.hub.metric.needs_context_detail')} tone={withoutSpiral ? 'warning' : 'success'} href="/c3/capability-map-spiral7" />
         </div>
       </div>
 
       <div className={styles.studioQueue}>
         <div className={styles.studioPanelHeader}>
           <div>
-            <span className={styles.eyebrow}>Admin queue</span>
-            <h2>Explain the map next</h2>
+            <span className={styles.eyebrow}>{t('capabilities.hub.admin_queue')}</span>
+            <h2>{t('capabilities.hub.queue_title')}</h2>
           </div>
-          <Badge variant={withoutSpiral ? 'warning' : 'success'}>{withoutSpiral ? 'Action' : 'Clean'}</Badge>
+          <Badge variant={withoutSpiral ? 'warning' : 'success'}>{withoutSpiral ? t('common.action') : t('common.clean')}</Badge>
         </div>
         <div className={styles.studioTaskList}>
           {tasks.map((task) => (
@@ -192,36 +196,36 @@ function CapabilityStudioHero({ capabilities, spiralCount }: { capabilities: Cap
       <div className={styles.capabilityMapPreview}>
         <div className={styles.studioPanelHeader}>
           <div>
-            <span className={styles.eyebrow}>Manager story</span>
-            <h2>From capability to service evidence</h2>
+            <span className={styles.eyebrow}>{t('capabilities.hub.manager_story')}</span>
+            <h2>{t('capabilities.hub.story_title')}</h2>
           </div>
-          <Link href="/capabilities?view=coverage" className={styles.inlineLink}>Coverage</Link>
+          <Link href="/capabilities?view=coverage" className={styles.inlineLink}>{t('capabilities.view.coverage')}</Link>
         </div>
         <div className={styles.capabilityFlow}>
           {spotlight.length ? spotlight.map((capability) => (
             <Link key={capability.uuid} href={`/capabilities/${capability.slug}`} className={styles.capabilityFlowNode}>
-              <span>{capability.parent?.title ?? 'Capability parent'}</span>
+              <span>{capability.parent?.title ?? t('capabilities.hub.flow_parent_fallback')}</span>
               <strong>{capability.title}</strong>
-              <small>{capability.available_spirals.length ? capability.available_spirals.join(', ') : 'No spiral'}</small>
+              <small>{capability.available_spirals.length ? capability.available_spirals.join(', ') : t('capabilities.hub.no_spiral')}</small>
             </Link>
           )) : (
             <div className={styles.capabilityFlowNode}>
               <span>C3</span>
-              <strong>No capabilities loaded</strong>
-              <small>Import taxonomy first</small>
+              <strong>{t('capabilities.hub.no_capabilities')}</strong>
+              <small>{t('capabilities.hub.import_first')}</small>
             </div>
           )}
         </div>
       </div>
 
       <div className={styles.parentStack}>
-        <span className={styles.eyebrow}>Largest areas</span>
+        <span className={styles.eyebrow}>{t('capabilities.hub.largest_areas')}</span>
         {topParents.length ? topParents.map(([parent, count]) => (
           <div key={parent} className={styles.parentRow}>
             <span>{parent}</span>
             <strong>{count}</strong>
           </div>
-        )) : <p className={styles.bodyText}>No parent areas available yet.</p>}
+        )) : <p className={styles.bodyText}>{t('capabilities.hub.no_parent_areas')}</p>}
       </div>
     </section>
   );

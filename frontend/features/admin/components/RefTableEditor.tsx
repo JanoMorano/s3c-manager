@@ -9,7 +9,8 @@
 
 import { useState, useCallback } from 'react';
 import useSWR, { mutate as swrMutate } from 'swr';
-import { COUNT_LABELS, formatCountLabel } from '@/app/lib/counts';
+import { formatCountLabel } from '@/app/lib/counts';
+import { useT } from '@/app/i18n/useI18n';
 import styles from '@/app/admin/ref.module.css';
 
 // ── API types ────────────────────────────────────────────────────────────────
@@ -72,11 +73,12 @@ function colIsFk(col: ColMeta): { fkTable: string } | null {
 
 // ── Cell viewer ───────────────────────────────────────────────────────────────
 function CellView({ col, value }: { col: ColMeta; value: unknown }) {
+  const t = useT();
   if (col.type === 'bool') {
     return (
       <span
         className={`${styles.boolBadge} ${value ? styles.boolTrue : styles.boolFalse}`}
-        title={value ? 'true' : 'false'}
+        title={value ? t('common.yes') : t('common.no')}
       />
     );
   }
@@ -161,6 +163,7 @@ function CellEdit({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function RefTableEditor({ table }: { table: string }) {
+  const t = useT();
   const cacheKey = `/api/v1/ref/${table}`;
   const { data, error, isLoading } = useSWR<RefResponse>(cacheKey, apiFetch);
 
@@ -170,10 +173,10 @@ export function RefTableEditor({ table }: { table: string }) {
   // Load FK options when meta is available
   const ensureFkOptions = useCallback(async (columns: ColMeta[]) => {
     const needed = columns.filter(c => colIsFk(c)).map(c => colIsFk(c)!.fkTable);
-    for (const t of needed) {
-      if (!fkOptions[t]) {
-        const opts = await loadFkOptions(t);
-        setFkOptions(prev => ({ ...prev, [t]: opts }));
+    for (const fkTable of needed) {
+      if (!fkOptions[fkTable]) {
+        const opts = await loadFkOptions(fkTable);
+        setFkOptions(prev => ({ ...prev, [fkTable]: opts }));
       }
     }
   }, [fkOptions]);
@@ -190,8 +193,8 @@ export function RefTableEditor({ table }: { table: string }) {
   const [saveError, setSaveError]   = useState<string | null>(null);
   const [busy,      setBusy]        = useState(false);
 
-  if (isLoading) return <div style={{ padding: 'var(--space-6)', color: 'var(--color-text-muted)' }}>Načítám…</div>;
-  if (error)     return <div style={{ padding: 'var(--space-6)', color: 'var(--color-danger)' }}>Chyba: {error.message}</div>;
+  if (isLoading) return <div style={{ padding: 'var(--space-6)', color: 'var(--color-text-muted)' }}>{t('common.loading')}</div>;
+  if (error)     return <div style={{ padding: 'var(--space-6)', color: 'var(--color-danger)' }}>{t('ref_table.error', { message: error.message })}</div>;
   if (!data)     return null;
 
   const { meta, rows } = data;
@@ -230,7 +233,7 @@ export function RefTableEditor({ table }: { table: string }) {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   async function handleDelete(pk: string) {
-    if (!confirm(`Smazat záznam "${pk}"?`)) return;
+    if (!confirm(t('ref_table.delete_confirm', { pk }))) return;
     setBusy(true); setSaveError(null);
     try {
       await apiCall('DELETE', `/api/v1/ref/${table}/${encodeURIComponent(pk)}`);
@@ -261,13 +264,13 @@ export function RefTableEditor({ table }: { table: string }) {
       <div className={styles.editorToolbar}>
         <span className={styles.editorTitle}>{meta.label}</span>
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-          <span className={styles.editorMeta}>{formatCountLabel(rows.length, COUNT_LABELS.records)}</span>
+          <span className={styles.editorMeta}>{formatCountLabel(rows.length, { one: t('ref_table.count_records.one'), few: t('ref_table.count_records.few'), many: t('ref_table.count_records.many') })}</span>
           {addDraft === null && (
             <button
               className={styles.btnAdd}
               onClick={() => { setAddDraft(emptyRow(meta.columns)); setSaveError(null); }}
             >
-              + Přidat
+              {t('ref_table.add')}
             </button>
           )}
         </div>
@@ -297,10 +300,10 @@ export function RefTableEditor({ table }: { table: string }) {
           ))}
           <div className={styles.addFormActions}>
             <button className={styles.btnAdd} onClick={handleAdd} disabled={busy || !addDraft[pkCol.key]}>
-              Uložit
+              {t('common.save')}
             </button>
             <button className={styles.btnCancel} onClick={() => setAddDraft(null)}>
-              Zrušit
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -314,13 +317,13 @@ export function RefTableEditor({ table }: { table: string }) {
               {meta.columns.map(col => (
                 <th key={col.key}>{col.label}</th>
               ))}
-              <th style={{ width: 120 }}>Akce</th>
+              <th style={{ width: 120 }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr className={styles.emptyRow}>
-                <td colSpan={meta.columns.length + 1}>Žádné záznamy</td>
+                <td colSpan={meta.columns.length + 1}>{t('ref_table.empty')}</td>
               </tr>
             )}
             {rows.map(row => {
@@ -353,10 +356,10 @@ export function RefTableEditor({ table }: { table: string }) {
                       {isEditing ? (
                         <>
                           <button className={styles.btnSave} onClick={() => handleSave(pk)} disabled={busy}>
-                            Uložit
+                            {t('common.save')}
                           </button>
                           <button className={styles.btnCancel} onClick={() => setEditingPk(null)}>
-                            Zrušit
+                            {t('common.cancel')}
                           </button>
                         </>
                       ) : (
@@ -372,10 +375,10 @@ export function RefTableEditor({ table }: { table: string }) {
                               setSaveError(null);
                             }}
                           >
-                            Upravit
+                            {t('common.edit')}
                           </button>
                           <button className={styles.btnDel} onClick={() => handleDelete(pk)} disabled={busy}>
-                            Smazat
+                            {t('common.delete')}
                           </button>
                         </>
                       )}

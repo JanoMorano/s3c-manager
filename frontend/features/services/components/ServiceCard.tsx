@@ -1,8 +1,11 @@
+'use client';
+
 /**
  * ServiceCard — grid-view card for the service catalogue list.
  * Shows: title, short description, lifecycle badge,
  * requestable chip, domain tags, owner avatar and readiness progress bar.
  */
+import { useT } from '@/app/i18n/useI18n';
 import Link from '@/app/components/AppLink';
 import { ProgressBar } from '@/design-system/controls';
 import type { ServiceListItem } from '../model/service.types';
@@ -41,6 +44,7 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service }: ServiceCardProps) {
+  const t = useT();
   const lifecycle = normalizeLifecycleState(service.lifecycle_state ?? service.service_status);
   const lifecycleVariant = LIFECYCLE_COLOR[lifecycle] ?? 'neutral';
   const completeness = service.completeness_score ?? 0;
@@ -55,7 +59,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
       <div className={styles.top}>
         <span className={styles.title}>{service.title}</span>
         <span className={`${styles.lifecycleBadge} ${styles[`lc_${lifecycleVariant}`]}`}>
-          {lifecycle}
+          {t(`service_list.lifecycle.${lifecycle}`)}
         </span>
       </div>
 
@@ -70,7 +74,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <span className={styles.chip}>{service.service_type}</span>
         )}
         {service.requestable && (
-          <span className={`${styles.chip} ${styles.chipRequestable}`}>Requestable</span>
+          <span className={`${styles.chip} ${styles.chipRequestable}`}>{t('service_detail.text.requestable')}</span>
         )}
         {service.portfolio_group && (
           <span className={styles.chip}>{service.portfolio_group}</span>
@@ -92,14 +96,14 @@ export function ServiceCard({ service }: ServiceCardProps) {
               <span className={styles.ownerName}>{ownerName}</span>
             </>
           ) : (
-            <span className={styles.ownerMissing}>No owner</span>
+            <span className={styles.ownerMissing}>{t('service_list.card.no_owner')}</span>
           )}
         </div>
         <div className={styles.readiness}>
           <ProgressBar
             value={completeness}
             tone={readinessTone(completeness)}
-            label={`${service.title} readiness`}
+            label={t('service_list.card.readiness_aria', { title: service.title })}
           />
           <span className={styles.readinessScore}>{completeness}%</span>
         </div>

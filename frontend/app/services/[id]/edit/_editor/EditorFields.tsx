@@ -195,12 +195,14 @@ export function OfferingFormFields({
 }
 
 export function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
+  const t = useT();
   return (
     <div className={styles.field}>
       <label className={styles.label}>{label}</label>
       {hint && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>{hint}</span>}
       {children}
-      {error && <span className={styles.fieldError}>{error}</span>}
+      {/* Validation messages are i18n keys; other messages pass through unchanged. */}
+      {error && <span className={styles.fieldError}>{t(error)}</span>}
     </div>
   );
 }

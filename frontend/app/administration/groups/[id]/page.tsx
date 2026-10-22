@@ -135,7 +135,7 @@ export default function GroupDetailPage() {
       setNewMemberSub('')
       await mutate()
     } catch (err) {
-      setMemberError(err instanceof Error ? err.message : 'Chyba')
+      setMemberError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setMemberAdding(false)
     }
@@ -149,7 +149,7 @@ export default function GroupDetailPage() {
       await removeGroupMember(groupId, userSub)
       await mutate()
     } catch (err) {
-      setMemberError(err instanceof Error ? err.message : 'Chyba')
+      setMemberError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setRemovingId(null)
     }
@@ -399,7 +399,7 @@ function PermSection({ section, checkedPerms, onToggle, onSelectAll, onDeselectA
     <div className={styles.permSection}>
       <div className={styles.permSectionHeader}>
         <span className={styles.permSectionTitle}>
-          {permLabel} ({checkedCount}/{resources.length})
+          {t(permLabel)} ({checkedCount}/{resources.length})
         </span>
         <span className={styles.selectAllRow}>
           <button className={styles.selectAllBtn} onClick={() => onSelectAll(scope, permission, resources)}>
@@ -422,7 +422,7 @@ function PermSection({ section, checkedPerms, onToggle, onSelectAll, onDeselectA
                 checked={checked}
                 onChange={() => onToggle(scope, permission, r.key)}
               />
-              {r.label}
+              {t(r.label)}
             </label>
           )
         })}

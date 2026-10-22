@@ -2,22 +2,22 @@
 /**
  * Service Onboarding Wizard — /management/new-service/page.tsx
  *
- * Multi-step průvodce založením služby do katalogu.
+ * Multi-step wizard for adding a service to the catalogue.
  *
  * Kroky:
  *   1  Identita           — Service ID, Title, Type, Lifecycle
  *   2  Popis a hodnota    — summary, consumer_value
- *   3  Přístup & Audience — requestable, request model, target audience
+ *   3  Access & audience — requestable, request model, target audience
  *   4  Klasifikace        — portfolio, service_line, org_element, security
- *   5  Vlastnictví        — service_owner, vlastnik, manager
- *   6  SLA & Domény       — availability, SLA, domains
- *   7  C3 mapování        — (podmíněno instalací modulu C3_TAXONOMY)
- *   8  Přehled & Vytvoření
+ *   5  Ownership          — service_owner, vlastnik, manager
+ *   6  SLA & domains      — availability, SLA, domains
+ *   7  C3 mapping         — (only when the C3_TAXONOMY module is installed)
+ *   8  Review & create
  *
- * Každé pole má:
- *   - krátkou produktovou nápovědu inline (italic, muted)
- *   - ? tlačítko s delším vysvětlením (Radix Tooltip)
- *   - placeholder v modré kurzívě (ukázkové hodnoty)
+ * Every field has:
+ *   - a short inline hint (italic, muted)
+ *   - a ? button with a longer explanation (Radix Tooltip)
+ *   - a placeholder in blue italics (example values)
  */
 
 import { cloneElement, isValidElement, useState, useCallback, useEffect, useId, useMemo } from 'react';
@@ -366,7 +366,7 @@ function Step2Description({ register }: StepFormProps) {
   );
 }
 
-// ═══ STEP 3 — Přístup & audience ══════════════════════════════════════════════
+// ═══ STEP 3 — Access & audience ══════════════════════════════════════════════
 
 function Step3Access({ register, watch, setValue, errors }: StepFormProps) {
   const t = useT();
@@ -546,7 +546,7 @@ function Step4Classification({ register, portfolioGroups, serviceLines, orgEleme
   );
 }
 
-// ═══ STEP 5 — Vlastnictví ══════════════════════════════════════════════════════
+// ═══ STEP 5 — Ownership ══════════════════════════════════════════════════════
 
 function Step5Ownership({ register, errors }: StepFormProps) {
   const t = useT();
@@ -607,7 +607,7 @@ function Step5Ownership({ register, errors }: StepFormProps) {
   );
 }
 
-// ═══ STEP 6 — SLA & Domény ════════════════════════════════════════════════════
+// ═══ STEP 6 — SLA & domains ════════════════════════════════════════════════════
 
 function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: StepFormProps & {
   domainOptions: string[];
@@ -705,7 +705,7 @@ function Step6Sla({ register, watch, setValue, domainOptions, domainColorMap }: 
   );
 }
 
-// ═══ STEP 7 — C3 Mapování ═════════════════════════════════════════════════════
+// ═══ STEP 7 — C3 mapping ═════════════════════════════════════════════════════
 
 function Step7C3({
   selectedUuids,

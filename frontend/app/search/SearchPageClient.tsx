@@ -6,10 +6,14 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } fr
 import { Search, Star, Trash2 } from 'lucide-react';
 import { fetchGlobalSearch } from '@/features/search/search.api';
 import type { GlobalSearchGroup, GlobalSearchResponse } from '@/features/search/search.types';
+import { resolveCountForm } from '@/app/lib/counts';
+import { useT } from '@/app/i18n/useI18n';
 import styles from './search.module.css';
 
 const RECENT_KEY = 's3c.globalSearch.recent';
 const SAVED_KEY = 's3c.globalSearch.saved';
+// Error marker for failures without a message; translated at render time.
+const SEARCH_FAILED = 'search.failed';
 
 // Recent and saved searches live in localStorage, read through a small
 // external store so server and first client render agree (empty lists).
@@ -67,13 +71,14 @@ interface QueryResult {
   error: string | null;
 }
 
-function groupHeading(group: GlobalSearchGroup) {
-  if (group.kind === 'help') return 'Help';
+function groupHeading(group: GlobalSearchGroup, t: (key: string) => string) {
+  if (group.kind === 'help') return t('search.group_help');
   if (group.module_label && group.module_label !== group.label) return `${group.module_label} - ${group.label}`;
   return group.label;
 }
 
 export default function SearchPageClient() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlQuery = searchParams?.get('query') ?? '';
@@ -95,7 +100,7 @@ export default function SearchPageClient() {
   const activeQuery = urlQuery.trim();
   const currentSearch = searchResult?.query === activeQuery ? searchResult : null;
   const results = currentSearch?.payload ?? null;
-  const error = currentSearch?.error ?? null;
+  const error = currentSearch?.error === SEARCH_FAILED ? t('search.failed') : currentSearch?.error ?? null;
   const busy = activeQuery.length >= 2 && !currentSearch;
 
   useEffect(() => {
@@ -111,7 +116,7 @@ export default function SearchPageClient() {
       })
       .catch((err: unknown) => {
         if (!controller.signal.aborted) {
-          setSearchResult({ query, payload: null, error: err instanceof Error ? err.message : 'Search failed' });
+          setSearchResult({ query, payload: null, error: err instanceof Error ? err.message : SEARCH_FAILED });
         }
       });
 
@@ -189,10 +194,10 @@ export default function SearchPageClient() {
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>Global search</div>
-          <h1 className={styles.title}>Search across S3C Manager</h1>
+          <div className={styles.eyebrow}>{t('search.eyebrow')}</div>
+          <h1 className={styles.title}>{t('search.title')}</h1>
           <p className={styles.subtitle}>
-            Every word is matched across services, C3, management records, application pages and help content.
+            {t('search.subtitle')}
           </p>
         </div>
       </header>
@@ -207,24 +212,24 @@ export default function SearchPageClient() {
             setInput(event.target.value);
             setSuggestionsOpen(true);
           }}
-          placeholder="Search any word across services, C3, management, pages or help..."
-          aria-label="Global search query"
+          placeholder={t('search.placeholder')}
+          aria-label={t('search.input_aria')}
         />
         <button className={styles.searchButton} type="submit">
           <Search size={16} aria-hidden="true" />
-          Search
+          {t('common.search')}
         </button>
       </form>
 
       {showSuggestions && (
-        <section className={styles.suggestions} aria-label="Search suggestions">
-          {suggestionsBusy && <div className={styles.suggestionState}>Searching all modules...</div>}
+        <section className={styles.suggestions} aria-label={t('search.suggestions_aria')}>
+          {suggestionsBusy && <div className={styles.suggestionState}>{t('search.suggestions_busy')}</div>}
           {!suggestionsBusy && suggestions && suggestions.total === 0 && (
-            <div className={styles.suggestionState}>No live matches yet.</div>
+            <div className={styles.suggestionState}>{t('search.suggestions_empty')}</div>
           )}
           {!suggestionsBusy && suggestions && suggestions.total > 0 && suggestions.groups.map((group) => (
             <div key={group.key} className={styles.suggestionGroup}>
-              <div className={styles.suggestionGroupTitle}>{groupHeading(group)}</div>
+              <div className={styles.suggestionGroupTitle}>{groupHeading(group, t)}</div>
               <div className={styles.suggestionItems}>
                 {group.items.map((item) => (
                   <button
@@ -248,19 +253,19 @@ export default function SearchPageClient() {
             onMouseDown={(event) => event.preventDefault()}
             onClick={openInputQuery}
           >
-            Open all grouped results for “{input.trim()}”
+            {t('search.open_all', { query: input.trim() })}
           </button>
         </section>
       )}
 
       {!hasQuery && (
         <section className={styles.emptyState}>
-          <p>Enter at least two characters. Multi-word queries are split into words and matched across the full application index.</p>
+          <p>{t('search.empty_hint')}</p>
           {recent.length > 0 && (
             <div className={styles.recentSection}>
               <div className={styles.recentHeader}>
-                <span className={styles.recentLabel}>Recent searches</span>
-                <button type="button" className={styles.recentClear} onClick={clearRecent}>Clear</button>
+                <span className={styles.recentLabel}>{t('search.recent')}</span>
+                <button type="button" className={styles.recentClear} onClick={clearRecent}>{t('search.clear')}</button>
               </div>
               <div className={styles.recentChips}>
                 {recent.map((query) => (
@@ -273,7 +278,7 @@ export default function SearchPageClient() {
           )}
           {saved.length > 0 && (
             <div className={styles.savedSection}>
-              <div className={styles.recentLabel}>Saved searches</div>
+              <div className={styles.recentLabel}>{t('search.saved_searches')}</div>
               <div className={styles.savedList}>
                 {saved.map((query) => (
                   <div key={query} className={styles.savedRow}>
@@ -281,7 +286,7 @@ export default function SearchPageClient() {
                       <Star size={14} aria-hidden="true" />
                       <strong>{query}</strong>
                     </button>
-                    <button type="button" className={styles.savedDelete} onClick={() => deleteSaved(query)}>
+                    <button type="button" className={styles.savedDelete} onClick={() => deleteSaved(query)} aria-label={t('search.delete_saved', { query })}>
                       <Trash2 size={14} aria-hidden="true" />
                     </button>
                   </div>
@@ -296,22 +301,24 @@ export default function SearchPageClient() {
         <section className={styles.resultsWrap} aria-live="polite">
           <div className={styles.summary}>
             <span>
-              {busy ? 'Searching...' : `${results?.total ?? 0} results for "${urlQuery.trim()}"`}
+              {busy
+                ? t('search.searching')
+                : t(resolveCountForm(results?.total ?? 0, { one: 'search.results_for.one', few: 'search.results_for.few', many: 'search.results_for.many' }), { count: results?.total ?? 0, query: urlQuery.trim() })}
             </span>
             <button type="button" className={styles.saveSearchButton} onClick={saveSearch} disabled={savedCurrent || !urlQuery.trim()}>
-              {savedCurrent ? 'Saved' : 'Save search'}
+              {savedCurrent ? t('search.saved') : t('search.save')}
             </button>
           </div>
 
           {error && <div className={styles.error}>{error}</div>}
           {!busy && !error && results && results.total === 0 && (
-            <div className={styles.emptyState}>No results found in modules or help.</div>
+            <div className={styles.emptyState}>{t('search.no_results')}</div>
           )}
           {!error && results?.groups.map((group) => (
             <section key={group.key} className={styles.group}>
               <div className={styles.groupHeader}>
-                <h2 className={styles.groupTitle}>{groupHeading(group)}</h2>
-                <span className={styles.groupCount}>{group.items.length} items</span>
+                <h2 className={styles.groupTitle}>{groupHeading(group, t)}</h2>
+                <span className={styles.groupCount}>{t(resolveCountForm(group.items.length, { one: 'search.group_items.one', few: 'search.group_items.few', many: 'search.group_items.many' }), { count: group.items.length })}</span>
               </div>
               <div className={styles.groupList}>
                 {group.items.map((item) => (

@@ -1,7 +1,10 @@
+'use client';
+
 /**
  * §6.2 AvailabilityBadge — §2.2: availability = badge. One pattern.
  * Accepts numeric SLA % or string level (high/medium/low).
  */
+import { useT } from '@/app/i18n/useI18n';
 import { cn } from '@/shared/utils/cn';
 import styles from './AvailabilityBadge.module.css';
 
@@ -21,11 +24,12 @@ interface AvailabilityBadgeProps {
 }
 
 export function AvailabilityBadge({ level, pct, showLabel = true }: AvailabilityBadgeProps) {
+  const t = useT();
   const resolved: Level = level ?? pctToLevel(pct);
   const LABELS: Record<Level, string> = {
-    high:   pct != null ? `${pct}%` : 'High',
-    medium: pct != null ? `${pct}%` : 'Medium',
-    low:    pct != null ? `${pct}%` : 'Low',
+    high:   pct != null ? `${pct}%` : t('sla_panel.level.high'),
+    medium: pct != null ? `${pct}%` : t('sla_panel.level.medium'),
+    low:    pct != null ? `${pct}%` : t('sla_panel.level.low'),
   };
   return (
     <span className={cn(styles.badge, styles[resolved])}>

@@ -18,15 +18,16 @@ export const C3_ROUTES = {
   legacyApplications: '/admin/c3-application',
 } as const;
 
+// labelKey is an i18n key; translate it with t() at render time.
 export const C3_TAXONOMY_TYPE_OPTIONS = [
-  { code: 'BP', label: 'C3 Business Processes' },
-  { code: 'BR', label: 'C3 Business Roles' },
-  { code: 'CP', label: 'C3 Capabilities' },
-  { code: 'CI', label: 'C3 COI Services' },
-  { code: 'CO', label: 'C3 Communication Services' },
-  { code: 'CR', label: 'C3 Core Services' },
-  { code: 'IP', label: 'C3 Information Products' },
-  { code: 'UA', label: 'C3 User Application' },
+  { code: 'BP', labelKey: 'c3.list.type.BP' },
+  { code: 'BR', labelKey: 'c3.list.type.BR' },
+  { code: 'CP', labelKey: 'c3.list.type.CP' },
+  { code: 'CI', labelKey: 'c3.list.type.CI' },
+  { code: 'CO', labelKey: 'c3.list.type.CO' },
+  { code: 'CR', labelKey: 'c3.list.type.CR' },
+  { code: 'IP', labelKey: 'c3.list.type.IP' },
+  { code: 'UA', labelKey: 'c3.list.type.UA' },
 ] as const;
 
 const C3_TAXONOMY_SORT_STORAGE_KEY = 'c3_taxonomy_list_sort';
@@ -59,8 +60,9 @@ export function buildC3TaxonomyListHref(itemType?: string) {
   return query ? `${C3_ROUTES.list}?${query}` : C3_ROUTES.list;
 }
 
-export function getC3TaxonomyTypeLabel(itemType?: string | null) {
-  return C3_TAXONOMY_TYPE_OPTIONS.find((option) => option.code === itemType)?.label ?? null;
+export function getC3TaxonomyTypeLabel(itemType: string | null | undefined, t: (key: string) => string) {
+  const labelKey = C3_TAXONOMY_TYPE_OPTIONS.find((option) => option.code === itemType)?.labelKey;
+  return labelKey ? t(labelKey) : null;
 }
 
 export function normalizeLegacyC3Path(pathname: string) {

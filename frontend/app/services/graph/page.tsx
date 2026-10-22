@@ -59,8 +59,8 @@ function relationLabel(edge: GraphOverviewEdge, t: (key: string) => string) {
   return edge.relation_type ? t(relationTypeLabelKey(edge.relation_type)) : edge.edge_kind.replace(/_/g, ' ');
 }
 
-function groupLabel(node: GraphOverviewNode) {
-  return node.portfolio_group || 'No portfolio';
+function groupLabel(node: GraphOverviewNode, noPortfolioLabel: string) {
+  return node.portfolio_group || noPortfolioLabel;
 }
 
 function toFlowNode(
@@ -69,6 +69,7 @@ function toFlowNode(
   selectedNodeId: string | null,
   highlight: GraphHighlight | null,
   onSelectNode: (node: GraphOverviewNode) => void,
+  noPortfolioLabel: string,
   portfolio?: string,
 ): Node<ServiceGraphNodeData> {
   const dimmed = highlight !== null && !highlight.nodeIds.has(node.id);
@@ -86,7 +87,7 @@ function toFlowNode(
         code: node.service_id ?? node.code ?? node.id,
         title: node.title,
         status: node.service_status ?? node.status ?? 'draft',
-        meta: [portfolioGroup ?? 'No portfolio'],
+        meta: [portfolioGroup ?? noPortfolioLabel],
         selected: selectedNodeId === node.id,
         onSelect: () => onSelectNode(node),
       },
@@ -94,12 +95,12 @@ function toFlowNode(
   };
 }
 
-function computeDependencyPositions(items: GraphOverviewNode[], relations: GraphOverviewEdge[], locale: string) {
+function computeDependencyPositions(items: GraphOverviewNode[], relations: GraphOverviewEdge[], locale: string, noPortfolioLabel: string) {
   // Stable input order keeps dagre's placement deterministic between renders.
   const ordered = items.slice().sort((a, b) => compareText(
     locale,
-    `${groupLabel(a)} ${a.service_id ?? ''}`,
-    `${groupLabel(b)} ${b.service_id ?? ''}`,
+    `${groupLabel(a, noPortfolioLabel)} ${a.service_id ?? ''}`,
+    `${groupLabel(b, noPortfolioLabel)} ${b.service_id ?? ''}`,
     { numeric: true, sensitivity: 'base' },
   ));
   return layoutByDependency(
@@ -114,8 +115,9 @@ function layoutNodesByDependency(
   selectedNodeId: string | null,
   highlight: GraphHighlight | null,
   onSelectNode: (node: GraphOverviewNode) => void,
+  noPortfolioLabel: string,
 ): Node<ServiceGraphNodeData>[] {
-  return items.map((node) => toFlowNode(node, positions.get(node.id) ?? { x: 0, y: 0 }, selectedNodeId, highlight, onSelectNode));
+  return items.map((node) => toFlowNode(node, positions.get(node.id) ?? { x: 0, y: 0 }, selectedNodeId, highlight, onSelectNode, noPortfolioLabel));
 }
 
 function layoutNodesByPortfolio(
@@ -124,10 +126,11 @@ function layoutNodesByPortfolio(
   highlight: GraphHighlight | null,
   onSelectNode: (node: GraphOverviewNode) => void,
   locale: string,
+  noPortfolioLabel: string,
 ): Node<ServiceGraphNodeData>[] {
   const groups = Array.from(
     items.reduce((map, node) => {
-      const key = groupLabel(node);
+      const key = groupLabel(node, noPortfolioLabel);
       map.set(key, [...(map.get(key) ?? []), node]);
       return map;
     }, new Map<string, GraphOverviewNode[]>()),
@@ -147,7 +150,7 @@ function layoutNodesByPortfolio(
       return toFlowNode(node, {
         x: (groupIndex * COLUMN_GAP) + (lane * (NODE_WIDTH + 36)),
         y: row * ROW_GAP,
-      }, selectedNodeId, highlight, onSelectNode, portfolio);
+      }, selectedNodeId, highlight, onSelectNode, noPortfolioLabel, portfolio);
     });
   });
 }
@@ -212,6 +215,7 @@ export default function ServicesGraphPage() {
   const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useT();
+  const noPortfolioLabel = t('service_graph.no_portfolio');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [portfolioFilter, setPortfolioFilter] = useState('');
@@ -263,14 +267,14 @@ export default function ServicesGraphPage() {
     [highlightDepth, relations, selectedNode?.id],
   );
   const dependencyPositions = useMemo(
-    () => (layoutMode === 'dependency' ? computeDependencyPositions(services, relations, locale) : null),
-    [layoutMode, locale, relations, services],
+    () => (layoutMode === 'dependency' ? computeDependencyPositions(services, relations, locale, noPortfolioLabel) : null),
+    [layoutMode, locale, noPortfolioLabel, relations, services],
   );
   const initialNodes = useMemo(
     () => applyNodePositions(dependencyPositions
-      ? layoutNodesByDependency(services, dependencyPositions, selectedNode?.id ?? null, highlight, onSelectNode)
-      : layoutNodesByPortfolio(services, selectedNode?.id ?? null, highlight, onSelectNode, locale), layout.positions),
-    [dependencyPositions, highlight, layout.positions, locale, onSelectNode, selectedNode?.id, services],
+      ? layoutNodesByDependency(services, dependencyPositions, selectedNode?.id ?? null, highlight, onSelectNode, noPortfolioLabel)
+      : layoutNodesByPortfolio(services, selectedNode?.id ?? null, highlight, onSelectNode, locale, noPortfolioLabel), layout.positions),
+    [dependencyPositions, highlight, layout.positions, locale, noPortfolioLabel, onSelectNode, selectedNode?.id, services],
   );
   const initialEdges = useMemo(
     () => layoutEdges(relations, edgeType, lineStyleMode, highlight),
@@ -290,9 +294,9 @@ export default function ServicesGraphPage() {
 
   const nodeCountsByPortfolio = useMemo(() => {
     const counts = new Map<string, number>();
-    services.forEach((node) => counts.set(groupLabel(node), (counts.get(groupLabel(node)) ?? 0) + 1));
+    services.forEach((node) => counts.set(groupLabel(node, noPortfolioLabel), (counts.get(groupLabel(node, noPortfolioLabel)) ?? 0) + 1));
     return Array.from(counts.entries()).sort((a, b) => compareText(locale, a[0], b[0], { sensitivity: 'base' }));
-  }, [locale, services]);
+  }, [locale, noPortfolioLabel, services]);
 
   const mandatoryCount = relations.filter((edge) => edge.is_mandatory).length;
   const unverifiedCount = relations.filter((edge) => edge.is_verified === false).length;
@@ -323,40 +327,40 @@ export default function ServicesGraphPage() {
     setSelectedNode(null);
   }, []);
 
-  if (isLoading) return <div className={shellStyles.state}>Načítám graf služeb…</div>;
-  if (error || !data) return <div className={shellStyles.stateError}>Graf služeb není dostupný.</div>;
+  if (isLoading) return <div className={shellStyles.state}>{t('service_graph.text.loading_service_graph')}</div>;
+  if (error || !data) return <div className={shellStyles.stateError}>{t('service_graph.text.service_graph_is_not_available')}</div>;
 
   return (
     <GraphWorkspace
-      title="Service graph"
-      purpose="Pohled na vazby mezi službami. Dvojklik na uzel otevře detail služby."
+      title={t('service_graph.text.service_graph')}
+      purpose={t('service_graph.overview.purpose')}
       canvasOnly={canvasOnly}
       detailOpen={detailOpen}
       showWorkspaceActions={false}
       toolbar={(
         <>
-          <FilterGroup label="Pohledy">
-            <Link href="/services/list" className={shellStyles.panelLink}>Seznam Služeb</Link>
+          <FilterGroup label={t('service_graph.text.pohledy')}>
+            <Link href="/services/list" className={shellStyles.panelLink}>{t('service_graph.text.service_list')}</Link>
             <button
               type="button"
               className={`${shellStyles.viewModeButton} ${viewMode === 'graph-only' ? shellStyles.viewModeButtonActive : ''}`}
               onClick={() => selectViewMode('graph-only')}
             >
-              Pouze graf
+              {t('service_graph.text.graph_only')}
             </button>
             <button
               type="button"
               className={`${shellStyles.viewModeButton} ${viewMode === 'text' ? shellStyles.viewModeButtonActive : ''}`}
               onClick={() => selectViewMode('text')}
             >
-              Vazby textově
+              {t('service_graph.text.text_relationships')}
             </button>
             <button
               type="button"
               className={`${shellStyles.viewModeButton} ${viewMode === 'detail' ? shellStyles.viewModeButtonActive : ''}`}
               onClick={() => selectViewMode('detail')}
             >
-              Detail
+              {t('service_graph.text.detail')}
             </button>
           </FilterGroup>
 
@@ -394,14 +398,14 @@ export default function ServicesGraphPage() {
             <div className={shellStyles.meta}>{t('graph.filter.shown', { count: services.length })}</div>
           </FilterGroup>
 
-          <FilterGroup label="Souhrn">
-            <div className={shellStyles.meta}>Services: {services.length}</div>
-            <div className={shellStyles.meta}>Relations: {relations.length}</div>
-            <div className={shellStyles.meta}>Mandatory: {mandatoryCount}</div>
-            <div className={shellStyles.meta}>Unverified: {unverifiedCount}</div>
+          <FilterGroup label={t('service_graph.text.souhrn')}>
+            <div className={shellStyles.meta}>{t('service_graph.overview.summary_services', { count: services.length })}</div>
+            <div className={shellStyles.meta}>{t('service_graph.overview.summary_relations', { count: relations.length })}</div>
+            <div className={shellStyles.meta}>{t('service_graph.overview.summary_mandatory', { count: mandatoryCount })}</div>
+            <div className={shellStyles.meta}>{t('service_graph.overview.summary_unverified', { count: unverifiedCount })}</div>
           </FilterGroup>
 
-          <FilterGroup label="Portfolio">
+          <FilterGroup label={t('service_graph.text.portfolio')}>
             {nodeCountsByPortfolio.slice(0, 12).map(([portfolio, count]) => (
               <div key={portfolio} className={shellStyles.meta}>{portfolio}: {count}</div>
             ))}
@@ -442,31 +446,31 @@ export default function ServicesGraphPage() {
             </div>
           </FilterGroup>
 
-          <FilterGroup label="Typ spojnic">
+          <FilterGroup label={t('service_graph.text.typ_spojnic')}>
             <div className={shellStyles.typeList}>
               <button
                 type="button"
                 className={`${shellStyles.typeBtn} ${edgeType === 'smoothstep' ? shellStyles.typeBtnOn : ''}`}
                 onClick={() => setEdgeType('smoothstep')}
               >
-                Pravoúhlé
+                {t('service_graph.text.orthogonal')}
               </button>
               <button
                 type="button"
                 className={`${shellStyles.typeBtn} ${edgeType === 'straight' ? shellStyles.typeBtnOn : ''}`}
                 onClick={() => setEdgeType('straight')}
               >
-                Přímé
+                {t('service_graph.text.direct')}
               </button>
             </div>
           </FilterGroup>
 
-          <FilterGroup label="Styl čar">
+          <FilterGroup label={t('service_graph.text.line_style')}>
             <div className={shellStyles.typeList}>
               {[
-                { value: 'auto', label: 'Dle vazby' },
-                { value: 'solid', label: 'Plné' },
-                { value: 'dashed', label: 'Čárkované' },
+                { value: 'auto', label: t('service_graph.text.by_relation') },
+                { value: 'solid', label: t('service_graph.text.full') },
+                { value: 'dashed', label: t('service_graph.text.dashed') },
               ].map((option) => (
                 <button
                   key={option.value}
@@ -484,12 +488,12 @@ export default function ServicesGraphPage() {
       canvas={(
         <main className={`${shellStyles.main} ${canvasOnly ? shellStyles.mainGraphOnly : ''}`}>
           <div className={shellStyles.header}>
-            <div className={shellStyles.title}>Services Graph</div>
-            <div className={shellStyles.meta}>{services.length} services · {relations.length} relationships</div>
-            {performanceMode && <div className={shellStyles.performanceBadge}>Large graph mode</div>}
+            <div className={shellStyles.title}>{t('service_graph.text.service_graph')}</div>
+            <div className={shellStyles.meta}>{t('service_graph.overview.meta', { services: services.length, relations: relations.length })}</div>
+            {performanceMode && <div className={shellStyles.performanceBadge}>{t('service_graph.overview.large_graph')}</div>}
           </div>
           <div className={shellStyles.canvasWrap}>
-            <div className={shellStyles.canvas} role="region" aria-label="Interactive service relationship graph">
+            <div className={shellStyles.canvas} role="region" aria-label={t('service_graph.overview.canvas_aria')}>
               <GraphCanvas
                 nodes={nodes}
                 edges={edges}
@@ -512,9 +516,9 @@ export default function ServicesGraphPage() {
             aria-labelledby="service-graph-text-alt"
           >
             <div className={shellStyles.graphTextHeader}>
-              <h2 id="service-graph-text-alt">Textová alternativa vazeb</h2>
+              <h2 id="service-graph-text-alt">{t('service_graph.text.text_alternative_for_relations')}</h2>
               <div className={shellStyles.graphTextHeaderActions}>
-                <span>{relations.length} vazeb, zobrazeno {Math.min(textRelationRows.length, 200)}</span>
+                <span>{t('service_graph.text_alt_count', { total: relations.length, shown: Math.min(textRelationRows.length, 200) })}</span>
               </div>
             </div>
             {textRelationRows.length > 0 ? (
@@ -523,16 +527,16 @@ export default function ServicesGraphPage() {
                   <li key={relation.id}>
                     <strong>{relation.source?.title ?? relation.source?.service_id ?? relation.id}</strong>
                     <span>{relation.label}</span>
-                    <strong>{relation.target?.title ?? relation.target?.service_id ?? 'Unknown target'}</strong>
+                    <strong>{relation.target?.title ?? relation.target?.service_id ?? t('service_graph.text.unknown_target')}</strong>
                     <small>
-                      {relation.mandatory ? 'mandatory' : 'optional'} · {relation.verified ? 'verified' : 'unverified'}
+                      {relation.mandatory ? t('service_graph.relation.mandatory') : t('service_graph.relation.optional')} · {relation.verified ? t('service_graph.relation.verified') : t('service_graph.relation.unverified')}
                     </small>
                   </li>
                 ))}
               </ul>
             ) : null}
             {textRelationRows.length === 0 ? (
-              <p id="service-graph-text-alt-content" className={shellStyles.meta}>Žádné service-to-service vazby nejsou evidované.</p>
+              <p id="service-graph-text-alt-content" className={shellStyles.meta}>{t('service_graph.overview.no_relations')}</p>
             ) : null}
           </section>
           ) : null}
@@ -541,35 +545,35 @@ export default function ServicesGraphPage() {
       detailPanelContent={(
         <>
           <div className={shellStyles.panelHeader}>
-            <div className={shellStyles.panelTitle}>Detail</div>
+            <div className={shellStyles.panelTitle}>{t('service_graph.text.detail')}</div>
           </div>
           <div className={shellStyles.panelBody}>
             {selectedNode ? (
               <>
-                <PanelRow label="Service ID">{selectedNode.service_id ?? selectedNode.code ?? selectedNode.id}</PanelRow>
-                <PanelRow label="Title">{selectedNode.title}</PanelRow>
-                <PanelRow label="Status">{selectedNode.service_status ?? selectedNode.status ?? '—'}</PanelRow>
-                <PanelRow label="Portfolio">{selectedNode.portfolio_group ?? '—'}</PanelRow>
-                <PanelRow label="Type">{selectedNode.service_type ?? '—'}</PanelRow>
+                <PanelRow label={t('service_graph.field.service_id')}>{selectedNode.service_id ?? selectedNode.code ?? selectedNode.id}</PanelRow>
+                <PanelRow label={t('service_graph.field.title')}>{selectedNode.title}</PanelRow>
+                <PanelRow label={t('service_graph.text.status')}>{selectedNode.service_status ?? selectedNode.status ?? '—'}</PanelRow>
+                <PanelRow label={t('service_graph.text.portfolio')}>{selectedNode.portfolio_group ?? '—'}</PanelRow>
+                <PanelRow label={t('service_graph.text.typ')}>{selectedNode.service_type ?? '—'}</PanelRow>
                 <PanelRow label="SLA">{selectedNode.sla_availability != null ? `${selectedNode.sla_availability}%` : '—'}</PanelRow>
-                <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}`} className={shellStyles.panelLink}>Otevřít detail služby →</Link>
-                <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}/graph`} className={shellStyles.panelLink}>Otevřít detailní graf →</Link>
+                <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}`} className={shellStyles.panelLink}>{t('service_graph.overview.open_service_detail')}</Link>
+                <Link href={`/services/${encodeURIComponent(serviceNodeKey(selectedNode))}/graph`} className={shellStyles.panelLink}>{t('service_graph.overview.open_detail_graph')}</Link>
               </>
             ) : null}
 
             {selectedEdge ? (
               <>
-                <PanelRow label="Relation">{relationLabel(selectedEdge, t)}</PanelRow>
-                <PanelRow label="Type">{t(relationTypeLabelKey(selectedEdge.relation_type))}</PanelRow>
-                <PanelRow label="Mandatory">{selectedEdge.is_mandatory ? 'Ano' : 'Ne'}</PanelRow>
-                <PanelRow label="Verified">{selectedEdge.is_verified ? 'Ano' : 'Ne'}</PanelRow>
-                <PanelRow label="Impact">{selectedEdge.impact_level ?? '—'}</PanelRow>
+                <PanelRow label={t('service_graph.field.relation')}>{relationLabel(selectedEdge, t)}</PanelRow>
+                <PanelRow label={t('service_graph.text.typ')}>{t(relationTypeLabelKey(selectedEdge.relation_type))}</PanelRow>
+                <PanelRow label={t('service_graph.text.mandatory')}>{selectedEdge.is_mandatory ? t('common.yes') : t('common.no')}</PanelRow>
+                <PanelRow label={t('service_graph.field.verified')}>{selectedEdge.is_verified ? t('common.yes') : t('common.no')}</PanelRow>
+                <PanelRow label={t('service_graph.text.impact')}>{selectedEdge.impact_level ?? '—'}</PanelRow>
               </>
             ) : null}
 
             {!selectedNode && !selectedEdge ? (
               <div className={shellStyles.meta}>
-                Klikni na službu nebo vazbu. Dvojklik na službu otevře detail, odkud lze jít do konkrétního dependency graphu.
+                {t('service_graph.overview.empty_hint')}
               </div>
             ) : null}
           </div>

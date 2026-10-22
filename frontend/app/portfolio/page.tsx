@@ -7,6 +7,8 @@ import { Badge, EmptyState } from '@/design-system/controls';
 import type { BadgeVariant } from '@/design-system/controls';
 import { usePortfolioCapabilities, usePortfolioList, usePortfolioServiceScope } from '@/features/services/hooks/useServices';
 import type { ServicePortfolioLevel3Capability, ServicePortfolioService } from '@/features/services/model/service.types';
+import { useT } from '@/app/i18n/useI18n';
+import { resolveCountForm } from '@/app/lib/counts';
 import styles from './portfolio.module.css';
 
 type PortfolioServiceFilter =
@@ -20,8 +22,14 @@ type PortfolioServiceFilter =
   | 'missing_owner'
   | 'readiness_blocked';
 
+type Translate = ReturnType<typeof useT>;
+
 function formatNumber(value: number | null | undefined) {
   return Number(value ?? 0).toLocaleString('en');
+}
+
+function countKey(base: string, value: number) {
+  return `${base}.${resolveCountForm(value, { one: 'one', few: 'few', many: 'many' })}`;
 }
 
 function statusTone(status: string | null | undefined): BadgeVariant {
@@ -48,8 +56,8 @@ function statusSortValue(status: string | null | undefined) {
   return order[normalized] ?? 90;
 }
 
-function spiralLabel(value: string | null | undefined) {
-  return value ? value.replace('_', ' ') : 'Spirála chybí';
+function spiralLabel(value: string | null | undefined, t: Translate) {
+  return value ? value.replace('_', ' ') : t('portfolio.spiral_missing');
 }
 
 function spiralSortValue(value: string | null | undefined) {
@@ -63,10 +71,10 @@ function isReviewOverdue(value: string | null | undefined) {
   return Number.isFinite(due.getTime()) && due.getTime() < Date.now();
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return 'termín chybí';
+function formatDate(value: string | null | undefined, t: Translate) {
+  if (!value) return t('portfolio.due_missing');
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'termín chybí';
+  if (!Number.isFinite(date.getTime())) return t('portfolio.due_missing');
   return date.toLocaleDateString('cs-CZ');
 }
 
@@ -79,8 +87,8 @@ function completenessTone(score: number | null | undefined): BadgeVariant {
   return 'danger';
 }
 
-function completenessLabel(score: number | null | undefined) {
-  return `Úplnost ${Math.round(Number(score ?? 0))} %`;
+function completenessLabel(score: number | null | undefined, t: Translate) {
+  return t('portfolio.completeness', { score: Math.round(Number(score ?? 0)) });
 }
 
 function serviceOwner(service: ServicePortfolioService) {
@@ -91,11 +99,11 @@ function serviceHasMissingOwner(service: ServicePortfolioService) {
   return Boolean(service.owner_missing) || !serviceOwner(service);
 }
 
-function serviceMeta(service: ServicePortfolioService) {
+function serviceMeta(service: ServicePortfolioService, t: Translate) {
   const tags = [
     service.service_id,
-    service.service_type ?? 'typ chybí',
-    service.primary_capability_title ?? service.primary_capability_code ?? 'schopnost chybí',
+    service.service_type ?? t('portfolio.type_missing'),
+    service.primary_capability_title ?? service.primary_capability_code ?? t('portfolio.capability_missing'),
   ];
   return tags.filter(Boolean).join(' · ');
 }
@@ -104,38 +112,38 @@ function capabilityServices(capability: ServicePortfolioLevel3Capability) {
   return capability.services ?? [];
 }
 
-function capabilityAction(capability: ServicePortfolioLevel3Capability): { label: string; detail: string; tone: BadgeVariant } {
+function capabilityAction(capability: ServicePortfolioLevel3Capability, t: Translate): { label: string; detail: string; tone: BadgeVariant } {
   if (Number(capability.service_count ?? 0) === 0) {
     return {
-      label: 'Prázdná schopnost',
-      detail: 'C3 level 3 schopnost je v portfoliu, ale zatím na ni není namapovaná žádná služba.',
+      label: t('portfolio.action.empty.label'),
+      detail: t('portfolio.action.empty.detail'),
       tone: 'warning',
     };
   }
   if (Number(capability.readiness_blocker_count ?? 0) > 0) {
     return {
-      label: 'Řešit připravenost',
-      detail: 'Některé mapované služby nejsou připravené na řízení nebo publikaci.',
+      label: t('portfolio.action.readiness.label'),
+      detail: t('portfolio.action.readiness.detail'),
       tone: 'danger',
     };
   }
   if (Number(capability.missing_owner_count ?? 0) > 0) {
     return {
-      label: 'Doplnit vlastníka',
-      detail: 'Některé mapované služby nemají aktivního vlastníka služby.',
+      label: t('portfolio.action.owner.label'),
+      detail: t('portfolio.action.owner.detail'),
       tone: 'warning',
     };
   }
   if (Number(capability.overdue_review_count ?? 0) > 0) {
     return {
-      label: 'Revize po termínu',
-      detail: 'Některé mapované služby potřebují aktualizovat termíny revizí.',
+      label: t('portfolio.action.review.label'),
+      detail: t('portfolio.action.review.detail'),
       tone: 'danger',
     };
   }
   return {
-    label: 'Schopnost pokrytá',
-    detail: 'C3 level 3 schopnost má mapované služby bez hlavních viditelných bloků.',
+    label: t('portfolio.action.covered.label'),
+    detail: t('portfolio.action.covered.detail'),
     tone: 'success',
   };
 }
@@ -180,6 +188,7 @@ function KpiFilterButton({
 }
 
 export default function PortfolioPage() {
+  const t = useT();
   const { data, isLoading, error } = usePortfolioList();
   const {
     data: capabilitiesData,
@@ -266,15 +275,15 @@ export default function PortfolioPage() {
     hint: string;
     tone: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
   }> = [
-    { id: 'all', label: 'Služby', value: serviceTotals.services, hint: 'Všechny služby mapované na C3 level 3 schopnosti', tone: 'info' },
-    { id: 'active', label: 'Aktivní', value: serviceTotals.active, hint: 'Služby v provozu, které tvoří současnou hodnotu', tone: 'success' },
-    { id: 'planned', label: 'Návrh/design', value: serviceTotals.planned, hint: 'Služby ve vzniku nebo přípravě změny', tone: 'warning' },
-    { id: 'retiring', label: 'Končící', value: serviceTotals.retiring, hint: 'Služby ve stavu ukončování, zastarání nebo ukončeno', tone: 'neutral' },
-    { id: 'requestable', label: 'Objednatelné', value: serviceTotals.requestable, hint: 'Služby s katalogovým vstupem pro poptávku', tone: 'neutral' },
-    { id: 'overdue', label: 'Po termínu revize', value: serviceTotals.overdue, hint: 'Služby čekající na governance revizi', tone: serviceTotals.overdue > 0 ? 'danger' : 'success' },
-    { id: 'due_soon', label: 'Revize do 90 dnů', value: serviceTotals.dueSoon, hint: 'Služby, které bude potřeba brzy znovu potvrdit', tone: serviceTotals.dueSoon > 0 ? 'warning' : 'success' },
-    { id: 'missing_owner', label: 'Chybí vlastník', value: serviceTotals.missingOwner, hint: 'Služby bez aktivního vlastníka služby', tone: serviceTotals.missingOwner > 0 ? 'danger' : 'success' },
-    { id: 'readiness_blocked', label: 'Blokery připravenosti', value: serviceTotals.readinessBlocked, hint: 'Služby s nesplněným blokujícím pravidlem připravenosti', tone: serviceTotals.readinessBlocked > 0 ? 'danger' : 'success' },
+    { id: 'all', label: t('portfolio.filter.all.label'), value: serviceTotals.services, hint: t('portfolio.filter.all.hint'), tone: 'info' },
+    { id: 'active', label: t('common.active'), value: serviceTotals.active, hint: t('portfolio.filter.active.hint'), tone: 'success' },
+    { id: 'planned', label: t('portfolio.filter.planned.label'), value: serviceTotals.planned, hint: t('portfolio.filter.planned.hint'), tone: 'warning' },
+    { id: 'retiring', label: t('portfolio.filter.retiring.label'), value: serviceTotals.retiring, hint: t('portfolio.filter.retiring.hint'), tone: 'neutral' },
+    { id: 'requestable', label: t('service_list.row.requestable'), value: serviceTotals.requestable, hint: t('portfolio.filter.requestable.hint'), tone: 'neutral' },
+    { id: 'overdue', label: t('portfolio.filter.overdue.label'), value: serviceTotals.overdue, hint: t('portfolio.filter.overdue.hint'), tone: serviceTotals.overdue > 0 ? 'danger' : 'success' },
+    { id: 'due_soon', label: t('portfolio.filter.due_soon.label'), value: serviceTotals.dueSoon, hint: t('portfolio.filter.due_soon.hint'), tone: serviceTotals.dueSoon > 0 ? 'warning' : 'success' },
+    { id: 'missing_owner', label: t('service_list.readiness_option.missing_owner'), value: serviceTotals.missingOwner, hint: t('service_list.quick_filter.missing_owner.hint'), tone: serviceTotals.missingOwner > 0 ? 'danger' : 'success' },
+    { id: 'readiness_blocked', label: t('portfolio.filter.readiness_blocked.label'), value: serviceTotals.readinessBlocked, hint: t('portfolio.filter.readiness_blocked.hint'), tone: serviceTotals.readinessBlocked > 0 ? 'danger' : 'success' },
   ];
   const selectedFilter = serviceFilterOptions.find((option) => option.id === serviceFilter);
   const filteredServices = serviceFilter ? serviceScopeData?.items ?? [] : [];
@@ -282,17 +291,17 @@ export default function PortfolioPage() {
   return (
     <main className={styles.shell}>
       <PageHeader
-        title="Portfolia schopností"
-        purpose="Manažerský přehled C3 level 3 schopností, na které jsou mapované služby: co je pokryté, co je prázdné a kde je potřeba revize."
+        title={t('portfolio.title')}
+        purpose={t('portfolio.purpose')}
         chips={[
-          { label: `${formatNumber(capabilityTotals.level3)} C3 level 3`, tone: 'info' },
-          { label: `${formatNumber(capabilityTotals.empty)} prázdných`, tone: capabilityTotals.empty > 0 ? 'neutral' : 'ok' },
-          { label: `${formatNumber(serviceTotals.overdue)} po termínu`, tone: serviceTotals.overdue > 0 ? 'bad' : 'ok' },
+          { label: t('portfolio.chip.level3', { count: formatNumber(capabilityTotals.level3) }), tone: 'info' },
+          { label: t('portfolio.chip.empty', { count: formatNumber(capabilityTotals.empty) }), tone: capabilityTotals.empty > 0 ? 'neutral' : 'ok' },
+          { label: t('portfolio.chip.overdue', { count: formatNumber(serviceTotals.overdue) }), tone: serviceTotals.overdue > 0 ? 'bad' : 'ok' },
         ]}
-        primaryAction={{ label: 'Katalog služeb', href: '/catalogue' }}
+        primaryAction={{ label: t('nav.sidebar.service_catalogue'), href: '/catalogue' }}
       />
 
-      <section className={styles.kpiGrid} aria-label="Hlavní KPI portfolia služeb">
+      <section className={styles.kpiGrid} aria-label={t('portfolio.kpi.aria')}>
         {serviceFilterOptions.map((option) => (
           <KpiFilterButton
             key={option.id}
@@ -307,45 +316,44 @@ export default function PortfolioPage() {
       </section>
 
       {serviceFilter && (
-        <section className={styles.card} aria-live="polite" aria-label="Filtrovaný seznam služeb portfolia">
+        <section className={styles.card} aria-live="polite" aria-label={t('portfolio.filtered.aria')}>
           <div className={styles.cardHeader}>
             <div>
-              <small>Filtrovaný seznam</small>
-              <h2>{selectedFilter?.label ?? 'Služby'} v portfoliu schopností</h2>
+              <small>{t('portfolio.filtered.eyebrow')}</small>
+              <h2>{t('portfolio.filtered.title', { filter: selectedFilter?.label ?? t('portfolio.filter.all.label') })}</h2>
             </div>
             <Badge variant={serviceFilter === 'overdue' && filteredServices.length > 0 ? 'danger' : 'neutral'}>
-              {formatNumber(filteredServices.length)} služeb
+              {t(countKey('portfolio.services_count', filteredServices.length), { count: formatNumber(filteredServices.length) })}
             </Badge>
           </div>
           {servicesLoading ? (
-            <div className={styles.state}>Načítám služby...</div>
+            <div className={styles.state}>{t('service_list.state.loading')}</div>
           ) : servicesError ? (
-            <div className={styles.state}>Seznam služeb není dostupný.</div>
+            <div className={styles.state}>{t('portfolio.filtered.error')}</div>
           ) : filteredServices.length === 0 ? (
-            <EmptyState title="Žádné služby pro vybraný filtr." />
+            <EmptyState title={t('portfolio.filtered.empty')} />
           ) : (
             <div className={styles.serviceRows}>
               {filteredServices.map((service) => (
                 <Link key={service.service_id} href={`/services/${service.service_id}`} className={styles.serviceRow}>
                   <span>
                     <strong>{service.title}</strong>
-                    <small>{serviceMeta(service)}</small>
+                    <small>{serviceMeta(service, t)}</small>
                     <small>
-                      Vlastník: {serviceOwner(service) ?? 'chybí'}
-                      {' · '}Revize: {formatDate(service.review_due_at)}
+                      {t('portfolio.service_row.owner_review', { owner: serviceOwner(service) ?? t('portfolio.owner_missing'), date: formatDate(service.review_due_at, t) })}
                     </small>
                   </span>
                   <span className={styles.rowBadges}>
-                    {service.requestable ? <Badge variant="info">Objednatelné</Badge> : null}
+                    {service.requestable ? <Badge variant="info">{t('service_list.row.requestable')}</Badge> : null}
                     <Badge variant={completenessTone(service.completeness_score)}>
-                      {completenessLabel(service.completeness_score)}
+                      {completenessLabel(service.completeness_score, t)}
                     </Badge>
-                    {serviceHasMissingOwner(service) ? <Badge variant="danger">Chybí vlastník</Badge> : null}
-                    {service.readiness_blocked ? <Badge variant="danger">Blokuje připravenost</Badge> : null}
-                    {service.review_due_soon ? <Badge variant="warning">Revize do 90 dnů</Badge> : null}
-                    {isReviewOverdue(service.review_due_at) ? <Badge variant="danger">Po termínu</Badge> : null}
-                    {Number(service.active_review_count ?? 0) > 0 ? <Badge variant="info">{formatNumber(service.active_review_count)} revize</Badge> : null}
-                    <Badge variant={statusTone(service.service_status)}>{service.service_status ?? 'neznámý'}</Badge>
+                    {serviceHasMissingOwner(service) ? <Badge variant="danger">{t('service_list.readiness_option.missing_owner')}</Badge> : null}
+                    {service.readiness_blocked ? <Badge variant="danger">{t('portfolio.badge.blocks_readiness')}</Badge> : null}
+                    {service.review_due_soon ? <Badge variant="warning">{t('portfolio.filter.due_soon.label')}</Badge> : null}
+                    {isReviewOverdue(service.review_due_at) ? <Badge variant="danger">{t('portfolio.badge.overdue')}</Badge> : null}
+                    {Number(service.active_review_count ?? 0) > 0 ? <Badge variant="info">{t(countKey('portfolio.badge.reviews', Number(service.active_review_count)), { count: formatNumber(service.active_review_count) })}</Badge> : null}
+                    <Badge variant={statusTone(service.service_status)}>{service.service_status ?? t('portfolio.unknown_status')}</Badge>
                   </span>
                 </Link>
               ))}
@@ -354,47 +362,47 @@ export default function PortfolioPage() {
         </section>
       )}
 
-      <section className={styles.toolbar} aria-label="Filtry C3 level 3 portfolia">
+      <section className={styles.toolbar} aria-label={t('portfolio.toolbar.aria')}>
         <label>
-          <span>Status</span>
-          <select aria-label="Status" value={capabilityStatusFilter} onChange={(event) => setCapabilityStatusFilter(event.target.value)}>
-            <option value="">Všechny statusy</option>
+          <span>{t('common.status')}</span>
+          <select aria-label={t('common.status')} value={capabilityStatusFilter} onChange={(event) => setCapabilityStatusFilter(event.target.value)}>
+            <option value="">{t('portfolio.toolbar.all_statuses')}</option>
             {capabilityStatusOptions.map((status) => (
               <option key={status} value={status}>{status}</option>
             ))}
           </select>
         </label>
         <label>
-          <span>Spirála</span>
-          <select aria-label="Spirála" value={spiralFilter} onChange={(event) => setSpiralFilter(event.target.value)}>
-            <option value="">Všechny spirály</option>
+          <span>{t('portfolio.toolbar.spiral')}</span>
+          <select aria-label={t('portfolio.toolbar.spiral')} value={spiralFilter} onChange={(event) => setSpiralFilter(event.target.value)}>
+            <option value="">{t('portfolio.toolbar.all_spirals')}</option>
             {spiralOptions.map((spiral) => (
-              <option key={spiral} value={spiral}>{spiralLabel(spiral)}</option>
+              <option key={spiral} value={spiral}>{spiralLabel(spiral, t)}</option>
             ))}
           </select>
         </label>
         <label>
-          <span>C3 level 2</span>
-          <select aria-label="C3 level 2" value={level2Filter} onChange={(event) => setLevel2Filter(event.target.value)}>
-            <option value="">Všechny C3 level 2</option>
+          <span>{t('portfolio.toolbar.level2')}</span>
+          <select aria-label={t('portfolio.toolbar.level2')} value={level2Filter} onChange={(event) => setLevel2Filter(event.target.value)}>
+            <option value="">{t('portfolio.toolbar.all_level2')}</option>
             {level2Options.map(([code, title]) => (
               <option key={code} value={code}>{title}</option>
             ))}
           </select>
         </label>
-        <span className={styles.sortHint}>Řazeno podle statusu, spirály a C3 levelu 2</span>
+        <span className={styles.sortHint}>{t('portfolio.toolbar.sort_hint')}</span>
       </section>
 
       {isLoading || capabilitiesLoading ? (
-        <div className={styles.state}>Načítám portfolio cockpit...</div>
+        <div className={styles.state}>{t('portfolio.state.loading')}</div>
       ) : error || capabilitiesError ? (
-        <div className={styles.state}>Portfolio cockpit není dostupný.</div>
+        <div className={styles.state}>{t('portfolio.state.error')}</div>
       ) : filteredCapabilities.length === 0 ? (
-        <EmptyState title="Žádná C3 level 3 schopnost neodpovídá filtru." />
+        <EmptyState title={t('portfolio.state.empty')} />
       ) : (
-        <section className={styles.grid} aria-label="Seznam C3 level 3 schopností">
+        <section className={styles.grid} aria-label={t('portfolio.grid.aria')}>
           {filteredCapabilities.map((capability) => {
-            const action = capabilityAction(capability);
+            const action = capabilityAction(capability, t);
             const services = capabilityServices(capability);
             return (
               <article key={capability.capability_uuid} className={styles.card}>
@@ -403,10 +411,10 @@ export default function PortfolioPage() {
                     <small>{capability.capability_code}</small>
                     <h2>{capability.capability_title}</h2>
                   </div>
-                  <Badge variant={statusTone(capability.status_code)}>{capability.status_code ?? 'neznámý'}</Badge>
+                  <Badge variant={statusTone(capability.status_code)}>{capability.status_code ?? t('portfolio.unknown_status')}</Badge>
                 </div>
                 <p>
-                  C3 level 3 · {spiralLabel(capability.spiral_code)} · C3 level 2: {capability.parent_portfolio_title}
+                  {t('portfolio.card.meta', { spiral: spiralLabel(capability.spiral_code, t), parent: capability.parent_portfolio_title })}
                 </p>
                 <div className={styles.actionHint}>
                   <Badge variant={action.tone}>{action.label}</Badge>
@@ -414,37 +422,37 @@ export default function PortfolioPage() {
                 </div>
                 <dl className={styles.metrics}>
                   <div>
-                    <dt>Služby</dt>
+                    <dt>{t('portfolio.filter.all.label')}</dt>
                     <dd>{formatNumber(capability.service_count)}</dd>
                   </div>
                   <div>
-                    <dt>Aktivní</dt>
+                    <dt>{t('common.active')}</dt>
                     <dd>{formatNumber(capability.active_service_count)}</dd>
                   </div>
                   <div>
-                    <dt>Objednatelné</dt>
+                    <dt>{t('service_list.row.requestable')}</dt>
                     <dd>{formatNumber(capability.requestable_service_count)}</dd>
                   </div>
                   <div>
-                    <dt>Po termínu revize</dt>
+                    <dt>{t('portfolio.filter.overdue.label')}</dt>
                     <dd>{formatNumber(capability.overdue_review_count)}</dd>
                   </div>
                   <div>
-                    <dt>Chybí vlastník</dt>
+                    <dt>{t('service_list.readiness_option.missing_owner')}</dt>
                     <dd>{formatNumber(capability.missing_owner_count)}</dd>
                   </div>
                   <div>
-                    <dt>Blokery připravenosti</dt>
+                    <dt>{t('portfolio.filter.readiness_blocked.label')}</dt>
                     <dd>{formatNumber(capability.readiness_blocker_count)}</dd>
                   </div>
                 </dl>
                 <div className={styles.ownerLine}>
-                  <span>Nadřazená C3 level 2</span>
+                  <span>{t('portfolio.card.parent')}</span>
                   <strong>{capability.parent_portfolio_title}</strong>
                 </div>
                 {services.length === 0 ? (
                   <div className={styles.emptyCapability}>
-                    Tato C3 level 3 schopnost je v portfoliu prázdná. Zůstává viditelná kvůli řízení mezer v pokrytí.
+                    {t('portfolio.card.empty')}
                   </div>
                 ) : (
                   <div className={styles.serviceRows}>
@@ -453,30 +461,30 @@ export default function PortfolioPage() {
                         <span>
                           <strong>{service.title}</strong>
                           <small>
-                            {service.service_id} · {service.service_type ?? 'typ chybí'} · Vlastník: {serviceOwner(service) ?? 'chybí'}
+                            {t('portfolio.service_row.meta', { id: service.service_id, type: service.service_type ?? t('portfolio.type_missing'), owner: serviceOwner(service) ?? t('portfolio.owner_missing') })}
                           </small>
                         </span>
                         <span className={styles.rowBadges}>
-                          {service.requestable ? <Badge variant="info">Objednatelné</Badge> : null}
+                          {service.requestable ? <Badge variant="info">{t('service_list.row.requestable')}</Badge> : null}
                           <Badge variant={completenessTone(service.completeness_score)}>
-                            {completenessLabel(service.completeness_score)}
+                            {completenessLabel(service.completeness_score, t)}
                           </Badge>
-                          {service.readiness_blocked ? <Badge variant="danger">Blokuje připravenost</Badge> : null}
-                          <Badge variant={statusTone(service.service_status)}>{service.service_status ?? 'neznámý'}</Badge>
+                          {service.readiness_blocked ? <Badge variant="danger">{t('portfolio.badge.blocks_readiness')}</Badge> : null}
+                          <Badge variant={statusTone(service.service_status)}>{service.service_status ?? t('portfolio.unknown_status')}</Badge>
                         </span>
                       </Link>
                     ))}
                     {services.length > 4 ? (
-                      <span className={styles.moreServices}>+ {formatNumber(services.length - 4)} další služby</span>
+                      <span className={styles.moreServices}>{t(countKey('portfolio.card.more', services.length - 4), { count: formatNumber(services.length - 4) })}</span>
                     ) : null}
                   </div>
                 )}
                 <Link
                   href={`/c3/${encodeURIComponent(capability.capability_uuid)}`}
                   className={styles.serviceLink}
-                  aria-label={`Otevřít C3 schopnost ${capability.capability_title}`}
+                  aria-label={t('portfolio.card.open_capability_aria', { title: capability.capability_title })}
                 >
-                  Otevřít C3 schopnost
+                  {t('portfolio.card.open_capability')}
                 </Link>
               </article>
             );

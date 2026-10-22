@@ -27,13 +27,13 @@ export default function SpiralsPage() {
         <Badge variant="info">{spirals.length} FMN</Badge>
       </header>
 
-      <section className={styles.kpiGrid} aria-label="Spiral headline KPIs">
+      <section className={styles.kpiGrid} aria-label={t('spirals.kpi_aria')}>
         <KpiCard label={t('spirals.kpi.total')} value={spirals.length} hint="FMN" />
         <KpiCard label={t('spirals.kpi.active')} value={activeCount} hint={t('spirals.active_baseline')} />
-        <KpiCard label={t('spirals.kpi.heatmaps')} value={spirals.length} hint="coverage" />
+        <KpiCard label={t('spirals.kpi.heatmaps')} value={spirals.length} hint={t('spirals.kpi.heatmaps_hint')} />
       </section>
 
-      <nav className={styles.tabs} aria-label="Spiral sections">
+      <nav className={styles.tabs} aria-label={t('spirals.sections_aria')}>
         <Link href="/spirals" className={`${styles.tab} ${styles.tabActive}`}>{t('spirals.tabs.overview')}</Link>
       </nav>
 

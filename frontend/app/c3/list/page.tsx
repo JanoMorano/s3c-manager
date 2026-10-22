@@ -21,9 +21,11 @@ import {
   readStoredC3TaxonomySort,
   storeC3TaxonomySort,
 } from '../../lib/c3Routes';
-import { COUNT_LABELS, formatFilteredCountLabel } from '../../lib/counts';
+import { formatFilteredCountLabel } from '../../lib/counts';
 
 const BASE = '/api/v1/taxonomy';
+// Filter value the API uses for items without a parent (dashboard links pass it as ?parent=); must match the server, not translated.
+const ROOT_PARENT_FILTER_VALUE = '(Kořenové schopnosti)';
 
 const C3_TYPE_COLOR: Record<string, string> = {
   BP: 'var(--color-warning)',
@@ -286,7 +288,7 @@ function C3CatalogueInner() {
       }
 
       if (itemTypeFilter.length > 0 && !itemTypeFilter.includes(String(row.item_type ?? ''))) return false;
-      if (parentFilter.length > 0 && !parentFilter.includes(String(row.parent_title ?? '(Kořenové schopnosti)'))) return false;
+      if (parentFilter.length > 0 && !parentFilter.includes(String(row.parent_title ?? ROOT_PARENT_FILTER_VALUE))) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(String(row.item_status ?? ''))) return false;
 
       return true;
@@ -347,7 +349,7 @@ function C3CatalogueInner() {
     }
   }
 
-  const pageTitle = itemTypeFilter.length === 1 ? (getC3TaxonomyTypeLabel(itemTypeFilter[0]) ?? t('c3.list.all_title')) : t('c3.list.all_title');
+  const pageTitle = itemTypeFilter.length === 1 ? (getC3TaxonomyTypeLabel(itemTypeFilter[0], t) ?? t('c3.list.all_title')) : t('c3.list.all_title');
 
   const renderParentCell = (item: C3Item): ReactNode => {
     if (item.parent_uuid) {
@@ -395,7 +397,7 @@ function C3CatalogueInner() {
               >
                 {option.code}
               </span>
-              <span style={{ marginLeft: 6, fontSize: '0.82em' }}>{option.label}</span>
+              <span style={{ marginLeft: 6, fontSize: '0.82em' }}>{t(option.labelKey)}</span>
             </label>
           ))}
         </FilterGroup>
@@ -420,7 +422,7 @@ function C3CatalogueInner() {
           <div className={styles.quickLinks}>
             {C3_TAXONOMY_TYPE_OPTIONS.map((option) => (
               <Link key={option.code} href={buildC3TaxonomyListHref(option.code)} className={styles.quickLink}>
-                {option.label}
+                {t(option.labelKey)}
               </Link>
             ))}
           </div>
@@ -454,10 +456,10 @@ function C3CatalogueInner() {
         )}
       </aside>
 
-      <main className={catStyles.content} aria-label="C3 taxonomy table">
-        <nav className={styles.typeTabs} aria-label="C3 list type switcher">
+      <main className={catStyles.content} aria-label={t('c3.list.table_aria')}>
+        <nav className={styles.typeTabs} aria-label={t('c3.list.type_switcher_aria')}>
           <Link href={C3_ROUTES.list} className={`${styles.typeTab} ${itemTypeFilter.length === 0 ? styles.typeTabActive : ''}`}>
-            All
+            {t('c3.list.all_types')}
           </Link>
           {C3_TAXONOMY_TYPE_OPTIONS.map((option) => (
             <Link
@@ -466,7 +468,7 @@ function C3CatalogueInner() {
               className={`${styles.typeTab} ${itemTypeFilter.length === 1 && itemTypeFilter[0] === option.code ? styles.typeTabActive : ''}`}
             >
               <span className={styles.typeTabCode}>{option.code}</span>
-              <span>{option.label.replace(/^C3\s+/, '')}</span>
+              <span>{t(`c3.list.type_short.${option.code}`)}</span>
             </Link>
           ))}
         </nav>
@@ -484,7 +486,7 @@ function C3CatalogueInner() {
               ? t('common.loading')
               : error
                 ? t('c3.list.load_error')
-                : formatFilteredCountLabel(filteredRows.length, data?.length ?? 0, COUNT_LABELS.items)}
+                : formatFilteredCountLabel(filteredRows.length, data?.length ?? 0, { one: t('c3.list.count_items.one'), few: t('c3.list.count_items.few'), many: t('c3.list.count_items.many') })}
           </span>
         </div>
 
@@ -566,8 +568,8 @@ function C3CatalogueInner() {
                     {showActionColumn && (
                       <td>
                         <div className={styles.actionStack}>
-                          <Link href={`/c3/${item.uuid}/edit`} className={styles.actionBtn} title="Editovat">
-                            Edit
+                          <Link href={`/c3/${item.uuid}/edit`} className={styles.actionBtn} title={t('common.edit')}>
+                            {t('common.edit')}
                           </Link>
                           {!isPublicC3Route && isAdmin && (
                             <button

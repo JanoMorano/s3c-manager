@@ -39,6 +39,7 @@ interface Props { params: Promise<{ id: string }> }
 export default function ServiceEditorPage({ params }: Props) {
   const { id } = use(params);
   const t = useT();
+  const readinessPrefix = t('service_editor.readiness_prefix');
   const router  = useRouter();
   const { data: svc, mutate } = useService(id);
   const { data: portfolioGroups } = usePortfolioGroups();
@@ -229,7 +230,7 @@ export default function ServiceEditorPage({ params }: Props) {
       blockers.push(t('service_editor.text.requestable_service_needs_a_support_model'));
     }
     if (readiness && !readiness.is_publishable) {
-      blockers.push(...readiness.blockers.map((blocker) => `Readiness: ${blocker}`));
+      blockers.push(...readiness.blockers.map((blocker) => `${readinessPrefix}: ${blocker}`));
     }
     return Array.from(new Set(blockers));
   }, [
@@ -237,6 +238,7 @@ export default function ServiceEditorPage({ params }: Props) {
     hasRequestChannel,
     offerings.length,
     readiness,
+    readinessPrefix,
     supportModels.length,
     t,
     watchedRequestable,
@@ -420,7 +422,7 @@ export default function ServiceEditorPage({ params }: Props) {
   const handlePublish = () => {
     if (publishBlockers.length > 0) {
       setSaveError(publishBlockers[0]);
-      const targetSection = publishBlockers[0].startsWith('Readiness')
+      const targetSection = publishBlockers[0].startsWith(`${readinessPrefix}:`)
         ? 'readiness-governance'
         : publishBlockers[0].includes('offering')
           ? 'request-access'
@@ -483,7 +485,7 @@ export default function ServiceEditorPage({ params }: Props) {
               {Object.entries(errors).length > 0
                 ? Object.entries(errors).slice(0, 3).map(([field, error]) => (
                     <div key={field} className={styles.validationError}>
-                      {field}: {(error as { message?: string }).message}
+                      {t((error as { message?: string }).message ?? '')}
                     </div>
                   ))
                 : <div className={styles.validOk}>{t('service_editor.text.no_field_errors')}</div>
@@ -630,7 +632,7 @@ export default function ServiceEditorPage({ params }: Props) {
             </p>
           </EditorSection>
 
-          {/* §4 Vlastnictví a support */}
+          {/* §4 Ownership and support */}
           <EditorSection id="ownership-support" title={t('service_editor.section.ownership')}>
             <span id="ownership" className={styles.anchorAlias} aria-hidden="true" />
             <div className={styles.fieldRow}>
@@ -645,7 +647,7 @@ export default function ServiceEditorPage({ params }: Props) {
                   onChange={(value) => setValue('service_owner_email', value, { shouldDirty: true, shouldValidate: true })}
                   required={false}
                 />
-                {errors.service_owner_email?.message && <span className={styles.fieldError}>{errors.service_owner_email.message}</span>}
+                {errors.service_owner_email?.message && <span className={styles.fieldError}>{t(errors.service_owner_email.message)}</span>}
               </div>
               <Field label={t('service_editor.text.service_delivery_manager')} hint={t('service_editor.text.fill_in_only_if_a_delivery_process_exists_for_th')}>
                 <input {...register('manager')} className={styles.input} placeholder={t('service_editor.text.display_name')} />

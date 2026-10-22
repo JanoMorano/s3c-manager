@@ -6,16 +6,18 @@ export const ROLE_LEVELS: Record<AppRole, number> = {
   admin: 3,
 }
 
+/** i18n keys for role labels; translate with t() at render time. */
 export const ROLE_LABELS: Record<AppRole, string> = {
-  viewer: 'User - RO',
-  editor: 'Content Admin - RW',
-  admin: 'Admin - ALL',
+  viewer: 'administration.users.role.viewer.label',
+  editor: 'administration.users.role.editor.label',
+  admin: 'administration.users.role.admin.label',
 }
 
+/** i18n keys for role access descriptions; translate with t() at render time. */
 export const ROLE_ACCESS_LABELS: Record<AppRole, string> = {
-  viewer: 'Read-only přístup do katalogu',
-  editor: 'Read/write + přístup do Content Admin',
-  admin: 'ALL + přístup do Administration',
+  viewer: 'administration.users.role.viewer.access',
+  editor: 'administration.users.role.editor.access',
+  admin: 'administration.users.role.admin.access',
 }
 
 export function hasRoleAccess(role: string | null | undefined, requiredRole: AppRole): boolean {

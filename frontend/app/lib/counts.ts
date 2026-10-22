@@ -22,10 +22,3 @@ export function formatFilteredCountLabel(visible: number, total: number, forms: 
   const normalizedTotal = visible === 0 ? 0 : total;
   return `${visible} / ${normalizedTotal} ${resolveCountForm(normalizedTotal, forms)}`;
 }
-
-export const COUNT_LABELS = {
-  items: { one: 'položka', few: 'položky', many: 'položek' },
-  records: { one: 'záznam', few: 'záznamy', many: 'záznamů' },
-  services: { one: 'služba', few: 'služby', many: 'služeb' },
-  results: { one: 'výsledek', few: 'výsledky', many: 'výsledků' },
-} satisfies Record<string, CountForms>;

@@ -140,7 +140,7 @@ export default function LoginPage() {
     <div className={styles.shell}>
         <div className={styles.card}>
         <div className={styles.logo}>SC</div>
-        <h1 className={styles.title}>Service Catalogue</h1>
+        <h1 className={styles.title}>{t('nav.service_catalogue')}</h1>
         <p className={styles.subtitle}>{t('auth.login.subtitle')}</p>
         {ssoChecking && <div className={styles.infoMsg} role="status">{t('auth.login.sso_checking')}</div>}
         {!ssoChecking && ssoMessage && <div className={styles.infoMsg} role="status">{ssoMessage}</div>}
